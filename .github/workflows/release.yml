@@ -1,26 +1,42 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version tag like v0.1.0
-        required: true
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build-and-attach:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Create GitHub release
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build dist
+        run: npm run build
+
+      - name: Upload built JS to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: ${{ github.event.inputs.version }}
-          files: |
-            dist/unifi-device-card.js
+          tag_name: ${{ github.event.release.tag_name }}
+          files: dist/unifi-device-card.js
