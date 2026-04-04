@@ -1,0 +1,24 @@
+{
+  "name": "unifi-device-card",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Home Assistant custom dashboard card for UniFi switches and gateways",
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "hacs",
+    "unifi",
+    "dashboard",
+    "custom-card"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "node -e \"console.log('No bundling configured yet; dist/unifi-device-card.js is already included.')\"",
+    "lint": "node -e \"console.log('Add your preferred linter here.')\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/unifi-device-card.git"
+  }
+}
