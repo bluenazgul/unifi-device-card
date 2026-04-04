@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f9a98ef */
+/* UniFi Device Card 0.0.0-dev.85a2427 */
 
 // src/helpers.js
 function normalize(value) {
@@ -79,8 +79,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    this._config = {};
     this._devices = [];
     this._loading = false;
+    this._error = "";
   }
   setConfig(config) {
     this._config = config || {};
@@ -88,65 +90,145 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   set hass(hass) {
     this._hass = hass;
-    if (!this._devices.length && !this._loading) {
+    if (!this._loading && !this._devices.length) {
       this._loadDevices();
+    } else {
+      this._render();
     }
   }
   async _loadDevices() {
+    if (!this._hass) return;
     this._loading = true;
+    this._error = "";
     this._render();
-    this._devices = await getUnifiDevices(this._hass);
+    try {
+      this._devices = await getUnifiDevices(this._hass);
+    } catch (err) {
+      console.error("[unifi-device-card] Failed to load devices", err);
+      this._error = "UniFi-Ger\xE4te konnten nicht geladen werden.";
+      this._devices = [];
+    }
     this._loading = false;
     this._render();
   }
-  _onChange(ev) {
-    const device_id = ev.target.value;
+  _dispatch(config) {
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: {
-          config: {
-            ...this._config,
-            device_id
-          }
-        },
+        detail: { config },
         bubbles: true,
         composed: true
       })
     );
   }
+  _onDeviceChange(ev) {
+    const device_id = ev.target.value || "";
+    const next = { ...this._config };
+    if (device_id) {
+      next.device_id = device_id;
+      const selected = this._devices.find((d) => d.id === device_id);
+      if (!next.name && selected?.name) {
+        next.name = selected.name;
+      }
+    } else {
+      delete next.device_id;
+    }
+    this._config = next;
+    this._dispatch(next);
+    this._render();
+  }
+  _onNameInput(ev) {
+    const next = {
+      ...this._config,
+      name: ev.target.value || ""
+    };
+    this._config = next;
+    this._dispatch(next);
+  }
   _render() {
+    const options = this._devices.map(
+      (d) => `
+          <option value="${d.id}" ${d.id === this._config.device_id ? "selected" : ""}>
+            ${d.label} (${d.type})
+          </option>
+        `
+    ).join("");
     this.shadowRoot.innerHTML = `
       <style>
-        select {
+        :host {
+          display: block;
+        }
+
+        .wrap {
+          display: grid;
+          gap: 16px;
+        }
+
+        .field {
+          display: grid;
+          gap: 6px;
+        }
+
+        label {
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        select, input {
           width: 100%;
-          padding: 8px;
-          border-radius: 8px;
+          box-sizing: border-box;
+          min-height: 40px;
+          padding: 8px 10px;
+          border-radius: 10px;
+          border: 1px solid var(--divider-color);
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+          font: inherit;
+        }
+
+        .hint {
+          color: var(--secondary-text-color);
+          font-size: 13px;
+        }
+
+        .error {
+          color: var(--error-color);
+          font-size: 13px;
         }
       </style>
 
-      ${this._loading ? `<div>Loading UniFi devices...</div>` : `
-            <select>
-              <option value="">Select device</option>
-              ${this._devices.map(
-      (d) => `
-                  <option value="${d.id}" ${d.id === this._config.device_id ? "selected" : ""}>
-                    ${d.name} (${d.type})
-                  </option>
-                `
-    ).join("")}
-            </select>
-          `}
+      <div class="wrap">
+        <div class="field">
+          <label for="device">UniFi device</label>
+          ${this._loading ? `<div class="hint">Lade unterst\xFCtzte UniFi-Ger\xE4te\u2026</div>` : `
+                <select id="device">
+                  <option value="">Select device\u2026</option>
+                  ${options}
+                </select>
+              `}
+        </div>
+
+        <div class="field">
+          <label for="name">Display name</label>
+          <input
+            id="name"
+            type="text"
+            value="${String(this._config.name || "").replace(/"/g, "&quot;")}"
+            placeholder="Optional"
+          />
+        </div>
+
+        ${this._error ? `<div class="error">${this._error}</div>` : ""}
+        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine unterst\xFCtzten UniFi Switches oder Gateways gefunden.</div>` : `<div class="hint">Es werden nur UniFi Switches und Gateways angezeigt.</div>`}
+      </div>
     `;
-    const select = this.shadowRoot.querySelector("select");
-    if (select) {
-      select.addEventListener("change", this._onChange.bind(this));
-    }
+    this.shadowRoot.getElementById("device")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
+    this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
   }
 };
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.f9a98ef";
+var VERSION = "0.0.0-dev.85a2427";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
