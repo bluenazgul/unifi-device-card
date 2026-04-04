@@ -102,7 +102,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       .map(
         (d) => `
           <option value="${d.id}" ${d.id === selectedId ? "selected" : ""}>
-            ${d.label} (${d.type})
+            ${d.label}
           </option>
         `
       )
@@ -185,13 +185,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
         ${
           !this._loading && !this._devices.length && !this._error
             ? `<div class="hint">Keine unterstützten UniFi Switches oder Gateways gefunden.</div>`
-            : `<div class="hint">Es werden nur UniFi Switches und Gateways angezeigt.</div>`
+            : `<div class="hint">Es werden nur Geräte aus der UniFi-Integration angezeigt.</div>`
         }
       </div>
     `;
 
-    this.shadowRoot.getElementById("device")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
-    this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
+    this.shadowRoot
+      .getElementById("device")
+      ?.addEventListener("change", (ev) => this._onDeviceChange(ev));
+    this.shadowRoot
+      .getElementById("name")
+      ?.addEventListener("input", (ev) => this._onNameInput(ev));
   }
 }
 
