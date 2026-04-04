@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.fe473c4 */
+/* UniFi Device Card 0.0.0-dev.2f7ca4f */
 
 // src/helpers.js
 function normalize(value) {
@@ -185,7 +185,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._config = {};
     this._devices = [];
     this._loading = false;
+    this._loaded = false;
     this._error = "";
+    this._hass = null;
+    this._loadToken = 0;
   }
   setConfig(config) {
     this._config = config || {};
@@ -193,26 +196,32 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   set hass(hass) {
     this._hass = hass;
-    if (!this._loading && !this._devices.length) {
+    if (!this._loaded && !this._loading) {
       this._loadDevices();
-    } else {
-      this._render();
     }
   }
   async _loadDevices() {
     if (!this._hass) return;
     this._loading = true;
     this._error = "";
+    const token = ++this._loadToken;
     this._render();
     try {
-      this._devices = await getUnifiDevices(this._hass);
+      const devices = await getUnifiDevices(this._hass);
+      if (token !== this._loadToken) return;
+      this._devices = devices;
+      this._loaded = true;
+      this._loading = false;
+      this._render();
     } catch (err) {
+      if (token !== this._loadToken) return;
       console.error("[unifi-device-card] Failed to load devices", err);
-      this._error = "UniFi-Ger\xE4te konnten nicht geladen werden.";
       this._devices = [];
+      this._loaded = true;
+      this._loading = false;
+      this._error = "UniFi-Ger\xE4te konnten nicht geladen werden.";
+      this._render();
     }
-    this._loading = false;
-    this._render();
   }
   _dispatch(config) {
     this.dispatchEvent(
@@ -229,7 +238,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (device_id) {
       next.device_id = device_id;
       const selected = this._devices.find((d) => d.id === device_id);
-      if (!next.name && selected?.name) {
+      if ((!next.name || next.name === "") && selected?.name) {
         next.name = selected.name;
       }
     } else {
@@ -248,9 +257,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._dispatch(next);
   }
   _render() {
+    const selectedId = this._config?.device_id || "";
+    const selectedName = String(this._config?.name || "").replace(/"/g, "&quot;");
     const options = this._devices.map(
       (d) => `
-          <option value="${d.id}" ${d.id === this._config.device_id ? "selected" : ""}>
+          <option value="${d.id}" ${d.id === selectedId ? "selected" : ""}>
             ${d.label} (${d.type})
           </option>
         `
@@ -274,9 +285,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         label {
           font-size: 14px;
           font-weight: 600;
+          color: var(--primary-text-color);
         }
 
-        select, input {
+        select,
+        input {
           width: 100%;
           box-sizing: border-box;
           min-height: 40px;
@@ -291,11 +304,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         .hint {
           color: var(--secondary-text-color);
           font-size: 13px;
+          line-height: 1.4;
         }
 
         .error {
           color: var(--error-color);
           font-size: 13px;
+          line-height: 1.4;
         }
       </style>
 
@@ -315,7 +330,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <input
             id="name"
             type="text"
-            value="${String(this._config.name || "").replace(/"/g, "&quot;")}"
+            value="${selectedName}"
             placeholder="Optional"
           />
         </div>
@@ -331,7 +346,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.fe473c4";
+var VERSION = "0.0.0-dev.2f7ca4f";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
