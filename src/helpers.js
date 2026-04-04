@@ -375,16 +375,37 @@ function classifyPortEntity(entity) {
   const eid = lower(entity.entity_id);
   const text = entityText(entity);
 
-  if (
-    entity.entity_id.startsWith("binary_sensor.") &&
-    (eid.includes("_link") || text.includes(" link"))
-  ) {
-    return "link_entity";
+  // Link-Erkennung erweitert
+  if (entity.entity_id.startsWith("binary_sensor.")) {
+    if (
+      eid.includes("_link") ||
+      eid.includes("_connected") ||
+      eid.includes("_connection") ||
+      text.includes(" link") ||
+      text.includes("connected") ||
+      text.includes("connection")
+    ) {
+      return "link_entity";
+    }
+  }
+
+  // Manche Integrationen liefern Port-State als sensor
+  if (entity.entity_id.startsWith("sensor.")) {
+    if (
+      (eid.includes("_state") || eid.includes("_status")) &&
+      (text.includes("port") || text.includes("link") || text.includes("connected"))
+    ) {
+      return "link_entity";
+    }
   }
 
   if (
     entity.entity_id.startsWith("sensor.") &&
-    (eid.includes("_speed") || text.includes("speed"))
+    (eid.includes("_speed") ||
+      text.includes("speed") ||
+      text.includes("mbit/s") ||
+      text.includes("gbe") ||
+      text.includes("link speed"))
   ) {
     return "speed_entity";
   }
@@ -409,6 +430,7 @@ function classifyPortEntity(entity) {
     entity.entity_id.startsWith("button.") &&
     (eid.includes("power_cycle") ||
       eid.includes("restart") ||
+      eid.includes("reboot") ||
       (text.includes("power") && text.includes("cycle")))
   ) {
     return "power_cycle_entity";
@@ -483,7 +505,11 @@ export function stateValue(hass, entityId, fallback = "—") {
 }
 
 export function isOn(hass, entityId) {
-  return stateValue(hass, entityId, "off") === "on";
+  const st = stateObj(hass, entityId);
+  if (!st) return false;
+
+  const value = String(st.state ?? "").toLowerCase();
+  return value === "on" || value === "connected" || value === "up" || value === "true";
 }
 
 export function formatState(hass, entityId, fallback = "—") {
