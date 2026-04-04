@@ -1,3 +1,5 @@
+import { getDeviceLayout, resolveModelKey } from "./model-registry.js";
+
 function normalize(value) {
   return String(value ?? "").trim();
 }
@@ -76,7 +78,15 @@ function classifyDevice(device, entities) {
 
   if (isAccessPoint) return "access_point";
 
-  // Gateway zuerst prüfen, damit UCG / Cloud Gateway nicht als Switch endet
+  const modelKey = resolveModelKey(device);
+  if (modelKey === "UDRULT" || modelKey === "UCGULTRA" || modelKey === "UCGMAX" || modelKey === "UDMPRO" || modelKey === "UDMSE") {
+    return "gateway";
+  }
+
+  if (modelKey === "US8P60" || modelKey === "USMINI" || modelKey === "USL8LP" || modelKey === "USL16LP") {
+    return "switch";
+  }
+
   const isGateway =
     model.startsWith("udm") ||
     model.startsWith("ucg") ||
@@ -292,10 +302,14 @@ export async function getDeviceContext(hass, deviceId) {
   const type = classifyDevice(device, entities);
   if (type !== "switch" && type !== "gateway") return null;
 
+  const discoveredPorts = discoverPorts(entities);
+  const layout = getDeviceLayout(device, discoveredPorts);
+
   return {
     device,
     entities,
     type,
+    layout,
     name:
       normalize(device.name_by_user) ||
       normalize(device.name) ||
@@ -400,7 +414,6 @@ export function discoverPorts(entities) {
     }
   }
 
-  // PoE nur dann als verfügbar behandeln, wenn auch Power Cycle vorhanden ist
   for (const row of ports.values()) {
     if (!row.power_cycle_entity) {
       row.poe_switch_entity = null;
@@ -409,6 +422,35 @@ export function discoverPorts(entities) {
   }
 
   return Array.from(ports.values()).sort((a, b) => a.port - b.port);
+}
+
+export function mergePortsWithLayout(layout, discoveredPorts) {
+  const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
+  const layoutPorts = (layout?.rows || []).flat();
+
+  const merged = [];
+
+  for (const portNumber of layoutPorts) {
+    merged.push(
+      byPort.get(portNumber) || {
+        port: portNumber,
+        link_entity: null,
+        speed_entity: null,
+        poe_switch_entity: null,
+        poe_power_entity: null,
+        power_cycle_entity: null,
+        raw_entities: [],
+      }
+    );
+  }
+
+  for (const port of discoveredPorts) {
+    if (!layoutPorts.includes(port.port)) {
+      merged.push(port);
+    }
+  }
+
+  return merged.sort((a, b) => a.port - b.port);
 }
 
 export function stateObj(hass, entityId) {
