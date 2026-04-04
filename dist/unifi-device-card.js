@@ -1,27 +1,77 @@
-/* UniFi Device Card 0.0.0-dev.1f6c684 */
+/* UniFi Device Card 0.0.0-dev.f9a98ef */
 
 // src/helpers.js
-async function getUnifiDevices(hass) {
+function normalize(value) {
+  return String(value ?? "").trim();
+}
+function lower(value) {
+  return normalize(value).toLowerCase();
+}
+function deviceLabel(device) {
+  const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
+  const model = normalize(device.model);
+  return model && lower(model) !== lower(name) ? `${name} \xB7 ${model}` : name;
+}
+function deviceText(device, entities) {
+  return [
+    device.name_by_user,
+    device.name,
+    device.model,
+    device.manufacturer,
+    device.hw_version,
+    ...entities.flatMap((e) => [
+      e.entity_id,
+      e.original_name,
+      e.name,
+      e.platform,
+      e.device_class
+    ])
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+function classifyDevice(device, entities) {
+  const text = deviceText(device, entities);
+  const isAccessPoint = text.includes("access point") || text.includes(" uap") || text.includes("uap-") || text.includes(" nanohd") || text.includes(" u6") || text.includes(" u7") || text.includes(" mesh");
+  if (isAccessPoint) return "access_point";
+  const isGateway = text.includes("udm") || text.includes("ucg") || text.includes("uxg") || text.includes("dream machine") || text.includes("gateway") || text.includes("wan");
+  if (isGateway) return "gateway";
+  const isSwitch = text.includes("usw") || text.includes("us-") || text.includes("switch") || entities.some((e) => /_port_\d+_/.test(e.entity_id));
+  if (isSwitch) return "switch";
+  return "unknown";
+}
+function isLikelyUnifi(device, entities) {
+  const text = deviceText(device, entities);
+  return text.includes("unifi") || text.includes("ubiquiti") || text.includes("usw") || text.includes("us-") || text.includes("udm") || text.includes("ucg") || text.includes("uxg");
+}
+async function getAllDevices(hass) {
   const [devices, entities] = await Promise.all([
     hass.callWS({ type: "config/device_registry/list" }),
     hass.callWS({ type: "config/entity_registry/list" })
   ]);
+  const entitiesByDevice = /* @__PURE__ */ new Map();
+  for (const entity of entities) {
+    if (!entity.device_id) continue;
+    if (!entitiesByDevice.has(entity.device_id)) {
+      entitiesByDevice.set(entity.device_id, []);
+    }
+    entitiesByDevice.get(entity.device_id).push(entity);
+  }
+  return { devices, entities, entitiesByDevice };
+}
+async function getUnifiDevices(hass) {
+  const { devices, entitiesByDevice } = await getAllDevices(hass);
   return devices.map((device) => {
-    const devEntities = entities.filter(
-      (e) => e.device_id === device.id
-    );
-    const text = ((device.name || "") + (device.model || "") + (device.manufacturer || "") + devEntities.map((e) => e.entity_id).join(" ")).toLowerCase();
-    const isUnifi = text.includes("unifi") || text.includes("usw") || text.includes("udm") || text.includes("ucg");
-    const isAP = text.includes("access point") || text.includes("uap");
-    const isSwitch = text.includes("port_") || text.includes("switch");
-    const isGateway = text.includes("udm") || text.includes("gateway");
+    const deviceEntities = entitiesByDevice.get(device.id) || [];
+    const type = classifyDevice(device, deviceEntities);
     return {
       id: device.id,
-      name: device.name_by_user || device.name || device.model || "Unknown",
-      type: isGateway ? "gateway" : isSwitch ? "switch" : "other",
-      valid: isUnifi && !isAP
+      name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device",
+      label: deviceLabel(device),
+      model: normalize(device.model),
+      manufacturer: normalize(device.manufacturer),
+      type,
+      valid: isLikelyUnifi(device, deviceEntities) && (type === "switch" || type === "gateway")
     };
-  }).filter((d) => d.valid).sort((a, b) => a.name.localeCompare(b.name));
+  }).filter((d) => d.valid).sort((a, b) => a.label.localeCompare(b.label, "de", { sensitivity: "base" }));
 }
 
 // src/unifi-device-card-editor.js
@@ -96,7 +146,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1f6c684";
+var VERSION = "0.0.0-dev.f9a98ef";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
