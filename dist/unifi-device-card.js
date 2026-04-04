@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.879f207 */
+/* UniFi Device Card 0.0.0-dev.c10d33d */
 
 // src/helpers.js
 function normalize(value) {
@@ -297,7 +297,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const options = this._devices.map(
       (d) => `
           <option value="${d.id}" ${d.id === selectedId ? "selected" : ""}>
-            ${d.label} (${d.type})
+            ${d.label}
           </option>
         `
     ).join("");
@@ -371,7 +371,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
 
         ${this._error ? `<div class="error">${this._error}</div>` : ""}
-        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine unterst\xFCtzten UniFi Switches oder Gateways gefunden.</div>` : `<div class="hint">Es werden nur UniFi Switches und Gateways angezeigt.</div>`}
+        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine unterst\xFCtzten UniFi Switches oder Gateways gefunden.</div>` : `<div class="hint">Es werden nur Ger\xE4te aus der UniFi-Integration angezeigt.</div>`}
       </div>
     `;
     this.shadowRoot.getElementById("device")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
@@ -381,7 +381,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.879f207";
+var VERSION = "0.0.0-dev.c10d33d";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
