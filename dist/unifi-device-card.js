@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.bfb3991 */
+/* UniFi Device Card 0.0.0-dev.5697a1b */
 
 // src/helpers.js
 function normalize(value) {
@@ -53,12 +53,12 @@ function classifyDevice(device, entities) {
   const text = deviceText(device, entities);
   const isAccessPoint = text.includes("access point") || text.includes(" uap") || text.includes("uap-") || text.includes(" nanohd") || text.includes(" u6") || text.includes(" u7") || text.includes(" mesh");
   if (isAccessPoint) return "access_point";
+  const isGateway = model.startsWith("udm") || model.startsWith("ucg") || model.startsWith("uxg") || model.includes("udrult") || model.includes("ucg-ultra") || model.includes("gateway") || name.includes("cloud gateway") || userName.includes("cloud gateway") || name.includes("gateway ultra") || userName.includes("gateway ultra") || name.includes("ucg") || userName.includes("ucg") || name.includes("udm") || userName.includes("udm") || name.includes("uxg") || userName.includes("uxg") || text.includes("dream machine") || text.includes("cloud gateway ultra") || text.includes("gateway ultra");
+  if (isGateway) return "gateway";
   const hasPortEntities = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
-  const isSwitchByModel = model.startsWith("usw") || model.startsWith("us-") || model.includes("usmini") || model.includes("us8") || model.includes("usl8") || model.includes("usl16") || model.includes("us8p") || model.includes("usw-flex") || model.includes("usmini") || model.includes("usl8lp") || model.includes("usl16lp") || model.includes("flex");
+  const isSwitchByModel = model.startsWith("usw") || model.startsWith("us-") || model.includes("usmini") || model.includes("us8") || model.includes("us8p") || model.includes("usl8") || model.includes("usl16") || model.includes("usl8lp") || model.includes("usl16lp") || model.includes("flex");
   const isSwitchByName = name.includes("usw") || name.includes("us 8") || userName.includes("usw") || userName.includes("us 8");
   if (hasPortEntities || isSwitchByModel || isSwitchByName) return "switch";
-  const isGateway = model.startsWith("udm") || model.startsWith("ucg") || model.startsWith("uxg") || model.includes("udrult") || name.includes("cloud gateway") || userName.includes("cloud gateway") || name.includes("gateway ultra") || userName.includes("gateway ultra") || name.includes("udm") || userName.includes("udm") || name.includes("ucg") || userName.includes("ucg") || name.includes("uxg") || userName.includes("uxg") || text.includes("dream machine");
-  if (isGateway) return "gateway";
   return "unknown";
 }
 function buildDeviceLabel(device, type) {
@@ -106,7 +106,7 @@ function deviceBelongsToUnifi(device, unifiEntryIds, entities) {
   const model = lower(device?.model);
   const name = lower(device?.name);
   const userName = lower(device?.name_by_user);
-  const strongModelHint = model.startsWith("usw") || model.startsWith("us-") || model.startsWith("udm") || model.startsWith("ucg") || model.startsWith("uxg") || model.includes("usmini") || model.includes("us8") || model.includes("usl8") || model.includes("usl16") || model.includes("udrult");
+  const strongModelHint = model.startsWith("usw") || model.startsWith("us-") || model.startsWith("udm") || model.startsWith("ucg") || model.startsWith("uxg") || model.includes("usmini") || model.includes("us8") || model.includes("us8p") || model.includes("usl8") || model.includes("usl16") || model.includes("udrult") || model.includes("gateway");
   const strongNameHint = name.includes("usw") || name.includes("us 8") || name.includes("cloud gateway") || name.includes("gateway ultra") || name.includes("udm") || name.includes("ucg") || name.includes("uxg") || userName.includes("usw") || userName.includes("us 8") || userName.includes("cloud gateway") || userName.includes("gateway ultra") || userName.includes("udm") || userName.includes("ucg") || userName.includes("uxg");
   const strongEntityHint = entities.some((entity) => {
     const eid = lower(entity.entity_id);
@@ -209,6 +209,12 @@ function discoverPorts(entities) {
     const slot = classifyPortEntity(entity);
     if (slot && !row[slot]) {
       row[slot] = entity.entity_id;
+    }
+  }
+  for (const row of ports.values()) {
+    if (!row.power_cycle_entity) {
+      row.poe_switch_entity = null;
+      row.poe_power_entity = null;
     }
   }
   return Array.from(ports.values()).sort((a, b) => a.port - b.port);
@@ -402,7 +408,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.bfb3991";
+var VERSION = "0.0.0-dev.5697a1b";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
