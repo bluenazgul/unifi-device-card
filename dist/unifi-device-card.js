@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9586eb4 */
+/* UniFi Device Card 0.0.0-dev.9ae332e */
 
 // src/model-registry.js
 function range(start, end) {
@@ -393,10 +393,17 @@ function ensurePort(map, port) {
 function classifyPortEntity(entity) {
   const eid = lower(entity.entity_id);
   const text = entityText(entity);
-  if (entity.entity_id.startsWith("binary_sensor.") && (eid.includes("_link") || text.includes(" link"))) {
-    return "link_entity";
+  if (entity.entity_id.startsWith("binary_sensor.")) {
+    if (eid.includes("_link") || eid.includes("_connected") || eid.includes("_connection") || text.includes(" link") || text.includes("connected") || text.includes("connection")) {
+      return "link_entity";
+    }
   }
-  if (entity.entity_id.startsWith("sensor.") && (eid.includes("_speed") || text.includes("speed"))) {
+  if (entity.entity_id.startsWith("sensor.")) {
+    if ((eid.includes("_state") || eid.includes("_status")) && (text.includes("port") || text.includes("link") || text.includes("connected"))) {
+      return "link_entity";
+    }
+  }
+  if (entity.entity_id.startsWith("sensor.") && (eid.includes("_speed") || text.includes("speed") || text.includes("mbit/s") || text.includes("gbe") || text.includes("link speed"))) {
     return "speed_entity";
   }
   if (entity.entity_id.startsWith("switch.") && (eid.includes("_poe") || text.includes("poe"))) {
@@ -405,7 +412,7 @@ function classifyPortEntity(entity) {
   if (entity.entity_id.startsWith("sensor.") && (eid.includes("_poe_power") || text.includes("poe") && text.includes("power") || text.includes("poe") && text.includes("w"))) {
     return "poe_power_entity";
   }
-  if (entity.entity_id.startsWith("button.") && (eid.includes("power_cycle") || eid.includes("restart") || text.includes("power") && text.includes("cycle"))) {
+  if (entity.entity_id.startsWith("button.") && (eid.includes("power_cycle") || eid.includes("restart") || eid.includes("reboot") || text.includes("power") && text.includes("cycle"))) {
     return "power_cycle_entity";
   }
   return null;
@@ -463,7 +470,10 @@ function stateValue(hass, entityId, fallback = "\u2014") {
   return st.state ?? fallback;
 }
 function isOn(hass, entityId) {
-  return stateValue(hass, entityId, "off") === "on";
+  const st = stateObj(hass, entityId);
+  if (!st) return false;
+  const value = String(st.state ?? "").toLowerCase();
+  return value === "on" || value === "connected" || value === "up" || value === "true";
 }
 function formatState(hass, entityId, fallback = "\u2014") {
   const st = stateObj(hass, entityId);
@@ -655,7 +665,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9586eb4";
+var VERSION = "0.0.0-dev.9ae332e";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
