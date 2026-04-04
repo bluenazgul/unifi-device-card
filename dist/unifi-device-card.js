@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f00d047 */
+/* UniFi Device Card 0.0.0-dev.0fad6ee */
 
 // src/model-registry.js
 function range(start, end) {
@@ -673,7 +673,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.f00d047";
+var VERSION = "0.0.0-dev.0fad6ee";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -753,6 +753,16 @@ var UnifiDeviceCard = class extends HTMLElement {
   async _pressButton(entityId) {
     if (!entityId || !this._hass) return;
     await this._hass.callService("button", "press", { entity_id: entityId });
+  }
+  _subtitle() {
+    if (!this._config?.device_id || !this._deviceContext) {
+      return `Version ${VERSION}`;
+    }
+    const firmware = this._deviceContext?.firmware;
+    if (firmware) {
+      return `${this._deviceContext?.layout?.displayModel || this._deviceContext?.model || ""} \xB7 Firmware ${firmware}`;
+    }
+    return `${this._deviceContext?.layout?.displayModel || this._deviceContext?.model || ""}`;
   }
   _styles() {
     return `
@@ -904,11 +914,6 @@ var UnifiDeviceCard = class extends HTMLElement {
           color: var(--primary-text-color);
         }
 
-        .summary {
-          display: grid;
-          gap: 8px;
-        }
-
         .layout-note {
           color: var(--secondary-text-color);
           font-size: 0.85rem;
@@ -921,7 +926,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       <ha-card>
         <div class="header">
           <div class="title">${title}</div>
-          <div class="subtitle">Version ${VERSION}</div>
+          <div class="subtitle">${this._subtitle()}</div>
         </div>
         <div class="content muted">Bitte im Karteneditor ein UniFi-Ger\xE4t ausw\xE4hlen.</div>
       </ha-card>
@@ -943,7 +948,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       </button>
     `;
   }
-  _renderPanelAndDetail(title, kindLabel) {
+  _renderPanelAndDetail(title) {
     const ctx = this._deviceContext;
     const discoveredPorts = discoverPorts(ctx?.entities || []);
     const ports = mergePortsWithLayout(ctx?.layout, discoveredPorts);
@@ -1007,7 +1012,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       <ha-card>
         <div class="header">
           <div class="title">${title}</div>
-          <div class="subtitle">${ctx?.layout?.displayModel || ctx?.model || kindLabel} \xB7 Version ${VERSION}</div>
+          <div class="subtitle">${this._subtitle()}</div>
         </div>
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"}">
           ${layoutRows.join("") || `<div class="content muted">Keine Ports erkannt.</div>`}
@@ -1035,12 +1040,6 @@ var UnifiDeviceCard = class extends HTMLElement {
       });
     });
   }
-  _renderGateway(title) {
-    this._renderPanelAndDetail(title, "Gateway");
-  }
-  _renderSwitch(title) {
-    this._renderPanelAndDetail(title, "Switch");
-  }
   _render() {
     const title = this._config?.name || "UniFi Device Card";
     if (!this._config?.device_id) {
@@ -1052,7 +1051,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         <ha-card>
           <div class="header">
             <div class="title">${title}</div>
-            <div class="subtitle">Version ${VERSION}</div>
+            <div class="subtitle">${this._subtitle()}</div>
           </div>
           <div class="content muted">Lade Ger\xE4tedaten\u2026</div>
         </ha-card>
@@ -1065,7 +1064,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         <ha-card>
           <div class="header">
             <div class="title">${title}</div>
-            <div class="subtitle">Version ${VERSION}</div>
+            <div class="subtitle">${this._subtitle()}</div>
           </div>
           <div class="content muted">Keine Ger\xE4tedaten verf\xFCgbar.</div>
         </ha-card>
@@ -1073,11 +1072,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       `;
       return;
     }
-    if (this._deviceContext.type === "switch") {
-      this._renderSwitch(title);
-      return;
-    }
-    this._renderGateway(title);
+    this._renderPanelAndDetail(title);
   }
 };
 customElements.define("unifi-device-card", UnifiDeviceCard);
