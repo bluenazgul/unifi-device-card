@@ -7,7 +7,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._config = {};
     this._devices = [];
     this._loading = false;
+    this._loaded = false;
     this._error = "";
+    this._hass = null;
+    this._loadToken = 0;
   }
 
   setConfig(config) {
@@ -17,10 +20,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    if (!this._loading && !this._devices.length) {
+
+    if (!this._loaded && !this._loading) {
       this._loadDevices();
-    } else {
-      this._render();
     }
   }
 
@@ -29,18 +31,28 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this._loading = true;
     this._error = "";
+    const token = ++this._loadToken;
     this._render();
 
     try {
-      this._devices = await getUnifiDevices(this._hass);
-    } catch (err) {
-      console.error("[unifi-device-card] Failed to load devices", err);
-      this._error = "UniFi-Geräte konnten nicht geladen werden.";
-      this._devices = [];
-    }
+      const devices = await getUnifiDevices(this._hass);
 
-    this._loading = false;
-    this._render();
+      if (token !== this._loadToken) return;
+
+      this._devices = devices;
+      this._loaded = true;
+      this._loading = false;
+      this._render();
+    } catch (err) {
+      if (token !== this._loadToken) return;
+
+      console.error("[unifi-device-card] Failed to load devices", err);
+      this._devices = [];
+      this._loaded = true;
+      this._loading = false;
+      this._error = "UniFi-Geräte konnten nicht geladen werden.";
+      this._render();
+    }
   }
 
   _dispatch(config) {
@@ -59,8 +71,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     if (device_id) {
       next.device_id = device_id;
+
       const selected = this._devices.find((d) => d.id === device_id);
-      if (!next.name && selected?.name) {
+      if ((!next.name || next.name === "") && selected?.name) {
         next.name = selected.name;
       }
     } else {
@@ -82,10 +95,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 
   _render() {
+    const selectedId = this._config?.device_id || "";
+    const selectedName = String(this._config?.name || "").replace(/"/g, "&quot;");
+
     const options = this._devices
       .map(
         (d) => `
-          <option value="${d.id}" ${d.id === this._config.device_id ? "selected" : ""}>
+          <option value="${d.id}" ${d.id === selectedId ? "selected" : ""}>
             ${d.label} (${d.type})
           </option>
         `
@@ -111,9 +127,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
         label {
           font-size: 14px;
           font-weight: 600;
+          color: var(--primary-text-color);
         }
 
-        select, input {
+        select,
+        input {
           width: 100%;
           box-sizing: border-box;
           min-height: 40px;
@@ -128,11 +146,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
         .hint {
           color: var(--secondary-text-color);
           font-size: 13px;
+          line-height: 1.4;
         }
 
         .error {
           color: var(--error-color);
           font-size: 13px;
+          line-height: 1.4;
         }
       </style>
 
@@ -156,7 +176,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <input
             id="name"
             type="text"
-            value="${String(this._config.name || "").replace(/"/g, "&quot;")}"
+            value="${selectedName}"
             placeholder="Optional"
           />
         </div>
