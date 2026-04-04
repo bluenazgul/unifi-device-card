@@ -65,19 +65,36 @@ class UnifiDeviceCardEditor extends HTMLElement {
     );
   }
 
+  _selectedDeviceName(deviceId) {
+    const selected = this._devices.find((d) => d.id === deviceId);
+    return selected?.name || "";
+  }
+
   _onDeviceChange(ev) {
-    const device_id = ev.target.value || "";
+    const newDeviceId = ev.target.value || "";
+    const oldDeviceId = this._config?.device_id || "";
+    const oldAutoName = this._selectedDeviceName(oldDeviceId);
+    const newAutoName = this._selectedDeviceName(newDeviceId);
+
     const next = { ...this._config };
 
-    if (device_id) {
-      next.device_id = device_id;
-
-      const selected = this._devices.find((d) => d.id === device_id);
-      if ((!next.name || next.name === "") && selected?.name) {
-        next.name = selected.name;
-      }
+    if (newDeviceId) {
+      next.device_id = newDeviceId;
     } else {
       delete next.device_id;
+    }
+
+    const currentName = String(next.name || "").trim();
+
+    // Namen automatisch mitziehen, wenn:
+    // - noch kein Name gesetzt ist
+    // - oder der aktuelle Name noch dem automatisch gesetzten alten Gerätenamen entspricht
+    if (!currentName || currentName === oldAutoName) {
+      if (newAutoName) {
+        next.name = newAutoName;
+      } else {
+        delete next.name;
+      }
     }
 
     this._config = next;
@@ -86,9 +103,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 
   _onNameInput(ev) {
+    const value = ev.target.value || "";
     const next = {
       ...this._config,
-      name: ev.target.value || "",
+      name: value,
     };
     this._config = next;
     this._dispatch(next);
