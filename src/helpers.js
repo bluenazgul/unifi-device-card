@@ -76,7 +76,7 @@ function classifyDevice(device, entities) {
 
   if (isAccessPoint) return "access_point";
 
-  // Gateway first, damit UCG/Cloud Gateway nicht als Switch endet
+  // Gateway zuerst prüfen, damit UCG / Cloud Gateway nicht als Switch endet
   const isGateway =
     model.startsWith("udm") ||
     model.startsWith("ucg") ||
