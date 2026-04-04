@@ -79,11 +79,24 @@ function classifyDevice(device, entities) {
   if (isAccessPoint) return "access_point";
 
   const modelKey = resolveModelKey(device);
-  if (modelKey === "UDRULT" || modelKey === "UCGULTRA" || modelKey === "UCGMAX" || modelKey === "UDMPRO" || modelKey === "UDMSE") {
+  if (
+    modelKey === "UDRULT" ||
+    modelKey === "UCGULTRA" ||
+    modelKey === "UCGMAX" ||
+    modelKey === "UDMPRO" ||
+    modelKey === "UDMSE"
+  ) {
     return "gateway";
   }
 
-  if (modelKey === "US8P60" || modelKey === "USMINI" || modelKey === "USL8LP" || modelKey === "USL16LP") {
+  if (
+    modelKey === "US8P60" ||
+    modelKey === "USMINI" ||
+    modelKey === "USL8LP" ||
+    modelKey === "USL8LPB" ||
+    modelKey === "USL16LP" ||
+    modelKey === "USL16LPB"
+  ) {
     return "switch";
   }
 
@@ -119,9 +132,11 @@ function classifyDevice(device, entities) {
     model.includes("us8") ||
     model.includes("us8p") ||
     model.includes("usl8") ||
-    model.includes("usl16") ||
     model.includes("usl8lp") ||
+    model.includes("usl8lpb") ||
+    model.includes("usl16") ||
     model.includes("usl16lp") ||
+    model.includes("usl16lpb") ||
     model.includes("flex");
 
   const isSwitchByName =
@@ -218,7 +233,11 @@ function deviceBelongsToUnifi(device, unifiEntryIds, entities) {
     model.includes("us8") ||
     model.includes("us8p") ||
     model.includes("usl8") ||
+    model.includes("usl8lp") ||
+    model.includes("usl8lpb") ||
     model.includes("usl16") ||
+    model.includes("usl16lp") ||
+    model.includes("usl16lpb") ||
     model.includes("udrult") ||
     model.includes("gateway");
 
