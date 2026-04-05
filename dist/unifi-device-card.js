@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.7c37740 */
+/* UniFi Device Card 0.0.0-dev.948eb70 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -154,6 +154,23 @@ var MODEL_REGISTRY = {
       { key: "sfp_wan", label: "WAN SFP+" },
       { key: "sfp_lan", label: "LAN SFP+" }
     ]
+  },
+  // ── Additional common models ─────────────────────
+  USW24P: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [range(1, 12), range(13, 24)],
+    portCount: 24,
+    displayModel: "USW 24 PoE",
+    specialSlots: []
+  },
+  USW48P: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 48,
+    displayModel: "USW 48 PoE",
+    specialSlots: []
   }
 };
 function resolveModelKey(device) {
@@ -169,12 +186,18 @@ function resolveModelKey(device) {
     if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
     if (candidate.includes("USWLITE16POE")) return "USL16LPB";
+    if (candidate.includes("USWLITE16")) return "USL16LPB";
+    if ((candidate.includes("LITE") || candidate.includes("USW")) && candidate.includes("16") && candidate.includes("POE")) return "USL16LPB";
     if (candidate.includes("USL8LPB")) return "USL8LPB";
     if (candidate.includes("USL8LP")) return "USL8LP";
     if (candidate.includes("USWLITE8POE")) return "USL8LPB";
+    if (candidate.includes("USWLITE8")) return "USL8LPB";
+    if ((candidate.includes("LITE") || candidate.includes("USW")) && candidate.includes("8") && candidate.includes("POE")) return "USL8LPB";
     if (candidate.includes("US8P60")) return "US8P60";
+    if (candidate.includes("US860W")) return "US8P60";
     if (candidate.includes("USMINI")) return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
+    if (candidate.includes("USWFLEXMINI")) return "USMINI";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -182,6 +205,8 @@ function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYMAX")) return "UCGMAX";
     if (candidate.includes("UDMPRO")) return "UDMPRO";
     if (candidate.includes("UDMSE")) return "UDMSE";
+    if (candidate.includes("USW24")) return "USW24P";
+    if (candidate.includes("USW48")) return "USW48P";
   }
   return null;
 }
@@ -192,10 +217,12 @@ function inferPortCountFromModel(device) {
   if (text.includes("USL16LPB")) return 16;
   if (text.includes("USL16LP")) return 16;
   if (text.includes("USWLITE16POE")) return 16;
+  if (text.includes("USWLITE16")) return 16;
   if (text.includes("LITE16")) return 16;
   if (text.includes("USL8LPB")) return 8;
   if (text.includes("USL8LP")) return 8;
   if (text.includes("USWLITE8POE")) return 8;
+  if (text.includes("USWLITE8")) return 8;
   if (text.includes("LITE8")) return 8;
   if (text.includes("US8P60")) return 8;
   if (text.includes("US8")) return 8;
@@ -206,8 +233,8 @@ function inferPortCountFromModel(device) {
   if (text.includes("UCGMAX")) return 5;
   if (text.includes("UDMPRO")) return 8;
   if (text.includes("UDMSE")) return 8;
-  if (text.includes("24")) return 24;
   if (text.includes("48")) return 48;
+  if (text.includes("24")) return 24;
   return null;
 }
 function getDeviceLayout(device, discoveredPorts = []) {
@@ -218,12 +245,12 @@ function getDeviceLayout(device, discoveredPorts = []) {
       ...MODEL_REGISTRY[modelKey]
     };
   }
-  const inferredPortCount = inferPortCountFromModel(device) || Math.max(...discoveredPorts.map((p) => p.port), 0);
+  const inferredPortCount = inferPortCountFromModel(device) || (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
   if (inferredPortCount > 0) {
     return {
       modelKey: null,
       ...defaultSwitchLayout(inferredPortCount),
-      displayModel: device?.model || `UniFi Device ${inferredPortCount}`
+      displayModel: device?.model || `UniFi Device (${inferredPortCount}p)`
     };
   }
   return {
@@ -866,7 +893,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.7c37740";
+var VERSION = "0.0.0-dev.948eb70";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
