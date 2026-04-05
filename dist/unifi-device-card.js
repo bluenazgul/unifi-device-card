@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ce536cf */
+/* UniFi Device Card 0.0.0-dev.bf0d818 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -753,7 +753,7 @@ function getPortSpeedText(hass, port) {
 }
 
 // src/unifi-device-card-editor.js
-var VERSION = "0.0.0-dev.ce536cf";
+var VERSION = "0.0.0-dev.bf0d818";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1288,7 +1288,7 @@ window.customCards.push({
 });
 
 // src/unifi-device-card.js
-var VERSION2 = "0.0.0-dev.ce536cf";
+var VERSION2 = "0.0.0-dev.bf0d818";
 var UnifiDeviceCard2 = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
