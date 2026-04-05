@@ -16,6 +16,7 @@ No direct API access, no extra configuration. Just add the card and pick your de
   - USW Lite 8 PoE
   - USW Lite 16 PoE
   - USW Flex
+  - USW Ultra Family (adden in v0.1.6) untested
 
   If someone sees improvements, issues and fixes, feel free to make an pull request
 
