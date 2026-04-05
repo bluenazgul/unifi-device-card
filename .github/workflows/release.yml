@@ -42,18 +42,23 @@ jobs:
             npm install
           fi
 
-      - name: Validate version format
+      - name: Validate and normalize version format
         run: |
-          if ! [[ "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must look like v0.1.0"
+          # Accept with or without leading "v"  (e.g. "0.1.0" or "v0.1.0")
+          RAW="${{ inputs.version }}"
+          VERSION="${RAW#v}"           # strip leading v if present
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must look like 1.2.3 or v1.2.3 (got: $RAW)"
             exit 1
           fi
+          # Always store with v-prefix for consistent git tags
+          echo "VERSION=v${VERSION}" >> $GITHUB_ENV
 
       - name: Check if tag already exists
         run: |
           git fetch --tags
-          if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
-            echo "Tag ${{ inputs.version }} already exists."
+          if git rev-parse "${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "Tag ${{ env.VERSION }} already exists."
             exit 1
           fi
 
@@ -61,7 +66,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_EVENT_NAME: release
-          GITHUB_REF_NAME: ${{ inputs.version }}
+          GITHUB_REF_NAME: ${{ env.VERSION }}
 
       - name: Commit dist if changed
         run: |
@@ -70,18 +75,18 @@ jobs:
           # Only commit the compiled bundle – lock file changes belong in
           # regular dependency-update commits, not in release commits.
           git add dist/unifi-device-card.js
-          git diff --cached --quiet || git commit -m "release: prepare ${{ inputs.version }} [skip ci]"
+          git diff --cached --quiet || git commit -m "release: prepare ${{ env.VERSION }} [skip ci]"
           git push
 
       - name: Create Git tag
         run: |
-          git tag -a "${{ inputs.version }}" -m "${{ inputs.version }}"
-          git push origin "${{ inputs.version }}"
+          git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
+          git push origin "${{ env.VERSION }}"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
+          tag_name: ${{ env.VERSION }}
           # HACS downloads this asset when users install / update the plugin.
           # The filename must match hacs.json → "filename": "unifi-device-card.js"
           files: dist/unifi-device-card.js
