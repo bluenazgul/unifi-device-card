@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1087d63 */
+/* UniFi Device Card 0.0.0-dev.85e5919 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -590,12 +590,16 @@ function extractPortLabel(entity) {
     / poe$/i,
     / link$/i
   ];
+  let stripped = name;
   for (const suffix of suffixes) {
-    const stripped = name.replace(suffix, "").trim();
-    if (stripped && !/^port\s+\d+$/i.test(stripped)) {
-      return stripped;
+    const candidate = name.replace(suffix, "").trim();
+    if (candidate.length < name.length) {
+      stripped = candidate;
+      break;
     }
   }
+  stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
+  if (stripped && stripped.length > 0) return stripped;
   return null;
 }
 function discoverPorts(entities) {
@@ -691,15 +695,23 @@ function stateValue(hass, entityId, fallback = "\u2014") {
   const state = stateObj(hass, entityId);
   return state ? state.state : fallback;
 }
-function isOn(hass, entityId) {
+function isOn(hass, entityId, port = null) {
   const state = stateObj(hass, entityId);
-  if (!state) return false;
-  const value = String(state.state).toLowerCase();
-  if (value === "on" || value === "connected" || value === "up" || value === "true" || value === "active" || value === "1") return true;
-  const num = parseFloat(value);
-  if (!isNaN(num) && num > 0) {
-    const id = lower(entityId);
-    if (id.includes("_link") || id.includes("_status") || id.includes("_state") || id.includes("_port_status")) return true;
+  if (state) {
+    const value = String(state.state).toLowerCase();
+    if (value === "on" || value === "connected" || value === "up" || value === "true" || value === "active" || value === "1") return true;
+    const num = parseFloat(value);
+    if (!isNaN(num) && num > 0) {
+      const id = lower(entityId);
+      if (id.includes("_link") || id.includes("_status") || id.includes("_state") || id.includes("_port_status")) return true;
+    }
+  }
+  if (port?.speed_entity) {
+    const speedState = stateObj(hass, port.speed_entity);
+    if (speedState) {
+      const num = parseFloat(speedState.state);
+      if (!isNaN(num) && num > 0) return true;
+    }
   }
   return false;
 }
@@ -918,7 +930,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1087d63";
+var VERSION = "0.0.0-dev.85e5919";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
