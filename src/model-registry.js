@@ -23,6 +23,7 @@ function defaultSwitchLayout(portCount) {
       frontStyle: "single-row",
       rows: [range(1, portCount)],
       portCount,
+      specialSlots: [],
     };
   }
 
@@ -32,6 +33,7 @@ function defaultSwitchLayout(portCount) {
       frontStyle: "dual-row",
       rows: [oddRange(1, 16), evenRange(1, 16)],
       portCount,
+      specialSlots: [],
     };
   }
 
@@ -41,6 +43,7 @@ function defaultSwitchLayout(portCount) {
       frontStyle: "dual-row",
       rows: [range(1, 12), range(13, 24)],
       portCount,
+      specialSlots: [],
     };
   }
 
@@ -50,6 +53,7 @@ function defaultSwitchLayout(portCount) {
       frontStyle: "quad-row",
       rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
       portCount,
+      specialSlots: [],
     };
   }
 
@@ -58,6 +62,7 @@ function defaultSwitchLayout(portCount) {
     frontStyle: "single-row",
     rows: [range(1, portCount)],
     portCount,
+    specialSlots: [],
   };
 }
 
@@ -68,6 +73,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "US 8 60W",
+    specialSlots: [],
   },
 
   USMINI: {
@@ -76,6 +82,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 5)],
     portCount: 5,
     displayModel: "USW Flex Mini",
+    specialSlots: [],
   },
 
   USL8LP: {
@@ -84,6 +91,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "USW Lite 8 PoE",
+    specialSlots: [],
   },
 
   USL8LPB: {
@@ -92,6 +100,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "USW Lite 8 PoE",
+    specialSlots: [],
   },
 
   USL16LP: {
@@ -100,6 +109,7 @@ export const MODEL_REGISTRY = {
     rows: [oddRange(1, 16), evenRange(1, 16)],
     portCount: 16,
     displayModel: "USW Lite 16 PoE",
+    specialSlots: [],
   },
 
   USL16LPB: {
@@ -108,30 +118,34 @@ export const MODEL_REGISTRY = {
     rows: [oddRange(1, 16), evenRange(1, 16)],
     portCount: 16,
     displayModel: "USW Lite 16 PoE",
+    specialSlots: [],
   },
 
   UDRULT: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 4)],
+    rows: [[1, 2, 3, 4]],
     portCount: 4,
     displayModel: "Cloud Gateway Ultra",
+    specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 4)],
+    rows: [[1, 2, 3, 4]],
     portCount: 4,
     displayModel: "Cloud Gateway Ultra",
+    specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
   UCGMAX: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 5)],
+    rows: [[1, 2, 3, 4, 5]],
     portCount: 5,
     displayModel: "Cloud Gateway Max",
+    specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
   UDMPRO: {
@@ -140,6 +154,11 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "UDM Pro",
+    specialSlots: [
+      { key: "wan", label: "WAN" },
+      { key: "sfp_wan", label: "WAN SFP+" },
+      { key: "sfp_lan", label: "LAN SFP+" },
+    ],
   },
 
   UDMSE: {
@@ -148,6 +167,11 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "UDM SE",
+    specialSlots: [
+      { key: "wan", label: "WAN" },
+      { key: "sfp_wan", label: "WAN SFP+" },
+      { key: "sfp_lan", label: "LAN SFP+" },
+    ],
   },
 };
 
@@ -243,5 +267,6 @@ export function getDeviceLayout(device, discoveredPorts = []) {
     rows: [],
     portCount: 0,
     displayModel: device?.model || "UniFi Gateway",
+    specialSlots: [],
   };
 }
