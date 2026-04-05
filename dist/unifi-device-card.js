@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f1228d5 */
+/* UniFi Device Card 0.0.0-dev.5390945 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -639,6 +639,10 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials) {
 function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
 }
+function stateValue(hass, entityId, fallback = "\u2014") {
+  const state = stateObj(hass, entityId);
+  return state ? state.state : fallback;
+}
 function isOn(hass, entityId) {
   const state = stateObj(hass, entityId);
   if (!state) return false;
@@ -725,255 +729,6 @@ function getPortSpeedText(hass, port) {
   return "\u2014";
 }
 
-// src/unifi-api.js
-var LOG = "[unifi-api]";
-function baseUrl(host) {
-  const h = String(host || "").replace(/\/+$/, "");
-  return h.startsWith("http") ? h : `https://${h}`;
-}
-function newStyleUrl(host, path, site) {
-  return `${baseUrl(host)}/proxy/network/api/s/${site}${path}`;
-}
-function legacyUrl(host, path, site) {
-  return `${baseUrl(host)}/api/s/${site}${path}`;
-}
-var UnifiApiClient = class {
-  /**
-   * @param {object} opts
-   * @param {string}  opts.host      IP or hostname of the controller
-   * @param {string}  [opts.apiKey]  API key (Network 8+, preferred)
-   * @param {string}  [opts.username]
-   * @param {string}  [opts.password]
-   * @param {string}  [opts.site]    default "default"
-   */
-  constructor({ host, apiKey, username, password, site = "default" }) {
-    this._host = host;
-    this._apiKey = apiKey || null;
-    this._username = username || null;
-    this._password = password || null;
-    this._site = site;
-    this._csrf = null;
-    this._cookie = null;
-    this._loggedIn = false;
-    this._isUnifiOs = null;
-  }
-  // ── Low-level fetch ───────────────────────────────────────────────────────
-  async _fetch(url, opts = {}) {
-    const headers = {
-      "Content-Type": "application/json",
-      ...opts.headers || {}
-    };
-    if (this._apiKey) headers["X-API-Key"] = this._apiKey;
-    if (this._csrf) headers["X-Csrf-Token"] = this._csrf;
-    if (this._cookie) headers["Cookie"] = this._cookie;
-    let res;
-    try {
-      res = await fetch(url, {
-        credentials: "include",
-        ...opts,
-        headers
-      });
-    } catch (e) {
-      if (e instanceof TypeError && e.message.toLowerCase().includes("failed to fetch")) {
-        throw new CorsError(
-          `CORS-Fehler: Der Browser blockiert den direkten Zugriff auf ${url}. Stelle sicher dass HA und UCG \xFCber HTTPS auf derselben Domain erreichbar sind, oder nutze einen Reverse-Proxy (nginx, Caddy). Alternativ: Die Card funktioniert vollst\xE4ndig ohne API \xFCber HA-Entities.`
-        );
-      }
-      throw e;
-    }
-    const csrf = res.headers.get("x-csrf-token");
-    const cookie = res.headers.get("set-cookie");
-    if (csrf) this._csrf = csrf;
-    if (cookie) this._cookie = cookie;
-    return res;
-  }
-  // ── Detect UniFi OS vs standalone ────────────────────────────────────────
-  async _detectOs() {
-    if (this._isUnifiOs !== null) return;
-    try {
-      const res = await this._fetch(baseUrl(this._host), {
-        method: "GET",
-        redirect: "manual"
-      });
-      this._isUnifiOs = res.status === 200 || res.status === 0;
-    } catch (e) {
-      if (e instanceof CorsError) throw e;
-      this._isUnifiOs = true;
-    }
-    console.info(LOG, `UniFi OS mode: ${this._isUnifiOs}`);
-  }
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  async login() {
-    if (this._apiKey) return;
-    if (this._loggedIn) return;
-    if (!this._username || !this._password) {
-      throw new Error("Keine Zugangsdaten: Bitte API-Key oder Benutzername/Passwort angeben.");
-    }
-    await this._detectOs();
-    const loginPath = this._isUnifiOs ? "/api/auth/login" : "/api/login";
-    const url = `${baseUrl(this._host)}${loginPath}`;
-    const res = await this._fetch(url, {
-      method: "POST",
-      body: JSON.stringify({
-        username: this._username,
-        password: this._password,
-        rememberMe: false
-      })
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Login fehlgeschlagen (HTTP ${res.status}): ${text.slice(0, 120)}`);
-    }
-    this._loggedIn = true;
-    console.info(LOG, "Logged in via", url);
-  }
-  // ── Generic request with new-style → legacy fallback ─────────────────────
-  async _get(path) {
-    await this._detectOs();
-    const url = this._isUnifiOs ? newStyleUrl(this._host, path, this._site) : legacyUrl(this._host, path, this._site);
-    const res = await this._fetch(url);
-    if (res.status === 404 && this._isUnifiOs) {
-      const fallback = await this._fetch(legacyUrl(this._host, path, this._site));
-      if (!fallback.ok) throw new Error(`GET ${path} \u2192 HTTP ${fallback.status}`);
-      const json2 = await fallback.json();
-      return json2?.data ?? json2;
-    }
-    if (!res.ok) throw new Error(`GET ${url} \u2192 HTTP ${res.status}`);
-    const json = await res.json();
-    return json?.data ?? json;
-  }
-  async _put(path, body) {
-    await this._detectOs();
-    const url = this._isUnifiOs ? newStyleUrl(this._host, path, this._site) : legacyUrl(this._host, path, this._site);
-    const res = await this._fetch(url, {
-      method: "PUT",
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error(`PUT ${url} \u2192 HTTP ${res.status}`);
-    const json = await res.json();
-    return json?.data ?? json;
-  }
-  async _post(path, body) {
-    await this._detectOs();
-    const url = this._isUnifiOs ? newStyleUrl(this._host, path, this._site) : legacyUrl(this._host, path, this._site);
-    const res = await this._fetch(url, {
-      method: "POST",
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error(`POST ${url} \u2192 HTTP ${res.status}`);
-    return res.json();
-  }
-  // ── Public API ────────────────────────────────────────────────────────────
-  async getSites() {
-    await this.login();
-    await this._detectOs();
-    const url = this._isUnifiOs ? `${baseUrl(this._host)}/proxy/network/api/sites` : `${baseUrl(this._host)}/api/self/sites`;
-    const res = await this._fetch(url);
-    if (!res.ok) throw new Error(`getSites \u2192 HTTP ${res.status}`);
-    const json = await res.json();
-    return json?.data ?? json;
-  }
-  async getDevices() {
-    await this.login();
-    return this._get("/stat/device");
-  }
-  async getDevice(mac) {
-    const devices = await this.getDevices();
-    return devices.find(
-      (d) => d.mac?.toLowerCase() === mac?.toLowerCase()
-    ) || null;
-  }
-  async getPortTable(mac) {
-    const device = await this.getDevice(mac);
-    if (!device) throw new Error(`Ger\xE4t ${mac} nicht gefunden`);
-    return (device.port_table || []).map((p) => ({
-      port_idx: p.port_idx,
-      name: p.name || `Port ${p.port_idx}`,
-      up: Boolean(p.up),
-      speed: p.speed || 0,
-      duplex: p.full_duplex ? "full" : "half",
-      poe_enable: Boolean(p.poe_enable),
-      poe_mode: p.poe_mode || null,
-      poe_power: p.poe_power != null ? String(p.poe_power) : null,
-      poe_voltage: p.poe_voltage != null ? String(p.poe_voltage) : null,
-      poe_current: p.poe_current != null ? String(p.poe_current) : null,
-      rx_rate: p["rx_bytes-r"] ?? 0,
-      tx_rate: p["tx_bytes-r"] ?? 0,
-      rx_bytes: p.rx_bytes ?? 0,
-      tx_bytes: p.tx_bytes ?? 0,
-      mac_table: p.mac_table || []
-    }));
-  }
-  async setPortPoe(deviceId, portIdx, enable) {
-    await this.login();
-    const devices = await this.getDevices();
-    const device = devices.find((d) => d._id === deviceId);
-    if (!device) throw new Error(`Ger\xE4t ${deviceId} nicht gefunden`);
-    const overrides = [...device.port_overrides || []];
-    const i = overrides.findIndex((o) => o.port_idx === portIdx);
-    const entry = { ...i >= 0 ? overrides[i] : {}, port_idx: portIdx, poe_mode: enable ? "auto" : "off" };
-    if (i >= 0) overrides[i] = entry;
-    else overrides.push(entry);
-    return this._put(`/rest/device/${deviceId}`, { port_overrides: overrides });
-  }
-  async powerCyclePort(deviceMac, portIdx) {
-    await this.login();
-    return this._post("/cmd/devmgr", {
-      cmd: "power-cycle",
-      mac: deviceMac,
-      port_idx: portIdx
-    });
-  }
-  async testConnection() {
-    try {
-      await this.login();
-      const sites = await this.getSites();
-      return Array.isArray(sites) ? sites : [];
-    } catch (e) {
-      throw e;
-    }
-  }
-};
-var CorsError = class extends Error {
-  constructor(msg) {
-    super(msg);
-    this.name = "CorsError";
-  }
-};
-var _cache = /* @__PURE__ */ new Map();
-function getApiClient(config) {
-  const { unifi_host, unifi_api_key, unifi_username, unifi_password, unifi_site } = config;
-  if (!unifi_host) return null;
-  const site = (unifi_site || "default").trim() || "default";
-  const key = `${unifi_host}|${site}|${unifi_api_key || unifi_username || ""}`;
-  if (!_cache.has(key)) {
-    _cache.set(key, new UnifiApiClient({
-      host: unifi_host,
-      apiKey: unifi_api_key || null,
-      username: unifi_username || null,
-      password: unifi_password || null,
-      site
-    }));
-  }
-  return _cache.get(key);
-}
-function clearApiClient(config) {
-  const site = (config.unifi_site || "default").trim() || "default";
-  const key = `${config.unifi_host}|${site}|${config.unifi_api_key || config.unifi_username || ""}`;
-  _cache.delete(key);
-}
-function formatBytes(bps) {
-  if (!bps || bps <= 0) return null;
-  if (bps >= 1e6) return `${(bps / 1e6).toFixed(1)} MB/s`;
-  if (bps >= 1e3) return `${(bps / 1e3).toFixed(0)} KB/s`;
-  return `${bps} B/s`;
-}
-function formatSpeed(mbit) {
-  if (!mbit || mbit <= 0) return "\u2014";
-  if (mbit >= 1e3) return `${mbit / 1e3} Gbit`;
-  return `${mbit} Mbit`;
-}
-
 // src/unifi-device-card-editor.js
 var UnifiDeviceCardEditor = class extends HTMLElement {
   constructor() {
@@ -986,16 +741,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._error = "";
     this._hass = null;
     this._loadToken = 0;
-    this._apiTesting = false;
-    this._apiResult = null;
-    this._apiError = "";
-    this._apiSites = [];
   }
   setConfig(config) {
     this._config = config || {};
-    if (!this._config._auth_mode) {
-      this._config._auth_mode = this._config.unifi_username ? "userpass" : "apikey";
-    }
     this._render();
   }
   set hass(hass) {
@@ -1025,9 +773,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
   }
   _dispatch(config) {
-    const { _auth_mode, ...persistable } = config;
     this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config: persistable },
+      detail: { config },
       bubbles: true,
       composed: true
     }));
@@ -1057,132 +804,28 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._config = next;
     this._dispatch(next);
   }
-  _onApiField(field, ev) {
-    const value = ev.target.value.trim();
-    const next = { ...this._config };
-    if (value) next[field] = value;
-    else delete next[field];
-    this._config = next;
-    this._apiResult = null;
-    this._dispatch(next);
-  }
-  // Site always falls back to "default" when empty
-  _effectiveSite() {
-    return (this._config.unifi_site || "").trim() || "default";
-  }
-  _onAuthModeChange(mode) {
-    const next = { ...this._config, _auth_mode: mode };
-    if (mode === "apikey") {
-      delete next.unifi_username;
-      delete next.unifi_password;
-    } else {
-      delete next.unifi_api_key;
-    }
-    this._config = next;
-    this._apiResult = null;
-    this._dispatch(next);
-    this._render();
-  }
-  async _testConnection() {
-    if (!this._config.unifi_host) {
-      this._apiResult = "fail";
-      this._apiError = "Bitte zuerst Host/IP eintragen.";
-      this._render();
-      return;
-    }
-    const effectiveConfig = {
-      ...this._config,
-      unifi_site: this._effectiveSite()
-    };
-    clearApiClient(effectiveConfig);
-    this._apiTesting = true;
-    this._apiResult = null;
-    this._apiError = "";
-    this._apiSites = [];
-    this._render();
-    try {
-      const client = getApiClient(effectiveConfig);
-      const sites = await client.testConnection();
-      this._apiSites = sites.map((s) => ({ name: s.name, desc: s.desc || s.name }));
-      this._apiResult = "ok";
-    } catch (e) {
-      console.error("[unifi-device-card] API test failed:", e);
-      this._apiResult = "fail";
-      if (e.name === "CorsError") {
-        this._apiError = "cors";
-      } else {
-        this._apiError = e.message || "Verbindung fehlgeschlagen";
-      }
-    }
-    this._apiTesting = false;
-    this._render();
-  }
   _render() {
     const cfg = this._config;
-    const authMode = cfg._auth_mode || "apikey";
     const selId = cfg?.device_id || "";
     const selName = String(cfg?.name || "").replace(/"/g, "&quot;");
-    const host = String(cfg?.unifi_host || "").replace(/"/g, "&quot;");
-    const apiKey = String(cfg?.unifi_api_key || "").replace(/"/g, "&quot;");
-    const username = String(cfg?.unifi_username || "").replace(/"/g, "&quot;");
-    const password = String(cfg?.unifi_password || "").replace(/"/g, "&quot;");
-    const siteRaw = String(cfg?.unifi_site || "").replace(/"/g, "&quot;");
-    const mac = String(cfg?.unifi_mac || "").replace(/"/g, "&quot;");
     const options = this._devices.map((d) => `<option value="${d.id}" ${d.id === selId ? "selected" : ""}>${d.label}</option>`).join("");
-    let testBadge = "";
-    if (this._apiTesting) {
-      testBadge = `<div class="api-badge testing">\u23F3 Teste Verbindung\u2026</div>`;
-    } else if (this._apiResult === "ok") {
-      const sl = this._apiSites.length ? `<br><span style="font-weight:400">Sites: ${this._apiSites.map((s) => s.desc).join(", ")}</span>` : "";
-      testBadge = `<div class="api-badge ok">\u2705 Verbindung erfolgreich${sl}</div>`;
-    } else if (this._apiResult === "fail") {
-      if (this._apiError === "cors") {
-        testBadge = `<div class="api-badge cors">
-          \u26A0\uFE0F <strong>CORS-Fehler</strong> \u2014 Der Browser blockiert den direkten Zugriff auf die UCG/UDM.<br><br>
-          <strong>Ursache:</strong> HA und UCG laufen auf unterschiedlichen Origins (Host/Port/Protokoll).<br><br>
-          <strong>L\xF6sungen:</strong><br>
-          \u2022 Reverse-Proxy (nginx, Caddy) der beide unter einer HTTPS-Domain zusammenf\xFChrt<br>
-          \u2022 HA OS: Nginx Proxy Manager Addon einrichten<br>
-          \u2022 Ohne API: Die Card funktioniert vollst\xE4ndig \xFCber HA-Entities \u2014 kein API n\xF6tig.
-        </div>`;
-      } else {
-        testBadge = `<div class="api-badge fail">\u274C ${this._apiError}</div>`;
-      }
-    }
-    const authFields = authMode === "apikey" ? `
-      <div class="field">
-        <label for="unifi_api_key">API-Key</label>
-        <input id="unifi_api_key" type="password" value="${apiKey}"
-          placeholder="UniFi Network \u2192 Einstellungen \u2192 API Keys" />
-        <div class="hint">Verf\xFCgbar ab UniFi Network 8.x \u2014 empfohlen.</div>
-      </div>
-    ` : `
-      <div class="row2">
-        <div class="field">
-          <label for="unifi_username">Benutzername</label>
-          <input id="unifi_username" type="text" value="${username}" placeholder="local-admin" />
-        </div>
-        <div class="field">
-          <label for="unifi_password">Passwort</label>
-          <input id="unifi_password" type="password" value="${password}" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" />
-        </div>
-      </div>
-    `;
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
-        .wrap { display: grid; gap: 14px; padding-bottom: 8px; }
+        .wrap { display: grid; gap: 14px; }
 
         .section-title {
           font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
           text-transform: uppercase; color: var(--secondary-text-color);
           padding-bottom: 4px; border-bottom: 1px solid var(--divider-color);
-          margin-top: 6px;
         }
 
         .field { display: grid; gap: 5px; }
 
-        label { font-size: 13px; font-weight: 600; color: var(--primary-text-color); }
+        label {
+          font-size: 13px; font-weight: 600;
+          color: var(--primary-text-color);
+        }
 
         select, input {
           width: 100%; box-sizing: border-box; min-height: 38px;
@@ -1192,148 +835,43 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           color: var(--primary-text-color); font: inherit;
         }
 
-        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
         .hint  { color: var(--secondary-text-color); font-size: 12px; line-height: 1.4; }
         .error { color: var(--error-color);           font-size: 12px; line-height: 1.4; }
-
-        /* \u2500\u2500 Auth mode toggle \u2500\u2500 */
-        .auth-toggle {
-          display: grid; grid-template-columns: 1fr 1fr;
-          border: 1px solid var(--divider-color); border-radius: 8px;
-          overflow: hidden; background: var(--card-background-color);
-        }
-        .auth-tab {
-          padding: 8px 12px; text-align: center;
-          font-size: 12px; font-weight: 600; cursor: pointer;
-          background: transparent; border: none; font: inherit;
-          color: var(--secondary-text-color);
-          transition: all .15s ease;
-        }
-        .auth-tab.active {
-          background: var(--primary-color); color: white;
-        }
-        .auth-tab:not(.active):hover {
-          background: var(--secondary-background-color);
-          color: var(--primary-text-color);
-        }
-
-        /* \u2500\u2500 Test button \u2500\u2500 */
-        .test-btn {
-          display: inline-flex; align-items: center; gap: 6px;
-          border: none; border-radius: 8px; padding: 8px 16px;
-          cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
-          background: var(--primary-color); color: white;
-          transition: opacity .15s;
-        }
-        .test-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* \u2500\u2500 Result badge \u2500\u2500 */
-        .api-badge {
-          font-size: 12px; font-weight: 600; line-height: 1.5;
-          padding: 8px 12px; border-radius: 8px; border: 1px solid transparent;
-        }
-        .api-badge.testing { background: var(--secondary-background-color); border-color: var(--divider-color); }
-        .api-badge.ok      { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); color: #14532d; }
-        .api-badge.fail    { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #991b1b; }
-        .api-badge.cors    { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.35); color: #78350f; font-size: 12px; line-height: 1.6; }
-
-        /* \u2500\u2500 Site inline hint \u2500\u2500 */
-        .site-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
-        .site-default-hint {
-          font-size: 11px; color: var(--primary-color); font-weight: 600;
-          padding-bottom: 10px; white-space: nowrap;
-        }
       </style>
 
       <div class="wrap">
 
-        <!-- \u2500\u2500 HA Device \u2500\u2500 -->
-        <div class="section-title">Home Assistant Ger\xE4t</div>
+        <div class="section-title">Ger\xE4t</div>
 
         <div class="field">
-          <label for="device">UniFi Ger\xE4t (aus HA)</label>
-          ${this._loading ? `<div class="hint">Lade Ger\xE4te aus Home Assistant\u2026</div>` : `<select id="device"><option value="">Ger\xE4t ausw\xE4hlen\u2026</option>${options}</select>`}
+          <label for="device">UniFi Ger\xE4t</label>
+          ${this._loading ? `<div class="hint">Lade Ger\xE4te aus Home Assistant\u2026</div>` : `<select id="device">
+                 <option value="">Ger\xE4t ausw\xE4hlen\u2026</option>
+                 ${options}
+               </select>`}
         </div>
 
         <div class="field">
           <label for="name">Anzeigename</label>
-          <input id="name" type="text" value="${selName}" placeholder="Optional \u2014 wird sonst vom Ger\xE4t \xFCbernommen" />
+          <input id="name" type="text" value="${selName}"
+            placeholder="Optional \u2014 wird sonst vom Ger\xE4t \xFCbernommen" />
         </div>
 
         ${this._error ? `<div class="error">${this._error}</div>` : ""}
-        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine UniFi Switches/Gateways in HA gefunden.</div>` : !this._loading ? `<div class="hint">Nur Ger\xE4te aus der UniFi-Integration werden angezeigt.</div>` : ""}
 
-        <!-- \u2500\u2500 Direct API \u2500\u2500 -->
-        <div class="section-title">Direkte API (empfohlen)</div>
-        <div class="hint">
-          Wenn Host + Zugangsdaten angegeben, werden Port-Daten direkt von der UniFi
-          Network Application abgerufen \u2014 zuverl\xE4ssiger und mit mehr Details
-          (Echtzeit-Throughput, MAC-Tabelle, PoE-Volt/Ampere).
-        </div>
-
-        <div class="field">
-          <label for="unifi_host">Controller Host / IP</label>
-          <input id="unifi_host" type="text" value="${host}"
-            placeholder="192.168.1.1  oder  unifi.local" />
-        </div>
-
-        <div class="field">
-          <label for="unifi_site">Site</label>
-          <div class="site-row">
-            <input id="unifi_site" type="text" value="${siteRaw}" placeholder="default" />
-            ${!siteRaw ? `<div class="site-default-hint">\u2192 default</div>` : ""}
-          </div>
-          <div class="hint">Leer lassen = "default" wird automatisch verwendet.</div>
-        </div>
-
-        <!-- \u2500\u2500 Auth mode toggle \u2500\u2500 -->
-        <div class="field">
-          <label>Authentifizierung</label>
-          <div class="auth-toggle">
-            <button class="auth-tab ${authMode === "apikey" ? "active" : ""}" data-mode="apikey">
-              \u{1F511} API-Key
-            </button>
-            <button class="auth-tab ${authMode === "userpass" ? "active" : ""}" data-mode="userpass">
-              \u{1F464} Benutzername / Passwort
-            </button>
-          </div>
-        </div>
-
-        ${authFields}
-
-        <div class="field">
-          <label for="unifi_mac">Ger\xE4te-MAC (optional)</label>
-          <input id="unifi_mac" type="text" value="${mac}"
-            placeholder="aa:bb:cc:dd:ee:ff" />
-          <div class="hint">Leer lassen \u2014 wird automatisch anhand des HA-Ger\xE4tenamens erkannt.</div>
-        </div>
-
-        <button class="test-btn" id="test-btn" ${this._apiTesting ? "disabled" : ""}>
-          \u{1F50C} Verbindung testen
-        </button>
-
-        ${testBadge}
+        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine UniFi Switches oder Gateways in Home Assistant gefunden.</div>` : !this._loading ? `<div class="hint">Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.</div>` : ""}
 
       </div>
     `;
     this.shadowRoot.getElementById("device")?.addEventListener("change", (e) => this._onDeviceChange(e));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (e) => this._onNameInput(e));
-    this.shadowRoot.querySelectorAll(".auth-tab").forEach((btn) => {
-      btn.addEventListener("click", () => this._onAuthModeChange(btn.dataset.mode));
-    });
-    const apiFields = authMode === "apikey" ? ["unifi_host", "unifi_site", "unifi_api_key", "unifi_mac"] : ["unifi_host", "unifi_site", "unifi_username", "unifi_password", "unifi_mac"];
-    for (const f of apiFields) {
-      this.shadowRoot.getElementById(f)?.addEventListener("change", (e) => this._onApiField(f, e));
-    }
-    this.shadowRoot.getElementById("test-btn")?.addEventListener("click", () => this._testConnection());
   }
 };
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.f1228d5";
-var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
+var VERSION = "0.0.0-dev.5390945";
+var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
   }
@@ -1345,20 +883,11 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._config = {};
     this._ctx = null;
-    this._apiPortMap = null;
-    this._apiDeviceId = null;
-    this._apiDeviceMac = null;
     this._selectedKey = null;
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
-    this._apiTimer = null;
-    this._apiError = null;
   }
-  static get REFRESH_MS() {
-    return 1e4;
-  }
-  // live refresh every 10 s
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const newConfig = config || {};
@@ -1366,13 +895,9 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
     this._config = newConfig;
     if (oldDeviceId !== newDeviceId) {
       this._ctx = null;
-      this._apiPortMap = null;
-      this._apiDeviceId = null;
-      this._apiDeviceMac = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
       this._loading = false;
-      this._stopApiTimer();
       if (this._hass && newDeviceId) {
         this._ensureLoaded();
         return;
@@ -1385,25 +910,9 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
     this._ensureLoaded();
     this._render();
   }
-  disconnectedCallback() {
-    this._stopApiTimer();
-  }
   getCardSize() {
     return 8;
   }
-  // ── Timer management ──────────────────────────────────────────────────────
-  _startApiTimer() {
-    if (this._apiTimer) return;
-    if (!this._config?.unifi_host) return;
-    this._apiTimer = setInterval(() => this._refreshApiData(), _UnifiDeviceCard.REFRESH_MS);
-  }
-  _stopApiTimer() {
-    if (this._apiTimer) {
-      clearInterval(this._apiTimer);
-      this._apiTimer = null;
-    }
-  }
-  // ── Load orchestration ────────────────────────────────────────────────────
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
     const currentId = this._config.device_id;
@@ -1421,12 +930,8 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
-      if (this._config?.unifi_host) {
-        this._refreshApiData();
-        this._startApiTimer();
-      }
     } catch (err) {
-      console.error("[unifi-device-card] HA context load failed", err);
+      console.error("[unifi-device-card] Failed to load device context", err);
       if (token !== this._loadToken) return;
       this._ctx = null;
       this._loadedDeviceId = null;
@@ -1434,150 +939,28 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
     this._loading = false;
     this._render();
   }
-  /**
-   * Fetch live data from the UniFi API and update _apiPortMap.
-   * Called on first load and periodically by the timer.
-   */
-  async _refreshApiData() {
-    const client = getApiClient(this._config);
-    if (!client) return;
-    try {
-      if (!this._apiDeviceMac) {
-        await this._resolveApiDevice(client);
-      }
-      if (!this._apiDeviceMac) return;
-      const portTable = await client.getPortTable(this._apiDeviceMac);
-      const map = /* @__PURE__ */ new Map();
-      for (const p of portTable) map.set(p.port_idx, p);
-      this._apiPortMap = map;
-      this._apiError = null;
-    } catch (err) {
-      console.warn("[unifi-device-card] API refresh failed:", err.message);
-      this._apiError = err.message;
-    }
-    this._render();
-  }
-  /**
-   * Try to match the selected HA device to a UniFi API device by MAC or name.
-   */
-  async _resolveApiDevice(client) {
-    if (this._config?.unifi_mac) {
-      this._apiDeviceMac = this._config.unifi_mac;
-      return;
-    }
-    if (!this._ctx) return;
-    try {
-      const devices = await client.getDevices();
-      const haDevice = this._ctx.device;
-      const serial = haDevice?.serial_number?.toLowerCase();
-      let match = null;
-      if (serial) {
-        match = devices.find(
-          (d) => d.serial?.toLowerCase() === serial || d.mac?.toLowerCase().replace(/:/g, "") === serial.replace(/:/g, "")
-        );
-      }
-      if (!match) {
-        const haName = String(
-          haDevice?.name_by_user || haDevice?.name || ""
-        ).toLowerCase();
-        match = devices.find(
-          (d) => String(d.name || "").toLowerCase() === haName
-        );
-      }
-      if (match) {
-        this._apiDeviceId = match._id;
-        this._apiDeviceMac = match.mac;
-        console.info("[unifi-device-card] Resolved API device:", match.mac, match.name);
-      } else {
-        console.warn("[unifi-device-card] Could not match HA device to UniFi API device");
-      }
-    } catch (err) {
-      console.warn("[unifi-device-card] Device resolve failed:", err.message);
-    }
-  }
-  // ── Actions ───────────────────────────────────────────────────────────────
   _selectKey(key) {
     this._selectedKey = key;
     this._render();
   }
-  async _togglePoe(slot) {
-    const client = getApiClient(this._config);
-    if (client && this._apiDeviceId && slot.port) {
-      const apiPort = this._apiPortMap?.get(slot.port);
-      const current = apiPort ? apiPort.poe_enable : false;
-      try {
-        await client.setPortPoe(this._apiDeviceId, slot.port, !current);
-        await new Promise((r) => setTimeout(r, 800));
-        await this._refreshApiData();
-        return;
-      } catch (err) {
-        console.error("[unifi-device-card] PoE toggle via API failed:", err);
-      }
-    }
-    if (slot.poe_switch_entity && this._hass) {
-      const [domain] = slot.poe_switch_entity.split(".");
-      await this._hass.callService(domain, "toggle", { entity_id: slot.poe_switch_entity });
-    }
+  async _toggleEntity(entityId) {
+    if (!entityId || !this._hass) return;
+    const [domain] = entityId.split(".");
+    await this._hass.callService(domain, "toggle", { entity_id: entityId });
   }
-  async _powerCycle(slot) {
-    const client = getApiClient(this._config);
-    if (client && this._apiDeviceMac && slot.port) {
-      try {
-        await client.powerCyclePort(this._apiDeviceMac, slot.port);
-        await new Promise((r) => setTimeout(r, 1200));
-        await this._refreshApiData();
-        return;
-      } catch (err) {
-        console.error("[unifi-device-card] Power cycle via API failed:", err);
-      }
-    }
-    if (slot.power_cycle_entity && this._hass) {
-      await this._hass.callService("button", "press", { entity_id: slot.power_cycle_entity });
-    }
-  }
-  // ── Data helpers: merge HA + API ──────────────────────────────────────────
-  /**
-   * Is the port link up?
-   * API data takes priority over HA entities.
-   */
-  _portIsUp(slot) {
-    if (this._apiPortMap && slot.port) {
-      const p = this._apiPortMap.get(slot.port);
-      if (p) return p.up;
-    }
-    return isOn(this._hass, slot.link_entity);
-  }
-  /**
-   * PoE enabled?
-   */
-  _portPoeEnabled(slot) {
-    if (this._apiPortMap && slot.port) {
-      const p = this._apiPortMap.get(slot.port);
-      if (p) return p.poe_enable;
-    }
-    return isOn(this._hass, slot.poe_switch_entity);
-  }
-  /**
-   * Has any PoE capability?
-   */
-  _portHasPoe(slot) {
-    if (this._apiPortMap && slot.port) {
-      const p = this._apiPortMap.get(slot.port);
-      if (p) return p.poe_mode !== null && p.poe_mode !== void 0;
-    }
-    return Boolean(slot.power_cycle_entity);
+  async _pressButton(entityId) {
+    if (!entityId || !this._hass) return;
+    await this._hass.callService("button", "press", { entity_id: entityId });
   }
   _subtitle() {
     if (!this._config?.device_id || !this._ctx) return `Version ${VERSION}`;
     const fw = this._ctx?.firmware;
     const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
-    const src = this._apiPortMap ? " \xB7 API \u2713" : "";
-    return fw ? `${model} \xB7 FW ${fw}${src}` : `${model}${src}`;
+    return fw ? `${model} \xB7 FW ${fw}` : model;
   }
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => this._portIsUp(s)).length;
+    return allSlots.filter((s) => isOn(this._hass, s.link_entity)).length;
   }
-  // ── Styles ────────────────────────────────────────────────────────────────
   _styles() {
     return `<style>
       :host {
@@ -1589,7 +972,6 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
         --udc-aglow:   rgba(0,144,217,0.2);
         --udc-green:   #22c55e;
         --udc-orange:  #f59e0b;
-        --udc-red:     #ef4444;
         --udc-text:    #e2e8f0;
         --udc-muted:   #4e5d73;
         --udc-dim:     #8896a8;
@@ -1605,7 +987,7 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
       }
 
-      /* \u2500\u2500 HEADER \u2500\u2500 */
+      /* HEADER */
       .header {
         padding: 16px 18px 13px;
         background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
@@ -1618,26 +1000,21 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
       .subtitle { font-size: 0.73rem; color: var(--udc-muted); }
-      .header-chips { display: flex; gap: 7px; flex-shrink: 0; align-items: center; }
-
       .chip {
         display: flex; align-items: center; gap: 5px;
         background: var(--udc-surf2); border: 1px solid var(--udc-border);
         border-radius: 20px; padding: 3px 10px;
-        font-size: 0.71rem; font-weight: 700; white-space: nowrap; color: var(--udc-dim);
+        font-size: 0.71rem; font-weight: 700; white-space: nowrap;
+        color: var(--udc-dim); flex-shrink: 0;
       }
       .chip .dot {
         width: 6px; height: 6px; border-radius: 50%;
         background: var(--udc-green); box-shadow: 0 0 5px var(--udc-green);
         animation: blink 2.5s ease-in-out infinite;
       }
-      .chip.api-chip { color: var(--udc-accent); border-color: rgba(0,144,217,.25); }
-      .chip.api-chip .dot { background: var(--udc-accent); box-shadow: 0 0 5px var(--udc-accent); }
-      @keyframes blink {
-        0%,100% { opacity:1; } 50% { opacity:.4; }
-      }
+      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-      /* \u2500\u2500 FRONT PANEL \u2500\u2500 */
+      /* FRONT PANEL */
       .frontpanel {
         padding: 13px 18px 10px; display: grid; gap: 6px;
         background: var(--udc-surface); border-bottom: 1px solid var(--udc-border);
@@ -1655,7 +1032,7 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
       .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
 
-      /* \u2500\u2500 PORT BUTTON \u2500\u2500 */
+      /* PORT BUTTON */
       .port {
         border: 1px solid rgba(255,255,255,.06); border-radius: 7px;
         min-height: 40px; cursor: pointer; font: inherit;
@@ -1673,7 +1050,7 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       .port.selected {
         border-color: var(--udc-accent) !important;
         background: rgba(0,144,217,.12) !important;
-        box-shadow: 0 0 0 1px var(--udc-accent), inset 0 0 10px rgba(0,144,217,.08);
+        box-shadow: 0 0 0 1px var(--udc-accent);
       }
       .port.selected::after { background: var(--udc-accent) !important; }
       .port.has-poe.up::after { background: linear-gradient(90deg, var(--udc-green) 50%, var(--udc-orange)); }
@@ -1681,23 +1058,11 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       .port-num { font-size: 10px; font-weight: 800; line-height: 1; color: var(--udc-dim); }
       .port.up .port-num { color: var(--udc-text); }
       .port-icon { font-size: 8px; line-height: 1; color: var(--udc-muted); }
-      .port.up .port-icon    { color: var(--udc-green); }
+      .port.up .port-icon         { color: var(--udc-green); }
       .port.has-poe.up .port-icon { color: var(--udc-orange); }
 
-      /* \u2500\u2500 DETAIL SECTION \u2500\u2500 */
+      /* DETAIL */
       .section { padding: 14px 18px 18px; display: grid; gap: 14px; }
-      .api-banner {
-        display: flex; align-items: center; gap: 7px;
-        background: rgba(0,144,217,.08); border: 1px solid rgba(0,144,217,.2);
-        border-radius: var(--udc-rsm); padding: 7px 12px;
-        font-size: 0.73rem; color: var(--udc-accent); font-weight: 600;
-      }
-      .api-err-banner {
-        display: flex; align-items: center; gap: 7px;
-        background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2);
-        border-radius: var(--udc-rsm); padding: 7px 12px;
-        font-size: 0.73rem; color: var(--udc-red);
-      }
       .detail-header {
         display: flex; align-items: center; justify-content: space-between;
         padding-bottom: 11px; border-bottom: 1px solid var(--udc-border); margin-bottom: 12px;
@@ -1711,7 +1076,6 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       .status-badge.up   { background: rgba(34,197,94,.1);  color: var(--udc-green); border: 1px solid rgba(34,197,94,.2); }
       .status-badge.down { background: rgba(78,93,115,.2);   color: var(--udc-muted); border: 1px solid var(--udc-border); }
 
-      /* \u2500\u2500 DETAIL CARDS (2\xD7N grid) \u2500\u2500 */
       .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
       .detail-card {
         background: var(--udc-surface); border: 1px solid var(--udc-border);
@@ -1719,34 +1083,10 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       }
       .dc-label { font-size: .63rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--udc-muted); }
       .dc-value { font-size: .87rem; font-weight: 700; color: var(--udc-text); }
-      .dc-value.accent  { color: var(--udc-accent); }
-      .dc-value.poe-on  { color: var(--udc-orange); }
-      .dc-value.na      { color: var(--udc-muted); font-weight: 400; }
-      .dc-value.green   { color: var(--udc-green); }
+      .dc-value.accent { color: var(--udc-accent); }
+      .dc-value.poe-on { color: var(--udc-orange); }
+      .dc-value.na     { color: var(--udc-muted); font-weight: 400; }
 
-      /* \u2500\u2500 MAC TABLE \u2500\u2500 */
-      .mac-table { display: grid; gap: 5px; margin-bottom: 12px; }
-      .mac-row {
-        display: flex; align-items: center; gap: 8px;
-        background: var(--udc-surface); border: 1px solid var(--udc-border);
-        border-radius: 7px; padding: 7px 11px; font-size: .78rem;
-      }
-      .mac-icon { font-size: .85rem; opacity: .6; flex-shrink: 0; }
-      .mac-hostname { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-      .mac-addr { font-size: .7rem; color: var(--udc-dim); font-family: monospace; flex-shrink: 0; }
-      .mac-ip   { font-size: .7rem; color: var(--udc-accent); flex-shrink: 0; }
-
-      /* \u2500\u2500 THROUGHPUT CHIPS \u2500\u2500 */
-      .tput-row { display: flex; gap: 6px; margin-bottom: 10px; }
-      .tput-chip {
-        display: inline-flex; align-items: center; gap: 4px;
-        background: var(--udc-surf2); border: 1px solid var(--udc-border);
-        border-radius: 6px; padding: 3px 8px;
-        font-size: .7rem; font-weight: 600; color: var(--udc-dim);
-      }
-      .tput-chip .arr { font-size: 8px; opacity: .6; }
-
-      /* \u2500\u2500 ACTIONS \u2500\u2500 */
       .actions { display: flex; gap: 7px; flex-wrap: wrap; }
       .action-btn {
         border: 1px solid var(--udc-border); border-radius: 7px;
@@ -1759,7 +1099,6 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       .action-btn.secondary { background: var(--udc-surf2); color: var(--udc-dim); }
       .action-btn.secondary:hover { color: var(--udc-text); border-color: rgba(255,255,255,.14); }
 
-      /* \u2500\u2500 MISC \u2500\u2500 */
       .muted { color: var(--udc-muted); font-size: .875rem; }
       .loading-state {
         display: flex; align-items: center; gap: 10px;
@@ -1771,36 +1110,22 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
         border-radius: 50%; animation: spin .65s linear infinite;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
-      .empty-state { padding: 24px 18px; color: var(--udc-muted); font-size: .875rem; text-align: center; line-height: 1.5; }
+      .empty-state {
+        padding: 24px 18px; color: var(--udc-muted);
+        font-size: .875rem; text-align: center; line-height: 1.5;
+      }
     </style>`;
   }
-  // ── Render helpers ────────────────────────────────────────────────────────
-  _renderEmpty(title) {
-    this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card>
-        <div class="header">
-          <div class="header-info">
-            <div class="title">${title}</div>
-            <div class="subtitle">${this._subtitle()}</div>
-          </div>
-        </div>
-        <div class="empty-state">Bitte im Karteneditor ein UniFi-Ger\xE4t ausw\xE4hlen.</div>
-      </ha-card>`;
-  }
   _renderPortButton(slot, selectedKey) {
-    const linkUp = this._portIsUp(slot);
-    const hasPoe = this._portHasPoe(slot);
-    const poeOn = hasPoe && this._portPoeEnabled(slot);
+    const linkUp = isOn(this._hass, slot.link_entity);
+    const hasPoe = Boolean(slot.power_cycle_entity);
+    const poeOn = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
     const isSpecial = slot.kind === "special";
     const icon = poeOn ? "\u26A1" : linkUp ? "\u25B2" : "\u25CB";
-    let tooltip = `${slot.label}${linkUp ? " \xB7 Connected" : " \xB7 No link"}`;
-    if (this._apiPortMap && slot.port) {
-      const ap = this._apiPortMap.get(slot.port);
-      if (ap && ap.up && ap.speed) tooltip += ` \xB7 ${formatSpeed(ap.speed)}`;
-    }
     return `<button
       class="port ${isSpecial ? "special" : ""} ${linkUp ? "up" : "down"} ${selectedKey === slot.key ? "selected" : ""} ${hasPoe ? "has-poe" : ""}"
-      data-key="${slot.key}" title="${tooltip}">
+      data-key="${slot.key}"
+      title="${slot.label}${linkUp ? " \xB7 Connected" : " \xB7 No link"}${poeOn ? " \xB7 PoE ON" : ""}">
       <div class="port-num">${slot.label}</div>
       <div class="port-icon">${icon}</div>
     </button>`;
@@ -1831,89 +1156,50 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
       }).join("");
       return `<div class="port-row">${items}</div>`;
     });
-    let detail = "";
+    let detail = `<div class="muted">Keine Ports erkannt.</div>`;
     if (selected) {
-      const linkUp = this._portIsUp(selected);
-      const hasPoe = this._portHasPoe(selected);
-      const poeOn = hasPoe && this._portPoeEnabled(selected);
-      const apiPort = this._apiPortMap?.get(selected.port) || null;
-      const speedText = apiPort ? formatSpeed(apiPort.speed) : getPortSpeedText(this._hass, selected);
-      const linkText = apiPort ? apiPort.up ? "Connected" : "No link" : getPortLinkText(this._hass, selected);
-      const poePowerText = apiPort?.poe_power ? `${parseFloat(apiPort.poe_power).toFixed(1)} W` : selected.power_cycle_entity ? formatState(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
-      const poeVoltText = apiPort?.poe_voltage ? `${parseFloat(apiPort.poe_voltage).toFixed(0)} V` : null;
-      const poeAmpText = apiPort?.poe_current ? `${(parseFloat(apiPort.poe_current) * 1e3).toFixed(0)} mA` : null;
-      const rxRate = apiPort ? formatBytes(apiPort.rx_rate) : null;
-      const txRate = apiPort ? formatBytes(apiPort.tx_rate) : null;
-      const macTable = apiPort?.mac_table || [];
-      const canPoe = hasPoe || apiPort?.poe_mode !== null && apiPort?.poe_mode !== void 0;
-      const canPowerCycle = Boolean(selected.power_cycle_entity) || Boolean(this._apiDeviceMac) && selected.port;
-      const gridCards = [
-        { label: "Link Status", value: linkText, cls: "" },
-        { label: "Geschwindigkeit", value: speedText, cls: "accent" },
-        {
-          label: "PoE",
-          value: canPoe ? poeOn ? "Ein \u26A1" : "Aus" : "\u2014",
-          cls: poeOn ? "poe-on" : canPoe ? "" : "na"
-        },
-        { label: "PoE Leistung", value: canPoe ? poePowerText : "\u2014", cls: canPoe ? "" : "na" },
-        ...poeVoltText ? [{ label: "PoE Spannung", value: poeVoltText, cls: "" }] : [],
-        ...poeAmpText ? [{ label: "PoE Strom", value: poeAmpText, cls: "" }] : []
-      ];
-      const gridHtml = gridCards.map(
-        (c) => `<div class="detail-card">
-          <div class="dc-label">${c.label}</div>
-          <div class="dc-value ${c.cls}">${c.value}</div>
-        </div>`
-      ).join("");
-      const tputHtml = rxRate || txRate ? `
-        <div class="tput-row">
-          ${rxRate ? `<div class="tput-chip"><span class="arr">\u2193</span>${rxRate}</div>` : ""}
-          ${txRate ? `<div class="tput-chip"><span class="arr">\u2191</span>${txRate}</div>` : ""}
-        </div>` : "";
-      const macHtml = macTable.length > 0 ? `
-        <div class="mac-table">
-          ${macTable.slice(0, 4).map((m) => `
-            <div class="mac-row">
-              <div class="mac-icon">\u{1F4BB}</div>
-              <div class="mac-hostname">${m.hostname || "Unbekannt"}</div>
-              <div class="mac-ip">${m.ip || ""}</div>
-              <div class="mac-addr">${m.mac || ""}</div>
-            </div>`).join("")}
-        </div>` : "";
-      const actionsHtml = `
+      const linkUp = isOn(this._hass, selected.link_entity);
+      const linkText = getPortLinkText(this._hass, selected);
+      const speedText = getPortSpeedText(this._hass, selected);
+      const poeAvail = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
+      const poeOn = poeAvail ? isOn(this._hass, selected.poe_switch_entity) : false;
+      const poePower = poeAvail ? formatState(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
+      detail = `
+        <div class="detail-header">
+          <div class="detail-title">${selected.kind === "special" ? selected.label : `Port ${selected.port}`}</div>
+          <div class="status-badge ${linkUp ? "up" : "down"}">${linkUp ? "\u25CF Online" : "\u25CB Offline"}</div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="dc-label">Link Status</div>
+            <div class="dc-value">${linkText !== "\u2014" ? linkText : linkUp ? "Connected" : "No link"}</div>
+          </div>
+          <div class="detail-card">
+            <div class="dc-label">Geschwindigkeit</div>
+            <div class="dc-value accent">${speedText}</div>
+          </div>
+          <div class="detail-card">
+            <div class="dc-label">PoE</div>
+            <div class="dc-value ${poeAvail ? poeOn ? "poe-on" : "" : "na"}">
+              ${poeAvail ? stateValue(this._hass, selected.poe_switch_entity, "\u2014") : "\u2014"}
+            </div>
+          </div>
+          <div class="detail-card">
+            <div class="dc-label">PoE Leistung</div>
+            <div class="dc-value ${poeAvail ? "" : "na"}">${poePower}</div>
+          </div>
+        </div>
+
         <div class="actions">
-          ${canPoe ? `<button class="action-btn primary" data-action="toggle-poe">
+          ${poeAvail ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
                 \u26A1 PoE ${poeOn ? "Aus" : "Ein"}
                </button>` : ""}
-          ${canPowerCycle ? `<button class="action-btn secondary" data-action="power-cycle">
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
                 \u21BA Power Cycle
                </button>` : ""}
         </div>`;
-      detail = `
-        <div class="port-detail">
-          <div class="detail-header">
-            <div class="detail-title">${selected.kind === "special" ? selected.label : `Port ${selected.port}`}</div>
-            <div class="status-badge ${linkUp ? "up" : "down"}">${linkUp ? "\u25CF Online" : "\u25CB Offline"}</div>
-          </div>
-          <div class="detail-grid">${gridHtml}</div>
-          ${tputHtml}
-          ${macHtml}
-          ${actionsHtml}
-        </div>`;
-    } else {
-      detail = `<div class="muted">Keine Ports erkannt.</div>`;
     }
-    let apiBanner = "";
-    if (this._config?.unifi_host && this._apiPortMap) {
-      apiBanner = `<div class="api-banner">\u26A1 Echtzeit-Daten via UniFi API</div>`;
-    } else if (this._config?.unifi_host && this._apiError) {
-      apiBanner = `<div class="api-err-banner">\u26A0 API nicht erreichbar: ${this._apiError} \u2014 verwende HA-Daten</div>`;
-    } else if (this._config?.unifi_host) {
-      apiBanner = `<div class="api-banner">\u23F3 Verbinde mit UniFi API\u2026</div>`;
-    }
-    const isApiMode = Boolean(this._config?.unifi_host && this._apiPortMap);
-    const chipClass = isApiMode ? "chip api-chip" : "chip";
-    const chipLabel = isApiMode ? "API" : "HA";
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card>
         <div class="header">
@@ -1921,10 +1207,7 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
             <div class="title">${title}</div>
             <div class="subtitle">${this._subtitle()}</div>
           </div>
-          <div class="header-chips">
-            <div class="${chipClass}"><div class="dot"></div>${connected}/${allSlots.length}</div>
-            <div class="chip" style="font-size:.65rem;padding:3px 8px;color:var(--udc-muted)">${chipLabel}</div>
-          </div>
+          <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
         </div>
 
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"}">
@@ -1933,25 +1216,25 @@ var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
           ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">Keine Ports erkannt.</div>`}
         </div>
 
-        <div class="section">
-          ${apiBanner}
-          ${detail}
-        </div>
+        <div class="section">${detail}</div>
       </ha-card>`;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
-    const ctx2 = this._ctx;
-    const numbered2 = mergePortsWithLayout(ctx2?.layout, discoverPorts(ctx2?.entities || []));
-    const specials2 = mergeSpecialsWithLayout(ctx2?.layout, discoverSpecialPorts(ctx2?.entities || []));
-    const allSlots2 = [...specials2, ...numbered2];
-    const sel2 = allSlots2.find((p) => p.key === this._selectedKey) || allSlots2[0] || null;
-    this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", () => sel2 && this._togglePoe(sel2));
-    this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", () => sel2 && this._powerCycle(sel2));
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+    this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
   }
-  // ── Top-level render ──────────────────────────────────────────────────────
   _render() {
     const title = this._config?.name || "UniFi Device Card";
     if (!this._config?.device_id) {
-      this._renderEmpty(title);
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card>
+          <div class="header">
+            <div class="header-info">
+              <div class="title">${title}</div>
+              <div class="subtitle">${this._subtitle()}</div>
+            </div>
+          </div>
+          <div class="empty-state">Bitte im Karteneditor ein UniFi-Ger\xE4t ausw\xE4hlen.</div>
+        </ha-card>`;
       return;
     }
     if (this._loading) {
@@ -1988,5 +1271,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-device-card",
   name: "UniFi Device Card",
-  description: "A Lovelace card for UniFi switches and gateways \u2014 with optional direct API support."
+  description: "Lovelace card for UniFi switches and gateways."
 });
