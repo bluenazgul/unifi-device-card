@@ -332,19 +332,20 @@ function extractPortNumber(entity) {
 function ensurePort(map, port) {
   if (!map.has(port)) {
     map.set(port, {
-      key:               `port-${port}`,
+      key:                `port-${port}`,
       port,
-      label:             String(port),
-      port_label:        null,   // custom label from UniFi console (via entity original_name)
-      kind:              "numbered",
-      link_entity:       null,
-      speed_entity:      null,
-      poe_switch_entity: null,
-      poe_power_entity:  null,
-      power_cycle_entity:null,
-      rx_entity:         null,   // sensor.*_port_N_rx — throughput receive
-      tx_entity:         null,   // sensor.*_port_N_tx — throughput transmit
-      raw_entities:      [],
+      label:              String(port),
+      port_label:         null,   // custom label from UniFi console
+      kind:               "numbered",
+      link_entity:        null,   // binary_sensor / sensor — physical link state
+      port_switch_entity: null,   // switch.*_port_N — port enable/disable (all ports)
+      speed_entity:       null,   // sensor.*_link_speed
+      poe_switch_entity:  null,   // switch.*_port_N_poe — PoE toggle
+      poe_power_entity:   null,   // sensor.*_poe_power
+      power_cycle_entity: null,   // button.*_power_cycle
+      rx_entity:          null,   // sensor.*_port_N_rx
+      tx_entity:          null,   // sensor.*_port_N_tx
+      raw_entities:       [],
     });
   }
   return map.get(port);
@@ -354,18 +355,19 @@ function ensureSpecialPort(map, key, label) {
   if (!map.has(key)) {
     map.set(key, {
       key,
-      port:              null,
+      port:               null,
       label,
-      port_label:        null,
-      kind:              "special",
-      link_entity:       null,
-      speed_entity:      null,
-      poe_switch_entity: null,
-      poe_power_entity:  null,
-      power_cycle_entity:null,
-      rx_entity:         null,
-      tx_entity:         null,
-      raw_entities:      [],
+      port_label:         null,
+      kind:               "special",
+      link_entity:        null,
+      port_switch_entity: null,
+      speed_entity:       null,
+      poe_switch_entity:  null,
+      poe_power_entity:   null,
+      power_cycle_entity: null,
+      rx_entity:          null,
+      tx_entity:          null,
+      raw_entities:       [],
     });
   }
   return map.get(key);
@@ -460,14 +462,16 @@ function classifyPortEntity(entity) {
     return "poe_switch_entity";
   }
 
-  // ── switch.*_port_* (no _poe suffix) → link entity ───────────────────────
-  // This is how USW Lite / US 8 etc. expose port link state.
-  // The switch is "on" when the port has a connected device.
+  // ── switch.*_port_* (no _poe suffix) → port enable/disable ──────────────
+  // This switch controls whether the port is administratively enabled.
+  // It is NOT a link state indicator — a port can be enabled but have no link.
   if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) {
-    return "link_entity";
+    return "port_switch_entity";
   }
 
-  // ── binary_sensor.*_port_* → link entity ─────────────────────────────────
+  // ── binary_sensor.*_port_* → physical link state ─────────────────────────
+  // Dedicated link state entity (currently not created by HA integration,
+  // but supported here for forward compatibility and future FR resolution).
   if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
     return "link_entity";
   }
@@ -524,35 +528,37 @@ function detectSpecialPortKey(entity) {
 /**
  * Extract a custom port label from entity original_name.
  *
- * The HA UniFi integration names entities as:
- *   "{port_label} link speed"      → sensor
- *   "{port_label} Power Cycle"     → button
- *   "{port_label} PoE Power"       → sensor
- *   "{port_label} PoE"             → switch
+ * Only called for entity types that reliably carry the port label:
+ *   button.*_power_cycle  → "{port_label} Power Cycle"
+ *   sensor.*_link_speed   → "{port_label} link speed"
+ *   sensor.*_poe_power    → "{port_label} PoE Power"
  *
- * Where {port_label} is the name the user assigned to the port
- * in the UniFi Network console. If the port has no custom name,
- * {port_label} defaults to "Port N".
+ * NOT called for rx/tx/poe-toggle entities — their names
+ * are just "RX", "TX", "PoE" which are not meaningful labels.
  *
- * We strip both the known suffixes AND the leading "Port N" prefix
- * so that only the user-defined part remains.
- *
- * Example:
- *   "Port 1 - Uplink (Internet Switch) Power Cycle"
- *   → strip " Power Cycle" → "Port 1 - Uplink (Internet Switch)"
- *   → strip leading "Port N - " → "Uplink (Internet Switch)"
+ * Returns null if nothing meaningful remains after stripping,
+ * e.g. if the port has no custom name in UniFi console.
  */
 function extractPortLabel(entity) {
+  const eid  = entity.entity_id || "";
+  const id   = eid.toLowerCase();
+
+  // Only extract from entity types that carry the full port label
+  const isLabelSource =
+    (eid.startsWith("button.")  && id.includes("power_cycle"))  ||
+    (eid.startsWith("sensor.")  && id.includes("_link_speed"))  ||
+    (eid.startsWith("sensor.")  && id.includes("_poe_power"));
+
+  if (!isLabelSource) return null;
+
   const name = normalize(entity.original_name || entity.name || "");
   if (!name) return null;
 
-  // Step 1: strip known entity-type suffixes
+  // Step 1: strip the known entity-type suffix
   const suffixes = [
+    / power cycle$/i,
     / link speed$/i,
     / poe power$/i,
-    / power cycle$/i,
-    / poe$/i,
-    / link$/i,
   ];
 
   let stripped = name;
@@ -564,13 +570,14 @@ function extractPortLabel(entity) {
     }
   }
 
-  // Step 2: strip leading "Port N" or "Port N - " prefix
-  // (the default label when no custom name is set in UniFi console)
+  // Step 2: strip leading "Port N" or "Port N - " / "Port N – "
   stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
 
-  // Return only if something meaningful remains
-  if (stripped && stripped.length > 0) return stripped;
-  return null;
+  // Step 3: reject strings that are purely technical artifacts
+  const blocked = /^(rx|tx|poe|link|uplink|downlink|sfp|wan|lan)$/i;
+  if (!stripped || blocked.test(stripped)) return null;
+
+  return stripped;
 }
 
 export function discoverPorts(entities) {
@@ -588,7 +595,7 @@ export function discoverPorts(entities) {
       row[type] = entity.entity_id;
     }
 
-    // Extract custom port label from entity name if not yet found
+    // Extract custom port label — only from reliable label-bearing entities
     if (!row.port_label) {
       const label = extractPortLabel(entity);
       if (label) row.port_label = label;
@@ -701,52 +708,57 @@ export function stateValue(hass, entityId, fallback = "—") {
 // Also added "active" as a valid "on" state.
 // ─────────────────────────────────────────────────
 /**
- * isOn — determine if a port has an active link.
+ * isOn — determine if a port has an active physical link.
  *
- * Checks the given entityId state first. If the entity is missing or
- * unavailable, falls back to checking the port's speed_entity:
- * a positive speed value (e.g. "1000") reliably indicates a live link.
+ * Priority order:
+ *  1. binary_sensor link_entity (most reliable, not yet in HA — future FR)
+ *  2. speed_entity with value > 0 (very reliable: negotiated speed = link up)
+ *  3. generic link/state sensor
  *
- * This resolves the case where a port has no link_entity (entity disabled
- * or not yet created by HA) but does have a speed_entity — the card was
- * showing OFFLINE while simultaneously showing "1000 Mbit" because isOn()
- * and getPortLinkText() used different fallback logic.
+ * Intentionally does NOT use port_switch_entity (port enable/disable) —
+ * that tells us if the port is administratively on, not if a cable is
+ * physically connected and negotiated.
  */
 export function isOn(hass, entityId, port = null) {
-  const state = stateObj(hass, entityId);
-
-  if (state) {
-    const value = String(state.state).toLowerCase();
-    if (
-      value === "on"        ||
-      value === "connected" ||
-      value === "up"        ||
-      value === "true"      ||
-      value === "active"    ||
-      value === "1"
-    ) return true;
-
-    // Numeric speed > 0 on a link/status-named entity = port up
-    const num = parseFloat(value);
-    if (!isNaN(num) && num > 0) {
-      const id = lower(entityId);
+  // 1. Check explicit link_entity (binary_sensor — future HA improvement)
+  if (entityId) {
+    const state = stateObj(hass, entityId);
+    if (state) {
+      const value = String(state.state).toLowerCase();
       if (
-        id.includes("_link")        ||
-        id.includes("_status")      ||
-        id.includes("_state")       ||
-        id.includes("_port_status")
+        value === "on"        ||
+        value === "connected" ||
+        value === "up"        ||
+        value === "true"      ||
+        value === "active"    ||
+        value === "1"
       ) return true;
+      if (value === "off" || value === "disconnected" || value === "false") return false;
     }
   }
 
-  // Fallback: if port has a speed_entity with a positive value → link is up.
-  // Covers the case where link_entity is null/disabled but speed_entity exists.
+  // 2. Speed entity: negotiated speed > 0 = link is definitively up
   if (port?.speed_entity) {
     const speedState = stateObj(hass, port.speed_entity);
     if (speedState) {
       const num = parseFloat(speedState.state);
       if (!isNaN(num) && num > 0) return true;
+      // Speed = 0 or unavailable → not conclusive, fall through
     }
+  }
+
+  // 3. Fallback: scan raw_entities for any link-like state value
+  for (const eid of port?.raw_entities || []) {
+    const id = lower(eid);
+    // Skip entities that are not link indicators
+    if (id.endsWith("_poe") || id.includes("_poe_power") ||
+        id.endsWith("_rx")  || id.endsWith("_tx") ||
+        id.includes("power_cycle")) continue;
+
+    const st = stateObj(hass, eid);
+    if (!st) continue;
+    const v = String(st.state).toLowerCase();
+    if (v === "on" || v === "connected" || v === "up" || v === "true") return true;
   }
 
   return false;
