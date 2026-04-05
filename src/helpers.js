@@ -309,12 +309,14 @@ export async function getDeviceContext(hass, deviceId) {
 }
 
 function extractPortNumber(entity) {
-  const id           = entity.entity_id   || "";
+  const id           = entity.entity_id    || "";
   const originalName = entity.original_name || "";
   const name         = entity.name          || "";
 
-  // e.g. sensor.switch_port_3_link_speed
-  let match = id.match(/_port_(\d+)_/i);
+  // e.g. sensor.usw_lite_8_port_4_hostname_link_speed
+  //      switch.usw_lite_16_port_4_poe
+  //      switch.usw_lite_16_port_9          ← ends with port number
+  let match = id.match(/_port_(\d+)(?:_|$)/i);
   if (match) return Number(match[1]);
 
   // e.g. "Port 3 Link Speed"
@@ -378,136 +380,114 @@ function isLikelyLinkStateValue(value) {
 }
 
 // ─────────────────────────────────────────────────
-// Speed / throughput entity guard
+// Throughput guard — RX/TX sensors must never be
+// treated as link-state or speed entities.
 // ─────────────────────────────────────────────────
-function isThroughputEntity(id, text) {
+function isThroughputEntity(id) {
   return (
-    id.includes("throughput")  ||
-    id.includes("traffic")     ||
-    id.includes("download")    ||
-    id.includes("upload")      ||
-    id.includes("_rx")         ||
-    id.includes("_tx")         ||
-    id.includes("bandwidth")   ||
-    text.includes("throughput")||
-    text.includes("download")  ||
-    text.includes("upload")    ||
-    text.includes("traffic")
+    id.endsWith("_rx")        ||
+    id.endsWith("_tx")        ||
+    id.includes("_rx_")       ||
+    id.includes("_tx_")       ||
+    id.includes("throughput") ||
+    id.includes("bandwidth")  ||
+    id.includes("download")   ||
+    id.includes("upload")     ||
+    id.includes("traffic")
   );
 }
 
 // ─────────────────────────────────────────────────
-// FIX: classifyPortEntity
+// isSpeedEntity — sensor contains "_link_speed"
+// anywhere in the id (not necessarily at the end).
 //
-// Previous bug: sensor link detection required BOTH
-// a keyword in the entity_id AND a keyword in
-// entityText(). Because translation_key / original_name
-// may not always contain "port"/"link"/"connected",
-// many valid link sensors fell through unclassified.
+// Real-world examples from HA UniFi integration:
+//   sensor.usw_lite_8_port_4_usb2ip_pi3b_link_speed
+//   sensor.us_8_60w_port_1_downlink_usw_lite_link_speed
+//   sensor.switch_port_3_link_speed
+// All contain "_link_speed" — use includes(), not endsWith().
+// ─────────────────────────────────────────────────
+function isSpeedEntity(id) {
+  return (
+    id.includes("_link_speed")       ||
+    id.includes("_ethernet_speed")   ||
+    id.includes("_negotiated_speed")
+  );
+}
+
+// ─────────────────────────────────────────────────
+// classifyPortEntity
 //
-// New approach:
-//  1. binary_sensor → always link if it has a
-//     link/connected/state keyword in id OR text
-//  2. sensor → link if id contains _link, _status,
-//     _port_status, or _state (and not throughput,
-//     not speed). The text check is now OPTIONAL
-//     (OR, not AND).
-//  3. sensor speed: id must contain link_speed,
-//     _speed, ethernet_speed, or negotiated_speed
-//     and must NOT be a throughput entity.
+// Based on observed real-world entity naming from
+// the HA UniFi Network integration:
+//
+// US 8 60W:
+//   switch.*_port_8            → link (on/off = port enabled/connected)
+//   switch.*_port_5_poe        → PoE toggle
+//
+// USW Lite 8/16 PoE:
+//   switch.*_port_4            → link (on/off = port enabled/connected)
+//   switch.*_port_2_poe        → PoE toggle
+//   sensor.*_port_2_poe_power  → PoE power (W)
+//   sensor.*_port_4_*_link_speed → speed (contains hostname in between)
+//   sensor.*_port_2_rx/tx      → throughput (ignore)
+//   button.*_port_2_power_cycle → power cycle
+//
+// KEY INSIGHT: switch.* without "_poe" suffix = link entity
+//              switch.* with "_poe" suffix    = PoE toggle
 // ─────────────────────────────────────────────────
 function classifyPortEntity(entity) {
-  const id   = lower(entity.entity_id);
-  const text = entityText(entity);
+  const id  = lower(entity.entity_id);
+  const eid = entity.entity_id;
 
-  // ── binary_sensor: any link/connected/state hint ──
-  if (entity.entity_id.startsWith("binary_sensor.")) {
-    if (
-      id.includes("_link")        ||
-      id.includes("_connected")   ||
-      id.includes("_connection")  ||
-      id.includes("_state")       ||
-      text.includes(" link")      ||
-      text.includes("connected")  ||
-      text.includes("connection")
-    ) {
-      return "link_entity";
-    }
+  // ── button: power cycle ──────────────────────────────────────────────────
+  if (eid.startsWith("button.") && (
+    id.includes("power_cycle") ||
+    id.includes("_restart")    ||
+    id.includes("_reboot")
+  )) {
+    return "power_cycle_entity";
   }
 
-  // ── sensor: speed entity (check BEFORE generic link) ──
-  if (
-    entity.entity_id.startsWith("sensor.") &&
-    !isThroughputEntity(id, text) &&
-    (
-      id.includes("link_speed")        ||
-      id.includes("ethernet_speed")    ||
-      id.includes("negotiated_speed")  ||
-      // ends with _speed but is NOT a throughput sensor
-      (id.endsWith("_speed") && !isThroughputEntity(id, text))
-    )
-  ) {
-    return "speed_entity";
-  }
-
-  // ── sensor: link/status entity ──
-  // FIX: only require id-level keyword; text check is optional bonus
-  if (entity.entity_id.startsWith("sensor.")) {
-    const hasIdKeyword =
-      id.includes("_link")         ||
-      id.includes("_port_status")  ||
-      id.includes("_port_state")   ||
-      id.includes("_status")       ||
-      id.includes("_state");
-
-    const hasTextKeyword =
-      text.includes("port")      ||
-      text.includes("link")      ||
-      text.includes("connected") ||
-      text.includes("status")    ||
-      text.includes("state");
-
-    if (!isThroughputEntity(id, text) && hasIdKeyword && hasTextKeyword) {
-      return "link_entity";
-    }
-
-    // Relaxed: id keyword alone is sufficient if it contains "port" in the id too
-    if (!isThroughputEntity(id, text) && id.includes("_port_") && hasIdKeyword) {
-      return "link_entity";
-    }
-  }
-
-  // ── switch.* PoE toggle ──
-  if (
-    entity.entity_id.startsWith("switch.") &&
-    (id.includes("_poe") || text.includes("poe"))
-  ) {
+  // ── switch.*_port_*_poe  → PoE toggle ────────────────────────────────────
+  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
     return "poe_switch_entity";
   }
 
-  // ── sensor.* PoE power ──
-  if (
-    entity.entity_id.startsWith("sensor.") &&
-    (
-      id.includes("_poe_power")                             ||
-      (text.includes("poe") && text.includes("power"))     ||
-      (text.includes("poe") && text.includes(" w"))
-    )
-  ) {
+  // ── switch.*_port_* (no _poe suffix) → link entity ───────────────────────
+  // This is how USW Lite / US 8 etc. expose port link state.
+  // The switch is "on" when the port has a connected device.
+  if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) {
+    return "link_entity";
+  }
+
+  // ── binary_sensor.*_port_* → link entity ─────────────────────────────────
+  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
+    return "link_entity";
+  }
+
+  // ── sensor: throughput (rx/tx) — must be checked BEFORE speed/link ────────
+  if (eid.startsWith("sensor.") && isThroughputEntity(id)) {
+    return null; // explicitly ignore
+  }
+
+  // ── sensor: speed — id contains _link_speed anywhere ─────────────────────
+  if (eid.startsWith("sensor.") && isSpeedEntity(id)) {
+    return "speed_entity";
+  }
+
+  // ── sensor: PoE power ────────────────────────────────────────────────────
+  if (eid.startsWith("sensor.") && id.includes("_port_") && id.includes("_poe_power")) {
     return "poe_power_entity";
   }
 
-  // ── button.* Power Cycle / Restart ──
-  if (
-    entity.entity_id.startsWith("button.") &&
-    (
-      id.includes("power_cycle")                          ||
-      id.includes("restart")                             ||
-      id.includes("reboot")                              ||
-      (text.includes("power") && text.includes("cycle"))
-    )
-  ) {
-    return "power_cycle_entity";
+  // ── sensor: generic link/state (fallback for older FW naming) ────────────
+  if (eid.startsWith("sensor.") && id.includes("_port_") && (
+    id.includes("_link")   ||
+    id.includes("_status") ||
+    id.includes("_state")
+  ) && !isThroughputEntity(id)) {
+    return "link_entity";
   }
 
   return null;
@@ -777,7 +757,7 @@ export function getPortSpeedText(hass, port) {
     const unit  = st.attributes?.unit_of_measurement || "";
     const value = String(st.state ?? "");
 
-    if (isThroughputEntity(id, id)) continue;
+    if (isThroughputEntity(id)) continue;
 
     if (
       id.includes("link_speed")       ||
