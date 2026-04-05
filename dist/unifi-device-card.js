@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e4518cd */
+/* UniFi Device Card 0.0.0-dev.2aea2a7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1103,14 +1103,17 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
     try {
       const client = getApiClient(effectiveConfig);
-      await client.login();
-      const sites = await client.getSites();
-      this._apiSites = Array.isArray(sites) ? sites.map((s) => ({ name: s.name, desc: s.desc || s.name })) : [];
+      const sites = await client.testConnection();
+      this._apiSites = sites.map((s) => ({ name: s.name, desc: s.desc || s.name }));
       this._apiResult = "ok";
     } catch (e) {
       console.error("[unifi-device-card] API test failed:", e);
       this._apiResult = "fail";
-      this._apiError = e.message || "Verbindung fehlgeschlagen";
+      if (e.name === "CorsError") {
+        this._apiError = "cors";
+      } else {
+        this._apiError = e.message || "Verbindung fehlgeschlagen";
+      }
     }
     this._apiTesting = false;
     this._render();
@@ -1134,7 +1137,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       const sl = this._apiSites.length ? `<br><span style="font-weight:400">Sites: ${this._apiSites.map((s) => s.desc).join(", ")}</span>` : "";
       testBadge = `<div class="api-badge ok">\u2705 Verbindung erfolgreich${sl}</div>`;
     } else if (this._apiResult === "fail") {
-      testBadge = `<div class="api-badge fail">\u274C ${this._apiError}</div>`;
+      if (this._apiError === "cors") {
+        testBadge = `<div class="api-badge cors">
+          \u26A0\uFE0F <strong>CORS-Fehler</strong> \u2014 Der Browser blockiert den direkten Zugriff auf die UCG/UDM.<br><br>
+          <strong>Ursache:</strong> HA und UCG laufen auf unterschiedlichen Origins (Host/Port/Protokoll).<br><br>
+          <strong>L\xF6sungen:</strong><br>
+          \u2022 Reverse-Proxy (nginx, Caddy) der beide unter einer HTTPS-Domain zusammenf\xFChrt<br>
+          \u2022 HA OS: Nginx Proxy Manager Addon einrichten<br>
+          \u2022 Ohne API: Die Card funktioniert vollst\xE4ndig \xFCber HA-Entities \u2014 kein API n\xF6tig.
+        </div>`;
+      } else {
+        testBadge = `<div class="api-badge fail">\u274C ${this._apiError}</div>`;
+      }
     }
     const authFields = authMode === "apikey" ? `
       <div class="field">
@@ -1223,6 +1237,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         .api-badge.testing { background: var(--secondary-background-color); border-color: var(--divider-color); }
         .api-badge.ok      { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); color: #14532d; }
         .api-badge.fail    { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #991b1b; }
+        .api-badge.cors    { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.35); color: #78350f; font-size: 12px; line-height: 1.6; }
 
         /* \u2500\u2500 Site inline hint \u2500\u2500 */
         .site-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
@@ -1318,7 +1333,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e4518cd";
+var VERSION = "0.0.0-dev.2aea2a7";
 var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
