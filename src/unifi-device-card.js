@@ -10,6 +10,7 @@ import {
   mergeSpecialsWithLayout,
   stateValue,
 } from "./helpers.js";
+import { t } from "./translations.js";
 import "./unifi-device-card-editor.js";
 
 const VERSION = __VERSION__;
@@ -39,7 +40,6 @@ class UnifiDeviceCard extends HTMLElement {
     const newConfig   = config || {};
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
-
     if (oldDeviceId !== newDeviceId) {
       this._ctx            = null;
       this._selectedKey    = null;
@@ -58,6 +58,9 @@ class UnifiDeviceCard extends HTMLElement {
 
   getCardSize() { return 8; }
 
+  // Shorthand for translation
+  _t(key) { return t(this._hass, key); }
+
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
     const currentId = this._config.device_id;
@@ -71,7 +74,6 @@ class UnifiDeviceCard extends HTMLElement {
     try {
       const ctx = await getDeviceContext(this._hass, currentId);
       if (token !== this._loadToken) return;
-
       this._ctx            = ctx;
       this._loadedDeviceId = currentId;
 
@@ -167,33 +169,24 @@ class UnifiDeviceCard extends HTMLElement {
       }
       @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-      /* ── FRONT PANEL ── */
+      /* FRONT PANEL */
       .frontpanel {
-        padding: 10px 14px 12px; display: grid; gap: 5px;
+        padding: 12px 14px 10px; display: grid; gap: 5px;
         border-bottom: 1px solid var(--udc-border);
       }
-      /* White theme (USW Lite, Flex Mini, UCG) */
-      .frontpanel.theme-white {
-        background: #d8dde6;
-      }
-      /* Silver/rack theme (US 8 60W, UDM Pro, USW 24/48) */
-      .frontpanel.theme-silver {
-        background: #2a2e35;
-      }
-      /* Default fallback */
-      .frontpanel.theme-dark {
-        background: var(--udc-surface);
-      }
+      .frontpanel.theme-white  { background: #d8dde6; }
+      .frontpanel.theme-silver { background: #2a2e35; }
+      .frontpanel.theme-dark   { background: var(--udc-surface); }
 
       .panel-label {
-        font-size: 0.62rem; font-weight: 700; letter-spacing: .1em;
-        text-transform: uppercase; margin-bottom: 3px;
+        font-size: 0.63rem; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; margin-bottom: 2px;
       }
       .theme-white  .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
       .theme-dark   .panel-label { color: var(--udc-muted); }
 
-      .special-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 5px; }
+      .special-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
       .port-row    { display: grid; gap: 5px; }
       .frontpanel.single-row         .port-row,
       .frontpanel.gateway-single-row .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
@@ -202,64 +195,52 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
       .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
 
-      /* ── PORT BUTTON ── */
+      /* PORT BUTTON */
       .port {
         cursor: pointer; font: inherit;
         display: flex; flex-direction: column; align-items: center;
         padding: 4px 2px 3px; border-radius: 4px;
         transition: outline .1s ease; position: relative; min-width: 0;
-        /* no border — LEDs and socket provide all visual feedback */
         border: none; background: transparent;
       }
       .port:focus { outline: none; }
       .port.selected { outline: 2px solid var(--udc-accent); outline-offset: 1px; border-radius: 5px; }
-      .port:hover { outline: 1px solid rgba(0,144,217,.5); outline-offset: 1px; border-radius: 5px; }
+      .port:hover    { outline: 1px solid rgba(0,144,217,.5); outline-offset: 1px; border-radius: 5px; }
 
-      /* LED row — spans full port width, LEDs at far left + right */
       .port-leds {
         display: flex; justify-content: space-between;
         width: 100%; padding: 0 1px; margin-bottom: 2px;
       }
       .port-led {
         width: 4px; height: 4px; border-radius: 50%;
-        transition: background .2s;
-        flex-shrink: 0;
+        transition: background .2s; flex-shrink: 0;
       }
-
-      /* RJ45 socket — white theme: light beige recess */
       .port-socket {
         width: 100%; height: 13px; border-radius: 2px 2px 0 0;
         position: relative; flex-shrink: 0;
       }
-      /* The gold contact pins inside the socket */
       .port-socket::after {
-        content: '';
-        position: absolute; bottom: 0; left: 12%; right: 12%;
+        content: ''; position: absolute; bottom: 0; left: 12%; right: 12%;
         height: 4px; border-radius: 1px 1px 0 0;
       }
-
       .port-num {
         font-size: 8px; font-weight: 800; line-height: 1;
         margin-top: 2px; letter-spacing: 0; user-select: none;
       }
 
-      /* ── WHITE THEME port colors ── */
+      /* Theme port colors */
       .theme-white .port-socket            { background: #b0b8c4; }
       .theme-white .port-socket::after     { background: #8a8060; }
       .theme-white .port-num               { color: #8a96a8; }
       .theme-white .port.up .port-socket   { background: #9aa8b8; }
       .theme-white .port.up .port-num      { color: #4a5568; }
       .theme-white .port-led               { background: #c8d0d8; }
-
-      /* ── SILVER THEME port colors ── */
       .theme-silver .port-socket           { background: #1a1e24; }
       .theme-silver .port-socket::after    { background: #6a6040; }
       .theme-silver .port-num              { color: #5a6070; }
       .theme-silver .port.up .port-socket  { background: #141c14; }
       .theme-silver .port.up .port-num     { color: #9aabb8; }
       .theme-silver .port-led              { background: #252a30; }
-
-      /* ── DARK THEME port colors ── */
       .theme-dark .port-socket             { background: #1a2030; }
       .theme-dark .port-socket::after      { background: #5a5030; }
       .theme-dark .port-num                { color: var(--udc-muted); }
@@ -267,15 +248,13 @@ class UnifiDeviceCard extends HTMLElement {
       .theme-dark .port.up .port-num       { color: var(--udc-text); }
       .theme-dark .port-led                { background: #1e2433; }
 
-      /* ── LED states — same for all themes ── */
-      /* Right LED: link / speed */
-      .port.up          .port-led-link { background: var(--udc-green); }
-      .port.speed-100   .port-led-link { background: var(--udc-orange); }
-      .port.speed-low   .port-led-link { background: #7a5c10; }
-      /* Left LED: PoE */
-      .port.poe-on      .port-led-poe  { background: var(--udc-orange); }
+      /* LED states */
+      .port.up          .port-led-link  { background: var(--udc-green); }
+      .port.speed-100   .port-led-link  { background: var(--udc-orange); }
+      .port.speed-low   .port-led-link  { background: #7a5c10; }
+      .port.poe-on      .port-led-poe   { background: var(--udc-orange); }
 
-      /* Special ports (WAN / SFP) */
+      /* Special ports */
       .port.special { padding: 5px 5px 4px; border-radius: 5px; }
       .port.special .port-socket { height: 15px; border-radius: 3px 3px 0 0; }
       .port.special .port-num { font-size: 9px; }
@@ -287,6 +266,7 @@ class UnifiDeviceCard extends HTMLElement {
         padding-bottom: 11px; border-bottom: 1px solid var(--udc-border); margin-bottom: 12px;
       }
       .detail-title { font-size: .92rem; font-weight: 700; letter-spacing: -.01em; }
+      .port-custom-label { font-weight: 400; color: var(--udc-dim); font-size: .82rem; }
       .status-badge {
         display: inline-flex; align-items: center; gap: 4px;
         padding: 3px 9px; border-radius: 20px;
@@ -305,6 +285,21 @@ class UnifiDeviceCard extends HTMLElement {
       .dc-value.accent { color: var(--udc-accent); }
       .dc-value.poe-on { color: var(--udc-orange); }
       .dc-value.na     { color: var(--udc-muted); font-weight: 400; }
+
+      .tput-row { display: flex; gap: 6px; margin-bottom: 10px; }
+      .tput-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+        border-radius: 6px; padding: 3px 8px;
+        font-size: .7rem; font-weight: 600; color: var(--udc-dim);
+      }
+      .tput-chip .arr { font-size: 8px; opacity: .6; }
+
+      .hint-disabled {
+        font-size: .72rem; color: var(--udc-muted); padding: 6px 10px;
+        border-radius: 6px; margin-bottom: 10px;
+        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+      }
 
       .actions { display: flex; gap: 7px; flex-wrap: wrap; }
       .action-btn {
@@ -333,48 +328,25 @@ class UnifiDeviceCard extends HTMLElement {
         padding: 24px 18px; color: var(--udc-muted);
         font-size: .875rem; text-align: center; line-height: 1.5;
       }
-
-      .port-custom-label { font-weight: 400; color: var(--udc-dim); font-size: .82rem; }
-
-      .tput-row { display: flex; gap: 6px; margin-bottom: 10px; }
-      .tput-chip {
-        display: inline-flex; align-items: center; gap: 4px;
-        background: var(--udc-surf2); border: 1px solid var(--udc-border);
-        border-radius: 6px; padding: 3px 8px;
-        font-size: .7rem; font-weight: 600; color: var(--udc-dim);
-      }
-      .tput-chip .arr { font-size: 8px; opacity: .6; }
-
-      .hint-disabled {
-        font-size: .72rem; color: var(--udc-muted);
-        padding: 6px 10px; border-radius: 6px; margin-bottom: 10px;
-        background: var(--udc-surf2); border: 1px solid var(--udc-border);
-      }
     </style>`;
   }
 
   _renderPortButton(slot, selectedKey) {
     const linkUp    = isOn(this._hass, slot.link_entity, slot);
-    const hasPoe    = Boolean(slot.power_cycle_entity);
-    const poeOn     = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
+    const hasPoe    = Boolean(slot.poe_switch_entity);
+    const poeOn     = hasPoe ? isOn(this._hass, slot.poe_switch_entity) : false;
     const isSpecial = slot.kind === "special";
 
-    // Determine speed class for right LED color
     let speedClass = "";
     if (linkUp) {
-      const speedText = getPortSpeedText(this._hass, slot);
-      if (speedText.includes("1000") || speedText.toLowerCase().includes("1 gbit") || speedText.includes("1Gbit")) {
-        speedClass = ""; // default green via .up
-      } else if (speedText.includes("100")) {
-        speedClass = "speed-100"; // orange
-      } else if (speedText !== "—") {
-        speedClass = "speed-low"; // dim for 10M or unknown
-      }
+      const spd = getPortSpeedText(this._hass, slot);
+      if (spd.includes("100") && !spd.includes("1000")) speedClass = "speed-100";
+      else if (spd !== "—" && !spd.includes("1000") && !spd.includes("Gbit")) speedClass = "speed-low";
     }
 
     const tooltip = [
       slot.label,
-      linkUp ? "Connected" : "No link",
+      linkUp ? this._t("connected") : this._t("no_link"),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? "PoE ON" : null,
     ].filter((v) => v && v !== "—").join(" · ");
@@ -405,6 +377,7 @@ class UnifiDeviceCard extends HTMLElement {
     const allSlots  = [...specials, ...numbered];
     const selected  = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
+    const theme     = ctx?.layout?.theme || "dark";
 
     const specialRow = specials.length
       ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
@@ -414,8 +387,9 @@ class UnifiDeviceCard extends HTMLElement {
       const items = rowPorts.map((portNumber) => {
         const slot = numbered.find((p) => p.port === portNumber) || {
           key: `port-${portNumber}`, port: portNumber, label: String(portNumber), kind: "numbered",
-          link_entity: null, speed_entity: null, poe_switch_entity: null,
-          poe_power_entity: null, power_cycle_entity: null, raw_entities: [],
+          link_entity: null, port_switch_entity: null, speed_entity: null,
+          poe_switch_entity: null, poe_power_entity: null, power_cycle_entity: null,
+          rx_entity: null, tx_entity: null, raw_entities: [],
         };
         return this._renderPortButton(slot, selected?.key);
       }).join("");
@@ -423,32 +397,26 @@ class UnifiDeviceCard extends HTMLElement {
     });
 
     // Detail panel
-    let detail = `<div class="muted">Keine Ports erkannt.</div>`;
+    let detail = `<div class="muted">${this._t("no_ports")}</div>`;
     if (selected) {
       const linkUp    = isOn(this._hass, selected.link_entity, selected);
       const linkText  = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
-      const poeAvail  = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
-      const poeOn     = poeAvail ? isOn(this._hass, selected.poe_switch_entity) : false;
-      const poePower  = poeAvail ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
-
-      // RX / TX throughput from port entities
-      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
-      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
-
-      // Port label from UniFi console (e.g. "Macbook", "Drucker")
+      const hasPoe    = Boolean(selected.poe_switch_entity);
+      const poeOn     = hasPoe ? isOn(this._hass, selected.poe_switch_entity) : false;
+      const poePower  = hasPoe ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
+      const rxVal     = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
+      const txVal     = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
       const portLabel = selected.port_label || null;
 
-      // Title: "Port 4" or "Port 4 — Macbook" if a label is set
       const portTitle = selected.kind === "special"
         ? selected.label
         : portLabel
           ? `Port ${selected.port} <span class="port-custom-label">— ${portLabel}</span>`
           : `Port ${selected.port}`;
 
-      // Hint when speed entity exists but is disabled (returns null state)
-      const speedDisabledHint = !speedText || speedText === "—"
-        ? (selected.speed_entity ? `<div class="hint-disabled">Speed-Entity deaktiviert — in HA aktivieren für Geschwindigkeitsanzeige</div>` : "")
+      const speedDisabledHint = (!speedText || speedText === "—") && selected.speed_entity
+        ? `<div class="hint-disabled">${this._t("speed_disabled")}</div>`
         : "";
 
       const tputHtml = (rxVal || txVal) ? `
@@ -460,27 +428,27 @@ class UnifiDeviceCard extends HTMLElement {
       detail = `
         <div class="detail-header">
           <div class="detail-title">${portTitle}</div>
-          <div class="status-badge ${linkUp ? "up" : "down"}">${linkUp ? "● Online" : "○ Offline"}</div>
+          <div class="status-badge ${linkUp ? "up" : "down"}">● ${linkUp ? this._t("online") : this._t("offline")}</div>
         </div>
 
         <div class="detail-grid">
           <div class="detail-card">
-            <div class="dc-label">Link Status</div>
-            <div class="dc-value">${linkText !== "—" ? linkText : (linkUp ? "Connected" : "No link")}</div>
+            <div class="dc-label">${this._t("link_status")}</div>
+            <div class="dc-value">${linkText !== "—" ? linkText : (linkUp ? this._t("connected") : this._t("no_link"))}</div>
           </div>
           <div class="detail-card">
-            <div class="dc-label">Geschwindigkeit</div>
+            <div class="dc-label">${this._t("speed")}</div>
             <div class="dc-value accent">${speedText}</div>
           </div>
           <div class="detail-card">
-            <div class="dc-label">PoE</div>
-            <div class="dc-value ${poeAvail ? (poeOn ? "poe-on" : "") : "na"}">
-              ${poeAvail ? stateValue(this._hass, selected.poe_switch_entity, "—") : "—"}
+            <div class="dc-label">${this._t("poe")}</div>
+            <div class="dc-value ${hasPoe ? (poeOn ? "poe-on" : "") : "na"}">
+              ${hasPoe ? stateValue(this._hass, selected.poe_switch_entity, "—") : "—"}
             </div>
           </div>
           <div class="detail-card">
-            <div class="dc-label">PoE Leistung</div>
-            <div class="dc-value ${poeAvail ? "" : "na"}">${poePower}</div>
+            <div class="dc-label">${this._t("poe_power")}</div>
+            <div class="dc-value ${hasPoe ? "" : "na"}">${poePower}</div>
           </div>
         </div>
 
@@ -488,21 +456,20 @@ class UnifiDeviceCard extends HTMLElement {
         ${speedDisabledHint}
 
         <div class="actions">
-          ${poeAvail
-            ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-                ⚡ PoE ${poeOn ? "Aus" : "Ein"}
-               </button>`
-            : ""}
-          ${selected.power_cycle_entity
-            ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-                ↺ Power Cycle
-               </button>`
-            : ""}
+          ${selected.port_switch_entity ? (() => {
+              const enabled = isOn(this._hass, selected.port_switch_entity);
+              return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
+                ${enabled ? this._t("port_disable") : this._t("port_enable")}
+              </button>`;
+            })() : ""}
+          ${hasPoe ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+              ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
+            </button>` : ""}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
+              ↺ ${this._t("power_cycle")}
+            </button>` : ""}
         </div>`;
     }
-
-    const theme     = ctx?.layout?.theme || "dark";
-    const themeClass = `theme-${theme}`;
 
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card>
@@ -514,10 +481,10 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} ${themeClass}">
-          <div class="panel-label">Front Panel</div>
+        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}">
+          <div class="panel-label">${this._t("front_panel")}</div>
           ${specialRow}
-          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">Keine Ports erkannt.</div>`}
+          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`}
         </div>
 
         <div class="section">${detail}</div>
@@ -525,10 +492,10 @@ class UnifiDeviceCard extends HTMLElement {
 
     this.shadowRoot.querySelectorAll(".port")
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
-
+    this.shadowRoot.querySelector("[data-action='toggle-port']")
+      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='toggle-poe']")
       ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
-
     this.shadowRoot.querySelector("[data-action='power-cycle']")
       ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
   }
@@ -540,12 +507,9 @@ class UnifiDeviceCard extends HTMLElement {
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card>
           <div class="header">
-            <div class="header-info">
-              <div class="title">${title}</div>
-              <div class="subtitle">${this._subtitle()}</div>
-            </div>
+            <div class="header-info"><div class="title">${title}</div><div class="subtitle">${this._subtitle()}</div></div>
           </div>
-          <div class="empty-state">Bitte im Karteneditor ein UniFi-Gerät auswählen.</div>
+          <div class="empty-state">${this._t("select_device")}</div>
         </ha-card>`;
       return;
     }
@@ -554,12 +518,9 @@ class UnifiDeviceCard extends HTMLElement {
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card>
           <div class="header">
-            <div class="header-info">
-              <div class="title">${title}</div>
-              <div class="subtitle">${this._subtitle()}</div>
-            </div>
+            <div class="header-info"><div class="title">${title}</div><div class="subtitle">${this._subtitle()}</div></div>
           </div>
-          <div class="loading-state"><div class="spinner"></div>Lade Gerätedaten…</div>
+          <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
         </ha-card>`;
       return;
     }
@@ -568,12 +529,9 @@ class UnifiDeviceCard extends HTMLElement {
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card>
           <div class="header">
-            <div class="header-info">
-              <div class="title">${title}</div>
-              <div class="subtitle">${this._subtitle()}</div>
-            </div>
+            <div class="header-info"><div class="title">${title}</div><div class="subtitle">${this._subtitle()}</div></div>
           </div>
-          <div class="empty-state">Keine Gerätedaten verfügbar.</div>
+          <div class="empty-state">${this._t("no_data")}</div>
         </ha-card>`;
       return;
     }
