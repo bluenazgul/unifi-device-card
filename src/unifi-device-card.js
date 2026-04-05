@@ -622,10 +622,6 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials) {
 function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
 }
-function stateValue(hass, entityId, fallback = "\u2014") {
-  const state = stateObj(hass, entityId);
-  return state ? state.state : fallback;
-}
 function isOn(hass, entityId) {
   const state = stateObj(hass, entityId);
   if (!state) return false;
@@ -712,6 +708,329 @@ function getPortSpeedText(hass, port) {
   return "\u2014";
 }
 
+// src/unifi-api.js
+var LOG = "[unifi-api]";
+function baseUrl(host) {
+  const h = String(host || "").replace(/\/+$/, "");
+  return h.startsWith("http") ? h : `https://${h}`;
+}
+function apiUrl(host, path, site = "default") {
+  const base = baseUrl(host);
+  const p = path.replace(/^\/+/, "");
+  return `${base}/proxy/network/${p}`;
+}
+function legacyApiUrl(host, path, site = "default") {
+  const base = baseUrl(host);
+  const p = path.replace(/^\/+/, "");
+  const resolved = p.replace("{site}", site);
+  return `${base}/${resolved}`;
+}
+var UnifiApiClient = class {
+  /**
+   * @param {object} opts
+   * @param {string}  opts.host      — IP or hostname of the controller (e.g. "192.168.1.1")
+   * @param {string}  [opts.apiKey]  — API key (Network 8+, preferred)
+   * @param {string}  [opts.username]
+   * @param {string}  [opts.password]
+   * @param {string}  [opts.site]    — UniFi site name, default "default"
+   */
+  constructor({ host, apiKey, username, password, site = "default" }) {
+    this._host = host;
+    this._apiKey = apiKey || null;
+    this._username = username || null;
+    this._password = password || null;
+    this._site = site;
+    this._csrf = null;
+    this._loggedIn = false;
+    this._legacy = false;
+  }
+  // ── Internal fetch wrapper ────────────────────────────────────────────────
+  async _fetch(url, opts = {}) {
+    const headers = {
+      "Content-Type": "application/json",
+      ...opts.headers || {}
+    };
+    if (this._apiKey) {
+      headers["X-API-Key"] = this._apiKey;
+    }
+    if (this._csrf) {
+      headers["X-Csrf-Token"] = this._csrf;
+    }
+    const res = await fetch(url, {
+      credentials: "include",
+      ...opts,
+      headers
+    });
+    const csrf = res.headers.get("x-csrf-token");
+    if (csrf) this._csrf = csrf;
+    return res;
+  }
+  // ── Authentication ────────────────────────────────────────────────────────
+  /**
+   * Login with username + password (cookie-based).
+   * Not needed when using an API key.
+   */
+  async login() {
+    if (this._apiKey) return;
+    if (this._loggedIn) return;
+    if (!this._username || !this._password) {
+      throw new Error("No API key and no username/password provided.");
+    }
+    const urls = [
+      `${baseUrl(this._host)}/api/auth/login`,
+      `${baseUrl(this._host)}/api/login`
+    ];
+    let lastErr;
+    for (const url of urls) {
+      try {
+        const res = await this._fetch(url, {
+          method: "POST",
+          body: JSON.stringify({
+            username: this._username,
+            password: this._password,
+            remember: false
+          })
+        });
+        if (res.ok) {
+          this._loggedIn = true;
+          console.info(LOG, "Logged in via", url);
+          return;
+        }
+        lastErr = new Error(`Login failed: HTTP ${res.status}`);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr;
+  }
+  // ── Generic GET with new→legacy fallback ─────────────────────────────────
+  async _get(newPath, legacyPath) {
+    if (!this._legacy) {
+      try {
+        const url2 = apiUrl(this._host, newPath, this._site);
+        const res2 = await this._fetch(url2);
+        if (res2.ok) {
+          const json2 = await res2.json();
+          return json2?.data ?? json2;
+        }
+        if (res2.status === 404 || res2.status === 401) {
+          console.warn(LOG, "New-style endpoint not available, switching to legacy");
+          this._legacy = true;
+        } else {
+          throw new Error(`GET ${url2} \u2192 HTTP ${res2.status}`);
+        }
+      } catch (e) {
+        if (e.message?.includes("HTTP")) throw e;
+        this._legacy = true;
+      }
+    }
+    const url = legacyApiUrl(this._host, legacyPath, this._site);
+    const res = await this._fetch(url);
+    if (!res.ok) throw new Error(`GET ${url} \u2192 HTTP ${res.status}`);
+    const json = await res.json();
+    return json?.data ?? json;
+  }
+  async _put(newPath, legacyPath, body) {
+    if (!this._legacy) {
+      try {
+        const url2 = apiUrl(this._host, newPath, this._site);
+        const res2 = await this._fetch(url2, {
+          method: "PUT",
+          body: JSON.stringify(body)
+        });
+        if (res2.ok) {
+          const json2 = await res2.json();
+          return json2?.data ?? json2;
+        }
+        if (res2.status === 404) this._legacy = true;
+        else throw new Error(`PUT ${url2} \u2192 HTTP ${res2.status}`);
+      } catch (e) {
+        if (e.message?.includes("HTTP")) throw e;
+        this._legacy = true;
+      }
+    }
+    const url = legacyApiUrl(this._host, legacyPath, this._site);
+    const res = await this._fetch(url, {
+      method: "PUT",
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`PUT ${url} \u2192 HTTP ${res.status}`);
+    const json = await res.json();
+    return json?.data ?? json;
+  }
+  // ── Public API ────────────────────────────────────────────────────────────
+  /**
+   * Test connection – returns true if the controller is reachable
+   * and credentials are valid.
+   */
+  async testConnection() {
+    try {
+      await this.login();
+      const sites = await this._get(
+        "api/sites",
+        "api/self/sites"
+      );
+      return Array.isArray(sites) && sites.length > 0;
+    } catch (e) {
+      console.error(LOG, "testConnection failed:", e);
+      return false;
+    }
+  }
+  /**
+   * List all UniFi network devices (switches, gateways, APs …).
+   * Returns an array of device objects from the controller.
+   */
+  async getDevices() {
+    await this.login();
+    return this._get(
+      `api/s/${this._site}/stat/device`,
+      `api/s/{site}/stat/device`
+    );
+  }
+  /**
+   * Get a single device by its MAC address.
+   */
+  async getDevice(mac) {
+    await this.login();
+    const devices = await this.getDevices();
+    return devices.find(
+      (d) => d.mac?.toLowerCase() === mac?.toLowerCase()
+    ) || null;
+  }
+  /**
+   * Get rich port data for a device.
+   *
+   * Returns an array of port objects like:
+   * {
+   *   port_idx:    1,
+   *   name:        "Port 1",
+   *   up:          true,
+   *   speed:       1000,       // Mbit
+   *   duplex:      "full",
+   *   poe_enable:  true,
+   *   poe_power:   "4.50",     // W
+   *   poe_voltage: "53.00",    // V
+   *   poe_current: "0.08",     // A
+   *   "rx_bytes-r": 12540,     // current RX rate bytes/s
+   *   "tx_bytes-r": 8320,
+   *   rx_bytes:    1234567890, // total
+   *   tx_bytes:    987654321,
+   *   mac_table:   [{mac, hostname, ip}],
+   * }
+   */
+  async getPortTable(mac) {
+    await this.login();
+    const device = await this.getDevice(mac);
+    if (!device) throw new Error(`Device ${mac} not found`);
+    const portTable = device.port_table || [];
+    return portTable.map((p) => ({
+      port_idx: p.port_idx,
+      name: p.name || `Port ${p.port_idx}`,
+      up: Boolean(p.up),
+      speed: p.speed || 0,
+      duplex: p.full_duplex ? "full" : "half",
+      poe_enable: Boolean(p.poe_enable),
+      poe_mode: p.poe_mode || null,
+      poe_power: p.poe_power ? String(p.poe_power) : null,
+      poe_voltage: p.poe_voltage ? String(p.poe_voltage) : null,
+      poe_current: p.poe_current ? String(p.poe_current) : null,
+      rx_rate: p["rx_bytes-r"] ?? 0,
+      tx_rate: p["tx_bytes-r"] ?? 0,
+      rx_bytes: p.rx_bytes ?? 0,
+      tx_bytes: p.tx_bytes ?? 0,
+      mac_table: p.mac_table || [],
+      // raw data for debugging
+      _raw: p
+    }));
+  }
+  /**
+   * Toggle PoE on a specific port.
+   * @param {string} deviceId  — UniFi device _id
+   * @param {number} portIdx   — 1-based port index
+   * @param {boolean} enable
+   */
+  async setPortPoe(deviceId, portIdx, enable) {
+    await this.login();
+    const devices = await this.getDevices();
+    const device = devices.find((d) => d._id === deviceId);
+    if (!device) throw new Error(`Device ${deviceId} not found`);
+    const overrides = device.port_overrides ? [...device.port_overrides] : [];
+    const idx = overrides.findIndex((o) => o.port_idx === portIdx);
+    const updated = {
+      port_idx: portIdx,
+      poe_mode: enable ? "auto" : "off",
+      ...idx >= 0 ? overrides[idx] : {}
+    };
+    updated.poe_mode = enable ? "auto" : "off";
+    if (idx >= 0) overrides[idx] = updated;
+    else overrides.push(updated);
+    return this._put(
+      `api/s/${this._site}/rest/device/${deviceId}`,
+      `api/s/{site}/rest/device/${deviceId}`,
+      { port_overrides: overrides }
+    );
+  }
+  /**
+   * Power-cycle (bounce) a PoE port.
+   */
+  async powerCyclePort(deviceMac, portIdx) {
+    await this.login();
+    const url = this._legacy ? legacyApiUrl(this._host, `api/s/{site}/cmd/devmgr`, this._site) : apiUrl(this._host, `api/s/${this._site}/cmd/devmgr`);
+    const res = await this._fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        cmd: "power-cycle",
+        mac: deviceMac,
+        port_idx: portIdx
+      })
+    });
+    if (!res.ok) throw new Error(`power-cycle \u2192 HTTP ${res.status}`);
+    return res.json();
+  }
+  /**
+   * Fetch all known sites (useful for testing/autocomplete).
+   */
+  async getSites() {
+    await this.login();
+    return this._get("api/sites", "api/self/sites");
+  }
+};
+var _clientCache = /* @__PURE__ */ new Map();
+function getApiClient(config) {
+  const { unifi_host, unifi_api_key, unifi_username, unifi_password, unifi_site } = config;
+  if (!unifi_host) return null;
+  const key = `${unifi_host}|${unifi_site || "default"}|${unifi_api_key || unifi_username || ""}`;
+  if (!_clientCache.has(key)) {
+    _clientCache.set(
+      key,
+      new UnifiApiClient({
+        host: unifi_host,
+        apiKey: unifi_api_key || null,
+        username: unifi_username || null,
+        password: unifi_password || null,
+        site: unifi_site || "default"
+      })
+    );
+  }
+  return _clientCache.get(key);
+}
+function clearApiClient(config) {
+  const { unifi_host, unifi_site, unifi_api_key, unifi_username } = config;
+  const key = `${unifi_host}|${unifi_site || "default"}|${unifi_api_key || unifi_username || ""}`;
+  _clientCache.delete(key);
+}
+function formatBytes(bytesPerSec) {
+  if (!bytesPerSec || bytesPerSec <= 0) return null;
+  if (bytesPerSec >= 1e6) return `${(bytesPerSec / 1e6).toFixed(1)} MB/s`;
+  if (bytesPerSec >= 1e3) return `${(bytesPerSec / 1e3).toFixed(0)} KB/s`;
+  return `${bytesPerSec} B/s`;
+}
+function formatSpeed(mbit) {
+  if (!mbit || mbit <= 0) return "\u2014";
+  if (mbit >= 1e3) return `${mbit / 1e3} Gbit`;
+  return `${mbit} Mbit`;
+}
+
 // src/unifi-device-card-editor.js
 var UnifiDeviceCardEditor = class extends HTMLElement {
   constructor() {
@@ -724,6 +1043,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._error = "";
     this._hass = null;
     this._loadToken = 0;
+    this._apiTesting = false;
+    this._apiResult = null;
+    this._apiError = "";
+    this._apiSites = [];
   }
   setConfig(config) {
     this._config = config || {};
@@ -731,9 +1054,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   set hass(hass) {
     this._hass = hass;
-    if (!this._loaded && !this._loading) {
-      this._loadDevices();
-    }
+    if (!this._loaded && !this._loading) this._loadDevices();
   }
   async _loadDevices() {
     if (!this._hass) return;
@@ -750,7 +1071,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       this._render();
     } catch (err) {
       if (token !== this._loadToken) return;
-      console.error("[unifi-device-card] Failed to load devices", err);
       this._devices = [];
       this._loaded = true;
       this._loading = false;
@@ -759,17 +1079,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
   }
   _dispatch(config) {
-    this.dispatchEvent(
-      new CustomEvent("config-changed", {
-        detail: { config },
-        bubbles: true,
-        composed: true
-      })
-    );
+    this.dispatchEvent(new CustomEvent("config-changed", {
+      detail: { config },
+      bubbles: true,
+      composed: true
+    }));
   }
   _selectedDeviceName(deviceId) {
-    const selected = this._devices.find((d) => d.id === deviceId);
-    return selected?.name || "";
+    return this._devices.find((d) => d.id === deviceId)?.name || "";
   }
   _onDeviceChange(ev) {
     const newDeviceId = ev.target.value || "";
@@ -777,124 +1094,195 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const oldAutoName = this._selectedDeviceName(oldDeviceId);
     const newAutoName = this._selectedDeviceName(newDeviceId);
     const next = { ...this._config };
-    if (newDeviceId) {
-      next.device_id = newDeviceId;
-    } else {
-      delete next.device_id;
-    }
+    if (newDeviceId) next.device_id = newDeviceId;
+    else delete next.device_id;
     const currentName = String(next.name || "").trim();
     if (!currentName || currentName === oldAutoName) {
-      if (newAutoName) {
-        next.name = newAutoName;
-      } else {
-        delete next.name;
-      }
+      if (newAutoName) next.name = newAutoName;
+      else delete next.name;
     }
     this._config = next;
     this._dispatch(next);
     this._render();
   }
   _onNameInput(ev) {
-    const value = ev.target.value || "";
-    const next = {
-      ...this._config,
-      name: value
-    };
+    const next = { ...this._config, name: ev.target.value || "" };
     this._config = next;
     this._dispatch(next);
   }
+  _onApiField(field, ev) {
+    const value = ev.target.value.trim();
+    const next = { ...this._config };
+    if (value) next[field] = value;
+    else delete next[field];
+    this._config = next;
+    this._apiResult = null;
+    this._dispatch(next);
+  }
+  async _testConnection() {
+    if (!this._config.unifi_host) {
+      this._apiResult = "fail";
+      this._apiError = "Bitte zuerst Host/IP eintragen.";
+      this._render();
+      return;
+    }
+    clearApiClient(this._config);
+    this._apiTesting = true;
+    this._apiResult = null;
+    this._apiError = "";
+    this._apiSites = [];
+    this._render();
+    try {
+      const client = getApiClient(this._config);
+      await client.login();
+      const sites = await client.getSites();
+      this._apiSites = Array.isArray(sites) ? sites.map((s) => ({ name: s.name, desc: s.desc })) : [];
+      this._apiResult = "ok";
+    } catch (e) {
+      console.error("[unifi-device-card] API test failed:", e);
+      this._apiResult = "fail";
+      this._apiError = e.message || "Verbindung fehlgeschlagen";
+    }
+    this._apiTesting = false;
+    this._render();
+  }
   _render() {
-    const selectedId = this._config?.device_id || "";
-    const selectedName = String(this._config?.name || "").replace(/"/g, "&quot;");
-    const options = this._devices.map(
-      (d) => `
-          <option value="${d.id}" ${d.id === selectedId ? "selected" : ""}>
-            ${d.label}
-          </option>
-        `
-    ).join("");
+    const cfg = this._config;
+    const selId = cfg?.device_id || "";
+    const selName = String(cfg?.name || "").replace(/"/g, "&quot;");
+    const host = String(cfg?.unifi_host || "").replace(/"/g, "&quot;");
+    const apiKey = String(cfg?.unifi_api_key || "").replace(/"/g, "&quot;");
+    const username = String(cfg?.unifi_username || "").replace(/"/g, "&quot;");
+    const password = String(cfg?.unifi_password || "").replace(/"/g, "&quot;");
+    const site = String(cfg?.unifi_site || "").replace(/"/g, "&quot;");
+    const mac = String(cfg?.unifi_mac || "").replace(/"/g, "&quot;");
+    const options = this._devices.map((d) => `<option value="${d.id}" ${d.id === selId ? "selected" : ""}>${d.label}</option>`).join("");
+    let testBadge = "";
+    if (this._apiTesting) {
+      testBadge = `<div class="api-badge testing">\u23F3 Teste Verbindung\u2026</div>`;
+    } else if (this._apiResult === "ok") {
+      const sl = this._apiSites.length ? ` \xB7 Sites: ${this._apiSites.map((s) => s.desc || s.name).join(", ")}` : "";
+      testBadge = `<div class="api-badge ok">\u2705 Verbindung erfolgreich${sl}</div>`;
+    } else if (this._apiResult === "fail") {
+      testBadge = `<div class="api-badge fail">\u274C ${this._apiError}</div>`;
+    }
     this.shadowRoot.innerHTML = `
       <style>
-        :host {
-          display: block;
+        :host { display: block; }
+        .wrap { display: grid; gap: 14px; }
+        .section-title {
+          font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+          text-transform: uppercase; color: var(--secondary-text-color);
+          padding-bottom: 4px; border-bottom: 1px solid var(--divider-color); margin-top: 4px;
         }
-
-        .wrap {
-          display: grid;
-          gap: 16px;
-        }
-
-        .field {
-          display: grid;
-          gap: 6px;
-        }
-
-        label {
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--primary-text-color);
-        }
-
-        select,
-        input {
-          width: 100%;
-          box-sizing: border-box;
-          min-height: 40px;
-          padding: 8px 10px;
-          border-radius: 10px;
+        .field { display: grid; gap: 5px; }
+        label { font-size: 13px; font-weight: 600; color: var(--primary-text-color); }
+        select, input {
+          width: 100%; box-sizing: border-box; min-height: 38px;
+          padding: 7px 10px; border-radius: 8px;
           border: 1px solid var(--divider-color);
           background: var(--card-background-color);
-          color: var(--primary-text-color);
-          font: inherit;
+          color: var(--primary-text-color); font: inherit;
         }
-
-        .hint {
-          color: var(--secondary-text-color);
-          font-size: 13px;
-          line-height: 1.4;
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .hint  { color: var(--secondary-text-color); font-size: 12px; line-height: 1.4; }
+        .error { color: var(--error-color);           font-size: 12px; line-height: 1.4; }
+        .test-btn {
+          display: inline-flex; align-items: center; gap: 6px;
+          border: none; border-radius: 8px; padding: 8px 16px;
+          cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+          background: var(--primary-color); color: white;
         }
-
-        .error {
-          color: var(--error-color);
-          font-size: 13px;
-          line-height: 1.4;
+        .test-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .api-badge {
+          font-size: 12px; line-height: 1.5; padding: 8px 12px;
+          border-radius: 8px; border: 1px solid transparent;
         }
+        .api-badge.testing { background: rgba(0,0,0,.06);     border-color: var(--divider-color); }
+        .api-badge.ok      { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); color: #14532d; }
+        .api-badge.fail    { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #991b1b; }
       </style>
 
       <div class="wrap">
+
+        <div class="section-title">Home Assistant Ger\xE4t</div>
+
         <div class="field">
-          <label for="device">UniFi device</label>
-          ${this._loading ? `<div class="hint">Lade unterst\xFCtzte UniFi-Ger\xE4te\u2026</div>` : `
-                <select id="device">
-                  <option value="">Select device\u2026</option>
-                  ${options}
-                </select>
-              `}
+          <label for="device">UniFi Ger\xE4t (aus HA)</label>
+          ${this._loading ? `<div class="hint">Lade Ger\xE4te aus Home Assistant\u2026</div>` : `<select id="device"><option value="">Ger\xE4t ausw\xE4hlen\u2026</option>${options}</select>`}
         </div>
 
         <div class="field">
-          <label for="name">Display name</label>
-          <input
-            id="name"
-            type="text"
-            value="${selectedName}"
-            placeholder="Optional"
-          />
+          <label for="name">Anzeigename</label>
+          <input id="name" type="text" value="${selName}" placeholder="Optional" />
         </div>
 
         ${this._error ? `<div class="error">${this._error}</div>` : ""}
-        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine unterst\xFCtzten UniFi Switches oder Gateways gefunden.</div>` : `<div class="hint">Es werden nur Ger\xE4te aus der UniFi-Integration angezeigt.</div>`}
+        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine UniFi Switches/Gateways in HA gefunden.</div>` : !this._loading ? `<div class="hint">Nur Ger\xE4te aus der UniFi-Integration.</div>` : ""}
+
+        <div class="section-title">Direkte API (empfohlen)</div>
+        <div class="hint">
+          Wenn Host + Zugangsdaten angegeben, werden Port-Daten direkt von der UniFi
+          Network Application abgerufen \u2014 pr\xE4ziser und mit mehr Details als \xFCber HA-Entities
+          (Echtzeit-Throughput, MAC-Tabelle, PoE-Volt/Ampere, \u2026).
+        </div>
+
+        <div class="field">
+          <label for="unifi_host">Controller Host / IP</label>
+          <input id="unifi_host" type="text" value="${host}"
+            placeholder="192.168.1.1  oder  unifi.local" />
+        </div>
+
+        <div class="field">
+          <label for="unifi_site">Site</label>
+          <input id="unifi_site" type="text" value="${site}" placeholder="default" />
+        </div>
+
+        <div class="field">
+          <label for="unifi_api_key">API-Key  (Network 8.x+, empfohlen)</label>
+          <input id="unifi_api_key" type="password" value="${apiKey}"
+            placeholder="UniFi Network \u2192 Einstellungen \u2192 API Keys" />
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="unifi_username">Benutzername</label>
+            <input id="unifi_username" type="text" value="${username}" placeholder="local-admin" />
+          </div>
+          <div class="field">
+            <label for="unifi_password">Passwort</label>
+            <input id="unifi_password" type="password" value="${password}" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="unifi_mac">Ger\xE4te-MAC (optional)</label>
+          <input id="unifi_mac" type="text" value="${mac}"
+            placeholder="aa:bb:cc:dd:ee:ff \u2014 wird sonst auto-erkannt" />
+          <div class="hint">Leer lassen = wird anhand des HA-Ger\xE4tenamens gesucht.</div>
+        </div>
+
+        <button class="test-btn" id="test-btn" ${this._apiTesting ? "disabled" : ""}>
+          \u{1F50C} Verbindung testen
+        </button>
+
+        ${testBadge}
+
       </div>
     `;
-    this.shadowRoot.getElementById("device")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
-    this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
+    this.shadowRoot.getElementById("device")?.addEventListener("change", (e) => this._onDeviceChange(e));
+    this.shadowRoot.getElementById("name")?.addEventListener("input", (e) => this._onNameInput(e));
+    for (const f of ["unifi_host", "unifi_site", "unifi_api_key", "unifi_username", "unifi_password", "unifi_mac"]) {
+      this.shadowRoot.getElementById(f)?.addEventListener("change", (e) => this._onApiField(f, e));
+    }
+    this.shadowRoot.getElementById("test-btn")?.addEventListener("click", () => this._testConnection());
   }
 };
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
 var VERSION = "0.0.0-dev";
-var UnifiDeviceCard = class extends HTMLElement {
+var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
   }
@@ -905,22 +1293,35 @@ var UnifiDeviceCard = class extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._config = {};
-    this._deviceContext = null;
+    this._ctx = null;
+    this._apiPortMap = null;
+    this._apiDeviceId = null;
+    this._apiDeviceMac = null;
     this._selectedKey = null;
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
+    this._apiTimer = null;
+    this._apiError = null;
   }
+  static get REFRESH_MS() {
+    return 1e4;
+  }
+  // live refresh every 10 s
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const newConfig = config || {};
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
     if (oldDeviceId !== newDeviceId) {
-      this._deviceContext = null;
+      this._ctx = null;
+      this._apiPortMap = null;
+      this._apiDeviceId = null;
+      this._apiDeviceMac = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
       this._loading = false;
+      this._stopApiTimer();
       if (this._hass && newDeviceId) {
         this._ensureLoaded();
         return;
@@ -933,13 +1334,29 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._ensureLoaded();
     this._render();
   }
+  disconnectedCallback() {
+    this._stopApiTimer();
+  }
   getCardSize() {
     return 8;
   }
+  // ── Timer management ──────────────────────────────────────────────────────
+  _startApiTimer() {
+    if (this._apiTimer) return;
+    if (!this._config?.unifi_host) return;
+    this._apiTimer = setInterval(() => this._refreshApiData(), _UnifiDeviceCard.REFRESH_MS);
+  }
+  _stopApiTimer() {
+    if (this._apiTimer) {
+      clearInterval(this._apiTimer);
+      this._apiTimer = null;
+    }
+  }
+  // ── Load orchestration ────────────────────────────────────────────────────
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
     const currentId = this._config.device_id;
-    if (this._loadedDeviceId === currentId && this._deviceContext) return;
+    if (this._loadedDeviceId === currentId && this._ctx) return;
     if (this._loading) return;
     this._loading = true;
     this._render();
@@ -947,227 +1364,366 @@ var UnifiDeviceCard = class extends HTMLElement {
     try {
       const ctx = await getDeviceContext(this._hass, currentId);
       if (token !== this._loadToken) return;
-      this._deviceContext = ctx;
+      this._ctx = ctx;
       this._loadedDeviceId = currentId;
-      const numberedPorts = mergePortsWithLayout(ctx?.layout, discoverPorts(ctx?.entities || []));
-      const specialPorts = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
-      const first = specialPorts[0] || numberedPorts[0] || null;
+      const numbered = mergePortsWithLayout(ctx?.layout, discoverPorts(ctx?.entities || []));
+      const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
+      const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
+      if (this._config?.unifi_host) {
+        this._refreshApiData();
+        this._startApiTimer();
+      }
     } catch (err) {
-      console.error("[unifi-device-card] Failed to load device context", err);
+      console.error("[unifi-device-card] HA context load failed", err);
       if (token !== this._loadToken) return;
-      this._deviceContext = null;
+      this._ctx = null;
       this._loadedDeviceId = null;
     }
     this._loading = false;
     this._render();
   }
+  /**
+   * Fetch live data from the UniFi API and update _apiPortMap.
+   * Called on first load and periodically by the timer.
+   */
+  async _refreshApiData() {
+    const client = getApiClient(this._config);
+    if (!client) return;
+    try {
+      if (!this._apiDeviceMac) {
+        await this._resolveApiDevice(client);
+      }
+      if (!this._apiDeviceMac) return;
+      const portTable = await client.getPortTable(this._apiDeviceMac);
+      const map = /* @__PURE__ */ new Map();
+      for (const p of portTable) map.set(p.port_idx, p);
+      this._apiPortMap = map;
+      this._apiError = null;
+    } catch (err) {
+      console.warn("[unifi-device-card] API refresh failed:", err.message);
+      this._apiError = err.message;
+    }
+    this._render();
+  }
+  /**
+   * Try to match the selected HA device to a UniFi API device by MAC or name.
+   */
+  async _resolveApiDevice(client) {
+    if (this._config?.unifi_mac) {
+      this._apiDeviceMac = this._config.unifi_mac;
+      return;
+    }
+    if (!this._ctx) return;
+    try {
+      const devices = await client.getDevices();
+      const haDevice = this._ctx.device;
+      const serial = haDevice?.serial_number?.toLowerCase();
+      let match = null;
+      if (serial) {
+        match = devices.find(
+          (d) => d.serial?.toLowerCase() === serial || d.mac?.toLowerCase().replace(/:/g, "") === serial.replace(/:/g, "")
+        );
+      }
+      if (!match) {
+        const haName = String(
+          haDevice?.name_by_user || haDevice?.name || ""
+        ).toLowerCase();
+        match = devices.find(
+          (d) => String(d.name || "").toLowerCase() === haName
+        );
+      }
+      if (match) {
+        this._apiDeviceId = match._id;
+        this._apiDeviceMac = match.mac;
+        console.info("[unifi-device-card] Resolved API device:", match.mac, match.name);
+      } else {
+        console.warn("[unifi-device-card] Could not match HA device to UniFi API device");
+      }
+    } catch (err) {
+      console.warn("[unifi-device-card] Device resolve failed:", err.message);
+    }
+  }
+  // ── Actions ───────────────────────────────────────────────────────────────
   _selectKey(key) {
     this._selectedKey = key;
     this._render();
   }
-  async _toggleEntity(entityId) {
-    if (!entityId || !this._hass) return;
-    const [domain] = entityId.split(".");
-    await this._hass.callService(domain, "toggle", { entity_id: entityId });
+  async _togglePoe(slot) {
+    const client = getApiClient(this._config);
+    if (client && this._apiDeviceId && slot.port) {
+      const apiPort = this._apiPortMap?.get(slot.port);
+      const current = apiPort ? apiPort.poe_enable : false;
+      try {
+        await client.setPortPoe(this._apiDeviceId, slot.port, !current);
+        await new Promise((r) => setTimeout(r, 800));
+        await this._refreshApiData();
+        return;
+      } catch (err) {
+        console.error("[unifi-device-card] PoE toggle via API failed:", err);
+      }
+    }
+    if (slot.poe_switch_entity && this._hass) {
+      const [domain] = slot.poe_switch_entity.split(".");
+      await this._hass.callService(domain, "toggle", { entity_id: slot.poe_switch_entity });
+    }
   }
-  async _pressButton(entityId) {
-    if (!entityId || !this._hass) return;
-    await this._hass.callService("button", "press", { entity_id: entityId });
+  async _powerCycle(slot) {
+    const client = getApiClient(this._config);
+    if (client && this._apiDeviceMac && slot.port) {
+      try {
+        await client.powerCyclePort(this._apiDeviceMac, slot.port);
+        await new Promise((r) => setTimeout(r, 1200));
+        await this._refreshApiData();
+        return;
+      } catch (err) {
+        console.error("[unifi-device-card] Power cycle via API failed:", err);
+      }
+    }
+    if (slot.power_cycle_entity && this._hass) {
+      await this._hass.callService("button", "press", { entity_id: slot.power_cycle_entity });
+    }
+  }
+  // ── Data helpers: merge HA + API ──────────────────────────────────────────
+  /**
+   * Is the port link up?
+   * API data takes priority over HA entities.
+   */
+  _portIsUp(slot) {
+    if (this._apiPortMap && slot.port) {
+      const p = this._apiPortMap.get(slot.port);
+      if (p) return p.up;
+    }
+    return isOn(this._hass, slot.link_entity);
+  }
+  /**
+   * PoE enabled?
+   */
+  _portPoeEnabled(slot) {
+    if (this._apiPortMap && slot.port) {
+      const p = this._apiPortMap.get(slot.port);
+      if (p) return p.poe_enable;
+    }
+    return isOn(this._hass, slot.poe_switch_entity);
+  }
+  /**
+   * Has any PoE capability?
+   */
+  _portHasPoe(slot) {
+    if (this._apiPortMap && slot.port) {
+      const p = this._apiPortMap.get(slot.port);
+      if (p) return p.poe_mode !== null && p.poe_mode !== void 0;
+    }
+    return Boolean(slot.power_cycle_entity);
   }
   _subtitle() {
-    if (!this._config?.device_id || !this._deviceContext) return `Version ${VERSION}`;
-    const firmware = this._deviceContext?.firmware;
-    const model = this._deviceContext?.layout?.displayModel || this._deviceContext?.model || "";
-    return firmware ? `${model} \xB7 FW ${firmware}` : model;
+    if (!this._config?.device_id || !this._ctx) return `Version ${VERSION}`;
+    const fw = this._ctx?.firmware;
+    const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
+    const src = this._apiPortMap ? " \xB7 API \u2713" : "";
+    return fw ? `${model} \xB7 FW ${fw}${src}` : `${model}${src}`;
   }
-  _getThroughputEntities(port) {
-    const entities = this._deviceContext?.entities || [];
-    const portNum = port?.port;
-    if (!portNum) return { rx: null, tx: null };
-    const rx = entities.find((e) => {
-      const id = e.entity_id.toLowerCase();
-      return id.includes(`port_${portNum}`) && (id.includes("_rx") || id.includes("download") || id.includes("receive"));
-    });
-    const tx = entities.find((e) => {
-      const id = e.entity_id.toLowerCase();
-      return id.includes(`port_${portNum}`) && (id.includes("_tx") || id.includes("upload") || id.includes("transmit"));
-    });
-    return { rx: rx ? rx.entity_id : null, tx: tx ? tx.entity_id : null };
+  _connectedCount(allSlots) {
+    return allSlots.filter((s) => this._portIsUp(s)).length;
   }
-  _getConnectedCount(allSlots) {
-    return allSlots.filter((s) => isOn(this._hass, s.link_entity)).length;
-  }
+  // ── Styles ────────────────────────────────────────────────────────────────
   _styles() {
-    return `
-      <style>
-        :host {
-          --udc-bg: #141820;
-          --udc-surface: #1e2433;
-          --udc-surface2: #252d3d;
-          --udc-border: rgba(255,255,255,0.07);
-          --udc-accent: #0090d9;
-          --udc-accent-glow: rgba(0,144,217,0.2);
-          --udc-green: #22c55e;
-          --udc-orange: #f59e0b;
-          --udc-text: #e2e8f0;
-          --udc-text-muted: #4e5d73;
-          --udc-text-dim: #8896a8;
-          --udc-radius: 14px;
-          --udc-radius-sm: 8px;
-        }
+    return `<style>
+      :host {
+        --udc-bg:      #141820;
+        --udc-surface: #1e2433;
+        --udc-surf2:   #252d3d;
+        --udc-border:  rgba(255,255,255,0.07);
+        --udc-accent:  #0090d9;
+        --udc-aglow:   rgba(0,144,217,0.2);
+        --udc-green:   #22c55e;
+        --udc-orange:  #f59e0b;
+        --udc-red:     #ef4444;
+        --udc-text:    #e2e8f0;
+        --udc-muted:   #4e5d73;
+        --udc-dim:     #8896a8;
+        --udc-r:       14px;
+        --udc-rsm:     8px;
+      }
+      ha-card {
+        background: var(--udc-bg) !important;
+        color: var(--udc-text) !important;
+        border: 1px solid var(--udc-border) !important;
+        border-radius: var(--udc-r) !important;
+        overflow: hidden;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
 
-        ha-card {
-          background: var(--udc-bg) !important;
-          color: var(--udc-text) !important;
-          border: 1px solid var(--udc-border) !important;
-          border-radius: var(--udc-radius) !important;
-          overflow: hidden;
-          font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-        }
+      /* \u2500\u2500 HEADER \u2500\u2500 */
+      .header {
+        padding: 16px 18px 13px;
+        background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
+        border-bottom: 1px solid var(--udc-border);
+        display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      }
+      .header-info { display: grid; gap: 2px; min-width: 0; }
+      .title {
+        font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .subtitle { font-size: 0.73rem; color: var(--udc-muted); }
+      .header-chips { display: flex; gap: 7px; flex-shrink: 0; align-items: center; }
 
-        /* HEADER */
-        .header {
-          padding: 16px 18px 14px;
-          background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
-          border-bottom: 1px solid var(--udc-border);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-        }
-        .header-info { display: grid; gap: 2px; min-width: 0; }
-        .title {
-          font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em;
-          color: var(--udc-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .subtitle { font-size: 0.74rem; color: var(--udc-text-muted); }
-        .stat-chip {
-          display: flex; align-items: center; gap: 5px;
-          background: var(--udc-surface2); border: 1px solid var(--udc-border);
-          border-radius: 20px; padding: 4px 11px;
-          font-size: 0.73rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
-          color: var(--udc-text-dim);
-        }
-        .stat-chip .dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: var(--udc-green); box-shadow: 0 0 5px var(--udc-green);
-          animation: blink 2.5s ease-in-out infinite;
-        }
-        @keyframes blink {
-          0%,100% { opacity:1; box-shadow: 0 0 5px var(--udc-green); }
-          50% { opacity:.5; box-shadow: 0 0 10px var(--udc-green); }
-        }
+      .chip {
+        display: flex; align-items: center; gap: 5px;
+        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+        border-radius: 20px; padding: 3px 10px;
+        font-size: 0.71rem; font-weight: 700; white-space: nowrap; color: var(--udc-dim);
+      }
+      .chip .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--udc-green); box-shadow: 0 0 5px var(--udc-green);
+        animation: blink 2.5s ease-in-out infinite;
+      }
+      .chip.api-chip { color: var(--udc-accent); border-color: rgba(0,144,217,.25); }
+      .chip.api-chip .dot { background: var(--udc-accent); box-shadow: 0 0 5px var(--udc-accent); }
+      @keyframes blink {
+        0%,100% { opacity:1; } 50% { opacity:.4; }
+      }
 
-        /* FRONT PANEL */
-        .frontpanel {
-          padding: 14px 18px 10px; display: grid; gap: 6px;
-          background: var(--udc-surface); border-bottom: 1px solid var(--udc-border);
-        }
-        .panel-label {
-          font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em;
-          text-transform: uppercase; color: var(--udc-text-muted); margin-bottom: 2px;
-        }
-        .special-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
-        .port-row { display: grid; gap: 4px; }
-        .frontpanel.single-row .port-row,
-        .frontpanel.gateway-single-row .port-row { grid-template-columns: repeat(8, minmax(0, 1fr)); }
-        .frontpanel.dual-row .port-row { grid-template-columns: repeat(8, minmax(0, 1fr)); }
-        .frontpanel.gateway-rack .port-row { grid-template-columns: repeat(8, minmax(0, 1fr)); }
-        .frontpanel.gateway-compact .port-row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-        .frontpanel.quad-row .port-row { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+      /* \u2500\u2500 FRONT PANEL \u2500\u2500 */
+      .frontpanel {
+        padding: 13px 18px 10px; display: grid; gap: 6px;
+        background: var(--udc-surface); border-bottom: 1px solid var(--udc-border);
+      }
+      .panel-label {
+        font-size: 0.63rem; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; color: var(--udc-muted); margin-bottom: 1px;
+      }
+      .special-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
+      .port-row    { display: grid; gap: 4px; }
+      .frontpanel.single-row         .port-row,
+      .frontpanel.gateway-single-row .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
+      .frontpanel.dual-row           .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
+      .frontpanel.gateway-rack       .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
+      .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
+      .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
 
-        /* PORT */
-        .port {
-          border: 1px solid rgba(255,255,255,0.06); border-radius: 7px;
-          min-height: 40px; cursor: pointer; font: inherit;
-          display: grid; place-items: center; gap: 1px; padding: 3px 2px;
-          background: var(--udc-bg); transition: all 0.13s ease;
-          position: relative; overflow: hidden;
-        }
-        .port::after {
-          content: ''; position: absolute; top: 0; left: 0; right: 0;
-          height: 2px; background: transparent; transition: background 0.15s;
-        }
-        .port.up { background: rgba(34,197,94,0.06); border-color: rgba(34,197,94,0.25); }
-        .port.up::after { background: var(--udc-green); }
-        .port:hover { transform: translateY(-1px); border-color: rgba(0,144,217,0.35); background: rgba(0,144,217,0.07); }
-        .port.selected {
-          border-color: var(--udc-accent) !important;
-          background: rgba(0,144,217,0.12) !important;
-          box-shadow: 0 0 0 1px var(--udc-accent), inset 0 0 10px rgba(0,144,217,0.08);
-        }
-        .port.selected::after { background: var(--udc-accent) !important; }
-        .port.has-poe.up::after { background: linear-gradient(90deg, var(--udc-green) 50%, var(--udc-orange)); }
-        .port.special { min-height: 46px; border-radius: 9px; min-width: 58px; padding: 5px 9px; }
+      /* \u2500\u2500 PORT BUTTON \u2500\u2500 */
+      .port {
+        border: 1px solid rgba(255,255,255,.06); border-radius: 7px;
+        min-height: 40px; cursor: pointer; font: inherit;
+        display: grid; place-items: center; gap: 1px; padding: 3px 2px;
+        background: var(--udc-bg); transition: all .13s ease;
+        position: relative; overflow: hidden;
+      }
+      .port::after {
+        content:''; position:absolute; top:0; left:0; right:0;
+        height:2px; background:transparent; transition:background .15s;
+      }
+      .port.up { background: rgba(34,197,94,.06); border-color: rgba(34,197,94,.25); }
+      .port.up::after { background: var(--udc-green); }
+      .port:hover { transform: translateY(-1px); border-color: rgba(0,144,217,.35); background: rgba(0,144,217,.07); }
+      .port.selected {
+        border-color: var(--udc-accent) !important;
+        background: rgba(0,144,217,.12) !important;
+        box-shadow: 0 0 0 1px var(--udc-accent), inset 0 0 10px rgba(0,144,217,.08);
+      }
+      .port.selected::after { background: var(--udc-accent) !important; }
+      .port.has-poe.up::after { background: linear-gradient(90deg, var(--udc-green) 50%, var(--udc-orange)); }
+      .port.special { min-height: 46px; border-radius: 9px; min-width: 58px; padding: 5px 9px; }
+      .port-num { font-size: 10px; font-weight: 800; line-height: 1; color: var(--udc-dim); }
+      .port.up .port-num { color: var(--udc-text); }
+      .port-icon { font-size: 8px; line-height: 1; color: var(--udc-muted); }
+      .port.up .port-icon    { color: var(--udc-green); }
+      .port.has-poe.up .port-icon { color: var(--udc-orange); }
 
-        .port-num { font-size: 10px; font-weight: 800; line-height: 1; color: var(--udc-text-muted); letter-spacing: 0.02em; }
-        .port.up .port-num { color: var(--udc-text); }
-        .port-icon { font-size: 8px; line-height: 1; color: var(--udc-text-muted); }
-        .port.up .port-icon { color: var(--udc-green); }
-        .port.has-poe.up .port-icon { color: var(--udc-orange); }
+      /* \u2500\u2500 DETAIL SECTION \u2500\u2500 */
+      .section { padding: 14px 18px 18px; display: grid; gap: 14px; }
+      .api-banner {
+        display: flex; align-items: center; gap: 7px;
+        background: rgba(0,144,217,.08); border: 1px solid rgba(0,144,217,.2);
+        border-radius: var(--udc-rsm); padding: 7px 12px;
+        font-size: 0.73rem; color: var(--udc-accent); font-weight: 600;
+      }
+      .api-err-banner {
+        display: flex; align-items: center; gap: 7px;
+        background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2);
+        border-radius: var(--udc-rsm); padding: 7px 12px;
+        font-size: 0.73rem; color: var(--udc-red);
+      }
+      .detail-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-bottom: 11px; border-bottom: 1px solid var(--udc-border); margin-bottom: 12px;
+      }
+      .detail-title { font-size: .92rem; font-weight: 700; letter-spacing: -.01em; }
+      .status-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 9px; border-radius: 20px;
+        font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      }
+      .status-badge.up   { background: rgba(34,197,94,.1);  color: var(--udc-green); border: 1px solid rgba(34,197,94,.2); }
+      .status-badge.down { background: rgba(78,93,115,.2);   color: var(--udc-muted); border: 1px solid var(--udc-border); }
 
-        /* DETAIL */
-        .section { padding: 14px 18px 18px; display: grid; gap: 14px; }
-        .detail-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding-bottom: 12px; border-bottom: 1px solid var(--udc-border); margin-bottom: 12px;
-        }
-        .detail-title { font-size: 0.92rem; font-weight: 700; letter-spacing: -0.01em; }
-        .status-badge {
-          display: inline-flex; align-items: center; gap: 4px;
-          padding: 3px 9px; border-radius: 20px; font-size: 0.7rem;
-          font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-        }
-        .status-badge.up { background: rgba(34,197,94,0.1); color: var(--udc-green); border: 1px solid rgba(34,197,94,0.2); }
-        .status-badge.down { background: rgba(78,93,115,0.2); color: var(--udc-text-muted); border: 1px solid var(--udc-border); }
+      /* \u2500\u2500 DETAIL CARDS (2\xD7N grid) \u2500\u2500 */
+      .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+      .detail-card {
+        background: var(--udc-surface); border: 1px solid var(--udc-border);
+        border-radius: var(--udc-rsm); padding: 9px 12px; display: grid; gap: 2px;
+      }
+      .dc-label { font-size: .63rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--udc-muted); }
+      .dc-value { font-size: .87rem; font-weight: 700; color: var(--udc-text); }
+      .dc-value.accent  { color: var(--udc-accent); }
+      .dc-value.poe-on  { color: var(--udc-orange); }
+      .dc-value.na      { color: var(--udc-muted); font-weight: 400; }
+      .dc-value.green   { color: var(--udc-green); }
 
-        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-        .detail-card {
-          background: var(--udc-surface); border: 1px solid var(--udc-border);
-          border-radius: var(--udc-radius-sm); padding: 9px 12px; display: grid; gap: 2px;
-        }
-        .dc-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--udc-text-muted); }
-        .dc-value { font-size: 0.87rem; font-weight: 700; color: var(--udc-text); }
-        .dc-value.accent { color: var(--udc-accent); }
-        .dc-value.poe-on { color: var(--udc-orange); }
-        .dc-value.na { color: var(--udc-text-muted); font-weight: 400; }
+      /* \u2500\u2500 MAC TABLE \u2500\u2500 */
+      .mac-table { display: grid; gap: 5px; margin-bottom: 12px; }
+      .mac-row {
+        display: flex; align-items: center; gap: 8px;
+        background: var(--udc-surface); border: 1px solid var(--udc-border);
+        border-radius: 7px; padding: 7px 11px; font-size: .78rem;
+      }
+      .mac-icon { font-size: .85rem; opacity: .6; flex-shrink: 0; }
+      .mac-hostname { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .mac-addr { font-size: .7rem; color: var(--udc-dim); font-family: monospace; flex-shrink: 0; }
+      .mac-ip   { font-size: .7rem; color: var(--udc-accent); flex-shrink: 0; }
 
-        .throughput-row { display: flex; gap: 6px; margin-bottom: 10px; }
-        .tput-chip {
-          display: inline-flex; align-items: center; gap: 4px;
-          background: var(--udc-surface2); border: 1px solid var(--udc-border);
-          border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 600; color: var(--udc-text-dim);
-        }
-        .tput-chip .arr { font-size: 8px; opacity: .6; }
+      /* \u2500\u2500 THROUGHPUT CHIPS \u2500\u2500 */
+      .tput-row { display: flex; gap: 6px; margin-bottom: 10px; }
+      .tput-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+        border-radius: 6px; padding: 3px 8px;
+        font-size: .7rem; font-weight: 600; color: var(--udc-dim);
+      }
+      .tput-chip .arr { font-size: 8px; opacity: .6; }
 
-        .actions { display: flex; gap: 7px; flex-wrap: wrap; }
-        .action-btn {
-          border: 1px solid var(--udc-border); border-radius: 7px;
-          padding: 7px 14px; cursor: pointer; font: inherit;
-          font-size: 0.8rem; font-weight: 600; transition: all 0.13s ease;
-          display: inline-flex; align-items: center; gap: 5px;
-        }
-        .action-btn.primary { background: var(--udc-accent); color: white; border-color: var(--udc-accent); }
-        .action-btn.primary:hover { background: #0077bb; box-shadow: 0 0 14px var(--udc-accent-glow); }
-        .action-btn.secondary { background: var(--udc-surface2); color: var(--udc-text-dim); }
-        .action-btn.secondary:hover { color: var(--udc-text); border-color: rgba(255,255,255,0.14); }
+      /* \u2500\u2500 ACTIONS \u2500\u2500 */
+      .actions { display: flex; gap: 7px; flex-wrap: wrap; }
+      .action-btn {
+        border: 1px solid var(--udc-border); border-radius: 7px;
+        padding: 7px 14px; cursor: pointer; font: inherit;
+        font-size: .8rem; font-weight: 600; transition: all .13s ease;
+        display: inline-flex; align-items: center; gap: 5px;
+      }
+      .action-btn.primary   { background: var(--udc-accent); color: white; border-color: var(--udc-accent); }
+      .action-btn.primary:hover { background: #0077bb; box-shadow: 0 0 14px var(--udc-aglow); }
+      .action-btn.secondary { background: var(--udc-surf2); color: var(--udc-dim); }
+      .action-btn.secondary:hover { color: var(--udc-text); border-color: rgba(255,255,255,.14); }
 
-        .muted { color: var(--udc-text-muted); font-size: 0.875rem; }
-        .loading-state {
-          display: flex; align-items: center; gap: 10px;
-          padding: 20px; color: var(--udc-text-muted); font-size: 0.875rem;
-        }
-        .spinner {
-          width: 16px; height: 16px; flex-shrink: 0;
-          border: 2px solid var(--udc-surface2); border-top-color: var(--udc-accent);
-          border-radius: 50%; animation: spin .65s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .empty-state { padding: 24px 18px; color: var(--udc-text-muted); font-size: 0.875rem; text-align: center; line-height: 1.5; }
-      </style>
-    `;
+      /* \u2500\u2500 MISC \u2500\u2500 */
+      .muted { color: var(--udc-muted); font-size: .875rem; }
+      .loading-state {
+        display: flex; align-items: center; gap: 10px;
+        padding: 20px; color: var(--udc-muted); font-size: .875rem;
+      }
+      .spinner {
+        width: 16px; height: 16px; flex-shrink: 0;
+        border: 2px solid var(--udc-surf2); border-top-color: var(--udc-accent);
+        border-radius: 50%; animation: spin .65s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .empty-state { padding: 24px 18px; color: var(--udc-muted); font-size: .875rem; text-align: center; line-height: 1.5; }
+    </style>`;
   }
+  // ── Render helpers ────────────────────────────────────────────────────────
   _renderEmpty(title) {
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card>
@@ -1181,29 +1737,34 @@ var UnifiDeviceCard = class extends HTMLElement {
       </ha-card>`;
   }
   _renderPortButton(slot, selectedKey) {
-    const linkUp = isOn(this._hass, slot.link_entity);
-    const hasPoe = Boolean(slot.power_cycle_entity);
-    const poeOn = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
+    const linkUp = this._portIsUp(slot);
+    const hasPoe = this._portHasPoe(slot);
+    const poeOn = hasPoe && this._portPoeEnabled(slot);
     const isSpecial = slot.kind === "special";
     const icon = poeOn ? "\u26A1" : linkUp ? "\u25B2" : "\u25CB";
+    let tooltip = `${slot.label}${linkUp ? " \xB7 Connected" : " \xB7 No link"}`;
+    if (this._apiPortMap && slot.port) {
+      const ap = this._apiPortMap.get(slot.port);
+      if (ap && ap.up && ap.speed) tooltip += ` \xB7 ${formatSpeed(ap.speed)}`;
+    }
     return `<button
-        class="port ${isSpecial ? "special" : ""} ${linkUp ? "up" : "down"} ${selectedKey === slot.key ? "selected" : ""} ${hasPoe ? "has-poe" : ""}"
-        data-key="${slot.key}"
-        title="${slot.label}${linkUp ? " \xB7 Connected" : " \xB7 No link"}${hasPoe ? poeOn ? " \xB7 PoE ON" : " \xB7 PoE OFF" : ""}"
-      ><div class="port-num">${slot.label}</div><div class="port-icon">${icon}</div></button>`;
+      class="port ${isSpecial ? "special" : ""} ${linkUp ? "up" : "down"} ${selectedKey === slot.key ? "selected" : ""} ${hasPoe ? "has-poe" : ""}"
+      data-key="${slot.key}" title="${tooltip}">
+      <div class="port-num">${slot.label}</div>
+      <div class="port-icon">${icon}</div>
+    </button>`;
   }
   _renderPanelAndDetail(title) {
-    const ctx = this._deviceContext;
-    const numberedPorts = mergePortsWithLayout(ctx?.layout, discoverPorts(ctx?.entities || []));
-    const specialPorts = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
-    const allSlots = [...specialPorts, ...numberedPorts];
+    const ctx = this._ctx;
+    const numbered = mergePortsWithLayout(ctx?.layout, discoverPorts(ctx?.entities || []));
+    const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
+    const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
-    const connectedCount = this._getConnectedCount(allSlots);
-    const totalPorts = allSlots.length;
-    const specialRow = specialPorts.length ? `<div class="special-row">${specialPorts.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
+    const connected = this._connectedCount(allSlots);
+    const specialRow = specials.length ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
     const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
       const items = rowPorts.map((portNumber) => {
-        const slot = numberedPorts.find((p) => p.port === portNumber) || {
+        const slot = numbered.find((p) => p.port === portNumber) || {
           key: `port-${portNumber}`,
           port: portNumber,
           label: String(portNumber),
@@ -1221,55 +1782,87 @@ var UnifiDeviceCard = class extends HTMLElement {
     });
     let detail = "";
     if (selected) {
-      const linkUp = isOn(this._hass, selected.link_entity);
-      const linkText = getPortLinkText(this._hass, selected);
-      const speedText = getPortSpeedText(this._hass, selected);
-      const poeAvail = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
-      const poeOn = poeAvail ? isOn(this._hass, selected.poe_switch_entity) : false;
-      const poePower = selected.power_cycle_entity ? formatState(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
-      const { rx, tx } = this._getThroughputEntities(selected);
-      const rxVal = rx ? formatState(this._hass, rx, null) : null;
-      const txVal = tx ? formatState(this._hass, tx, null) : null;
-      const tputHtml = rxVal || txVal ? `<div class="throughput-row">
-        ${rxVal ? `<div class="tput-chip"><span class="arr">\u2193</span>${rxVal}</div>` : ""}
-        ${txVal ? `<div class="tput-chip"><span class="arr">\u2191</span>${txVal}</div>` : ""}
-      </div>` : "";
-      detail = `<div class="port-detail">
-        <div class="detail-header">
-          <div class="detail-title">${selected.kind === "special" ? selected.label : `Port ${selected.port}`}</div>
-          <div class="status-badge ${linkUp ? "up" : "down"}">${linkUp ? "\u25CF Online" : "\u25CB Offline"}</div>
-        </div>
-        <div class="detail-grid">
-          <div class="detail-card">
-            <div class="dc-label">Link Status</div>
-            <div class="dc-value">${linkText !== "\u2014" ? linkText : linkUp ? "Up" : "Down"}</div>
-          </div>
-          <div class="detail-card">
-            <div class="dc-label">Geschwindigkeit</div>
-            <div class="dc-value accent">${speedText}</div>
-          </div>
-          <div class="detail-card">
-            <div class="dc-label">PoE</div>
-            <div class="dc-value ${poeAvail ? poeOn ? "poe-on" : "" : "na"}">
-              ${poeAvail ? stateValue(this._hass, selected.poe_switch_entity, "\u2014") : "Nicht verf\xFCgbar"}
-            </div>
-          </div>
-          <div class="detail-card">
-            <div class="dc-label">PoE Leistung</div>
-            <div class="dc-value ${selected.power_cycle_entity ? "" : "na"}">
-              ${selected.power_cycle_entity ? poePower : "Nicht verf\xFCgbar"}
-            </div>
-          </div>
-        </div>
-        ${tputHtml}
+      const linkUp = this._portIsUp(selected);
+      const hasPoe = this._portHasPoe(selected);
+      const poeOn = hasPoe && this._portPoeEnabled(selected);
+      const apiPort = this._apiPortMap?.get(selected.port) || null;
+      const speedText = apiPort ? formatSpeed(apiPort.speed) : getPortSpeedText(this._hass, selected);
+      const linkText = apiPort ? apiPort.up ? "Connected" : "No link" : getPortLinkText(this._hass, selected);
+      const poePowerText = apiPort?.poe_power ? `${parseFloat(apiPort.poe_power).toFixed(1)} W` : selected.power_cycle_entity ? formatState(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
+      const poeVoltText = apiPort?.poe_voltage ? `${parseFloat(apiPort.poe_voltage).toFixed(0)} V` : null;
+      const poeAmpText = apiPort?.poe_current ? `${(parseFloat(apiPort.poe_current) * 1e3).toFixed(0)} mA` : null;
+      const rxRate = apiPort ? formatBytes(apiPort.rx_rate) : null;
+      const txRate = apiPort ? formatBytes(apiPort.tx_rate) : null;
+      const macTable = apiPort?.mac_table || [];
+      const canPoe = hasPoe || apiPort?.poe_mode !== null && apiPort?.poe_mode !== void 0;
+      const canPowerCycle = Boolean(selected.power_cycle_entity) || Boolean(this._apiDeviceMac) && selected.port;
+      const gridCards = [
+        { label: "Link Status", value: linkText, cls: "" },
+        { label: "Geschwindigkeit", value: speedText, cls: "accent" },
+        {
+          label: "PoE",
+          value: canPoe ? poeOn ? "Ein \u26A1" : "Aus" : "\u2014",
+          cls: poeOn ? "poe-on" : canPoe ? "" : "na"
+        },
+        { label: "PoE Leistung", value: canPoe ? poePowerText : "\u2014", cls: canPoe ? "" : "na" },
+        ...poeVoltText ? [{ label: "PoE Spannung", value: poeVoltText, cls: "" }] : [],
+        ...poeAmpText ? [{ label: "PoE Strom", value: poeAmpText, cls: "" }] : []
+      ];
+      const gridHtml = gridCards.map(
+        (c) => `<div class="detail-card">
+          <div class="dc-label">${c.label}</div>
+          <div class="dc-value ${c.cls}">${c.value}</div>
+        </div>`
+      ).join("");
+      const tputHtml = rxRate || txRate ? `
+        <div class="tput-row">
+          ${rxRate ? `<div class="tput-chip"><span class="arr">\u2193</span>${rxRate}</div>` : ""}
+          ${txRate ? `<div class="tput-chip"><span class="arr">\u2191</span>${txRate}</div>` : ""}
+        </div>` : "";
+      const macHtml = macTable.length > 0 ? `
+        <div class="mac-table">
+          ${macTable.slice(0, 4).map((m) => `
+            <div class="mac-row">
+              <div class="mac-icon">\u{1F4BB}</div>
+              <div class="mac-hostname">${m.hostname || "Unbekannt"}</div>
+              <div class="mac-ip">${m.ip || ""}</div>
+              <div class="mac-addr">${m.mac || ""}</div>
+            </div>`).join("")}
+        </div>` : "";
+      const actionsHtml = `
         <div class="actions">
-          ${poeAvail ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">\u26A1 PoE ${poeOn ? "Aus" : "Ein"}</button>` : ""}
-          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">\u21BA Power Cycle</button>` : ""}
-        </div>
-      </div>`;
+          ${canPoe ? `<button class="action-btn primary" data-action="toggle-poe">
+                \u26A1 PoE ${poeOn ? "Aus" : "Ein"}
+               </button>` : ""}
+          ${canPowerCycle ? `<button class="action-btn secondary" data-action="power-cycle">
+                \u21BA Power Cycle
+               </button>` : ""}
+        </div>`;
+      detail = `
+        <div class="port-detail">
+          <div class="detail-header">
+            <div class="detail-title">${selected.kind === "special" ? selected.label : `Port ${selected.port}`}</div>
+            <div class="status-badge ${linkUp ? "up" : "down"}">${linkUp ? "\u25CF Online" : "\u25CB Offline"}</div>
+          </div>
+          <div class="detail-grid">${gridHtml}</div>
+          ${tputHtml}
+          ${macHtml}
+          ${actionsHtml}
+        </div>`;
     } else {
       detail = `<div class="muted">Keine Ports erkannt.</div>`;
     }
+    let apiBanner = "";
+    if (this._config?.unifi_host && this._apiPortMap) {
+      apiBanner = `<div class="api-banner">\u26A1 Echtzeit-Daten via UniFi API</div>`;
+    } else if (this._config?.unifi_host && this._apiError) {
+      apiBanner = `<div class="api-err-banner">\u26A0 API nicht erreichbar: ${this._apiError} \u2014 verwende HA-Daten</div>`;
+    } else if (this._config?.unifi_host) {
+      apiBanner = `<div class="api-banner">\u23F3 Verbinde mit UniFi API\u2026</div>`;
+    }
+    const isApiMode = Boolean(this._config?.unifi_host && this._apiPortMap);
+    const chipClass = isApiMode ? "chip api-chip" : "chip";
+    const chipLabel = isApiMode ? "API" : "HA";
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card>
         <div class="header">
@@ -1277,19 +1870,33 @@ var UnifiDeviceCard = class extends HTMLElement {
             <div class="title">${title}</div>
             <div class="subtitle">${this._subtitle()}</div>
           </div>
-          <div class="stat-chip"><div class="dot"></div>${connectedCount}/${totalPorts}</div>
+          <div class="header-chips">
+            <div class="${chipClass}"><div class="dot"></div>${connected}/${allSlots.length}</div>
+            <div class="chip" style="font-size:.65rem;padding:3px 8px;color:var(--udc-muted)">${chipLabel}</div>
+          </div>
         </div>
+
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"}">
           <div class="panel-label">Front Panel</div>
           ${specialRow}
           ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">Keine Ports erkannt.</div>`}
         </div>
-        <div class="section">${detail}</div>
+
+        <div class="section">
+          ${apiBanner}
+          ${detail}
+        </div>
       </ha-card>`;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
-    this.shadowRoot.querySelectorAll("[data-action='toggle-poe']").forEach((btn) => btn.addEventListener("click", async () => await this._toggleEntity(btn.dataset.entity)));
-    this.shadowRoot.querySelectorAll("[data-action='power-cycle']").forEach((btn) => btn.addEventListener("click", async () => await this._pressButton(btn.dataset.entity)));
+    const ctx2 = this._ctx;
+    const numbered2 = mergePortsWithLayout(ctx2?.layout, discoverPorts(ctx2?.entities || []));
+    const specials2 = mergeSpecialsWithLayout(ctx2?.layout, discoverSpecialPorts(ctx2?.entities || []));
+    const allSlots2 = [...specials2, ...numbered2];
+    const sel2 = allSlots2.find((p) => p.key === this._selectedKey) || allSlots2[0] || null;
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", () => sel2 && this._togglePoe(sel2));
+    this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", () => sel2 && this._powerCycle(sel2));
   }
+  // ── Top-level render ──────────────────────────────────────────────────────
   _render() {
     const title = this._config?.name || "UniFi Device Card";
     if (!this._config?.device_id) {
@@ -1297,17 +1904,29 @@ var UnifiDeviceCard = class extends HTMLElement {
       return;
     }
     if (this._loading) {
-      this.shadowRoot.innerHTML = `${this._styles()}<ha-card>
-        <div class="header"><div class="header-info"><div class="title">${title}</div><div class="subtitle">${this._subtitle()}</div></div></div>
-        <div class="loading-state"><div class="spinner"></div>Lade Ger\xE4tedaten\u2026</div>
-      </ha-card>`;
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card>
+          <div class="header">
+            <div class="header-info">
+              <div class="title">${title}</div>
+              <div class="subtitle">${this._subtitle()}</div>
+            </div>
+          </div>
+          <div class="loading-state"><div class="spinner"></div>Lade Ger\xE4tedaten\u2026</div>
+        </ha-card>`;
       return;
     }
-    if (!this._deviceContext) {
-      this.shadowRoot.innerHTML = `${this._styles()}<ha-card>
-        <div class="header"><div class="header-info"><div class="title">${title}</div><div class="subtitle">${this._subtitle()}</div></div></div>
-        <div class="empty-state">Keine Ger\xE4tedaten verf\xFCgbar.</div>
-      </ha-card>`;
+    if (!this._ctx) {
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card>
+          <div class="header">
+            <div class="header-info">
+              <div class="title">${title}</div>
+              <div class="subtitle">${this._subtitle()}</div>
+            </div>
+          </div>
+          <div class="empty-state">Keine Ger\xE4tedaten verf\xFCgbar.</div>
+        </ha-card>`;
       return;
     }
     this._renderPanelAndDetail(title);
@@ -1315,4 +1934,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 };
 customElements.define("unifi-device-card", UnifiDeviceCard);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "unifi-device-card", name: "UniFi Device Card", description: "A Lovelace card for UniFi switches and gateways." });
+window.customCards.push({
+  type: "unifi-device-card",
+  name: "UniFi Device Card",
+  description: "A Lovelace card for UniFi switches and gateways \u2014 with optional direct API support."
+});
