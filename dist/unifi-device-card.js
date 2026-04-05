@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.58a4532 */
+/* UniFi Device Card 0.0.0-dev.a258a88 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -407,6 +407,10 @@ function ensurePort(map, port) {
   }
   return map.get(port);
 }
+function isLikelyLinkStateValue(value) {
+  const v = String(value ?? "").toLowerCase();
+  return v === "on" || v === "off" || v === "up" || v === "down" || v === "connected" || v === "disconnected" || v === "true" || v === "false";
+}
 function classifyPortEntity(entity) {
   const id = lower(entity.entity_id);
   const text = entityText(entity);
@@ -497,6 +501,39 @@ function formatState(hass, entityId, fallback = "\u2014") {
   const unit = state.attributes?.unit_of_measurement;
   if (state.state === "unknown" || state.state === "unavailable") return "\u2014";
   return unit ? `${state.state} ${unit}` : state.state;
+}
+function getPortLinkText(hass, port) {
+  const direct = stateObj(hass, port?.link_entity);
+  if (direct) {
+    const value = String(direct.state ?? "");
+    if (isLikelyLinkStateValue(value)) return value;
+  }
+  for (const entityId of port?.raw_entities || []) {
+    const st = stateObj(hass, entityId);
+    if (!st) continue;
+    const value = String(st.state ?? "");
+    if (isLikelyLinkStateValue(value)) return value;
+  }
+  return "\u2014";
+}
+function getPortSpeedText(hass, port) {
+  const direct = stateObj(hass, port?.speed_entity);
+  if (direct) {
+    const unit = direct.attributes?.unit_of_measurement;
+    if (unit) return `${direct.state} ${unit}`;
+    if (String(direct.state ?? "").toLowerCase() !== "unknown") return String(direct.state);
+  }
+  for (const entityId of port?.raw_entities || []) {
+    const st = stateObj(hass, entityId);
+    if (!st) continue;
+    const text = lower(entityId);
+    const unit = st.attributes?.unit_of_measurement || "";
+    const value = String(st.state ?? "");
+    if (text.includes("speed") || text.includes("link_speed") || unit.toLowerCase().includes("mbit") || unit.toLowerCase().includes("gbit")) {
+      return unit ? `${value} ${unit}` : value;
+    }
+  }
+  return "\u2014";
 }
 
 // src/unifi-device-card-editor.js
@@ -680,7 +717,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.58a4532";
+var VERSION = "0.0.0-dev.a258a88";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -802,37 +839,46 @@ var UnifiDeviceCard = class extends HTMLElement {
         .frontpanel {
           padding: 8px 16px 8px 16px;
           display: grid;
-          gap: 8px;
+          gap: 6px;
         }
 
         .port-row {
           display: grid;
-          gap: 8px;
+          gap: 6px;
         }
 
         .frontpanel.single-row .port-row,
         .frontpanel.gateway-single-row .port-row {
-          grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+          grid-template-columns: repeat(8, minmax(0, 1fr));
         }
 
-        .frontpanel.dual-row .port-row,
-        .frontpanel.gateway-rack .port-row,
-        .frontpanel.gateway-compact .port-row,
+        .frontpanel.dual-row .port-row {
+          grid-template-columns: repeat(8, minmax(0, 1fr));
+        }
+
+        .frontpanel.gateway-rack .port-row {
+          grid-template-columns: repeat(8, minmax(0, 1fr));
+        }
+
+        .frontpanel.gateway-compact .port-row {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
         .frontpanel.quad-row .port-row {
-          grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+          grid-template-columns: repeat(12, minmax(0, 1fr));
         }
 
         .port {
           border: none;
-          border-radius: 12px;
-          min-height: 64px;
+          border-radius: 10px;
+          min-height: 52px;
           cursor: pointer;
           color: white;
           font: inherit;
           display: grid;
           place-items: center;
-          gap: 2px;
-          padding: 8px 4px;
+          gap: 1px;
+          padding: 6px 2px;
           background: #555;
         }
 
@@ -854,13 +900,13 @@ var UnifiDeviceCard = class extends HTMLElement {
         }
 
         .port-num {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
           line-height: 1;
         }
 
         .port-icon {
-          font-size: 16px;
+          font-size: 14px;
           line-height: 1;
         }
 
@@ -989,11 +1035,11 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="detail-grid">
             <div class="row">
               <div class="label">Link</div>
-              <div>${stateValue(this._hass, selected.link_entity, "\u2014")}</div>
+              <div>${getPortLinkText(this._hass, selected)}</div>
             </div>
             <div class="row">
               <div class="label">Speed</div>
-              <div>${formatState(this._hass, selected.speed_entity, "\u2014")}</div>
+              <div>${getPortSpeedText(this._hass, selected)}</div>
             </div>
             <div class="row">
               <div class="label">PoE</div>
