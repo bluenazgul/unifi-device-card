@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.85e5919 */
+/* UniFi Device Card 0.0.0-dev.d1f2e03 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -930,7 +930,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.85e5919";
+var VERSION = "0.0.0-dev.d1f2e03";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1019,7 +1019,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return fw ? `${model} \xB7 FW ${fw}` : model;
   }
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => isOn(this._hass, s.link_entity)).length;
+    return allSlots.filter((s) => isOn(this._hass, s.link_entity, s)).length;
   }
   _styles() {
     return `<style>
@@ -1260,7 +1260,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     </style>`;
   }
   _renderPortButton(slot, selectedKey) {
-    const linkUp = isOn(this._hass, slot.link_entity);
+    const linkUp = isOn(this._hass, slot.link_entity, slot);
     const hasPoe = Boolean(slot.power_cycle_entity);
     const poeOn = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
     const isSpecial = slot.kind === "special";
@@ -1326,7 +1326,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     });
     let detail = `<div class="muted">Keine Ports erkannt.</div>`;
     if (selected) {
-      const linkUp = isOn(this._hass, selected.link_entity);
+      const linkUp = isOn(this._hass, selected.link_entity, selected);
       const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeAvail = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
