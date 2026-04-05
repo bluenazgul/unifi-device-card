@@ -205,6 +205,40 @@ export const MODEL_REGISTRY = {
     theme: "silver",
     specialSlots: [],
   },
+
+  // ── USW Ultra family ─────────────────────────────────────────────────────
+  // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
+  // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
+  // Three SKUs share the same physical layout; only PoE budget differs.
+  USWULTRA: {
+    kind: "switch",
+    frontStyle: "ultra-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "USW Ultra",
+    theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink" }],
+  },
+
+  USWULTRA60W: {
+    kind: "switch",
+    frontStyle: "ultra-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "USW Ultra 60W",
+    theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink" }],
+  },
+
+  USWULTRA210W: {
+    kind: "switch",
+    frontStyle: "ultra-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "USW Ultra 210W",
+    theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink" }],
+  },
 };
 
 // ─────────────────────────────────────────────────
@@ -270,6 +304,17 @@ export function resolveModelKey(device) {
     if (candidate.includes("UDMPRO"))          return "UDMPRO";
     if (candidate.includes("UDMSE"))           return "UDMSE";
 
+    // USW Ultra — checked before generic number patterns
+    if (candidate === "USWULTRA")             return "USWULTRA";
+    if (candidate === "USWULTRA60W")          return "USWULTRA60W";
+    if (candidate === "USWULTRA210W")         return "USWULTRA210W";
+    if (candidate.includes("USWULTRA210"))    return "USWULTRA210W";
+    if (candidate.includes("USWULTRA60"))     return "USWULTRA60W";
+    if (candidate.includes("USWULTRA"))       return "USWULTRA";
+    if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
+    if (candidate.includes("SWITCHULTRA60"))  return "USWULTRA60W";
+    if (candidate.includes("SWITCHULTRA"))    return "USWULTRA";
+
     // 24/48 port switches
     if (candidate.includes("USW24"))  return "USW24P";
     if (candidate.includes("USW48"))  return "USW48P";
@@ -305,6 +350,8 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UCGMAX"))       return 5;
   if (text.includes("UDMPRO"))       return 8;
   if (text.includes("UDMSE"))        return 8;
+
+  if (text.includes("USWULTRA")) return 7;
 
   if (text.includes("48")) return 48;
   if (text.includes("24")) return 24;

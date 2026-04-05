@@ -194,6 +194,7 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel.gateway-rack       .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
       .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
       .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
+      .frontpanel.ultra-row          .port-row { grid-template-columns: repeat(7, minmax(0,1fr)); }
 
       /* PORT BUTTON */
       .port {
