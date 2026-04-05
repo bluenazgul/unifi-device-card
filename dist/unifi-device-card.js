@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.660ae42 */
+/* UniFi Device Card 0.0.0-dev.ce7e18b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -168,10 +168,13 @@ function resolveModelKey(device) {
     if (MODEL_REGISTRY[candidate]) return candidate;
     if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
+    if (candidate.includes("USWLITE16POE")) return "USL16LPB";
     if (candidate.includes("USL8LPB")) return "USL8LPB";
     if (candidate.includes("USL8LP")) return "USL8LP";
+    if (candidate.includes("USWLITE8POE")) return "USL8LPB";
     if (candidate.includes("US8P60")) return "US8P60";
     if (candidate.includes("USMINI")) return "USMINI";
+    if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -188,9 +191,11 @@ function inferPortCountFromModel(device) {
   );
   if (text.includes("USL16LPB")) return 16;
   if (text.includes("USL16LP")) return 16;
+  if (text.includes("USWLITE16POE")) return 16;
   if (text.includes("LITE16")) return 16;
   if (text.includes("USL8LPB")) return 8;
   if (text.includes("USL8LP")) return 8;
+  if (text.includes("USWLITE8POE")) return 8;
   if (text.includes("LITE8")) return 8;
   if (text.includes("US8P60")) return 8;
   if (text.includes("US8")) return 8;
@@ -837,7 +842,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.660ae42";
+var VERSION = "0.0.0-dev.ce7e18b";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
