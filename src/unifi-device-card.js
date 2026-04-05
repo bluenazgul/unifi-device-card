@@ -111,7 +111,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => isOn(this._hass, s.link_entity)).length;
+    return allSlots.filter((s) => isOn(this._hass, s.link_entity, s)).length;
   }
 
   _styles() {
@@ -354,7 +354,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPortButton(slot, selectedKey) {
-    const linkUp    = isOn(this._hass, slot.link_entity);
+    const linkUp    = isOn(this._hass, slot.link_entity, slot);
     const hasPoe    = Boolean(slot.power_cycle_entity);
     const poeOn     = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
     const isSpecial = slot.kind === "special";
@@ -425,7 +425,7 @@ class UnifiDeviceCard extends HTMLElement {
     // Detail panel
     let detail = `<div class="muted">Keine Ports erkannt.</div>`;
     if (selected) {
-      const linkUp    = isOn(this._hass, selected.link_entity);
+      const linkUp    = isOn(this._hass, selected.link_entity, selected);
       const linkText  = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeAvail  = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
