@@ -1,6 +1,6 @@
 # UniFi Device Card
 
-<img width="993" height="544" alt="Screenshot" src="https://github.com/user-attachments/assets/16e1c29e-ecfb-4c37-8a17-5e31aa5718e5" />
+<img width="993" height="544" alt="Screenshot" src="[https://github.com/user-attachments/assets/16e1c29e-ecfb-4c37-8a17-5e31aa5718e5](https://github.com/bluenazgul/unifi-device-card/blob/d69f98278c1a24933163f2144408561e30cad0dc/screenshots/Screenshot.png)" />
 
 
 A Home Assistant Lovelace custom card for UniFi devices such as switches (USW, US) and gateways (UDM, UCG).
