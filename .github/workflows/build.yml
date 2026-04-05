@@ -1,5 +1,10 @@
 name: Build
 
+# Triggered whenever source files that affect the bundle change.
+# src/ covers all JS modules including the new unifi-api.js.
+# The compiled dist/unifi-device-card.js is committed back so
+# HACS can serve it directly from the repository.
+
 on:
   push:
     branches:
@@ -51,6 +56,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/unifi-device-card.js package-lock.json
-          git diff --cached --quiet || git commit -m "build: update dist"
+          # Only stage the compiled bundle – never raw sources or lock file
+          git add dist/unifi-device-card.js
+          git diff --cached --quiet || git commit -m "build: update dist [skip ci]"
           git push
