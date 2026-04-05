@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9d283a5 */
+/* UniFi Device Card 0.0.0-dev.a38704c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1068,6 +1068,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   setConfig(config) {
     this._config = config || {};
+    if (!this._config._auth_mode) {
+      this._config._auth_mode = this._config.unifi_username ? "userpass" : "apikey";
+    }
     this._render();
   }
   set hass(hass) {
@@ -1097,8 +1100,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
   }
   _dispatch(config) {
+    const { _auth_mode, ...persistable } = config;
     this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config },
+      detail: { config: persistable },
       bubbles: true,
       composed: true
     }));
@@ -1137,6 +1141,23 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._apiResult = null;
     this._dispatch(next);
   }
+  // Site always falls back to "default" when empty
+  _effectiveSite() {
+    return (this._config.unifi_site || "").trim() || "default";
+  }
+  _onAuthModeChange(mode) {
+    const next = { ...this._config, _auth_mode: mode };
+    if (mode === "apikey") {
+      delete next.unifi_username;
+      delete next.unifi_password;
+    } else {
+      delete next.unifi_api_key;
+    }
+    this._config = next;
+    this._apiResult = null;
+    this._dispatch(next);
+    this._render();
+  }
   async _testConnection() {
     if (!this._config.unifi_host) {
       this._apiResult = "fail";
@@ -1144,17 +1165,21 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       this._render();
       return;
     }
-    clearApiClient(this._config);
+    const effectiveConfig = {
+      ...this._config,
+      unifi_site: this._effectiveSite()
+    };
+    clearApiClient(effectiveConfig);
     this._apiTesting = true;
     this._apiResult = null;
     this._apiError = "";
     this._apiSites = [];
     this._render();
     try {
-      const client = getApiClient(this._config);
+      const client = getApiClient(effectiveConfig);
       await client.login();
       const sites = await client.getSites();
-      this._apiSites = Array.isArray(sites) ? sites.map((s) => ({ name: s.name, desc: s.desc })) : [];
+      this._apiSites = Array.isArray(sites) ? sites.map((s) => ({ name: s.name, desc: s.desc || s.name })) : [];
       this._apiResult = "ok";
     } catch (e) {
       console.error("[unifi-device-card] API test failed:", e);
@@ -1166,35 +1191,60 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _render() {
     const cfg = this._config;
+    const authMode = cfg._auth_mode || "apikey";
     const selId = cfg?.device_id || "";
     const selName = String(cfg?.name || "").replace(/"/g, "&quot;");
     const host = String(cfg?.unifi_host || "").replace(/"/g, "&quot;");
     const apiKey = String(cfg?.unifi_api_key || "").replace(/"/g, "&quot;");
     const username = String(cfg?.unifi_username || "").replace(/"/g, "&quot;");
     const password = String(cfg?.unifi_password || "").replace(/"/g, "&quot;");
-    const site = String(cfg?.unifi_site || "").replace(/"/g, "&quot;");
+    const siteRaw = String(cfg?.unifi_site || "").replace(/"/g, "&quot;");
     const mac = String(cfg?.unifi_mac || "").replace(/"/g, "&quot;");
     const options = this._devices.map((d) => `<option value="${d.id}" ${d.id === selId ? "selected" : ""}>${d.label}</option>`).join("");
     let testBadge = "";
     if (this._apiTesting) {
       testBadge = `<div class="api-badge testing">\u23F3 Teste Verbindung\u2026</div>`;
     } else if (this._apiResult === "ok") {
-      const sl = this._apiSites.length ? ` \xB7 Sites: ${this._apiSites.map((s) => s.desc || s.name).join(", ")}` : "";
+      const sl = this._apiSites.length ? `<br><span style="font-weight:400">Sites: ${this._apiSites.map((s) => s.desc).join(", ")}</span>` : "";
       testBadge = `<div class="api-badge ok">\u2705 Verbindung erfolgreich${sl}</div>`;
     } else if (this._apiResult === "fail") {
       testBadge = `<div class="api-badge fail">\u274C ${this._apiError}</div>`;
     }
+    const authFields = authMode === "apikey" ? `
+      <div class="field">
+        <label for="unifi_api_key">API-Key</label>
+        <input id="unifi_api_key" type="password" value="${apiKey}"
+          placeholder="UniFi Network \u2192 Einstellungen \u2192 API Keys" />
+        <div class="hint">Verf\xFCgbar ab UniFi Network 8.x \u2014 empfohlen.</div>
+      </div>
+    ` : `
+      <div class="row2">
+        <div class="field">
+          <label for="unifi_username">Benutzername</label>
+          <input id="unifi_username" type="text" value="${username}" placeholder="local-admin" />
+        </div>
+        <div class="field">
+          <label for="unifi_password">Passwort</label>
+          <input id="unifi_password" type="password" value="${password}" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" />
+        </div>
+      </div>
+    `;
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
-        .wrap { display: grid; gap: 14px; }
+        .wrap { display: grid; gap: 14px; padding-bottom: 8px; }
+
         .section-title {
           font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
           text-transform: uppercase; color: var(--secondary-text-color);
-          padding-bottom: 4px; border-bottom: 1px solid var(--divider-color); margin-top: 4px;
+          padding-bottom: 4px; border-bottom: 1px solid var(--divider-color);
+          margin-top: 6px;
         }
+
         .field { display: grid; gap: 5px; }
+
         label { font-size: 13px; font-weight: 600; color: var(--primary-text-color); }
+
         select, input {
           width: 100%; box-sizing: border-box; min-height: 38px;
           padding: 7px 10px; border-radius: 8px;
@@ -1202,27 +1252,63 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           background: var(--card-background-color);
           color: var(--primary-text-color); font: inherit;
         }
+
         .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
         .hint  { color: var(--secondary-text-color); font-size: 12px; line-height: 1.4; }
         .error { color: var(--error-color);           font-size: 12px; line-height: 1.4; }
+
+        /* \u2500\u2500 Auth mode toggle \u2500\u2500 */
+        .auth-toggle {
+          display: grid; grid-template-columns: 1fr 1fr;
+          border: 1px solid var(--divider-color); border-radius: 8px;
+          overflow: hidden; background: var(--card-background-color);
+        }
+        .auth-tab {
+          padding: 8px 12px; text-align: center;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          background: transparent; border: none; font: inherit;
+          color: var(--secondary-text-color);
+          transition: all .15s ease;
+        }
+        .auth-tab.active {
+          background: var(--primary-color); color: white;
+        }
+        .auth-tab:not(.active):hover {
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color);
+        }
+
+        /* \u2500\u2500 Test button \u2500\u2500 */
         .test-btn {
           display: inline-flex; align-items: center; gap: 6px;
           border: none; border-radius: 8px; padding: 8px 16px;
           cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
           background: var(--primary-color); color: white;
+          transition: opacity .15s;
         }
         .test-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* \u2500\u2500 Result badge \u2500\u2500 */
         .api-badge {
-          font-size: 12px; line-height: 1.5; padding: 8px 12px;
-          border-radius: 8px; border: 1px solid transparent;
+          font-size: 12px; font-weight: 600; line-height: 1.5;
+          padding: 8px 12px; border-radius: 8px; border: 1px solid transparent;
         }
-        .api-badge.testing { background: rgba(0,0,0,.06);     border-color: var(--divider-color); }
+        .api-badge.testing { background: var(--secondary-background-color); border-color: var(--divider-color); }
         .api-badge.ok      { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); color: #14532d; }
         .api-badge.fail    { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #991b1b; }
+
+        /* \u2500\u2500 Site inline hint \u2500\u2500 */
+        .site-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+        .site-default-hint {
+          font-size: 11px; color: var(--primary-color); font-weight: 600;
+          padding-bottom: 10px; white-space: nowrap;
+        }
       </style>
 
       <div class="wrap">
 
+        <!-- \u2500\u2500 HA Device \u2500\u2500 -->
         <div class="section-title">Home Assistant Ger\xE4t</div>
 
         <div class="field">
@@ -1232,17 +1318,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 
         <div class="field">
           <label for="name">Anzeigename</label>
-          <input id="name" type="text" value="${selName}" placeholder="Optional" />
+          <input id="name" type="text" value="${selName}" placeholder="Optional \u2014 wird sonst vom Ger\xE4t \xFCbernommen" />
         </div>
 
         ${this._error ? `<div class="error">${this._error}</div>` : ""}
-        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine UniFi Switches/Gateways in HA gefunden.</div>` : !this._loading ? `<div class="hint">Nur Ger\xE4te aus der UniFi-Integration.</div>` : ""}
+        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">Keine UniFi Switches/Gateways in HA gefunden.</div>` : !this._loading ? `<div class="hint">Nur Ger\xE4te aus der UniFi-Integration werden angezeigt.</div>` : ""}
 
+        <!-- \u2500\u2500 Direct API \u2500\u2500 -->
         <div class="section-title">Direkte API (empfohlen)</div>
         <div class="hint">
           Wenn Host + Zugangsdaten angegeben, werden Port-Daten direkt von der UniFi
-          Network Application abgerufen \u2014 pr\xE4ziser und mit mehr Details als \xFCber HA-Entities
-          (Echtzeit-Throughput, MAC-Tabelle, PoE-Volt/Ampere, \u2026).
+          Network Application abgerufen \u2014 zuverl\xE4ssiger und mit mehr Details
+          (Echtzeit-Throughput, MAC-Tabelle, PoE-Volt/Ampere).
         </div>
 
         <div class="field">
@@ -1253,31 +1340,33 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 
         <div class="field">
           <label for="unifi_site">Site</label>
-          <input id="unifi_site" type="text" value="${site}" placeholder="default" />
+          <div class="site-row">
+            <input id="unifi_site" type="text" value="${siteRaw}" placeholder="default" />
+            ${!siteRaw ? `<div class="site-default-hint">\u2192 default</div>` : ""}
+          </div>
+          <div class="hint">Leer lassen = "default" wird automatisch verwendet.</div>
         </div>
 
+        <!-- \u2500\u2500 Auth mode toggle \u2500\u2500 -->
         <div class="field">
-          <label for="unifi_api_key">API-Key  (Network 8.x+, empfohlen)</label>
-          <input id="unifi_api_key" type="password" value="${apiKey}"
-            placeholder="UniFi Network \u2192 Einstellungen \u2192 API Keys" />
+          <label>Authentifizierung</label>
+          <div class="auth-toggle">
+            <button class="auth-tab ${authMode === "apikey" ? "active" : ""}" data-mode="apikey">
+              \u{1F511} API-Key
+            </button>
+            <button class="auth-tab ${authMode === "userpass" ? "active" : ""}" data-mode="userpass">
+              \u{1F464} Benutzername / Passwort
+            </button>
+          </div>
         </div>
 
-        <div class="row2">
-          <div class="field">
-            <label for="unifi_username">Benutzername</label>
-            <input id="unifi_username" type="text" value="${username}" placeholder="local-admin" />
-          </div>
-          <div class="field">
-            <label for="unifi_password">Passwort</label>
-            <input id="unifi_password" type="password" value="${password}" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" />
-          </div>
-        </div>
+        ${authFields}
 
         <div class="field">
           <label for="unifi_mac">Ger\xE4te-MAC (optional)</label>
           <input id="unifi_mac" type="text" value="${mac}"
-            placeholder="aa:bb:cc:dd:ee:ff \u2014 wird sonst auto-erkannt" />
-          <div class="hint">Leer lassen = wird anhand des HA-Ger\xE4tenamens gesucht.</div>
+            placeholder="aa:bb:cc:dd:ee:ff" />
+          <div class="hint">Leer lassen \u2014 wird automatisch anhand des HA-Ger\xE4tenamens erkannt.</div>
         </div>
 
         <button class="test-btn" id="test-btn" ${this._apiTesting ? "disabled" : ""}>
@@ -1290,7 +1379,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
     this.shadowRoot.getElementById("device")?.addEventListener("change", (e) => this._onDeviceChange(e));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (e) => this._onNameInput(e));
-    for (const f of ["unifi_host", "unifi_site", "unifi_api_key", "unifi_username", "unifi_password", "unifi_mac"]) {
+    this.shadowRoot.querySelectorAll(".auth-tab").forEach((btn) => {
+      btn.addEventListener("click", () => this._onAuthModeChange(btn.dataset.mode));
+    });
+    const apiFields = authMode === "apikey" ? ["unifi_host", "unifi_site", "unifi_api_key", "unifi_mac"] : ["unifi_host", "unifi_site", "unifi_username", "unifi_password", "unifi_mac"];
+    for (const f of apiFields) {
       this.shadowRoot.getElementById(f)?.addEventListener("change", (e) => this._onApiField(f, e));
     }
     this.shadowRoot.getElementById("test-btn")?.addEventListener("click", () => this._testConnection());
@@ -1299,7 +1392,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9d283a5";
+var VERSION = "0.0.0-dev.a38704c";
 var UnifiDeviceCard = class _UnifiDeviceCard extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
