@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9111ff9 */
+/* UniFi Device Card 0.0.0-dev.5ceb648 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -19,7 +19,8 @@ function defaultSwitchLayout(portCount) {
       kind: "switch",
       frontStyle: "single-row",
       rows: [range(1, portCount)],
-      portCount
+      portCount,
+      specialSlots: []
     };
   }
   if (portCount === 16) {
@@ -27,7 +28,8 @@ function defaultSwitchLayout(portCount) {
       kind: "switch",
       frontStyle: "dual-row",
       rows: [oddRange(1, 16), evenRange(1, 16)],
-      portCount
+      portCount,
+      specialSlots: []
     };
   }
   if (portCount === 24) {
@@ -35,7 +37,8 @@ function defaultSwitchLayout(portCount) {
       kind: "switch",
       frontStyle: "dual-row",
       rows: [range(1, 12), range(13, 24)],
-      portCount
+      portCount,
+      specialSlots: []
     };
   }
   if (portCount === 48) {
@@ -43,14 +46,16 @@ function defaultSwitchLayout(portCount) {
       kind: "switch",
       frontStyle: "quad-row",
       rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
-      portCount
+      portCount,
+      specialSlots: []
     };
   }
   return {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, portCount)],
-    portCount
+    portCount,
+    specialSlots: []
   };
 }
 var MODEL_REGISTRY = {
@@ -59,77 +64,96 @@ var MODEL_REGISTRY = {
     frontStyle: "single-row",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "US 8 60W"
+    displayModel: "US 8 60W",
+    specialSlots: []
   },
   USMINI: {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, 5)],
     portCount: 5,
-    displayModel: "USW Flex Mini"
+    displayModel: "USW Flex Mini",
+    specialSlots: []
   },
   USL8LP: {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "USW Lite 8 PoE"
+    displayModel: "USW Lite 8 PoE",
+    specialSlots: []
   },
   USL8LPB: {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "USW Lite 8 PoE"
+    displayModel: "USW Lite 8 PoE",
+    specialSlots: []
   },
   USL16LP: {
     kind: "switch",
     frontStyle: "dual-row",
     rows: [oddRange(1, 16), evenRange(1, 16)],
     portCount: 16,
-    displayModel: "USW Lite 16 PoE"
+    displayModel: "USW Lite 16 PoE",
+    specialSlots: []
   },
   USL16LPB: {
     kind: "switch",
     frontStyle: "dual-row",
     rows: [oddRange(1, 16), evenRange(1, 16)],
     portCount: 16,
-    displayModel: "USW Lite 16 PoE"
+    displayModel: "USW Lite 16 PoE",
+    specialSlots: []
   },
   UDRULT: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 4)],
+    rows: [[1, 2, 3, 4]],
     portCount: 4,
-    displayModel: "Cloud Gateway Ultra"
+    displayModel: "Cloud Gateway Ultra",
+    specialSlots: [{ key: "wan", label: "WAN" }]
   },
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 4)],
+    rows: [[1, 2, 3, 4]],
     portCount: 4,
-    displayModel: "Cloud Gateway Ultra"
+    displayModel: "Cloud Gateway Ultra",
+    specialSlots: [{ key: "wan", label: "WAN" }]
   },
   UCGMAX: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 5)],
+    rows: [[1, 2, 3, 4, 5]],
     portCount: 5,
-    displayModel: "Cloud Gateway Max"
+    displayModel: "Cloud Gateway Max",
+    specialSlots: [{ key: "wan", label: "WAN" }]
   },
   UDMPRO: {
     kind: "gateway",
     frontStyle: "gateway-rack",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "UDM Pro"
+    displayModel: "UDM Pro",
+    specialSlots: [
+      { key: "wan", label: "WAN" },
+      { key: "sfp_wan", label: "WAN SFP+" },
+      { key: "sfp_lan", label: "LAN SFP+" }
+    ]
   },
   UDMSE: {
     kind: "gateway",
     frontStyle: "gateway-rack",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "UDM SE"
+    displayModel: "UDM SE",
+    specialSlots: [
+      { key: "wan", label: "WAN" },
+      { key: "sfp_wan", label: "WAN SFP+" },
+      { key: "sfp_lan", label: "LAN SFP+" }
+    ]
   }
 };
 function resolveModelKey(device) {
@@ -203,7 +227,8 @@ function getDeviceLayout(device, discoveredPorts = []) {
     frontStyle: "gateway-generic",
     rows: [],
     portCount: 0,
-    displayModel: device?.model || "UniFi Gateway"
+    displayModel: device?.model || "UniFi Gateway",
+    specialSlots: []
   };
 }
 
@@ -717,7 +742,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9111ff9";
+var VERSION = "0.0.0-dev.5ceb648";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
