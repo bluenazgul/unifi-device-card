@@ -1,7 +1,9 @@
 name: Build
 
 # Triggered whenever source files that affect the bundle change.
-# src/ covers all JS modules including the new unifi-api.js.
+# src/** covers all JS modules:
+#   unifi-device-card.js, unifi-device-card-editor.js,
+#   helpers.js, model-registry.js, translations.js
 # The compiled dist/unifi-device-card.js is committed back so
 # HACS can serve it directly from the repository.
 
