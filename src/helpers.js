@@ -51,11 +51,7 @@ function isUnifiConfigEntry(entry) {
   const domain = lower(entry?.domain);
   const title = lower(entry?.title);
 
-  return (
-    domain === "unifi" ||
-    domain === "unifi_network" ||
-    title.includes("unifi")
-  );
+  return domain === "unifi" || domain === "unifi_network" || title.includes("unifi");
 }
 
 function extractUnifiEntryIds(configEntries) {
@@ -289,14 +285,16 @@ export async function getDeviceContext(hass, deviceId) {
   const type = classifyDevice(device, entities);
   if (type !== "switch" && type !== "gateway") return null;
 
-  const discoveredPorts = discoverPorts(entities);
-  const layout = getDeviceLayout(device, discoveredPorts);
+  const numberedPorts = discoverPorts(entities);
+  const specialPorts = discoverSpecialPorts(entities);
+  const layout = getDeviceLayout(device, numberedPorts);
 
   return {
     device,
     entities,
     type,
     layout,
+    specialPorts,
     name:
       normalize(device.name_by_user) ||
       normalize(device.name) ||
@@ -312,13 +310,13 @@ function extractPortNumber(entity) {
   const originalName = entity.original_name || "";
   const name = entity.name || "";
 
-  let match = id.match(/_port_(\\d+)_/i);
+  let match = id.match(/_port_(\d+)_/i);
   if (match) return Number(match[1]);
 
-  match = originalName.match(/\\bport\\s+(\\d+)\\b/i);
+  match = originalName.match(/\bport\s+(\d+)\b/i);
   if (match) return Number(match[1]);
 
-  match = name.match(/\\bport\\s+(\\d+)\\b/i);
+  match = name.match(/\bport\s+(\d+)\b/i);
   if (match) return Number(match[1]);
 
   return null;
@@ -327,7 +325,10 @@ function extractPortNumber(entity) {
 function ensurePort(map, port) {
   if (!map.has(port)) {
     map.set(port, {
+      key: `port-${port}`,
       port,
+      label: String(port),
+      kind: "numbered",
       link_entity: null,
       speed_entity: null,
       poe_switch_entity: null,
@@ -337,6 +338,24 @@ function ensurePort(map, port) {
     });
   }
   return map.get(port);
+}
+
+function ensureSpecialPort(map, key, label) {
+  if (!map.has(key)) {
+    map.set(key, {
+      key,
+      port: null,
+      label,
+      kind: "special",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      power_cycle_entity: null,
+      raw_entities: [],
+    });
+  }
+  return map.get(key);
 }
 
 function isLikelyLinkStateValue(value) {
@@ -421,6 +440,23 @@ function classifyPortEntity(entity) {
   return null;
 }
 
+function detectSpecialPortKey(entity) {
+  const text = entityText(entity);
+  const id = lower(entity.entity_id);
+
+  if (text.includes("wan 2") || id.includes("wan2")) return { key: "wan2", label: "WAN 2" };
+  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp"))) {
+    return { key: "sfp_wan", label: "WAN SFP+" };
+  }
+  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp"))) {
+    return { key: "sfp_lan", label: "LAN SFP+" };
+  }
+  if (text.includes("wan") || id.includes("wan")) return { key: "wan", label: "WAN" };
+  if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp")) return { key: "sfp", label: "SFP" };
+
+  return null;
+}
+
 export function discoverPorts(entities) {
   const ports = new Map();
 
@@ -447,6 +483,27 @@ export function discoverPorts(entities) {
   return Array.from(ports.values()).sort((a, b) => a.port - b.port);
 }
 
+export function discoverSpecialPorts(entities) {
+  const specials = new Map();
+
+  for (const entity of entities || []) {
+    if (extractPortNumber(entity)) continue;
+
+    const special = detectSpecialPortKey(entity);
+    if (!special) continue;
+
+    const row = ensureSpecialPort(specials, special.key, special.label);
+    row.raw_entities.push(entity.entity_id);
+
+    const type = classifyPortEntity(entity);
+    if (type && !row[type]) {
+      row[type] = entity.entity_id;
+    }
+  }
+
+  return Array.from(specials.values());
+}
+
 export function mergePortsWithLayout(layout, discoveredPorts) {
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutPorts = (layout?.rows || []).flat();
@@ -456,7 +513,10 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   for (const portNumber of layoutPorts) {
     merged.push(
       byPort.get(portNumber) || {
+        key: `port-${portNumber}`,
         port: portNumber,
+        label: String(portNumber),
+        kind: "numbered",
         link_entity: null,
         speed_entity: null,
         poe_switch_entity: null,
@@ -473,7 +533,37 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
     }
   }
 
-  return merged.sort((a, b) => a.port - b.port);
+  return merged.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
+}
+
+export function mergeSpecialsWithLayout(layout, discoveredSpecials) {
+  const byKey = new Map(discoveredSpecials.map((s) => [s.key, s]));
+  const layoutSpecials = layout?.specialSlots || [];
+
+  const merged = layoutSpecials.map((slot) => {
+    return (
+      byKey.get(slot.key) || {
+        key: slot.key,
+        port: null,
+        label: slot.label,
+        kind: "special",
+        link_entity: null,
+        speed_entity: null,
+        poe_switch_entity: null,
+        poe_power_entity: null,
+        power_cycle_entity: null,
+        raw_entities: [],
+      }
+    );
+  });
+
+  for (const special of discoveredSpecials) {
+    if (!layoutSpecials.some((s) => s.key === special.key)) {
+      merged.push(special);
+    }
+  }
+
+  return merged;
 }
 
 export function stateObj(hass, entityId) {
@@ -521,12 +611,35 @@ export function getPortLinkText(hass, port) {
   return "—";
 }
 
+function simplifySpeed(value, unit = "") {
+  const raw = String(value ?? "").trim().toLowerCase();
+  const rawUnit = String(unit ?? "").trim().toLowerCase();
+
+  if (!raw || raw === "unknown" || raw === "unavailable") return "—";
+
+  const number = parseFloat(raw.replace(",", "."));
+
+  if (!Number.isNaN(number)) {
+    if (rawUnit.includes("gbit")) return `${Math.round(number * 1000)} Mbit`;
+    if (rawUnit.includes("mbit")) return `${Math.round(number)} Mbit`;
+    if (number === 10 || number === 100 || number === 1000 || number === 2500 || number === 10000) {
+      return `${Math.round(number)} Mbit`;
+    }
+  }
+
+  if (raw.includes("10g")) return "10000 Mbit";
+  if (raw.includes("2.5g")) return "2500 Mbit";
+  if (raw.includes("1g") || raw.includes("1000")) return "1000 Mbit";
+  if (raw.includes("100m") || raw === "100") return "100 Mbit";
+  if (raw.includes("10m") || raw === "10") return "10 Mbit";
+
+  return String(value);
+}
+
 export function getPortSpeedText(hass, port) {
   const direct = stateObj(hass, port?.speed_entity);
   if (direct) {
-    const unit = direct.attributes?.unit_of_measurement;
-    if (unit) return `${direct.state} ${unit}`;
-    if (String(direct.state ?? "").toLowerCase() !== "unknown") return String(direct.state);
+    return simplifySpeed(direct.state, direct.attributes?.unit_of_measurement);
   }
 
   for (const entityId of port?.raw_entities || []) {
@@ -541,9 +654,11 @@ export function getPortSpeedText(hass, port) {
       text.includes("speed") ||
       text.includes("link_speed") ||
       unit.toLowerCase().includes("mbit") ||
-      unit.toLowerCase().includes("gbit")
+      unit.toLowerCase().includes("gbit") ||
+      value.toLowerCase().includes("g") ||
+      value.toLowerCase().includes("mbit")
     ) {
-      return unit ? `${value} ${unit}` : value;
+      return simplifySpeed(value, unit);
     }
   }
 
