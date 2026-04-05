@@ -169,15 +169,15 @@ class UnifiDeviceCard extends HTMLElement {
 
       /* FRONT PANEL */
       .frontpanel {
-        padding: 13px 18px 10px; display: grid; gap: 6px;
+        padding: 12px 14px 10px; display: grid; gap: 5px;
         background: var(--udc-surface); border-bottom: 1px solid var(--udc-border);
       }
       .panel-label {
         font-size: 0.63rem; font-weight: 700; letter-spacing: .1em;
-        text-transform: uppercase; color: var(--udc-muted); margin-bottom: 1px;
+        text-transform: uppercase; color: var(--udc-muted); margin-bottom: 2px;
       }
       .special-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
-      .port-row    { display: grid; gap: 4px; }
+      .port-row    { display: grid; gap: 5px; }
       .frontpanel.single-row         .port-row,
       .frontpanel.gateway-single-row .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
       .frontpanel.dual-row           .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
@@ -185,34 +185,62 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
       .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
 
-      /* PORT BUTTON */
+      /* PORT BUTTON — RJ45 style */
       .port {
-        border: 1px solid rgba(255,255,255,.06); border-radius: 7px;
-        min-height: 40px; cursor: pointer; font: inherit;
-        display: grid; place-items: center; gap: 1px; padding: 3px 2px;
-        background: var(--udc-bg); transition: all .13s ease;
-        position: relative; overflow: hidden;
+        border: 1px solid rgba(255,255,255,.08); border-radius: 5px;
+        cursor: pointer; font: inherit;
+        display: flex; flex-direction: column; align-items: center;
+        gap: 0; padding: 5px 3px 4px;
+        background: #0d1117;
+        transition: border-color .13s ease, background .13s ease;
+        position: relative; min-width: 0;
       }
-      .port::after {
-        content:''; position:absolute; top:0; left:0; right:0;
-        height:2px; background:transparent; transition:background .15s;
+      /* Dual LED row: left=PoE, right=Link/Speed */
+      .port-leds {
+        display: flex; gap: 3px; margin-bottom: 3px; flex-shrink: 0;
       }
-      .port.up { background: rgba(34,197,94,.06); border-color: rgba(34,197,94,.25); }
-      .port.up::after { background: var(--udc-green); }
-      .port:hover { transform: translateY(-1px); border-color: rgba(0,144,217,.35); background: rgba(0,144,217,.07); }
+      .port-led {
+        width: 5px; height: 5px; border-radius: 50%;
+        background: #1e2433; transition: background .2s;
+      }
+      /* RJ45 socket shape */
+      .port-socket {
+        width: 100%; max-width: 36px;
+        height: 14px; border-radius: 2px;
+        background: #1a2030; flex-shrink: 0;
+      }
+      /* Port number below socket */
+      .port-num {
+        font-size: 9px; font-weight: 800; line-height: 1;
+        color: var(--udc-muted); margin-top: 3px; letter-spacing: 0;
+      }
+
+      /* Link states — right LED */
+      .port.up              { background: #0a1a0e; border-color: rgba(34,197,94,.3); }
+      .port.up .port-socket { background: #0f2010; }
+      .port.up .port-num    { color: var(--udc-text); }
+      /* 1 Gbit → green right LED */
+      .port.up .port-led-link       { background: var(--udc-green); }
+      /* 100 Mbit → orange right LED */
+      .port.speed-100 .port-led-link { background: var(--udc-orange); }
+      /* 10 Mbit or unknown speed → dim yellow */
+      .port.speed-low .port-led-link { background: #7a5c10; }
+
+      /* PoE — left LED orange when on */
+      .port.poe-on .port-led-poe { background: var(--udc-orange); }
+
       .port.selected {
         border-color: var(--udc-accent) !important;
-        background: rgba(0,144,217,.12) !important;
-        box-shadow: 0 0 0 1px var(--udc-accent);
+        background: rgba(0,144,217,.1) !important;
       }
-      .port.selected::after { background: var(--udc-accent) !important; }
-      .port.has-poe.up::after { background: linear-gradient(90deg, var(--udc-green) 50%, var(--udc-orange)); }
-      .port.special { min-height: 46px; border-radius: 9px; min-width: 58px; padding: 5px 9px; }
-      .port-num { font-size: 10px; font-weight: 800; line-height: 1; color: var(--udc-dim); }
-      .port.up .port-num { color: var(--udc-text); }
-      .port-icon { font-size: 8px; line-height: 1; color: var(--udc-muted); }
-      .port.up .port-icon         { color: var(--udc-green); }
-      .port.has-poe.up .port-icon { color: var(--udc-orange); }
+      .port.selected .port-socket { background: rgba(0,144,217,.15); }
+      .port.selected .port-num    { color: var(--udc-accent); }
+
+      .port:hover { border-color: rgba(0,144,217,.4); background: rgba(0,144,217,.06); }
+
+      /* Special ports (WAN, SFP) */
+      .port.special { padding: 6px 6px 5px; min-width: 52px; border-radius: 6px; }
+      .port.special .port-socket { max-width: 44px; height: 16px; }
 
       /* DETAIL */
       .section { padding: 14px 18px 18px; display: grid; gap: 14px; }
@@ -275,14 +303,43 @@ class UnifiDeviceCard extends HTMLElement {
     const hasPoe    = Boolean(slot.power_cycle_entity);
     const poeOn     = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
     const isSpecial = slot.kind === "special";
-    const icon      = poeOn ? "⚡" : (linkUp ? "▲" : "○");
 
-    return `<button
-      class="port ${isSpecial ? "special" : ""} ${linkUp ? "up" : "down"} ${selectedKey === slot.key ? "selected" : ""} ${hasPoe ? "has-poe" : ""}"
-      data-key="${slot.key}"
-      title="${slot.label}${linkUp ? " · Connected" : " · No link"}${poeOn ? " · PoE ON" : ""}">
+    // Determine speed class for right LED color
+    let speedClass = "";
+    if (linkUp) {
+      const speedText = getPortSpeedText(this._hass, slot);
+      if (speedText.includes("1000") || speedText.toLowerCase().includes("1 gbit") || speedText.includes("1Gbit")) {
+        speedClass = ""; // default green via .up
+      } else if (speedText.includes("100")) {
+        speedClass = "speed-100"; // orange
+      } else if (speedText !== "—") {
+        speedClass = "speed-low"; // dim for 10M or unknown
+      }
+    }
+
+    const tooltip = [
+      slot.label,
+      linkUp ? "Connected" : "No link",
+      linkUp ? getPortSpeedText(this._hass, slot) : null,
+      poeOn ? "PoE ON" : null,
+    ].filter((v) => v && v !== "—").join(" · ");
+
+    const classes = [
+      "port",
+      isSpecial ? "special" : "",
+      linkUp ? "up" : "down",
+      selectedKey === slot.key ? "selected" : "",
+      speedClass,
+      poeOn ? "poe-on" : "",
+    ].filter(Boolean).join(" ");
+
+    return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
+      <div class="port-leds">
+        <div class="port-led port-led-poe"></div>
+        <div class="port-led port-led-link"></div>
+      </div>
+      <div class="port-socket"></div>
       <div class="port-num">${slot.label}</div>
-      <div class="port-icon">${icon}</div>
     </button>`;
   }
 
