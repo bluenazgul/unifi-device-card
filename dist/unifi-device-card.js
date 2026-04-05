@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.81a17f8 */
+/* UniFi Device Card 0.0.0-dev.81ae3d8 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -528,17 +528,15 @@ function classifyPortEntity(entity) {
 function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id = lower(entity.entity_id);
-  if (id.includes("ucg_u_wan_port") || id.includes("_ucg_u_wan"))
-    return { key: "wan", label: "WAN" };
-  if (id.endsWith("_wan_port"))
-    return { key: "wan", label: "WAN" };
   if (text.includes("wan 2") || id.includes("wan2"))
     return { key: "wan2", label: "WAN 2" };
   if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
     return { key: "sfp_wan", label: "WAN SFP+" };
   if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
     return { key: "sfp_lan", label: "LAN SFP+" };
-  if (text.includes("wan") || id.includes("wan"))
+  if (id.endsWith("_wan_port") || id.endsWith("_wan"))
+    return { key: "wan", label: "WAN" };
+  if (text.includes("wan") || id.includes("_wan_"))
     return { key: "wan", label: "WAN" };
   if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
     return { key: "sfp", label: "SFP" };
@@ -753,7 +751,7 @@ function getPortSpeedText(hass, port) {
 }
 
 // src/unifi-device-card-editor.js
-var VERSION = "0.0.0-dev.81a17f8";
+var VERSION = "0.0.0-dev.81ae3d8";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1288,7 +1286,7 @@ window.customCards.push({
 });
 
 // src/unifi-device-card.js
-var VERSION2 = "0.0.0-dev.81a17f8";
+var VERSION2 = "0.0.0-dev.81ae3d8";
 var UnifiDeviceCard2 = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
