@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.502b41c */
+/* UniFi Device Card 0.0.0-dev.f8e2cfe */
 
 // src/model-registry.js
 function range(start, end) {
@@ -486,17 +486,24 @@ function ensurePort(map, port) {
       port,
       label: String(port),
       port_label: null,
-      // custom label from UniFi console (via entity original_name)
+      // custom label from UniFi console
       kind: "numbered",
       link_entity: null,
+      // binary_sensor / sensor — physical link state
+      port_switch_entity: null,
+      // switch.*_port_N — port enable/disable (all ports)
       speed_entity: null,
+      // sensor.*_link_speed
       poe_switch_entity: null,
+      // switch.*_port_N_poe — PoE toggle
       poe_power_entity: null,
+      // sensor.*_poe_power
       power_cycle_entity: null,
+      // button.*_power_cycle
       rx_entity: null,
-      // sensor.*_port_N_rx — throughput receive
+      // sensor.*_port_N_rx
       tx_entity: null,
-      // sensor.*_port_N_tx — throughput transmit
+      // sensor.*_port_N_tx
       raw_entities: []
     });
   }
@@ -511,6 +518,7 @@ function ensureSpecialPort(map, key, label) {
       port_label: null,
       kind: "special",
       link_entity: null,
+      port_switch_entity: null,
       speed_entity: null,
       poe_switch_entity: null,
       poe_power_entity: null,
@@ -542,7 +550,7 @@ function classifyPortEntity(entity) {
     return "poe_switch_entity";
   }
   if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) {
-    return "link_entity";
+    return "port_switch_entity";
   }
   if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
     return "link_entity";
@@ -581,14 +589,16 @@ function detectSpecialPortKey(entity) {
   return null;
 }
 function extractPortLabel(entity) {
+  const eid = entity.entity_id || "";
+  const id = eid.toLowerCase();
+  const isLabelSource = eid.startsWith("button.") && id.includes("power_cycle") || eid.startsWith("sensor.") && id.includes("_link_speed") || eid.startsWith("sensor.") && id.includes("_poe_power");
+  if (!isLabelSource) return null;
   const name = normalize(entity.original_name || entity.name || "");
   if (!name) return null;
   const suffixes = [
-    / link speed$/i,
-    / poe power$/i,
     / power cycle$/i,
-    / poe$/i,
-    / link$/i
+    / link speed$/i,
+    / poe power$/i
   ];
   let stripped = name;
   for (const suffix of suffixes) {
@@ -599,8 +609,9 @@ function extractPortLabel(entity) {
     }
   }
   stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
-  if (stripped && stripped.length > 0) return stripped;
-  return null;
+  const blocked = /^(rx|tx|poe|link|uplink|downlink|sfp|wan|lan)$/i;
+  if (!stripped || blocked.test(stripped)) return null;
+  return stripped;
 }
 function discoverPorts(entities) {
   const ports = /* @__PURE__ */ new Map();
@@ -696,14 +707,12 @@ function stateValue(hass, entityId, fallback = "\u2014") {
   return state ? state.state : fallback;
 }
 function isOn(hass, entityId, port = null) {
-  const state = stateObj(hass, entityId);
-  if (state) {
-    const value = String(state.state).toLowerCase();
-    if (value === "on" || value === "connected" || value === "up" || value === "true" || value === "active" || value === "1") return true;
-    const num = parseFloat(value);
-    if (!isNaN(num) && num > 0) {
-      const id = lower(entityId);
-      if (id.includes("_link") || id.includes("_status") || id.includes("_state") || id.includes("_port_status")) return true;
+  if (entityId) {
+    const state = stateObj(hass, entityId);
+    if (state) {
+      const value = String(state.state).toLowerCase();
+      if (value === "on" || value === "connected" || value === "up" || value === "true" || value === "active" || value === "1") return true;
+      if (value === "off" || value === "disconnected" || value === "false") return false;
     }
   }
   if (port?.speed_entity) {
@@ -712,6 +721,14 @@ function isOn(hass, entityId, port = null) {
       const num = parseFloat(speedState.state);
       if (!isNaN(num) && num > 0) return true;
     }
+  }
+  for (const eid of port?.raw_entities || []) {
+    const id = lower(eid);
+    if (id.endsWith("_poe") || id.includes("_poe_power") || id.endsWith("_rx") || id.endsWith("_tx") || id.includes("power_cycle")) continue;
+    const st = stateObj(hass, eid);
+    if (!st) continue;
+    const v = String(st.state).toLowerCase();
+    if (v === "on" || v === "connected" || v === "up" || v === "true") return true;
   }
   return false;
 }
@@ -930,7 +947,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.502b41c";
+var VERSION = "0.0.0-dev.f8e2cfe";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
