@@ -142,7 +142,7 @@ export const MODEL_REGISTRY = {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
     specialSlots: [
-      { key: "port_5", label: "WAN", port: 5 },
+      { key: "wan", label: "WAN", port: 5 },
       { key: "sfp_1", label: "SFP+ 1", port: 6 },
       { key: "sfp_2", label: "SFP+ 2", port: 7 },
     ],
@@ -156,7 +156,7 @@ export const MODEL_REGISTRY = {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 7, displayModel: "Dream Router", theme: "white",
     specialSlots: [
-      { key: "port_5", label: "WAN", port: 5 },
+      { key: "wan", label: "WAN", port: 5 },
     ],
   },
 
@@ -182,8 +182,8 @@ export const MODEL_REGISTRY = {
   // ── USW Ultra family ──────────────────────────────
   USWULTRA: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
-    portCount: 7, displayModel: "USW Ultra", theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
+    portCount: 8, displayModel: "USW Ultra", theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }],
   },
   USWULTRA60W: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
