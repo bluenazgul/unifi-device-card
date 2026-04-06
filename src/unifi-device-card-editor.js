@@ -19,6 +19,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._entityHint = null;
     this._entityHintLoading = false;
     this._entityHintToken = 0;
+
+    // Track whether a full render has happened yet
+    this._rendered = false;
   }
 
   setConfig(config) {
@@ -28,7 +31,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     } else {
       this._entityHint = null;
     }
-    this._render();
+    // If the DOM already exists, patch individual fields instead of rebuilding
+    if (this._rendered) {
+      this._patchFields();
+    } else {
+      this._render();
+    }
   }
 
   set hass(hass) {
@@ -127,6 +135,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const next = { ...this._config, name: ev.target.value || "" };
     this._config = next;
     this._dispatch(next);
+    // No _render() here – the input keeps focus naturally
   }
 
   _onBackgroundInput(ev) {
@@ -138,6 +147,29 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this._config = next;
     this._dispatch(next);
+    // No _render() here – patching only what needs to change avoids focus loss
+  }
+
+  /**
+   * Lightweight DOM patch: update only the values of existing input/select
+   * elements without rebuilding the entire shadow DOM. This preserves focus
+   * and cursor position while still keeping the displayed values in sync with
+   * the latest config (e.g. after HA calls setConfig from the outside).
+   */
+  _patchFields() {
+    const root = this.shadowRoot;
+    if (!root) return;
+
+    const nameEl = root.getElementById("name");
+    const bgEl   = root.getElementById("background_color");
+
+    // Only overwrite if the element is NOT currently focused (user is typing)
+    if (nameEl && document.activeElement !== nameEl) {
+      nameEl.value = this._config?.name || "";
+    }
+    if (bgEl && document.activeElement !== bgEl) {
+      bgEl.value = this._config?.background_color || "";
+    }
   }
 
   _renderEntityWarning() {
@@ -293,6 +325,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
             : ""}
       </div>
     `;
+
+    this._rendered = true;
 
     this.shadowRoot.getElementById("device")
       ?.addEventListener("change", (e) => this._onDeviceChange(e));
