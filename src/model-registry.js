@@ -107,6 +107,16 @@ export const MODEL_REGISTRY = {
     specialSlots: [],
   },
 
+  USL8LPB: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
+    displayModel: "USW Lite 8 PoE",
+    theme: "white",
+    specialSlots: [],
+  },
+
   USL16LP: {
     kind: "switch",
     frontStyle: "dual-row",
@@ -155,6 +165,26 @@ export const MODEL_REGISTRY = {
     displayModel: "Cloud Gateway Fiber",
     theme: "white",
     specialSlots: [],
+  },
+
+  UCGULTRA: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 4,
+    displayModel: "Cloud Gateway Ultra",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN" }],
+  },
+
+  UCGMAX: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4, 5]],
+    portCount: 5,
+    displayModel: "Cloud Gateway Max",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
   UDMPRO: {
@@ -258,6 +288,16 @@ export const MODEL_REGISTRY = {
     displayModel: "USW Ultra",
     theme: "white",
     specialSlots: [],
+  },
+
+  USWULTRA: {
+    kind: "switch",
+    frontStyle: "ultra-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "USW Ultra",
+    theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink" }],
   },
 
   USWULTRA60W: {
