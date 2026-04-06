@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.70d2ddf */
+/* UniFi Device Card 0.0.0-dev.4dd870d */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -1804,7 +1804,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.70d2ddf";
+var VERSION = "0.0.0-dev.4dd870d";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1878,12 +1878,14 @@ var UnifiDeviceCard = class extends HTMLElement {
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
       const discovered = discoverPorts(ctx?.entities || []);
-      const numbered = mergePortsWithLayout(ctx?.layout, discovered);
-      const specials = mergeSpecialsWithLayout(
+      const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
+      const specialsRaw = mergeSpecialsWithLayout(
         ctx?.layout,
         discoverSpecialPorts(ctx?.entities || []),
         discovered
       );
+      const wanPort = this._config?.wan_port;
+      const { specials, numbered } = ctx?.type === "gateway" && wanPort && wanPort !== "auto" ? applyWanPortOverride(specialsRaw, numberedRaw, ctx?.layout, wanPort) : { specials: specialsRaw, numbered: numberedRaw };
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
@@ -2150,264 +2152,164 @@ var UnifiDeviceCard = class extends HTMLElement {
       .theme-white .port.up .port-num   { color: #4a5568; }
       .theme-white .port-led            { background: #c8d0d8; }
 
-      .theme-silver .port-socket        { background: #1a1e24; }
-      .theme-silver .port-socket::after { background: #6a6040; }
+      .theme-silver .port-socket        { background: #3a4050; }
+      .theme-silver .port-socket::after { background: #5a6070; }
       .theme-silver .port-num           { color: #5a6070; }
-      .theme-silver .port.up .port-socket { background: #141c14; }
-      .theme-silver .port.up .port-num  { color: #9aabb8; }
-      .theme-silver .port-led           { background: #252a30; }
+      .theme-silver .port.up .port-socket { background: #2a3040; }
+      .theme-silver .port.up .port-num  { color: #8a96a8; }
+      .theme-silver .port-led           { background: #3a4050; }
 
-      .theme-dark .port-socket          { background: #1a2030; }
-      .theme-dark .port-socket::after   { background: #5a5030; }
+      .theme-dark .port-socket          { background: var(--udc-surf2); }
+      .theme-dark .port-socket::after   { background: var(--udc-muted); }
       .theme-dark .port-num             { color: var(--udc-muted); }
-      .theme-dark .port.up .port-socket { background: #0f2010; }
-      .theme-dark .port.up .port-num    { color: var(--udc-text); }
-      .theme-dark .port-led             { background: #1e2433; }
+      .theme-dark .port.up .port-socket { background: #1a2030; }
+      .theme-dark .port.up .port-num    { color: var(--udc-dim); }
+      .theme-dark .port-led             { background: var(--udc-surf2); }
 
-      .port.up .port-led-link       { background: var(--udc-red); }
-      .port.speed-10000 .port-led-link { background: #1560bd; }
-      .port.speed-2500 .port-led-link  { background: #1e90ff; }
-      .port.speed-1000 .port-led-link  { background: var(--udc-green); }
-      .port.speed-100 .port-led-link   { background: var(--udc-orange); }
-      .port.speed-low .port-led-link   { background: #7a5c10; }
-      .port.poe-on .port-led-link      { box-shadow: 0 0 0 1px rgba(255,165,0,.45); }
+      /* port states */
+      .port.up   .port-led-link { background: var(--udc-green); box-shadow: 0 0 4px var(--udc-green); }
+      .port.down .port-led-link { background: var(--udc-muted); }
+      .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
 
+      /* speed badges */
+      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
+      .port.speed-25g  .port-socket::after { background: #a855f7; }
+      .port.speed-1g   .port-socket::after { background: var(--udc-green); }
+      .port.speed-100m .port-socket::after { background: var(--udc-orange); }
+      .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
+
+      /* special port (WAN/SFP) */
       .port.special {
-        padding: 5px 5px 4px;
-        border-radius: 5px;
+        min-width: 38px;
+        max-width: 56px;
       }
-
       .port.special .port-socket {
-        height: 15px;
+        height: 16px;
         border-radius: 3px 3px 0 0;
       }
-
       .port.special .port-num {
-        font-size: 9px;
+        font-size: 7px;
       }
 
+      /* detail section */
       .section {
-        padding: 14px 18px 18px;
-        display: grid;
-        gap: 14px;
-      }
-
-      .detail-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-bottom: 11px;
-        border-bottom: 1px solid var(--udc-border);
-        margin-bottom: 12px;
+        padding: 12px 14px 14px;
       }
 
       .detail-title {
-        font-size: .92rem;
+        font-size: 0.8rem;
         font-weight: 700;
-        letter-spacing: -.01em;
-      }
-
-      .port-custom-label {
-        font-weight: 400;
-        color: var(--udc-dim);
-        font-size: .82rem;
-      }
-
-      .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 9px;
-        border-radius: 20px;
-        font-size: .7rem;
-        font-weight: 700;
-        letter-spacing: .04em;
-        text-transform: uppercase;
-      }
-
-      .status-badge.up {
-        background: rgba(34,197,94,.1);
-        color: var(--udc-green);
-        border: 1px solid rgba(34,197,94,.2);
-      }
-
-      .status-badge.down {
-        background: rgba(78,93,115,.2);
-        color: var(--udc-muted);
-        border: 1px solid var(--udc-border);
+        margin-bottom: 8px;
+        color: var(--primary-text-color, var(--udc-text));
       }
 
       .detail-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px 10px;
+        margin-bottom: 10px;
       }
 
-      .detail-card {
-        background: var(--udc-surface);
-        border: 1px solid var(--udc-border);
-        border-radius: var(--udc-rsm);
-        padding: 9px 12px;
+      .detail-item {
         display: grid;
         gap: 2px;
       }
 
-      .dc-label {
-        font-size: .63rem;
-        font-weight: 700;
-        letter-spacing: .07em;
-        text-transform: uppercase;
-        color: var(--udc-muted);
-      }
-
-      .dc-value {
-        font-size: .87rem;
-        font-weight: 700;
-        color: var(--udc-text);
-      }
-
-      .dc-value.accent {
-        color: var(--udc-accent);
-      }
-
-      .dc-value.poe-on {
-        color: var(--udc-orange);
-      }
-
-      .dc-value.na {
-        color: var(--udc-muted);
-        font-weight: 400;
-      }
-
-      .tput-row {
-        display: flex;
-        gap: 6px;
-        margin-bottom: 10px;
-      }
-
-      .tput-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
-        border-radius: 6px;
-        padding: 3px 8px;
-        font-size: .7rem;
+      .detail-label {
+        font-size: 0.67rem;
         font-weight: 600;
-        color: var(--udc-dim);
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--secondary-text-color, var(--udc-muted));
       }
 
-      .tput-chip .arr {
-        font-size: 8px;
-        opacity: .6;
+      .detail-value {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--primary-text-color, var(--udc-text));
       }
 
-      .hint-disabled {
-        font-size: .72rem;
-        color: var(--udc-muted);
-        padding: 6px 10px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
-      }
+      .detail-value.online  { color: var(--udc-green); }
+      .detail-value.offline { color: var(--udc-muted); }
 
       .actions {
         display: flex;
-        gap: 7px;
+        gap: 8px;
         flex-wrap: wrap;
+        margin-top: 8px;
       }
 
       .action-btn {
-        border: 1px solid var(--udc-border);
-        border-radius: 7px;
-        padding: 7px 14px;
-        cursor: pointer;
         font: inherit;
-        font-size: .8rem;
+        font-size: 0.8rem;
         font-weight: 600;
-        transition: all .13s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
+        padding: 6px 14px;
+        border-radius: var(--udc-rsm);
+        border: none;
+        cursor: pointer;
+        transition: opacity .15s, filter .15s;
       }
+
+      .action-btn:hover { opacity: .85; }
+      .action-btn:active { filter: brightness(.9); }
 
       .action-btn.primary {
         background: var(--udc-accent);
-        color: white;
-        border-color: var(--udc-accent);
-      }
-
-      .action-btn.primary:hover {
-        background: #0077bb;
-        box-shadow: 0 0 14px var(--udc-aglow);
+        color: #fff;
       }
 
       .action-btn.secondary {
         background: var(--udc-surf2);
-        color: var(--udc-dim);
-      }
-
-      .action-btn.secondary:hover {
-        color: var(--udc-text);
-        border-color: rgba(255,255,255,.14);
+        border: 1px solid var(--udc-border);
+        color: var(--primary-text-color, var(--udc-text));
       }
 
       .muted {
-        color: var(--udc-muted);
-        font-size: .875rem;
+        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.82rem;
       }
 
-      .loading-state {
+      .empty-state, .loading-state {
+        padding: 24px 18px;
+        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.85rem;
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 20px;
-        color: var(--udc-muted);
-        font-size: .875rem;
       }
 
       .spinner {
         width: 16px;
         height: 16px;
-        flex-shrink: 0;
-        border: 2px solid var(--udc-surf2);
+        border: 2px solid var(--udc-border);
         border-top-color: var(--udc-accent);
         border-radius: 50%;
-        animation: spin .65s linear infinite;
+        animation: spin .7s linear infinite;
+        flex-shrink: 0;
       }
 
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-
-      .empty-state {
-        padding: 24px 18px;
-        color: var(--udc-muted);
-        font-size: .875rem;
-        text-align: center;
-        line-height: 1.5;
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>`;
   }
+  _speedClass(hass, slot) {
+    const speedText = getPortSpeedText(hass, slot);
+    if (!speedText || speedText === "\u2014") return "";
+    const num = parseInt(speedText, 10);
+    if (num >= 1e4) return "speed-10g";
+    if (num >= 2500) return "speed-25g";
+    if (num >= 1e3) return "speed-1g";
+    if (num >= 100) return "speed-100m";
+    if (num >= 10) return "speed-10m";
+    return "";
+  }
   _renderPortButton(slot, selectedKey) {
+    const isSpecial = slot.kind === "special";
     const linkUp = isOn(this._hass, slot.link_entity, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
-    const poeOn = poeStatus.hasPoe ? poeStatus.poeOn : false;
-    const isSpecial = slot.kind === "special";
-    let speedClass = "";
-    if (linkUp) {
-      const spd = getPortSpeedText(this._hass, slot);
-      if (spd.includes("100") && !spd.includes("1000")) speedClass = "speed-100";
-      else if (spd.includes("10000")) speedClass = "speed-10000";
-      else if (spd.includes("2500")) speedClass = "speed-2500";
-      else if (spd.includes("1000")) speedClass = "speed-1000";
-      else if (spd !== "\u2014" && !spd.includes("1000") && !spd.includes("Gbit")) speedClass = "speed-low";
-    }
+    const poeOn = poeStatus.poeOn;
+    const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
     const tooltip = [
-      slot.label,
+      slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
       linkUp ? this._t("connected") : this._t("no_link"),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? "PoE ON" : null
@@ -2431,12 +2333,14 @@ var UnifiDeviceCard = class extends HTMLElement {
   _renderPanelAndDetail(title) {
     const ctx = this._ctx;
     const discovered = discoverPorts(ctx?.entities || []);
-    const numbered = mergePortsWithLayout(ctx?.layout, discovered);
-    const specials = mergeSpecialsWithLayout(
+    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
+    const specialsRaw = mergeSpecialsWithLayout(
       ctx?.layout,
       discoverSpecialPorts(ctx?.entities || []),
       discovered
     );
+    const wanPort = this._config?.wan_port;
+    const { specials, numbered } = ctx?.type === "gateway" && wanPort && wanPort !== "auto" ? applyWanPortOverride(specialsRaw, numberedRaw, ctx?.layout, wanPort) : { specials: specialsRaw, numbered: numberedRaw };
     const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
@@ -2474,41 +2378,40 @@ var UnifiDeviceCard = class extends HTMLElement {
       const poePower = hasPoe ? formatState(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
       const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
-      const portLabel = selected.port_label || null;
-      const portTitle = selected.kind === "special" ? portLabel ? `${selected.label} <span class="port-custom-label">\u2014 ${portLabel}</span>` : selected.label : portLabel ? `${this._t("port_label")} ${selected.port} <span class="port-custom-label">\u2014 ${portLabel}</span>` : `${this._t("port_label")} ${selected.port}`;
-      const speedDisabledHint = (!speedText || speedText === "\u2014") && selected.speed_entity ? `<div class="hint-disabled">${this._t("speed_disabled")}</div>` : "";
-      const tputHtml = rxVal || txVal ? `<div class="tput-row">
-            ${rxVal ? `<div class="tput-chip"><span class="arr">\u2193</span>${rxVal}</div>` : ""}
-            ${txVal ? `<div class="tput-chip"><span class="arr">\u2191</span>${txVal}</div>` : ""}
-          </div>` : "";
+      const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
       detail = `
-        <div class="detail-header">
-          <div class="detail-title">${portTitle}</div>
-          <div class="status-badge ${linkUp ? "up" : "down"}">\u25CF ${linkUp ? this._t("online") : this._t("offline")}</div>
-        </div>
-
+        <div class="detail-title">${portTitle}</div>
         <div class="detail-grid">
-          <div class="detail-card">
-            <div class="dc-label">${this._t("link_status")}</div>
-            <div class="dc-value">${linkText !== "\u2014" ? this._translateState(linkText) : linkUp ? this._t("connected") : this._t("no_link")}</div>
+          <div class="detail-item">
+            <div class="detail-label">${this._t("link_status")}</div>
+            <div class="detail-value ${linkUp ? "online" : "offline"}">
+              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
+            </div>
           </div>
-          <div class="detail-card">
-            <div class="dc-label">${this._t("speed")}</div>
-            <div class="dc-value accent">${speedText}</div>
+          <div class="detail-item">
+            <div class="detail-label">${this._t("speed")}</div>
+            <div class="detail-value">${speedText || "\u2014"}</div>
           </div>
-          <div class="detail-card">
-            <div class="dc-label">${this._t("poe")}</div>
-            <div class="dc-value ${hasPoe ? poeOn ? "poe-on" : "" : "na"}">${hasPoe ? this._translateState(poeStatus.poeText) : "\u2014"}</div>
+          ${hasPoe ? `
+          <div class="detail-item">
+            <div class="detail-label">${this._t("poe")}</div>
+            <div class="detail-value">${this._translateState(poeStatus.poeText)}</div>
           </div>
-          <div class="detail-card">
-            <div class="dc-label">${this._t("poe_power")}</div>
-            <div class="dc-value ${hasPoe ? "" : "na"}">${poePower}</div>
-          </div>
+          <div class="detail-item">
+            <div class="detail-label">${this._t("poe_power")}</div>
+            <div class="detail-value">${poePower}</div>
+          </div>` : ""}
+          ${rxVal != null ? `
+          <div class="detail-item">
+            <div class="detail-label">RX</div>
+            <div class="detail-value">${rxVal}</div>
+          </div>` : ""}
+          ${txVal != null ? `
+          <div class="detail-item">
+            <div class="detail-label">TX</div>
+            <div class="detail-value">${txVal}</div>
+          </div>` : ""}
         </div>
-
-        ${tputHtml}
-        ${speedDisabledHint}
-
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
         const enabled = isOn(this._hass, selected.port_switch_entity);
