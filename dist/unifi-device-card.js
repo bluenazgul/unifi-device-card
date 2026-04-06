@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c2a8311 */
+/* UniFi Device Card 0.0.0-dev.5fe5643 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1239,38 +1239,50 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _t(key) {
     return t(this._hass, key);
   }
+  // ─── Smart render helper ───────────────────────────────────────────────────
+  // After the first full render we never rebuild the whole shadow DOM again.
+  // Instead we patch only the parts that actually changed.
+  _smartRender() {
+    if (!this._rendered) {
+      this._render();
+    } else {
+      this._patchFields();
+      this._patchWarning();
+    }
+  }
+  // ─── Async loaders ────────────────────────────────────────────────────────
   async _loadDevices() {
     if (!this._hass) return;
     this._loading = true;
     this._error = "";
     const token = ++this._loadToken;
-    this._render();
+    this._smartRender();
     try {
       const devices = await getUnifiDevices(this._hass);
       if (token !== this._loadToken) return;
       this._devices = devices;
       this._loaded = true;
       this._loading = false;
-      this._render();
+      this._smartRender();
     } catch (err) {
       if (token !== this._loadToken) return;
       this._devices = [];
       this._loaded = true;
       this._loading = false;
       this._error = this._t("editor_error");
-      this._render();
+      this._smartRender();
     }
   }
   async _loadEntityHint(deviceId) {
     if (!this._hass || !deviceId) {
       this._entityHint = null;
       this._entityHintLoading = false;
-      this._render();
+      this._smartRender();
       return;
     }
     const token = ++this._entityHintToken;
     this._entityHintLoading = true;
-    this._render();
+    this._smartRender();
     try {
       const info = await getRelevantEntityWarningsForDevice(this._hass, deviceId);
       if (token !== this._entityHintToken) return;
@@ -1281,8 +1293,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       this._entityHint = null;
     }
     this._entityHintLoading = false;
-    this._render();
+    this._smartRender();
   }
+  // ─── Event dispatching ────────────────────────────────────────────────────
   _dispatch(config) {
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config },
@@ -1293,6 +1306,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _selectedDeviceName(deviceId) {
     return this._devices.find((d) => d.id === deviceId)?.name || "";
   }
+  // ─── Input handlers ───────────────────────────────────────────────────────
   _onDeviceChange(ev) {
     const newDeviceId = ev.target.value || "";
     const oldDeviceId = this._config?.device_id || "";
@@ -1312,9 +1326,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
   }
   _onNameInput(ev) {
-    const next = { ...this._config, name: ev.target.value || "" };
-    this._config = next;
-    this._dispatch(next);
+    this._config = { ...this._config, name: ev.target.value || "" };
+    this._dispatch(this._config);
   }
   _onBackgroundInput(ev) {
     const value = String(ev.target.value || "").trim();
@@ -1324,24 +1337,41 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._config = next;
     this._dispatch(next);
   }
+  // ─── DOM patch helpers ────────────────────────────────────────────────────
   /**
-   * Lightweight DOM patch: update only the values of existing input/select
-   * elements without rebuilding the entire shadow DOM. This preserves focus
-   * and cursor position while still keeping the displayed values in sync with
-   * the latest config (e.g. after HA calls setConfig from the outside).
+   * Update only the *values* of existing input fields without touching the DOM
+   * structure. Skips any field that currently has focus so the user's cursor
+   * position is never disturbed.
    */
   _patchFields() {
     const root = this.shadowRoot;
     if (!root) return;
+    const active = this.shadowRoot.activeElement || document.activeElement;
     const nameEl = root.getElementById("name");
-    const bgEl = root.getElementById("background_color");
-    if (nameEl && document.activeElement !== nameEl) {
+    if (nameEl && nameEl !== active) {
       nameEl.value = this._config?.name || "";
     }
-    if (bgEl && document.activeElement !== bgEl) {
+    const bgEl = root.getElementById("background_color");
+    if (bgEl && bgEl !== active) {
       bgEl.value = this._config?.background_color || "";
     }
+    const selEl = root.getElementById("device");
+    if (selEl && selEl !== active) {
+      selEl.value = this._config?.device_id || "";
+    }
   }
+  /**
+   * Replace only the warning/hint block without touching any input elements.
+   * This prevents the full-DOM rebuild that would steal focus.
+   */
+  _patchWarning() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const container = root.getElementById("warning-container");
+    if (!container) return;
+    container.innerHTML = this._renderEntityWarning() + (this._error ? `<div class="error">${this._error}</div>` : "") + (!this._loading && !this._devices.length && !this._error ? `<div class="hint">${this._t("editor_no_devices")}</div>` : !this._loading ? `<div class="hint">${this._t("editor_hint")}</div>` : "");
+  }
+  // ─── Warning block renderer ───────────────────────────────────────────────
   _renderEntityWarning() {
     if (this._entityHintLoading) {
       return `<div class="hint">${this._t("warning_checking")}</div>`;
@@ -1370,6 +1400,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       </div>
     `;
   }
+  // ─── Full render (first time only / device change) ────────────────────────
   _render() {
     const cfg = this._config;
     const selId = cfg?.device_id || "";
@@ -1425,20 +1456,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           display: grid;
           gap: 6px;
         }
-        .warning-title {
-          font-size: 13px;
-          font-weight: 700;
-        }
-        .warning-text {
-          font-size: 12px;
-          line-height: 1.4;
-        }
-        .warning-list {
-          margin: 0;
-          padding-left: 18px;
-          font-size: 12px;
-          line-height: 1.4;
-        }
+        .warning-title { font-size: 13px; font-weight: 700; }
+        .warning-text  { font-size: 12px; line-height: 1.4; }
+        .warning-list  { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.4; }
       </style>
 
       <div class="wrap">
@@ -1472,10 +1492,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           />
         </div>
 
-        ${this._renderEntityWarning()}
-
-        ${this._error ? `<div class="error">${this._error}</div>` : ""}
-        ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">${this._t("editor_no_devices")}</div>` : !this._loading ? `<div class="hint">${this._t("editor_hint")}</div>` : ""}
+        <div id="warning-container">
+          ${this._renderEntityWarning()}
+          ${this._error ? `<div class="error">${this._error}</div>` : ""}
+          ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">${this._t("editor_no_devices")}</div>` : !this._loading ? `<div class="hint">${this._t("editor_hint")}</div>` : ""}
+        </div>
       </div>
     `;
     this._rendered = true;
@@ -1487,7 +1508,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c2a8311";
+var VERSION = "0.0.0-dev.5fe5643";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
