@@ -92,7 +92,7 @@ export const MODEL_REGISTRY = {
   US48PRO: {
     kind: "switch", frontStyle: "quad-row",
     rows: [oddRange(1, 24), evenRange(1, 24), oddRange(1, 48), evenRange(1, 48)],
-    portCount: 26, displayModel: "USW Pro 24", theme: "silver",
+    portCount: 52, displayModel: "USW Pro 48 PoE", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 49 },
       { key: "sfp_2", label: "SFP+ 2", port: 50 },
