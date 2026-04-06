@@ -150,7 +150,7 @@ export const MODEL_REGISTRY = {
   //     Port 5    : 1G RJ45 (WAN)
   UDR: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
-    portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
+    portCount: 7, displayModel: "Dream Router", theme: "white",
     specialSlots: [
       { key: "port_5", label: "WAN", port: 5 },
       { key: "sfp_1", label: "SFP+ 1", port: 6 },
