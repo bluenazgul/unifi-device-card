@@ -9,27 +9,33 @@ No direct API access, no extra configuration. Just add the card and pick your de
 ---
 
 ## Infos
-  
-  This Dashboard is based on my idea, but full created by ChatGPT and Claude.ai only tested wit the Unifi Devices i own
-  - UCG-U
-  - US 8 60W
-  - USW Lite 8 PoE
-  - USW Lite 16 PoE
-  - USW Flex
-  - USW Ultra Family (adden in v0.1.6) untested
 
-  If someone sees improvements, issues and fixes, feel free to make an pull request
+This dashboard is based on my idea, but was created with the help of ChatGPT and Claude.ai and only tested with the UniFi devices I own:
+
+- UCG-U
+- US 8 60W
+- USW Lite 8 PoE
+- USW Lite 16 PoE
+- USW Flex
+- USW Ultra family
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+---
 
 ## Features
 
-- **Realistic front-panel view** — ports laid out exactly as on the physical device, dual-row for 16-port switches, quad-row for 48-port models
-- **Device-accurate styling** — white panel for USW Lite / Flex Mini / UCG, silver for US 8 / UDM Pro / UDM SE
-- **Per-port dual LED indicators** — left LED: PoE status (orange = active), right LED: link speed (green = 1 Gbit, orange = 100 Mbit)
-- **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, and available actions
-- **PoE toggle & Power Cycle** — directly from the card, no extra helpers needed
+- **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts
+- **Device-accurate styling** — white panel for Lite / Flex / Ultra / Cloud Gateway style devices, silver or dark layouts for rack devices like US 8 / UDM Pro / UDM SE
+- **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
+- **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions
+- **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
-- **Automatic device detection** — finds all UniFi switches and gateways registered in HA
+- **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
 - **Built-in UI editor** — full card configuration without YAML
+- **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
+- **Smarter link detection** — falls back to speed, PoE power, and RX/TX traffic when direct port link entities are missing
+- **Optional card background color** — use the default Home Assistant card background or override it with your own color
 
 ---
 
@@ -40,15 +46,29 @@ No direct API access, no extra configuration. Just add the card and pick your de
 | USW Flex Mini | 5 | White |
 | USW Lite 8 PoE | 8 | White |
 | USW Lite 16 PoE | 16 | White |
+| USW Ultra family | Varies | White |
 | US 8 60W | 8 | Silver |
+| US 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
 | USW 24 PoE | 24 | Silver |
+| USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
 | USW 48 PoE | 48 | Silver |
 | Cloud Gateway Ultra | 4 + WAN | White |
 | Cloud Gateway Max | 5 + WAN | White |
 | UDM Pro | 8 + WAN/SFP | Silver |
 | UDM SE | 8 + WAN/SFP | Silver |
 
-Unknown models are auto-detected by port count and fall back to a generic dark theme.
+Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
+
+### Notes
+
+- **Access Points are not supported** and are filtered automatically
+- Some models are still **layout-inferred** if no dedicated registry entry exists
+- WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
+- **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x
+
+> [!NOTE]
+> For best results, make sure the relevant UniFi switch and sensor entities are enabled in Home Assistant.  
+> The card can only display and evaluate entities that are available from the UniFi Network Integration.
 
 ---
 
@@ -67,7 +87,7 @@ Unknown models are auto-detected by port count and fall back to a generic dark t
    - **Repository:** `https://github.com/bluenazgul/unifi-device-card`
    - **Category:** `Dashboard`
 4. Click **Add**, search for **UniFi Device Card** and install
-5. Reload the browser (Ctrl+Shift+R)
+5. Reload the browser (`Ctrl+Shift+R`)
 
 ---
 
@@ -89,61 +109,80 @@ Add via the dashboard UI editor — search for **UniFi Device Card** — or manu
 ```yaml
 type: custom:unifi-device-card
 device_id: YOUR_DEVICE_ID
-name: My Switch   # optional, overrides the device name
+name: My Switch
+background_color: "#1f2937"   # optional
 ```
-
-### Finding your device_id
-
-**Settings → Devices & Services** → open the UniFi device → **⋮** → **Copy device ID**
-
----
-
-## How it works
-
-The card reads data exclusively from Home Assistant entities created by the UniFi Network Integration — no direct connection to the controller is needed. It automatically discovers port entities by parsing entity IDs:
-
-| Entity pattern | Meaning |
-|---|---|
-| `switch.*_port_N` | Link state — `on` = port connected |
-| `switch.*_port_N_poe` | PoE toggle |
-| `sensor.*_port_N_poe_power` | PoE power draw (W) |
-| `sensor.*_port_N_*_link_speed` | Port speed (Mbit) |
-| `button.*_port_N_power_cycle` | Power cycle action |
-
----
-
-## Development
-
-```
-src/
-  unifi-device-card.js          main card element
-  unifi-device-card-editor.js   visual config editor
-  helpers.js                    HA entity discovery & state helpers
-  model-registry.js             per-model layout, port rows & theme
-```
-
-Push to `main` to trigger the build workflow which rebuilds `dist/unifi-device-card.js`. Use the **Create Release** workflow to publish a versioned release for HACS.
-
-```bash
-npm install
-npm run build
-```
-
----
 
 ## Troubleshooting
 
-**Card not loading**
-Open the browser console (F12) and check for errors. Verify the resource URL is `/hacsfiles/unifi-device-card/unifi-device-card.js`. Try a hard refresh (Ctrl+Shift+R).
+### Card not loading
 
-**Device not shown in the editor**
-Confirm the device appears under **Settings → Devices & Services → UniFi**. The card logs debug output prefixed with `[unifi-device-card]` in the browser console showing why each device is accepted or rejected.
+Open the browser console (`F12`) and check for errors.
 
-**Ports show as offline despite being connected**
-Check that the UniFi Integration has created `switch.*_port_*` entities for your device. Some models or firmware versions may expose port state differently — open an issue with your entity list.
+Verify the resource URL is correct:
 
----
+- HACS: `/hacsfiles/unifi-device-card/unifi-device-card.js`
+- Manual: `/local/unifi-device-card.js`
 
-## License
+Try a hard refresh (`Ctrl+Shift+R`).
 
-MIT
+### Device not shown in the editor
+
+Confirm the device appears under **Settings → Devices & Services → UniFi**.
+
+The card logs debug output prefixed with `[unifi-device-card]` in the browser console showing why each device is accepted or rejected.
+
+### Ports show as offline despite being connected
+
+Check whether the UniFi Integration created matching entities for the device.
+
+The card can use:
+
+- direct link entities
+- speed entities
+- PoE power
+- RX/TX traffic
+
+Depending on the device model and firmware, not all signals may be available.
+
+### Make sure UniFi entities are enabled
+
+The card can only evaluate entities that Home Assistant actually provides.
+
+If important UniFi entities are disabled, hidden, or not created by the integration, parts of the card may appear incomplete or incorrect.
+
+For best results, make sure the relevant UniFi entities are enabled for the device, especially:
+
+- port switch entities
+- PoE switch entities
+- PoE power sensors
+- link speed sensors
+- RX/TX traffic sensors
+- power cycle buttons
+
+In Home Assistant, check:
+
+**Settings → Devices & Services → UniFi → Devices / Entities**
+
+If required, enable the disabled entities there first.
+
+### Renamed entities show no telemetry
+
+Renamed entities are supported, but if Home Assistant entity registry data is stale, a reload of the integration or browser may help.
+
+### Missing PoE controls
+
+PoE controls are only shown if a PoE switch entity exists.
+
+Ports that expose only `poe_power` sensors will still show consumption, but no PoE toggle button.
+
+### Background color does not change
+
+Check that:
+
+- `background_color` is set in the card config
+- the browser cache was refreshed
+- the value is valid CSS, for example:
+  - `#1f2937`
+  - `red`
+  - `var(--card-background-color)`
