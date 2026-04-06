@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.382eaff */
+/* UniFi Device Card 0.0.0-dev.8c06daf */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -57,6 +57,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USMINI")) return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
+    if (candidate.includes("USWED35")) return "USWED35";
     if (candidate.includes("US16P150")) return "US16P150";
     if (candidate.includes("US16POE150")) return "US16P150";
     if (candidate.includes("US16P")) return "US16P150";
@@ -144,6 +145,15 @@ var init_model_registry = __esm({
         rows: [range(1, 5)],
         portCount: 5,
         displayModel: "USW Flex Mini",
+        theme: "white",
+        specialSlots: []
+      },
+      USWED35: {
+        kind: "switch",
+        frontStyle: "single-row",
+        rows: [range(1, 5)],
+        portCount: 5,
+        displayModel: "USW Flex Mini 2.5G",
         theme: "white",
         specialSlots: []
       },
@@ -344,7 +354,7 @@ var init_model_registry = __esm({
         portCount: 7,
         displayModel: "USW Ultra",
         theme: "white",
-        specialSlots: [{ key: "port_8", label: "Uplink" }]
+        specialSlots: [{ key: "uplink", label: "Uplink" }]
       },
       USWULTRA60W: {
         kind: "switch",
@@ -1859,7 +1869,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.382eaff";
+var VERSION = "0.0.0-dev.8c06daf";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
