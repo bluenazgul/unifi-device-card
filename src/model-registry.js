@@ -89,6 +89,18 @@ export const MODEL_REGISTRY = {
     portCount: 48, displayModel: "USW 48 PoE", theme: "silver", specialSlots: [],
   },
 
+  US48PRO: {
+    kind: "switch", frontStyle: "quad-row",
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(1, 48), evenRange(1, 48)],
+    portCount: 26, displayModel: "USW Pro 24", theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 49 },
+      { key: "sfp_2", label: "SFP+ 2", port: 50 },
+      { key: "sfp_3", label: "SFP+ 3", port: 51 },
+      { key: "sfp_4", label: "SFP+ 4", port: 52 },
+    ],
+  },
+
   // ── Cloud Gateways ────────────────────────────────
   //
   // UCG-Ultra / UDR-ULT
@@ -208,6 +220,12 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWPRO24"))       return "US24PRO2";
     if (candidate.includes("SWITCHPRO24"))    return "US24PRO2";
 
+    // USW Pro 24 — before generic USW24 pattern
+    if (candidate.includes("US48PRO2"))       return "US48PRO";
+    if (candidate.includes("US48PRO"))        return "US48PRO";
+    if (candidate.includes("USWPRO48"))       return "US48PRO";
+    if (candidate.includes("SWITCHPRO48"))    return "US48PRO";
+
     // Cloud Gateways — UCGFIBER before UCGMAX/UCGULTRA to avoid partial matches
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
@@ -250,6 +268,7 @@ export function inferPortCountFromModel(device) {
 
   if (text.includes("US16P150") || text.includes("US16P"))   return 18;
   if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
+  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48")) return 52;
 
   // UCGFIBER before UCGULTRA/UCGMAX to avoid partial matches
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
