@@ -408,7 +408,7 @@ function isSpeedEntity(id) {
   );
 }
 
-function classifyPortEntity(entity) {
+function classifyPortEntity(entity, isSpecial = false) {
   const id  = lower(entity.entity_id);
   const eid = entity.entity_id;
 
@@ -421,25 +421,38 @@ function classifyPortEntity(entity) {
   if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) {
     return "port_switch_entity";
   }
-  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
-    return "link_entity";
+
+  // Link entity: for numbered ports require "_port_", for special ports (WAN/SFP)
+  // also accept binary_sensors with wan/sfp/uplink in the id
+  if (eid.startsWith("binary_sensor.")) {
+    if (id.includes("_port_")) return "link_entity";
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink") ||
+        id.includes("_connected") || id.includes("_link"))) return "link_entity";
   }
 
-  if (eid.startsWith("sensor.") && id.includes("_port_")) {
-    if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
-    if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
-  }
-
-  if (eid.startsWith("sensor.") && isThroughputEntity(id)) return null;
-  if (eid.startsWith("sensor.") && isSpeedEntity(id)) return "speed_entity";
-  if (eid.startsWith("sensor.") && id.includes("_port_") && id.includes("_poe_power")) return "poe_power_entity";
-  if (
-    eid.startsWith("sensor.") &&
-    id.includes("_port_") &&
-    (id.includes("_link") || id.includes("_status") || id.includes("_state")) &&
-    !isThroughputEntity(id)
-  ) {
-    return "link_entity";
+  if (eid.startsWith("sensor.")) {
+    // RX / TX for numbered ports
+    if (id.includes("_port_")) {
+      if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
+      if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
+    }
+    // RX / TX for special ports (WAN download/upload, throughput entities)
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))) {
+      if (id.includes("download") || id.includes("_rx")) return "rx_entity";
+      if (id.includes("upload")   || id.includes("_tx")) return "tx_entity";
+    }
+    // Speed entity (no _port_ restriction needed)
+    if (isSpeedEntity(id)) return "speed_entity";
+    // PoE power (numbered ports only)
+    if (id.includes("_port_") && id.includes("_poe_power")) return "poe_power_entity";
+    // Generic link/status sensor for numbered ports
+    if (
+      id.includes("_port_") &&
+      (id.includes("_link") || id.includes("_status") || id.includes("_state")) &&
+      !isThroughputEntity(id)
+    ) {
+      return "link_entity";
+    }
   }
 
   return null;
@@ -529,7 +542,7 @@ export function discoverSpecialPorts(entities) {
     const row = ensureSpecialPort(specials, special.key, special.label);
     row.raw_entities.push(entity.entity_id);
 
-    const type = classifyPortEntity(entity);
+    const type = classifyPortEntity(entity, true);  // isSpecial=true: relaxed matching for WAN/SFP
     if (type && !row[type]) row[type] = entity.entity_id;
   }
 
@@ -707,27 +720,46 @@ export function getPoeStatus(hass, port) {
 }
 
 export function isOn(hass, entityId, port = null) {
+  const traffic = getTrafficStatus(hass, port);
+  const speed   = numericState(hass, port?.speed_entity);
+
+  // --- Direct link entity (binary_sensor or state sensor) ---
   if (entityId) {
     const state = stateObj(hass, entityId);
     if (state) {
       const v = String(state.state).toLowerCase();
-      if (["on", "connected", "up", "true", "active", "1"].includes(v)) return true;
+      if (["on", "connected", "up", "true", "active", "1"].includes(v)) {
+        // Cross-check: HA UniFi Integration sometimes reports "connected" for
+        // PoE-enabled ports that have nothing plugged in.  A truly connected
+        // port always has either measurable traffic OR a non-zero link speed.
+        // If both are explicitly zero we treat the entity state as stale/wrong.
+        // Exception: special ports (WAN/SFP) may have no speed/traffic entities
+        // at all – in that case we trust the link entity unconditionally.
+        const isSpecialPort  = port?.kind === "special";
+        const hasSpeedData   = speed != null;
+        const hasTrafficData = traffic !== "none" && traffic !== "unknown";
+        if (!isSpecialPort && (hasSpeedData || hasTrafficData)) {
+          const speedIsZero   = hasSpeedData   && speed === 0;
+          const trafficIsZero = hasTrafficData && traffic === "zero";
+          if (speedIsZero || trafficIsZero) return false;
+        }
+        return true;
+      }
       if (["off", "disconnected", "false"].includes(v)) return false;
     }
   }
 
-  const traffic = getTrafficStatus(hass, port);
+  // --- Traffic-based fallback (no link entity available) ---
   if (traffic === "positive") return true;
+  if (traffic === "zero")     return false;
 
-  if (powerCycleIndicatesLink(hass, port)) return true;
-
+  // --- Speed-based fallback (no traffic entities available) ---
   const isSpecial = port?.kind === "special";
   if (!isSpecial || traffic === "none" || traffic === "unknown") {
-    const speed = numericState(hass, port?.speed_entity);
     if (speed != null && speed > 0) return true;
+    // speed exists but is 0 → explicitly no link
+    if (speed != null && speed === 0) return false;
   }
-
-  if (traffic === "zero") return false;
 
   return false;
 }
@@ -768,17 +800,16 @@ export function getPortLinkText(hass, port) {
   }
 
   const traffic = getTrafficStatus(hass, port);
-  if (traffic === "positive") return "connected";
+  const speed   = numericState(hass, port?.speed_entity);
 
-  if (powerCycleIndicatesLink(hass, port)) return "connected";
+  if (traffic === "positive") return "connected";
+  if (traffic === "zero")     return "no link";
 
   const isSpecial = port?.kind === "special";
   if (!isSpecial || traffic === "none" || traffic === "unknown") {
-    const speed = numericState(hass, port?.speed_entity);
     if (speed != null && speed > 0) return "connected";
+    if (speed != null && speed === 0) return "no link";
   }
-
-  if (traffic === "zero") return "no link";
 
   return "—";
 }
