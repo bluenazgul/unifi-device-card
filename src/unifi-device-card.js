@@ -1,4 +1,4 @@
-import {
+import { 
   discoverPorts,
   discoverSpecialPorts,
   formatState,
