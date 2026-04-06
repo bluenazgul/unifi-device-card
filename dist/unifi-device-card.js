@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c40eb74 */
+/* UniFi Device Card 0.0.0-dev.993a670 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -479,6 +479,60 @@ async function getDeviceContext(hass, deviceId) {
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device, entities)
   };
+}
+function classifyRelevantEntityType(entity) {
+  const id = lower(entity.entity_id);
+  const eid = entity.entity_id || "";
+  if (eid.startsWith("button.") && id.includes("power_cycle")) return "power_cycle";
+  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) return "poe_switch";
+  if (eid.startsWith("switch.") && id.includes("_port_")) return "port_switch";
+  if (eid.startsWith("sensor.") && id.includes("_poe_power")) return "poe_power";
+  if (eid.startsWith("sensor.") && (id.endsWith("_rx") || id.endsWith("_tx") || id.includes("_rx_") || id.includes("_tx_") || id.includes("throughput") || id.includes("bandwidth"))) return "rx_tx";
+  if (eid.startsWith("sensor.") && (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed"))) return "link_speed";
+  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) return "link_entity";
+  return null;
+}
+function makeEntityWarningResult() {
+  return {
+    total: 0,
+    disabled: 0,
+    hidden: 0,
+    counts: {
+      port_switch: 0,
+      poe_switch: 0,
+      poe_power: 0,
+      link_speed: 0,
+      rx_tx: 0,
+      power_cycle: 0,
+      link_entity: 0
+    },
+    items: []
+  };
+}
+async function getRelevantEntityWarningsForDevice(hass, deviceId) {
+  const result = makeEntityWarningResult();
+  if (!hass || !deviceId) return result;
+  const entities = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
+  for (const entity of entities || []) {
+    if (entity.device_id !== deviceId) continue;
+    const kind = classifyRelevantEntityType(entity);
+    if (!kind) continue;
+    const disabledBy = entity.disabled_by || null;
+    const hiddenBy = entity.hidden_by || null;
+    if (!disabledBy && !hiddenBy) continue;
+    result.total += 1;
+    if (disabledBy) result.disabled += 1;
+    if (hiddenBy) result.hidden += 1;
+    result.counts[kind] = (result.counts[kind] || 0) + 1;
+    result.items.push({
+      entity_id: entity.entity_id,
+      name: entity.original_name || entity.name || entity.entity_id,
+      kind,
+      disabled_by: disabledBy,
+      hidden_by: hiddenBy
+    });
+  }
+  return result;
 }
 function extractPortNumber(entity) {
   const id = entity.entity_id || "";
@@ -1036,14 +1090,23 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._error = "";
     this._hass = null;
     this._loadToken = 0;
+    this._entityHint = null;
+    this._entityHintLoading = false;
+    this._entityHintToken = 0;
   }
   setConfig(config) {
     this._config = config || {};
+    if (this._hass && this._config?.device_id) {
+      this._loadEntityHint(this._config.device_id);
+    } else {
+      this._entityHint = null;
+    }
     this._render();
   }
   set hass(hass) {
     this._hass = hass;
     if (!this._loaded && !this._loading) this._loadDevices();
+    if (this._config?.device_id) this._loadEntityHint(this._config.device_id);
   }
   _t(key) {
     return t(this._hass, key);
@@ -1070,6 +1133,28 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       this._render();
     }
   }
+  async _loadEntityHint(deviceId) {
+    if (!this._hass || !deviceId) {
+      this._entityHint = null;
+      this._entityHintLoading = false;
+      this._render();
+      return;
+    }
+    const token = ++this._entityHintToken;
+    this._entityHintLoading = true;
+    this._render();
+    try {
+      const info = await getRelevantEntityWarningsForDevice(this._hass, deviceId);
+      if (token !== this._entityHintToken) return;
+      this._entityHint = info;
+    } catch (err) {
+      console.warn("[unifi-device-card] Failed to load entity warnings", err);
+      if (token !== this._entityHintToken) return;
+      this._entityHint = null;
+    }
+    this._entityHintLoading = false;
+    this._render();
+  }
   _dispatch(config) {
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config },
@@ -1095,6 +1180,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     this._config = next;
     this._dispatch(next);
+    this._loadEntityHint(newDeviceId);
     this._render();
   }
   _onNameInput(ev) {
@@ -1110,6 +1196,38 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._config = next;
     this._dispatch(next);
   }
+  _renderEntityWarning() {
+    if (this._entityHintLoading) {
+      return `<div class="hint">Checking selected device for disabled or hidden UniFi entities\u2026</div>`;
+    }
+    const info = this._entityHint;
+    if (!info || !info.total) return "";
+    const lines = [];
+    if (info.counts.port_switch) lines.push(`<li>${info.counts.port_switch} port switch entit${info.counts.port_switch === 1 ? "y" : "ies"}</li>`);
+    if (info.counts.poe_switch) lines.push(`<li>${info.counts.poe_switch} PoE switch entit${info.counts.poe_switch === 1 ? "y" : "ies"}</li>`);
+    if (info.counts.poe_power) lines.push(`<li>${info.counts.poe_power} PoE power sensor${info.counts.poe_power === 1 ? "" : "s"}</li>`);
+    if (info.counts.link_speed) lines.push(`<li>${info.counts.link_speed} link speed sensor${info.counts.link_speed === 1 ? "" : "s"}</li>`);
+    if (info.counts.rx_tx) lines.push(`<li>${info.counts.rx_tx} RX/TX sensor${info.counts.rx_tx === 1 ? "" : "s"}</li>`);
+    if (info.counts.power_cycle) lines.push(`<li>${info.counts.power_cycle} power cycle button${info.counts.power_cycle === 1 ? "" : "s"}</li>`);
+    if (info.counts.link_entity) lines.push(`<li>${info.counts.link_entity} link entit${info.counts.link_entity === 1 ? "y" : "ies"}</li>`);
+    return `
+      <div class="warning">
+        <div class="warning-title">Disabled or hidden UniFi entities detected</div>
+        <div class="warning-text">
+          The selected device has relevant UniFi entities that are currently disabled or hidden.
+          This can lead to missing controls, incomplete telemetry, or incorrect port status in the card.
+        </div>
+        <div class="warning-text">
+          Status summary: <strong>${info.disabled}</strong> disabled, <strong>${info.hidden}</strong> hidden.
+        </div>
+        ${lines.length ? `<ul class="warning-list">${lines.join("")}</ul>` : ""}
+        <div class="warning-text">
+          Check in Home Assistant under:<br>
+          <strong>Settings \u2192 Devices &amp; Services \u2192 UniFi \u2192 Devices / Entities</strong>
+        </div>
+      </div>
+    `;
+  }
   _render() {
     const cfg = this._config;
     const selId = cfg?.device_id || "";
@@ -1121,21 +1239,64 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         :host { display: block; }
         .wrap { display: grid; gap: 14px; }
         .section-title {
-          font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
-          text-transform: uppercase; color: var(--secondary-text-color);
-          padding-bottom: 4px; border-bottom: 1px solid var(--divider-color);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--secondary-text-color);
+          padding-bottom: 4px;
+          border-bottom: 1px solid var(--divider-color);
         }
         .field { display: grid; gap: 5px; }
-        label { font-size: 13px; font-weight: 600; color: var(--primary-text-color); }
+        label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--primary-text-color);
+        }
         select, input {
-          width: 100%; box-sizing: border-box; min-height: 38px;
-          padding: 7px 10px; border-radius: 8px;
+          width: 100%;
+          box-sizing: border-box;
+          min-height: 38px;
+          padding: 7px 10px;
+          border-radius: 8px;
           border: 1px solid var(--divider-color);
           background: var(--card-background-color);
-          color: var(--primary-text-color); font: inherit;
+          color: var(--primary-text-color);
+          font: inherit;
         }
-        .hint  { color: var(--secondary-text-color); font-size: 12px; line-height: 1.4; }
-        .error { color: var(--error-color);           font-size: 12px; line-height: 1.4; }
+        .hint {
+          color: var(--secondary-text-color);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .error {
+          color: var(--error-color);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .warning {
+          border: 1px solid var(--warning-color, #f59e0b);
+          background: rgba(245, 158, 11, 0.08);
+          color: var(--primary-text-color);
+          border-radius: 8px;
+          padding: 10px 12px;
+          display: grid;
+          gap: 6px;
+        }
+        .warning-title {
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .warning-text {
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .warning-list {
+          margin: 0;
+          padding-left: 18px;
+          font-size: 12px;
+          line-height: 1.4;
+        }
       </style>
 
       <div class="wrap">
@@ -1151,8 +1312,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 
         <div class="field">
           <label for="name">${this._t("editor_name_label")}</label>
-          <input id="name" type="text" value="${selName}"
-            placeholder="${this._t("editor_name_hint")}" />
+          <input
+            id="name"
+            type="text"
+            value="${selName}"
+            placeholder="${this._t("editor_name_hint")}"
+          />
         </div>
 
         <div class="field">
@@ -1164,6 +1329,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             placeholder="Default: var(--card-background-color)"
           />
         </div>
+
+        ${this._renderEntityWarning()}
 
         ${this._error ? `<div class="error">${this._error}</div>` : ""}
         ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">${this._t("editor_no_devices")}</div>` : !this._loading ? `<div class="hint">${this._t("editor_hint")}</div>` : ""}
@@ -1177,7 +1344,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c40eb74";
+var VERSION = "0.0.0-dev.993a670";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
