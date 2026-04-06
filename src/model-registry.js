@@ -250,7 +250,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
     if (candidate.includes("UCGMAX"))             return "UCGMAX";
     if (candidate.includes("CLOUDGATEWAYMAX"))    return "UCGMAX";
-    if (candidate === "UDR")                      return "UDR":
+    if (candidate === "UDR")                      return "UDR";
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
     if (candidate.includes("UDMSE"))              return "UDMSE";
 
