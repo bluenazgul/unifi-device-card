@@ -1,4 +1,13 @@
-/* UniFi Device Card 0.0.0-dev.ccd596a */
+/* UniFi Device Card 0.0.0-dev.9011f80 */
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 
 // src/model-registry.js
 function range(start, end) {
@@ -28,214 +37,6 @@ function defaultSwitchLayout(portCount) {
   }
   return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
 }
-var MODEL_REGISTRY = {
-  US8P60: {
-    kind: "switch",
-    frontStyle: "single-row",
-    rows: [range(1, 8)],
-    portCount: 8,
-    displayModel: "US 8 60W",
-    theme: "silver",
-    specialSlots: []
-  },
-  USMINI: {
-    kind: "switch",
-    frontStyle: "single-row",
-    rows: [range(1, 5)],
-    portCount: 5,
-    displayModel: "USW Flex Mini",
-    theme: "white",
-    specialSlots: []
-  },
-  USL8LP: {
-    kind: "switch",
-    frontStyle: "single-row",
-    rows: [range(1, 8)],
-    portCount: 8,
-    displayModel: "USW Lite 8 PoE",
-    theme: "white",
-    specialSlots: []
-  },
-  USL8LPB: {
-    kind: "switch",
-    frontStyle: "single-row",
-    rows: [range(1, 8)],
-    portCount: 8,
-    displayModel: "USW Lite 8 PoE",
-    theme: "white",
-    specialSlots: []
-  },
-  USL16LP: {
-    kind: "switch",
-    frontStyle: "dual-row",
-    rows: [oddRange(1, 16), evenRange(1, 16)],
-    portCount: 16,
-    displayModel: "USW Lite 16 PoE",
-    theme: "white",
-    specialSlots: []
-  },
-  USL16LPB: {
-    kind: "switch",
-    frontStyle: "dual-row",
-    rows: [oddRange(1, 16), evenRange(1, 16)],
-    portCount: 16,
-    displayModel: "USW Lite 16 PoE",
-    theme: "white",
-    specialSlots: []
-  },
-  US16P150: {
-    kind: "switch",
-    frontStyle: "dual-row",
-    rows: [range(1, 8), range(9, 16)],
-    portCount: 18,
-    displayModel: "US 16 PoE 150W",
-    theme: "silver",
-    specialSlots: [
-      { key: "sfp_1", label: "SFP 1", port: 17 },
-      { key: "sfp_2", label: "SFP 2", port: 18 }
-    ]
-  },
-  USW24P: {
-    kind: "switch",
-    frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
-    portCount: 24,
-    displayModel: "USW 24 PoE",
-    theme: "silver",
-    specialSlots: []
-  },
-  US24PRO2: {
-    kind: "switch",
-    frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
-    portCount: 26,
-    displayModel: "USW Pro 24",
-    theme: "silver",
-    specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
-    ]
-  },
-  USW48P: {
-    kind: "switch",
-    frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
-    portCount: 48,
-    displayModel: "USW 48 PoE",
-    theme: "silver",
-    specialSlots: []
-  },
-  // ── Cloud Gateways ────────────────────────────────
-  //
-  // UCG-Ultra / UDR-ULT
-  //   5 physical ports: 4× 1G RJ45 (LAN 1–4) + 1× 2.5G RJ45 (Port 5, default WAN)
-  //   Max WAN ports: 4 (any port can be remapped)
-  UDRULT: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 5,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
-  },
-  UCGULTRA: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 5,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
-  },
-  // UCG-Max
-  //   5 physical ports: 4× 2.5G RJ45 (LAN 1–4) + 1× 2.5G RJ45 (Port 5, default WAN)
-  //   Max WAN ports: 4 (any port can be remapped)
-  UCGMAX: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 5,
-    displayModel: "Cloud Gateway Max",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
-  },
-  // UCG-Fiber
-  //   7 physical ports:
-  //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+)
-  //     Port 5    : 10G SFP+ (LAN default, WAN-capable)
-  //     Port 6    : 10G RJ45 (default WAN)
-  //     Port 7    : 10G SFP+ (default WAN 2)
-  //   Max WAN ports: 6 (all ports can be remapped)
-  //   Note: port numbers are assumed based on physical order; verify against real HA entity IDs.
-  UCGFIBER: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 7,
-    displayModel: "Cloud Gateway Fiber",
-    theme: "white",
-    specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 5 },
-      { key: "wan", label: "WAN", port: 6 },
-      { key: "sfp_2", label: "SFP+ 2", port: 7 }
-    ]
-  },
-  UDMPRO: {
-    kind: "gateway",
-    frontStyle: "gateway-rack",
-    rows: [range(1, 8)],
-    portCount: 11,
-    displayModel: "UDM Pro",
-    theme: "silver",
-    specialSlots: [
-      { key: "wan", label: "WAN", port: 9 },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 }
-    ]
-  },
-  UDMSE: {
-    kind: "gateway",
-    frontStyle: "gateway-rack",
-    rows: [range(1, 8)],
-    portCount: 11,
-    displayModel: "UDM SE",
-    theme: "silver",
-    specialSlots: [
-      { key: "wan", label: "WAN", port: 9 },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 }
-    ]
-  },
-  // ── USW Ultra family ──────────────────────────────
-  USWULTRA: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
-  },
-  USWULTRA60W: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra 60W",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
-  },
-  USWULTRA210W: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra 210W",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
-  }
-};
 function resolveModelKey(device) {
   const candidates = [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).map(normalizeModelKey);
   for (const candidate of candidates) {
@@ -316,8 +117,238 @@ function getDeviceLayout(device, discoveredPorts = []) {
   }
   return { modelKey: null, kind: "gateway", frontStyle: "gateway-generic", rows: [], portCount: 0, displayModel: device?.model || "UniFi Gateway", specialSlots: [] };
 }
+var MODEL_REGISTRY;
+var init_model_registry = __esm({
+  "src/model-registry.js"() {
+    MODEL_REGISTRY = {
+      US8P60: {
+        kind: "switch",
+        frontStyle: "single-row",
+        rows: [range(1, 8)],
+        portCount: 8,
+        displayModel: "US 8 60W",
+        theme: "silver",
+        specialSlots: []
+      },
+      USMINI: {
+        kind: "switch",
+        frontStyle: "single-row",
+        rows: [range(1, 5)],
+        portCount: 5,
+        displayModel: "USW Flex Mini",
+        theme: "white",
+        specialSlots: []
+      },
+      USL8LP: {
+        kind: "switch",
+        frontStyle: "single-row",
+        rows: [range(1, 8)],
+        portCount: 8,
+        displayModel: "USW Lite 8 PoE",
+        theme: "white",
+        specialSlots: []
+      },
+      USL8LPB: {
+        kind: "switch",
+        frontStyle: "single-row",
+        rows: [range(1, 8)],
+        portCount: 8,
+        displayModel: "USW Lite 8 PoE",
+        theme: "white",
+        specialSlots: []
+      },
+      USL16LP: {
+        kind: "switch",
+        frontStyle: "dual-row",
+        rows: [oddRange(1, 16), evenRange(1, 16)],
+        portCount: 16,
+        displayModel: "USW Lite 16 PoE",
+        theme: "white",
+        specialSlots: []
+      },
+      USL16LPB: {
+        kind: "switch",
+        frontStyle: "dual-row",
+        rows: [oddRange(1, 16), evenRange(1, 16)],
+        portCount: 16,
+        displayModel: "USW Lite 16 PoE",
+        theme: "white",
+        specialSlots: []
+      },
+      US16P150: {
+        kind: "switch",
+        frontStyle: "dual-row",
+        rows: [range(1, 8), range(9, 16)],
+        portCount: 18,
+        displayModel: "US 16 PoE 150W",
+        theme: "silver",
+        specialSlots: [
+          { key: "sfp_1", label: "SFP 1", port: 17 },
+          { key: "sfp_2", label: "SFP 2", port: 18 }
+        ]
+      },
+      USW24P: {
+        kind: "switch",
+        frontStyle: "six-grid",
+        rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+        portCount: 24,
+        displayModel: "USW 24 PoE",
+        theme: "silver",
+        specialSlots: []
+      },
+      US24PRO2: {
+        kind: "switch",
+        frontStyle: "six-grid",
+        rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+        portCount: 26,
+        displayModel: "USW Pro 24",
+        theme: "silver",
+        specialSlots: [
+          { key: "sfp_1", label: "SFP+ 1", port: 25 },
+          { key: "sfp_2", label: "SFP+ 2", port: 26 }
+        ]
+      },
+      USW48P: {
+        kind: "switch",
+        frontStyle: "quad-row",
+        rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+        portCount: 48,
+        displayModel: "USW 48 PoE",
+        theme: "silver",
+        specialSlots: []
+      },
+      // ── Cloud Gateways ────────────────────────────────
+      //
+      // UCG-Ultra / UDR-ULT
+      //   5 physical ports: 4× 1G RJ45 (LAN 1–4) + 1× 2.5G RJ45 (Port 5, default WAN)
+      //   Max WAN ports: 4 (any port can be remapped)
+      UDRULT: {
+        kind: "gateway",
+        frontStyle: "gateway-single-row",
+        rows: [[1, 2, 3, 4]],
+        portCount: 5,
+        displayModel: "Cloud Gateway Ultra",
+        theme: "white",
+        specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+      },
+      UCGULTRA: {
+        kind: "gateway",
+        frontStyle: "gateway-single-row",
+        rows: [[1, 2, 3, 4]],
+        portCount: 5,
+        displayModel: "Cloud Gateway Ultra",
+        theme: "white",
+        specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+      },
+      // UCG-Max
+      //   5 physical ports: 4× 2.5G RJ45 (LAN 1–4) + 1× 2.5G RJ45 (Port 5, default WAN)
+      //   Max WAN ports: 4 (any port can be remapped)
+      UCGMAX: {
+        kind: "gateway",
+        frontStyle: "gateway-single-row",
+        rows: [[1, 2, 3, 4]],
+        portCount: 5,
+        displayModel: "Cloud Gateway Max",
+        theme: "white",
+        specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+      },
+      // UCG-Fiber
+      //   7 physical ports:
+      //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+)
+      //     Port 5    : 10G SFP+ (LAN default, WAN-capable)
+      //     Port 6    : 10G RJ45 (default WAN)
+      //     Port 7    : 10G SFP+ (default WAN 2)
+      //   Max WAN ports: 6 (all ports can be remapped)
+      //   Note: port numbers are assumed based on physical order; verify against real HA entity IDs.
+      UCGFIBER: {
+        kind: "gateway",
+        frontStyle: "gateway-single-row",
+        rows: [[1, 2, 3, 4]],
+        portCount: 7,
+        displayModel: "Cloud Gateway Fiber",
+        theme: "white",
+        specialSlots: [
+          { key: "sfp_1", label: "SFP+ 1", port: 5 },
+          { key: "wan", label: "WAN", port: 6 },
+          { key: "sfp_2", label: "SFP+ 2", port: 7 }
+        ]
+      },
+      UDMPRO: {
+        kind: "gateway",
+        frontStyle: "gateway-rack",
+        rows: [range(1, 8)],
+        portCount: 11,
+        displayModel: "UDM Pro",
+        theme: "silver",
+        specialSlots: [
+          { key: "wan", label: "WAN", port: 9 },
+          { key: "sfp_1", label: "SFP+ 1", port: 10 },
+          { key: "sfp_2", label: "SFP+ 2", port: 11 }
+        ]
+      },
+      UDMSE: {
+        kind: "gateway",
+        frontStyle: "gateway-rack",
+        rows: [range(1, 8)],
+        portCount: 11,
+        displayModel: "UDM SE",
+        theme: "silver",
+        specialSlots: [
+          { key: "wan", label: "WAN", port: 9 },
+          { key: "sfp_1", label: "SFP+ 1", port: 10 },
+          { key: "sfp_2", label: "SFP+ 2", port: 11 }
+        ]
+      },
+      // ── USW Ultra family ──────────────────────────────
+      USWULTRA: {
+        kind: "switch",
+        frontStyle: "ultra-row",
+        rows: [range(1, 7)],
+        portCount: 7,
+        displayModel: "USW Ultra",
+        theme: "white",
+        specialSlots: [{ key: "uplink", label: "Uplink" }]
+      },
+      USWULTRA60W: {
+        kind: "switch",
+        frontStyle: "ultra-row",
+        rows: [range(1, 7)],
+        portCount: 7,
+        displayModel: "USW Ultra 60W",
+        theme: "white",
+        specialSlots: [{ key: "uplink", label: "Uplink" }]
+      },
+      USWULTRA210W: {
+        kind: "switch",
+        frontStyle: "ultra-row",
+        rows: [range(1, 7)],
+        portCount: 7,
+        displayModel: "USW Ultra 210W",
+        theme: "white",
+        specialSlots: [{ key: "uplink", label: "Uplink" }]
+      }
+    };
+  }
+});
 
 // src/helpers.js
+var helpers_exports = {};
+__export(helpers_exports, {
+  discoverPorts: () => discoverPorts,
+  discoverSpecialPorts: () => discoverSpecialPorts,
+  formatState: () => formatState,
+  getDeviceContext: () => getDeviceContext,
+  getPoeStatus: () => getPoeStatus,
+  getPortLinkText: () => getPortLinkText,
+  getPortSpeedText: () => getPortSpeedText,
+  getRelevantEntityWarningsForDevice: () => getRelevantEntityWarningsForDevice,
+  getUnifiDevices: () => getUnifiDevices,
+  isOn: () => isOn,
+  mergePortsWithLayout: () => mergePortsWithLayout,
+  mergeSpecialsWithLayout: () => mergeSpecialsWithLayout,
+  stateObj: () => stateObj,
+  stateValue: () => stateValue
+});
 function normalize(value) {
   return String(value ?? "").trim();
 }
@@ -349,9 +380,6 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "US16", "US24", "USMINI", "FLEXMINI"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
-var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -427,14 +455,6 @@ function extractFirmware(device, entities) {
   });
   return fe ? fe.entity_id : "";
 }
-var PORT_TRANSLATION_KEYS = /* @__PURE__ */ new Set([
-  "port_bandwidth_rx",
-  "port_bandwidth_tx",
-  "port_link_speed",
-  "poe",
-  "poe_power",
-  "poe_port_control"
-]);
 async function getUnifiDevices(hass) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
@@ -797,6 +817,10 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
 function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
 }
+function stateValue(hass, entityId, fallback = "\u2014") {
+  const state = stateObj(hass, entityId);
+  return state ? state.state : fallback;
+}
 function numericState(hass, entityId) {
   const state = stateObj(hass, entityId);
   if (!state) return null;
@@ -959,6 +983,26 @@ function getPortSpeedText(hass, port) {
   }
   return "\u2014";
 }
+var SWITCH_MODEL_PREFIXES, GATEWAY_MODEL_PREFIXES, AP_MODEL_PREFIXES, PORT_TRANSLATION_KEYS;
+var init_helpers = __esm({
+  "src/helpers.js"() {
+    init_model_registry();
+    SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "US16", "US24", "USMINI", "FLEXMINI"];
+    GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
+    AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+    PORT_TRANSLATION_KEYS = /* @__PURE__ */ new Set([
+      "port_bandwidth_rx",
+      "port_bandwidth_tx",
+      "port_link_speed",
+      "poe",
+      "poe_power",
+      "poe_port_control"
+    ]);
+  }
+});
+
+// src/unifi-device-card.js
+init_helpers();
 
 // src/translations.js
 var TRANSLATIONS = {
@@ -1234,6 +1278,54 @@ function t(hass, key) {
 }
 
 // src/unifi-device-card-editor.js
+init_helpers();
+function slotPortType(slot) {
+  const key = String(slot.key || "").toLowerCase();
+  if (key === "wan" || key === "wan2") return "wan";
+  if (key.includes("sfp_wan") || key.includes("wan_sfp")) return "sfp_wan";
+  if (key.includes("sfp")) return "sfp";
+  return "lan";
+}
+function slotDropdownLabel(slot, tFn) {
+  const type = slotPortType(slot);
+  const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
+  switch (type) {
+    case "wan":
+      return `${slot.label}${portNum}`;
+    case "sfp_wan":
+      return `${slot.label}${portNum} \u2014 ${tFn("editor_wan_port_sfpwan")}`;
+    case "sfp":
+      return `${slot.label}${portNum} \u2014 ${tFn("editor_wan_port_sfp")}`;
+    default:
+      return `${slot.label}${portNum} \u2014 ${tFn("editor_wan_port_lan")}`;
+  }
+}
+function buildWanPortOptions(layout, tFn) {
+  const options = [];
+  options.push({ value: "auto", label: tFn("editor_wan_port_auto") });
+  if (!layout) return options;
+  for (const slot of layout.specialSlots || []) {
+    const type = slotPortType(slot);
+    options.push({
+      value: slot.key,
+      label: slotDropdownLabel(slot, tFn),
+      type
+    });
+  }
+  const specialPortNums = new Set(
+    (layout.specialSlots || []).map((s) => s.port).filter((p) => p != null)
+  );
+  const allPortNums = (layout.rows || []).flat();
+  for (const portNum of allPortNums) {
+    if (specialPortNums.has(portNum)) continue;
+    options.push({
+      value: `port_${portNum}`,
+      label: `Port ${portNum} \u2014 ${tFn("editor_wan_port_lan")}`,
+      type: "lan"
+    });
+  }
+  return options;
+}
 var UnifiDeviceCardEditor = class extends HTMLElement {
   constructor() {
     super();
@@ -1249,13 +1341,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._entityHintLoading = false;
     this._entityHintToken = 0;
     this._rendered = false;
+    this._deviceCtx = null;
+    this._deviceCtxLoading = false;
+    this._deviceCtxToken = 0;
   }
   setConfig(config) {
     this._config = config || {};
     if (this._hass && this._config?.device_id) {
       this._loadEntityHint(this._config.device_id);
+      this._loadDeviceCtx(this._config.device_id);
     } else {
       this._entityHint = null;
+      this._deviceCtx = null;
     }
     if (this._rendered) {
       this._patchFields();
@@ -1266,15 +1363,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this._loaded && !this._loading) this._loadDevices();
-    if (this._config?.device_id) this._loadEntityHint(this._config.device_id);
+    if (this._config?.device_id) {
+      this._loadEntityHint(this._config.device_id);
+      this._loadDeviceCtx(this._config.device_id);
+    }
   }
   _t(key) {
     return t(this._hass, key);
   }
   // ─── Smart render helper ───────────────────────────────────────────────────
-  // After the first full render we never rebuild the whole shadow DOM again.
-  // Instead we patch only the parts that actually changed — except when the
-  // DOM structure itself must change (e.g. loading hint ↔ device select).
   _smartRender() {
     const root = this.shadowRoot;
     const hasDeviceSelect = !!root?.getElementById("device");
@@ -1331,6 +1428,32 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._entityHintLoading = false;
     this._smartRender();
   }
+  /**
+   * Load the device type and layout for the selected device so we know
+   * whether to show the WAN port selector (gateway only) and which ports
+   * to offer.
+   */
+  async _loadDeviceCtx(deviceId) {
+    if (!this._hass || !deviceId) {
+      this._deviceCtx = null;
+      this._deviceCtxLoading = false;
+      return;
+    }
+    const token = ++this._deviceCtxToken;
+    this._deviceCtxLoading = true;
+    try {
+      const { getDeviceContext: getDeviceContext2 } = await Promise.resolve().then(() => (init_helpers(), helpers_exports));
+      const ctx = await getDeviceContext2(this._hass, deviceId);
+      if (token !== this._deviceCtxToken) return;
+      this._deviceCtx = ctx;
+    } catch (err) {
+      console.warn("[unifi-device-card] Failed to load device ctx for editor", err);
+      if (token !== this._deviceCtxToken) return;
+      this._deviceCtx = null;
+    }
+    this._deviceCtxLoading = false;
+    this._render();
+  }
   // ─── Event dispatching ────────────────────────────────────────────────────
   _dispatch(config) {
     this.dispatchEvent(new CustomEvent("config-changed", {
@@ -1356,9 +1479,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       if (newAutoName) next.name = newAutoName;
       else delete next.name;
     }
+    delete next.wan_port;
     this._config = next;
     this._dispatch(next);
     this._loadEntityHint(newDeviceId);
+    this._deviceCtx = null;
+    this._loadDeviceCtx(newDeviceId);
     this._render();
   }
   _onNameInput(ev) {
@@ -1370,6 +1496,17 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const next = { ...this._config };
     if (value) next.background_color = value;
     else delete next.background_color;
+    this._config = next;
+    this._dispatch(next);
+  }
+  _onWanPortChange(ev) {
+    const value = ev.target.value || "auto";
+    const next = { ...this._config };
+    if (value && value !== "auto") {
+      next.wan_port = value;
+    } else {
+      delete next.wan_port;
+    }
     this._config = next;
     this._dispatch(next);
   }
@@ -1394,6 +1531,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const selEl = root.getElementById("device");
     if (selEl && selEl !== active) {
       selEl.value = this._config?.device_id || "";
+    }
+    const wanEl = root.getElementById("wan_port");
+    if (wanEl && wanEl !== active) {
+      wanEl.value = this._config?.wan_port || "auto";
     }
   }
   /**
@@ -1433,6 +1574,44 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           ${this._t("warning_check_in")}<br>
           <strong>${this._t("warning_ha_path")}</strong>
         </div>
+      </div>
+    `;
+  }
+  // ─── WAN port selector renderer ───────────────────────────────────────────
+  /**
+   * Render the WAN port dropdown.
+   * Only shown when:
+   *   1. A device is selected
+   *   2. The device type is "gateway"
+   *   3. The layout has at least one slot (so there is something to choose from)
+   */
+  _renderWanPortSelector() {
+    if (!this._config?.device_id) return "";
+    if (this._deviceCtxLoading) {
+      return `
+        <div class="field">
+          <label>${this._t("editor_wan_port_label")}</label>
+          <div class="hint">${this._t("editor_device_loading")}</div>
+        </div>
+      `;
+    }
+    const ctx = this._deviceCtx;
+    if (!ctx || ctx.type !== "gateway") return "";
+    const layout = ctx.layout;
+    const options = buildWanPortOptions(layout, (k) => this._t(k));
+    if (options.length <= 1) return "";
+    const currentVal = this._config?.wan_port || "auto";
+    const optionHtml = options.map((o) => {
+      const sel = o.value === currentVal ? " selected" : "";
+      return `<option value="${o.value}"${sel}>${o.label}</option>`;
+    }).join("");
+    return `
+      <div class="field">
+        <label for="wan_port">${this._t("editor_wan_port_label")}</label>
+        <select id="wan_port">
+          ${optionHtml}
+        </select>
+        <div class="hint">${this._t("editor_wan_port_hint")}</div>
       </div>
     `;
   }
@@ -1508,6 +1687,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
                </select>`}
         </div>
 
+        ${this._renderWanPortSelector()}
+
         <div class="field">
           <label for="name">${this._t("editor_name_label")}</label>
           <input
@@ -1537,6 +1718,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
     this._rendered = true;
     this.shadowRoot.getElementById("device")?.addEventListener("change", (e) => this._onDeviceChange(e));
+    this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (e) => this._onWanPortChange(e));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (e) => this._onNameInput(e));
     this.shadowRoot.getElementById("background_color")?.addEventListener("input", (e) => this._onBackgroundInput(e));
   }
@@ -1544,7 +1726,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ccd596a";
+var VERSION = "0.0.0-dev.9011f80";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
