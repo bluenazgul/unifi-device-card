@@ -128,18 +128,32 @@ export const MODEL_REGISTRY = {
 
   // UCG-Fiber
   //   7 physical ports:
-  //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+)
-  //     Port 5    : 10G SFP+ (LAN default, WAN-capable)
-  //     Port 6    : 10G RJ45 (default WAN)
-  //     Port 7    : 10G SFP+ (default WAN 2)
+  //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+, all WAN-capable)
+  //     Port 5    : 10G RJ45 (default WAN, LAN-capable)
+  //     Port 6    : 10G SFP+ (LAN default, WAN-capable)
+  //     Port 7    : 10G SFP+ (default WAN 2, LAN-capable)
   //   Max WAN ports: 6 (all ports can be remapped)
   //   Note: port numbers are assumed based on physical order; verify against real HA entity IDs.
   UCGFIBER: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 5 },
-      { key: "wan",   label: "WAN",    port: 6 },
+      { key: "port_5",   label: "WAN",    port: 5 },
+      { key: "sfp_1", label: "SFP+ 1", port: 6 },
+      { key: "sfp_2", label: "SFP+ 2", port: 7 },
+    ],
+  },
+
+  // UDR
+  //   5 physical ports:
+  //     Ports 1–4 : 1G RJ45 (LAN, ports 3-4 has PoE,)
+  //     Port 5    : 1G RJ45 (WAN)
+  UDR: {
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
+    portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
+    specialSlots: [
+      { key: "port_5", label: "WAN", port: 5 },
+      { key: "sfp_1", label: "SFP+ 1", port: 6 },
       { key: "sfp_2", label: "SFP+ 2", port: 7 },
     ],
   },
@@ -229,12 +243,14 @@ export function resolveModelKey(device) {
     // Cloud Gateways — UCGFIBER before UCGMAX/UCGULTRA to avoid partial matches
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
+    if (candidate.includes("UDMA6A8"))  return "UCGFIBER";
 
     if (candidate.includes("UDRULT"))             return "UDRULT";
     if (candidate.includes("UCGULTRA"))           return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
     if (candidate.includes("UCGMAX"))             return "UCGMAX";
     if (candidate.includes("CLOUDGATEWAYMAX"))    return "UCGMAX";
+    if (candidate === "UDR")                      return "UDR":
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
     if (candidate.includes("UDMSE"))              return "UDMSE";
 
@@ -247,6 +263,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210"))  return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60"))   return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA"))     return "USWULTRA";
+    if (candidate.includes("USM8P"))           return "USWULTRA";
 
     // Generic — must come AFTER specific models above
     if (candidate.includes("USW24"))  return "USW24P";
