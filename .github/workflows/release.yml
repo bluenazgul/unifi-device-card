@@ -1,10 +1,8 @@
 name: Create Release
-
 # Manual trigger from the GitHub Actions UI.
 # Builds the bundle with the given version baked in, commits the
 # updated dist file, tags the commit, and creates a GitHub release
 # with the compiled JS as the only release asset (required by HACS).
-
 on:
   workflow_dispatch:
     inputs:
@@ -12,28 +10,22 @@ on:
         description: "Release version, e.g. v0.1.0"
         required: true
         type: string
-
 permissions:
   contents: write
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   create-release:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout default branch
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
-
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
@@ -41,7 +33,6 @@ jobs:
           else
             npm install
           fi
-
       - name: Validate and normalize version format
         run: |
           # Accept with or without leading "v"  (e.g. "0.1.0" or "v0.1.0")
@@ -53,7 +44,6 @@ jobs:
           fi
           # Always store with v-prefix for consistent git tags
           echo "VERSION=v${VERSION}" >> $GITHUB_ENV
-
       - name: Check if tag already exists
         run: |
           git fetch --tags
@@ -61,13 +51,38 @@ jobs:
             echo "Tag ${{ env.VERSION }} already exists."
             exit 1
           fi
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION_BARE="${VERSION#v}"   # e.g. "1.2.3" without leading v
 
+          # Match a heading like:  ## [1.2.3]  or  ## [v1.2.3]  or  ## 1.2.3  or  ## v1.2.3
+          # Capture everything until the next ## heading (or end of file).
+          NOTES=$(awk \
+            -v ver="$VERSION_BARE" \
+            'BEGIN { found=0 }
+             /^## \[?v?/ {
+               if (found) exit
+               if (index($0, ver)) { found=1; next }
+             }
+             found { print }' \
+            CHANGELOG.md)
+
+          # Fall back gracefully if the version block is missing
+          if [ -z "$NOTES" ]; then
+            NOTES="See CHANGELOG.md for details."
+          fi
+
+          # Write to a temp file to avoid quoting issues with multiline strings
+          echo "$NOTES" > /tmp/release_notes.md
+          echo "notes_file=/tmp/release_notes.md" >> $GITHUB_OUTPUT
+        env:
+          VERSION: ${{ env.VERSION }}
       - name: Build dist for release
         run: npm run build
         env:
           GITHUB_EVENT_NAME: release
           GITHUB_REF_NAME: ${{ env.VERSION }}
-
       - name: Commit dist if changed
         run: |
           git config user.name "github-actions[bot]"
@@ -77,17 +92,15 @@ jobs:
           git add dist/unifi-device-card.js
           git diff --cached --quiet || git commit -m "release: prepare ${{ env.VERSION }} [skip ci]"
           git push
-
       - name: Create Git tag
         run: |
           git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
           git push origin "${{ env.VERSION }}"
-
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
+          body_path: ${{ steps.changelog.outputs.notes_file }}
           # HACS downloads this asset when users install / update the plugin.
           # The filename must match hacs.json → "filename": "unifi-device-card.js"
           files: dist/unifi-device-card.js
-          generate_release_notes: true
