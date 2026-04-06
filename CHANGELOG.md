@@ -1,5 +1,29 @@
 # Changelog
 
+## [v0.2.3] - 2026-04-06
+
+### 🐛 Bug Fixes
+
+- **Improved port link detection** — PoE no longer counts as a standalone link signal. Ports with RX/TX sensors at exactly `0` are now treated as offline unless another valid signal is present.
+
+- **Power cycle button as conditional link hint** — On PoE-capable ports, an available power cycle button can now be used as an additional link hint when the PoE switch is enabled. This helps detect connected PoE devices more reliably.
+
+- **Improved WAN port detection** — Gateway WAN entities using patterns such as `*_wan_port_*` are now detected more reliably, improving support for devices like the Cloud Gateway Ultra.
+
+---
+
+### ✨ Editor Improvements
+
+- **Disabled or hidden entity warning for selected device** — The card editor now checks only the currently selected device for relevant UniFi entities that are disabled or hidden and shows a warning if this may affect card behavior.
+
+- **Entity type summary in editor** — The warning groups affected entities by type, such as port switches, PoE controls, PoE power sensors, link speed sensors, RX/TX sensors, and power cycle buttons.
+
+---
+
+### 🧭 Troubleshooting Improvements
+
+- **Better visibility of Home Assistant entity issues** — The editor now helps identify when missing controls or incomplete telemetry are caused by disabled or hidden UniFi entities in Home Assistant.
+
 ## [v0.2.2] - 2026-04-06
 
 ### 🐛 Bug Fixes
