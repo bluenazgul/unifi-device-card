@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.7cd886f */
+/* UniFi Device Card 0.0.0-dev.b3774af */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -64,6 +64,10 @@ function resolveModelKey(device) {
     if (candidate.includes("US24PRO")) return "US24PRO2";
     if (candidate.includes("USWPRO24")) return "US24PRO2";
     if (candidate.includes("SWITCHPRO24")) return "US24PRO2";
+    if (candidate.includes("US48PRO2")) return "US48PRO";
+    if (candidate.includes("US48PRO")) return "US48PRO";
+    if (candidate.includes("USWPRO48")) return "US48PRO";
+    if (candidate.includes("SWITCHPRO48")) return "US48PRO";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
     if (candidate.includes("UDRULT")) return "UDRULT";
@@ -97,6 +101,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("USMINI") || text.includes("FLEXMINI")) return 5;
   if (text.includes("US16P150") || text.includes("US16P")) return 18;
   if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
+  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48")) return 52;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
@@ -216,6 +221,20 @@ var init_model_registry = __esm({
         displayModel: "USW 48 PoE",
         theme: "silver",
         specialSlots: []
+      },
+      US48PRO: {
+        kind: "switch",
+        frontStyle: "quad-row",
+        rows: [oddRange(1, 24), evenRange(1, 24), oddRange(1, 48), evenRange(1, 48)],
+        portCount: 26,
+        displayModel: "USW Pro 24",
+        theme: "silver",
+        specialSlots: [
+          { key: "sfp_1", label: "SFP+ 1", port: 49 },
+          { key: "sfp_2", label: "SFP+ 2", port: 50 },
+          { key: "sfp_3", label: "SFP+ 3", port: 51 },
+          { key: "sfp_4", label: "SFP+ 4", port: 52 }
+        ]
       },
       // ── Cloud Gateways ────────────────────────────────
       //
@@ -1822,7 +1841,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.7cd886f";
+var VERSION = "0.0.0-dev.b3774af";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
