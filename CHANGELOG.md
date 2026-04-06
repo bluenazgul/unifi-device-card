@@ -1,6 +1,50 @@
 # Changelog
 
-## [Unreleased]
+##[v0.2.1] — 2026-04-06
+
+🐛 Bug Fixes
+Port link detection via PoE power and RX/TX traffic (helpers.js — isOn, getPortLinkText)
+Two edge cases were not covered by the v0.2.0 speed-entity fallback:
+
+A port powering a PoE device (e.g. a U6 Mesh AP drawing 6.62 W) reported "Kein Link" because the link entity was missing and the speed entity returned 0. PoE power draw > 0 W now counts as a definitive link signal.
+A port showing active RX/TX throughput was shown as OFFLINE. Active throughput > 0 Mbit/s now counts as a link signal.
+
+Both isOn() and getPortLinkText() follow the same five-stage chain: link_entity → speed > 0 → PoE power > 0 → RX/TX > 0 → admin port enable.
+
+SFP/WAN ports reporting false "online" (helpers.js — isOn, getPortLinkText)
+A seated SFP+ module without a cable can report non-zero negotiated speed. For special slots that have RX/TX traffic entities, the speed check is now skipped — only live traffic counts as a confirmed link. (Issue #2 — Bug 4)
+
+Port and PoE buttons missing or non-functional (helpers.js — getAllData, unifi-device-card.js)
+HA creates entities with disabled_by: "integration" for features not active by default. These have no state in hass.states — the card rendered buttons that silently failed. getAllData() now filters to active-only entities. The card additionally guards each button with a stateObj() check before rendering.
+
+WAN and SFP slots always empty/offline on UDMPRO and UDMSE (model-registry.js, helpers.js — mergeSpecialsWithLayout)
+specialSlots had no port numbers, so mergeSpecialsWithLayout() could never match them to discovered port data. (Issue #2 — Bug 3, Issue #3)
+
+UDMPRO and UDMSE now declare port numbers on special slots (WAN = 9, SFP+ 1 = 10, SFP+ 2 = 11).
+mergeSpecialsWithLayout() now accepts discoveredPorts as third argument and does port-number lookup first.
+mergePortsWithLayout() now excludes ports claimed by specialSlots to prevent double-rendering.
+
+
+Missing model definitions for US 16 PoE 150W and USW Pro 24 (model-registry.js)
+Both devices fell through to auto-infer with wrong layouts. (Issue #2 — Bug 1, Issue #3)
+
+Added US16P150: dual-row (2x8), SFP slots on ports 17/18.
+Added US24PRO2: six-grid (4x6), SFP+ slots on ports 25/26.
+Updated USW24P from dual-row (2x12) to six-grid (4x6).
+Extended resolveModelKey() and inferPortCountFromModel() with new patterns.
+
+
+Renamed port entities showing no telemetry (helpers.js — getDeviceContext, extractPortNumber)
+config/entity_registry/list does not return unique_id since HA 2022.6. Renamed port entities have no _port_N in entity_id, so extractPortNumber() failed silently. (Issue #2 — Bug 2)
+getDeviceContext() now fetches the full registry entry for affected entities via config/entity_registry/get to retrieve unique_id. Only entities that need enrichment are fetched individually. extractPortNumber() also now parses port number from unique_id as fallback.
+
+RX/TX throughput showing 17 decimal places (helpers.js — formatState)
+formatState() now rounds numeric values to 2 decimal places (integers shown without decimal point). (Issue #3)
+
+Changed
+
+mergeSpecialsWithLayout() now accepts optional discoveredPorts as third argument (backwards compatible).
+Action required in unifi-device-card.js: pass discoverPorts(ctx?.entities || []) as third argument to mergeSpecialsWithLayout() so WAN/SFP port-number lookup works.
 
 ---
 
