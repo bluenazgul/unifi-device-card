@@ -41,6 +41,10 @@ export const MODEL_REGISTRY = {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 5)],
     portCount: 5, displayModel: "USW Flex Mini", theme: "white", specialSlots: [],
   },
+  USWED35: {
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 5)],
+    portCount: 5, displayModel: "USW Flex Mini 2.5G", theme: "white", specialSlots: [],
+  },
   USL8LP: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
     portCount: 8, displayModel: "USW Lite 8 PoE", theme: "white", specialSlots: [],
@@ -179,7 +183,7 @@ export const MODEL_REGISTRY = {
   USWULTRA: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
     portCount: 7, displayModel: "USW Ultra", theme: "white",
-    specialSlots: [{ key: "port_8", label: "Uplink" }],
+    specialSlots: [{ key: "uplink", label: "Uplink" }],
   },
   USWULTRA60W: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
@@ -220,6 +224,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USMINI"))         return "USMINI";
     if (candidate.includes("FLEXMINI"))       return "USMINI";
     if (candidate.includes("USWFLEXMINI"))    return "USMINI";
+    if (candidate.includes("USWED35"))        return "USWED35";
 
     // US 16 PoE 150W — before generic US16 patterns
     if (candidate.includes("US16P150"))       return "US16P150";
