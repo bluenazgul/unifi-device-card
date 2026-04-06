@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.2] - 2026-04-06
+
+### 🐛 Bug Fixes
+
+- **Card Background should use HA settings now**
+
 ## [v0.2.1] - 2026-04-06
 
 ### 🐛 Bug Fixes
