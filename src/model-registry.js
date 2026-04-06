@@ -89,8 +89,13 @@ export const MODEL_REGISTRY = {
 
   USW48P: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
-    portCount: 48, displayModel: "USW 48 PoE", theme: "silver", specialSlots: [],
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
+    portCount: 48, displayModel: "USW 48 PoE", theme: "silver",
+    specialSlots:  [
+      { key: "sfp_1", label: "SFP 1", port: 49 },
+      { key: "sfp_2", label: "SFP 2", port: 50 },
+      { key: "sfp_3", label: "SFP 3", port: 51 },
+      { key: "sfp_4", label: "SFP 4", port: 52 },
   },
 
   US48PRO: {
@@ -271,6 +276,7 @@ export function resolveModelKey(device) {
     // Generic — must come AFTER specific models above
     if (candidate.includes("USW24"))  return "USW24P";
     if (candidate.includes("USW48"))  return "USW48P";
+    if (candidate.includes("USW48P"))  return "USW48P";
   }
 
   return null;
