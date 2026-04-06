@@ -1,6 +1,6 @@
 {
   "name": "UniFi Device Card",
-  "content_in_root": false,
-  "filename": "unifi-device-card.js",
+  "content_in_root": true,
+  "filename": "dist/unifi-device-card.js",
   "render_readme": true
 }
