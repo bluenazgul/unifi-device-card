@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.8] - 2026-04-06
+
+### ✨ new Feature
+
+- **first try to make the WAN Port selectable on Gateways**
+
 ## [v0.2.7] - 2026-04-06
 
 ### 🐛 Bug Fixes
