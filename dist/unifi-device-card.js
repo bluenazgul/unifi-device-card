@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.461f142 */
+/* UniFi Device Card 0.0.0-dev.125331b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -77,16 +77,16 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: []
   },
-  USL8LP: {
+  USWED35: {
     kind: "switch",
     frontStyle: "single-row",
-    rows: [range(1, 8)],
-    portCount: 8,
-    displayModel: "USW Lite 8 PoE",
+    rows: [range(1, 5)],
+    portCount: 5,
+    displayModel: "USW Flex Mini 2.5G",
     theme: "white",
     specialSlots: []
   },
-  USL8LPB: {
+  USL8LP: {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, 8)],
@@ -115,42 +115,42 @@ var MODEL_REGISTRY = {
   },
   UDRULT: {
     kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
-  },
-  UCGULTRA: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
-  },
-  UCGMAX: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4, 5]],
+    frontStyle: "single-row",
+    rows: [range(1, 5)],
     portCount: 5,
-    displayModel: "Cloud Gateway Max",
+    displayModel: "Cloud Gateway Ultra",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
+    specialSlots: []
+  },
+  UDR: {
+    kind: "gateway",
+    frontStyle: "single-row",
+    rows: [range(1, 5)],
+    portCount: 5,
+    displayModel: "Dream Router",
+    theme: "white",
+    specialSlots: []
+  },
+  UDMA6A8: {
+    kind: "gateway",
+    frontStyle: "single-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "Cloud Gateway Fiber",
+    theme: "white",
+    specialSlots: []
   },
   UDMPRO: {
     kind: "gateway",
     frontStyle: "gateway-rack",
     rows: [range(1, 8)],
-    portCount: 8,
+    portCount: 11,
     displayModel: "UDM Pro",
     theme: "silver",
     specialSlots: [
-      { key: "wan", label: "WAN" },
-      { key: "sfp_wan", label: "WAN SFP+" },
-      { key: "sfp_lan", label: "LAN SFP+" }
+      { key: "wan", label: "WAN", port: 9 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11 }
     ]
   },
   UDMSE: {
@@ -169,12 +169,40 @@ var MODEL_REGISTRY = {
   // ── Additional common models ─────────────────────
   USW24P: {
     kind: "switch",
-    frontStyle: "dual-row",
-    rows: [range(1, 12), range(13, 24)],
+    frontStyle: "six-grid",
+    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
     portCount: 24,
     displayModel: "USW 24 PoE",
     theme: "silver",
     specialSlots: []
+  },
+  // ── US 16 PoE 150W ───────────────────────────────────────────────────────
+  // 16 RJ45 PoE ports in 2×8 rows (sequential) + 2 dedicated SFP uplink slots.
+  US16P150: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [range(1, 8), range(9, 16)],
+    portCount: 16,
+    displayModel: "US 16 PoE 150W",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP 1", port: 17 },
+      { key: "sfp_2", label: "SFP 2", port: 18 }
+    ]
+  },
+  // ── USW Pro 24 ──────────────────────────────────────────────────────────
+  // 24 RJ45 ports in six-grid layout + 2 dedicated SFP+ uplink slots.
+  US24PRO2: {
+    kind: "switch",
+    frontStyle: "six-grid",
+    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    portCount: 24,
+    displayModel: "USW Pro 24",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
   },
   USW48P: {
     kind: "switch",
@@ -185,18 +213,27 @@ var MODEL_REGISTRY = {
     theme: "silver",
     specialSlots: []
   },
+  US48PRO: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48), range(49, 52)],
+    portCount: 52,
+    displayModel: "USW Pro 48 PoE",
+    theme: "silver",
+    specialSlots: []
+  },
   // ── USW Ultra family ─────────────────────────────────────────────────────
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
   // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
   // Three SKUs share the same physical layout; only PoE budget differs.
-  USWULTRA: {
+  USM8P: {
     kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
     displayModel: "USW Ultra",
     theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
+    specialSlots: []
   },
   USWULTRA60W: {
     kind: "switch",
@@ -242,6 +279,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USMINI")) return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
+    if (candidate.includes("USWED35")) return "USWED35";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -258,8 +296,15 @@ function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60")) return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA")) return "USWULTRA";
+    if (candidate.includes("USM8P")) return "USM8P";
+    if (candidate.includes("US16P150")) return "US16P150";
+    if (candidate.includes("US16P")) return "US16P150";
+    if (candidate.includes("US24PRO2")) return "US24PRO2";
+    if (candidate.includes("US24PRO")) return "US24PRO2";
+    if (candidate.includes("USWPRO24")) return "US24PRO2";
     if (candidate.includes("USW24")) return "USW24P";
     if (candidate.includes("USW48")) return "USW48P";
+    if (candidate.includes("US48PRO")) return "US48PRO";
   }
   return null;
 }
@@ -267,6 +312,8 @@ function inferPortCountFromModel(device) {
   const text = normalizeModelKey(
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
+  if (text.includes("US16P150")) return 16;
+  if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 24;
   if (text.includes("USL16LPB")) return 16;
   if (text.includes("USL16LP")) return 16;
   if (text.includes("USWLITE16POE")) return 16;
@@ -281,12 +328,16 @@ function inferPortCountFromModel(device) {
   if (text.includes("US8")) return 8;
   if (text.includes("USMINI")) return 5;
   if (text.includes("FLEXMINI")) return 5;
-  if (text.includes("UCGULTRA")) return 4;
-  if (text.includes("CLOUDGATEWAYULTRA")) return 4;
+  if (text.includes("UCGULTRA")) return 5;
+  if (text.includes("CLOUDGATEWAYULTRA")) return 5;
+  if (text.includes("UDR")) return 5;
+  if (text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX")) return 5;
   if (text.includes("UDMPRO")) return 8;
   if (text.includes("UDMSE")) return 8;
+  if (text.includes("UDMA6A8")) return 7;
   if (text.includes("USWULTRA")) return 7;
+  if (text.includes("48PRO")) return 52;
   if (text.includes("48")) return 48;
   if (text.includes("24")) return 24;
   return null;
@@ -350,9 +401,9 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "USMINI", "FLEXMINI"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
-var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35", "US48PRO"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"];
+var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "U7PRO", "U7LT", "UAC"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -367,17 +418,8 @@ function classifyDevice(device, entities) {
   if (isDefinitelyAP(device)) return "access_point";
   const modelKey = resolveModelKey(device);
   if (modelKey) {
-    if (["UDRULT", "UCGULTRA", "UCGMAX", "UDMPRO", "UDMSE"].includes(modelKey)) return "gateway";
-    if ([
-      "US8P60",
-      "USMINI",
-      "USL8LP",
-      "USL8LPB",
-      "USL16LP",
-      "USL16LPB",
-      "USW24P",
-      "USW48P"
-    ].includes(modelKey)) return "switch";
+    if (["UDRULT", "UCGULTRA", "UCGMAX", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"].includes(modelKey)) return "gateway";
+    if (["US8P60", "USMINI", "USL8LP", "USL8LPB", "USL16LP", "USL16LPB", "USM8P", "USWED35", "USW24P", "USW48P", "US24PRO", "US48PRO"].includes(modelKey)) return "switch";
   }
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
@@ -386,8 +428,8 @@ function classifyDevice(device, entities) {
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
     const name = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || name.includes("gateway")) return "gateway";
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || name.includes("switch")) return "switch";
+    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("udr") || name.includes("gateway")) return "gateway";
+    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usm") || name.includes("switch")) return "switch";
   }
   return "unknown";
 }
@@ -493,19 +535,46 @@ async function getDeviceContext(hass, deviceId) {
   if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
   const type = classifyDevice(device, entities);
   if (type !== "switch" && type !== "gateway") return null;
-  const numberedPorts = discoverPorts(entities);
-  const specialPorts = discoverSpecialPorts(entities);
+  const PORT_TK = /* @__PURE__ */ new Set([
+    "port_bandwidth_rx",
+    "port_bandwidth_tx",
+    "port_link_speed",
+    "poe",
+    "poe_power",
+    "poe_port_control"
+  ]);
+  const needsUID = (entitiesByDevice.get(deviceId) || []).filter(
+    (e) => !e.unique_id && e.translation_key && PORT_TK.has(e.translation_key) && !/_port_\d+(?:_|$)/i.test(e.entity_id) && !(e.original_name && /\bport\s+\d+\b/i.test(e.original_name)) && !(e.name && /\bport\s+\d+\b/i.test(e.name))
+  );
+  let workingEntities = entities;
+  if (needsUID.length > 0) {
+    const details = await Promise.all(
+      needsUID.map(
+        (e) => safeCallWS(hass, { type: "config/entity_registry/get", entity_id: e.entity_id }, null)
+      )
+    );
+    const uidMap = new Map(
+      details.filter(Boolean).filter((d) => d.unique_id).map((d) => [d.entity_id, d.unique_id])
+    );
+    if (uidMap.size > 0) {
+      workingEntities = entities.map(
+        (e) => uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e
+      );
+    }
+  }
+  const numberedPorts = discoverPorts(workingEntities);
+  const specialPorts = discoverSpecialPorts(workingEntities);
   const layout = getDeviceLayout(device, numberedPorts);
   return {
     device,
-    entities,
+    entities: workingEntities,
     type,
     layout,
     specialPorts,
     name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
-    firmware: extractFirmware(device, entities)
+    firmware: extractFirmware(device, workingEntities)
   };
 }
 function extractPortNumber(entity) {
@@ -617,18 +686,6 @@ function classifyPortEntity(entity) {
 function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id = lower(entity.entity_id);
-  if (text.includes("wan 2") || id.includes("wan2"))
-    return { key: "wan2", label: "WAN 2" };
-  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_wan", label: "WAN SFP+" };
-  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_lan", label: "LAN SFP+" };
-  if (id.endsWith("_wan_port") || id.endsWith("_wan"))
-    return { key: "wan", label: "WAN" };
-  if (text.includes("wan") || id.includes("_wan_"))
-    return { key: "wan", label: "WAN" };
-  if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
-    return { key: "sfp", label: "SFP" };
   return null;
 }
 function extractPortLabel(entity) {
@@ -692,8 +749,12 @@ function discoverSpecialPorts(entities) {
 function mergePortsWithLayout(layout, discoveredPorts) {
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutPorts = (layout?.rows || []).flat();
+  const specialPorts = new Set(
+    (layout?.specialSlots || []).map((slot) => slot.port).filter((p) => p !== null && p !== void 0)
+  );
   const merged = [];
   for (const portNumber of layoutPorts) {
+    if (specialPorts.has(portNumber)) continue;
     merged.push(
       byPort.get(portNumber) || {
         key: `port-${portNumber}`,
@@ -710,17 +771,30 @@ function mergePortsWithLayout(layout, discoveredPorts) {
     );
   }
   for (const port of discoveredPorts) {
+    if (specialPorts.has(port.port)) continue;
     if (!layoutPorts.includes(port.port)) merged.push(port);
   }
   return merged.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
 }
-function mergeSpecialsWithLayout(layout, discoveredSpecials) {
+function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = []) {
   const byKey = new Map(discoveredSpecials.map((s) => [s.key, s]));
+  const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutSpecials = layout?.specialSlots || [];
   const merged = layoutSpecials.map((slot) => {
+    if (slot.port !== null && slot.port !== void 0) {
+      const discovered = byPort.get(slot.port);
+      if (discovered) {
+        return {
+          ...discovered,
+          key: slot.key,
+          kind: "special",
+          label: slot.label
+        };
+      }
+    }
     return byKey.get(slot.key) || {
       key: slot.key,
-      port: null,
+      port: slot.port ?? null,
       label: slot.label,
       kind: "special",
       link_entity: null,
@@ -728,20 +802,56 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials) {
       poe_switch_entity: null,
       poe_power_entity: null,
       power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
       raw_entities: []
     };
   });
+  const hasPortMappedSpecials = layoutSpecials.some((slot) => slot.port !== null && slot.port !== void 0);
   for (const special of discoveredSpecials) {
+    if (hasPortMappedSpecials && (special.key === "wan" || special.key === "wan2" || special.key === "sfp" || special.key === "sfp_wan" || special.key === "sfp_lan")) continue;
     if (!layoutSpecials.some((s) => s.key === special.key)) merged.push(special);
   }
   return merged;
 }
+function trafficValue(hass, entityId) {
+  const st = stateObj(hass, entityId);
+  if (!st) return null;
+  const num = parseFloat(String(st.state ?? "").replace(",", "."));
+  return Number.isNaN(num) ? null : num;
+}
+function hasTraffic(hass, port) {
+  const rx = trafficValue(hass, port?.rx_entity);
+  const tx = trafficValue(hass, port?.tx_entity);
+  return rx !== null && rx > 0 || tx !== null && tx > 0;
+}
+function getPoeStatus(hass, port) {
+  const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
+  if (!hasPoe) return { hasPoe: false, poeOn: false, poeText: "\u2014", canToggle: false };
+  const poeSwitch = stateObj(hass, port?.poe_switch_entity);
+  const switchVal = String(poeSwitch?.state ?? "").toLowerCase();
+  if (poeSwitch && switchVal !== "unknown" && switchVal !== "unavailable") {
+    return {
+      hasPoe: true,
+      poeOn: isOn(hass, port.poe_switch_entity),
+      poeText: String(poeSwitch.state),
+      canToggle: Boolean(port?.poe_switch_entity)
+    };
+  }
+  const poePower = stateObj(hass, port?.poe_power_entity);
+  const powerNum = parseFloat(String(poePower?.state ?? "").replace(",", "."));
+  if (!Number.isNaN(powerNum)) {
+    return {
+      hasPoe: true,
+      poeOn: powerNum > 0,
+      poeText: powerNum > 0 ? "on" : "off",
+      canToggle: false
+    };
+  }
+  return { hasPoe: true, poeOn: false, poeText: "\u2014", canToggle: false };
+}
 function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
-}
-function stateValue(hass, entityId, fallback = "\u2014") {
-  const state = stateObj(hass, entityId);
-  return state ? state.state : fallback;
 }
 function isOn(hass, entityId, port = null) {
   if (entityId) {
@@ -751,6 +861,9 @@ function isOn(hass, entityId, port = null) {
       if (value === "on" || value === "connected" || value === "up" || value === "true" || value === "active" || value === "1") return true;
       if (value === "off" || value === "disconnected" || value === "false") return false;
     }
+  }
+  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+    return hasTraffic(hass, port);
   }
   if (port?.speed_entity) {
     const speedState = stateObj(hass, port.speed_entity);
@@ -770,6 +883,11 @@ function formatState(hass, entityId, fallback = "\u2014") {
   if (!state) return fallback;
   const unit = state.attributes?.unit_of_measurement;
   if (state.state === "unknown" || state.state === "unavailable") return "\u2014";
+  const num = parseFloat(String(state.state).replace(",", "."));
+  if (!Number.isNaN(num)) {
+    const rounded = num.toFixed(2);
+    return unit ? `${rounded} ${unit}` : rounded;
+  }
   return unit ? `${state.state} ${unit}` : state.state;
 }
 function getPortLinkText(hass, port) {
@@ -777,6 +895,9 @@ function getPortLinkText(hass, port) {
   if (direct) {
     const value = String(direct.state ?? "");
     if (isLikelyLinkStateValue(value)) return value;
+  }
+  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+    return hasTraffic(hass, port) ? "connected" : "disconnected";
   }
   for (const entityId of port?.raw_entities || []) {
     const st = stateObj(hass, entityId);
@@ -1121,7 +1242,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.461f142";
+var VERSION = "0.0.0-dev.125331b";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1181,8 +1302,9 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (token !== this._loadToken) return;
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
-      const numbered = mergePortsWithLayout(ctx?.layout, discoverPorts(ctx?.entities || []));
-      const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
+      const discovered = discoverPorts(ctx?.entities || []);
+      const numbered = mergePortsWithLayout(ctx?.layout, discovered);
+      const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []), discovered);
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
@@ -1293,6 +1415,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       .frontpanel.dual-row           .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
       .frontpanel.gateway-rack       .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
       .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
+      .frontpanel.six-grid           .port-row { grid-template-columns: repeat(6, minmax(0,1fr)); }
       .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
       .frontpanel.ultra-row          .port-row { grid-template-columns: repeat(7, minmax(0,1fr)); }
 
@@ -1309,7 +1432,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       .port:hover    { outline: 1px solid rgba(0,144,217,.5); outline-offset: 1px; border-radius: 5px; }
 
       .port-leds {
-        display: flex; justify-content: space-between;
+        display: flex; justify-content: center;
         width: 100%; padding: 0 1px; margin-bottom: 2px;
       }
       .port-led {
@@ -1350,10 +1473,13 @@ var UnifiDeviceCard = class extends HTMLElement {
       .theme-dark .port-led                { background: #1e2433; }
 
       /* LED states */
-      .port.up          .port-led-link  { background: var(--udc-green); }
+      .port.up          .port-led-link  { background: var(--udc-red); }
+      .port.speed-10000 .port-led-link  { background: #1560bd; }
+      .port.speed-2500  .port-led-link  { background: #1e90ff; }
+      .port.speed-1000  .port-led-link  { background: var(--udc-green); }
       .port.speed-100   .port-led-link  { background: var(--udc-orange); }
       .port.speed-low   .port-led-link  { background: #7a5c10; }
-      .port.poe-on      .port-led-poe   { background: var(--udc-orange); }
+      .port.poe-on      .port-led-link  { box-shadow: 0 0 0 1px rgba(255,165,0,.45); }
 
       /* Special ports */
       .port.special { padding: 5px 5px 4px; border-radius: 5px; }
@@ -1433,13 +1559,16 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _renderPortButton(slot, selectedKey) {
     const linkUp = isOn(this._hass, slot.link_entity, slot);
-    const hasPoe = Boolean(slot.poe_switch_entity);
-    const poeOn = hasPoe ? isOn(this._hass, slot.poe_switch_entity) : false;
+    const poeStatus = getPoeStatus(this._hass, slot);
+    const poeOn = poeStatus.hasPoe ? poeStatus.poeOn : false;
     const isSpecial = slot.kind === "special";
     let speedClass = "";
     if (linkUp) {
       const spd = getPortSpeedText(this._hass, slot);
       if (spd.includes("100") && !spd.includes("1000")) speedClass = "speed-100";
+      else if (spd.includes("10000")) speedClass = "speed-10000";
+      else if (spd.includes("2500")) speedClass = "speed-2500";
+      else if (spd.includes("1000")) speedClass = "speed-1000";
       else if (spd !== "\u2014" && !spd.includes("1000") && !spd.includes("Gbit")) speedClass = "speed-low";
     }
     const tooltip = [
@@ -1458,7 +1587,6 @@ var UnifiDeviceCard = class extends HTMLElement {
     ].filter(Boolean).join(" ");
     return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
       <div class="port-leds">
-        <div class="port-led port-led-poe"></div>
         <div class="port-led port-led-link"></div>
       </div>
       <div class="port-socket"></div>
@@ -1467,8 +1595,9 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _renderPanelAndDetail(title) {
     const ctx = this._ctx;
-    const numbered = mergePortsWithLayout(ctx?.layout, discoverPorts(ctx?.entities || []));
-    const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []));
+    const discovered = discoverPorts(ctx?.entities || []);
+    const numbered = mergePortsWithLayout(ctx?.layout, discovered);
+    const specials = mergeSpecialsWithLayout(ctx?.layout, discoverSpecialPorts(ctx?.entities || []), discovered);
     const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
@@ -1500,13 +1629,14 @@ var UnifiDeviceCard = class extends HTMLElement {
       const linkUp = isOn(this._hass, selected.link_entity, selected);
       const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
-      const hasPoe = Boolean(selected.poe_switch_entity);
-      const poeOn = hasPoe ? isOn(this._hass, selected.poe_switch_entity) : false;
+      const poeStatus = getPoeStatus(this._hass, selected);
+      const hasPoe = poeStatus.hasPoe;
+      const poeOn = poeStatus.poeOn;
       const poePower = hasPoe ? formatState(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
       const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
       const portLabel = selected.port_label || null;
-      const portTitle = selected.kind === "special" ? selected.label : portLabel ? `Port ${selected.port} <span class="port-custom-label">\u2014 ${portLabel}</span>` : `Port ${selected.port}`;
+      const portTitle = selected.kind === "special" ? portLabel ? `${selected.label} <span class="port-custom-label">\u2014 ${portLabel}</span>` : selected.label : portLabel ? `Port ${selected.port} <span class="port-custom-label">\u2014 ${portLabel}</span>` : `Port ${selected.port}`;
       const speedDisabledHint = (!speedText || speedText === "\u2014") && selected.speed_entity ? `<div class="hint-disabled">${this._t("speed_disabled")}</div>` : "";
       const tputHtml = rxVal || txVal ? `
         <div class="tput-row">
@@ -1531,7 +1661,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="detail-card">
             <div class="dc-label">${this._t("poe")}</div>
             <div class="dc-value ${hasPoe ? poeOn ? "poe-on" : "" : "na"}">
-              ${hasPoe ? stateValue(this._hass, selected.poe_switch_entity, "\u2014") : "\u2014"}
+              ${hasPoe ? poeStatus.poeText : "\u2014"}
             </div>
           </div>
           <div class="detail-card">
@@ -1550,7 +1680,7 @@ var UnifiDeviceCard = class extends HTMLElement {
                 ${enabled ? this._t("port_disable") : this._t("port_enable")}
               </button>`;
       })() : ""}
-          ${hasPoe ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+          ${poeStatus.canToggle ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
               \u26A1 ${poeOn ? this._t("poe_off") : this._t("poe_on")}
             </button>` : ""}
           ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
