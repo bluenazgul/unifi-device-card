@@ -96,6 +96,7 @@ export const MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP 2", port: 50 },
       { key: "sfp_3", label: "SFP 3", port: 51 },
       { key: "sfp_4", label: "SFP 4", port: 52 },
+    ],
   },
 
   US48PRO: {
