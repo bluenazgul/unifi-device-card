@@ -46,14 +46,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   // ─── Smart render helper ───────────────────────────────────────────────────
   // After the first full render we never rebuild the whole shadow DOM again.
-  // Instead we patch only the parts that actually changed.
+  // Instead we patch only the parts that actually changed — except when the
+  // DOM structure itself must change (e.g. loading hint ↔ device select).
   _smartRender() {
-    if (!this._rendered) {
+    const root = this.shadowRoot;
+    const hasDeviceSelect = !!root?.getElementById("device");
+    const shouldHaveDeviceSelect = !this._loading;
+
+    if (!this._rendered || hasDeviceSelect !== shouldHaveDeviceSelect) {
       this._render();
-    } else {
-      this._patchFields();
-      this._patchWarning();
+      return;
     }
+
+    this._patchFields();
+    this._patchWarning();
   }
 
   // ─── Async loaders ────────────────────────────────────────────────────────
@@ -248,10 +254,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   // ─── Full render (first time only / device change) ────────────────────────
   _render() {
-    const cfg    = this._config;
-    const selId  = cfg?.device_id || "";
+    const cfg = this._config;
+    const selId = cfg?.device_id || "";
     const selName = String(cfg?.name || "").replace(/"/g, "&quot;");
-    const selBg   = String(cfg?.background_color || "").replace(/"/g, "&quot;");
+    const selBg = String(cfg?.background_color || "").replace(/"/g, "&quot;");
 
     const options = this._devices
       .map((d) => `<option value="${d.id}" ${d.id === selId ? "selected" : ""}>${d.label}</option>`)
