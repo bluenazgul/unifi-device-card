@@ -51,6 +51,43 @@ const TRANSLATIONS = {
     editor_hint:           "Only devices from the UniFi Network Integration are shown.",
     editor_error:          "Failed to load UniFi devices.",
 
+    // Raw HA state values that may appear in the link status / PoE fields
+    state_on:           "On",
+    state_off:          "Off",
+    state_up:           "Up",
+    state_down:         "Down",
+    state_connected:    "Connected",
+    state_disconnected: "Disconnected",
+    state_true:         "Connected",
+    state_false:        "No link",
+    state_active:       "Active",
+
+    // Port label prefix (used in detail panel title)
+    port_label:         "Port",
+
+    // Background color field (editor)
+    editor_bg_label: "Background color (optional)",
+    editor_bg_hint:  "Default: var(--card-background-color)",
+
+    // Entity warning — loading hint
+    warning_checking: "Checking selected device for disabled or hidden UniFi entities…",
+
+    // Entity warning — content
+    warning_title:   "Disabled or hidden UniFi entities detected",
+    warning_body:    "The selected device has relevant UniFi entities that are currently disabled or hidden. This can lead to missing controls, incomplete telemetry, or incorrect port status in the card.",
+    warning_status:  "Status summary: {disabled} disabled, {hidden} hidden.",
+    warning_check_in: "Check in Home Assistant under:",
+    warning_ha_path: "Settings → Devices &amp; Services → UniFi → Devices / Entities",
+
+    // Entity warning — entity type labels (used with a leading count number)
+    warning_entity_port_switch: "port switch entities",
+    warning_entity_poe_switch:  "PoE switch entities",
+    warning_entity_poe_power:   "PoE power sensors",
+    warning_entity_link_speed:  "link speed sensors",
+    warning_entity_rx_tx:       "RX/TX sensors",
+    warning_entity_power_cycle: "power cycle buttons",
+    warning_entity_link:        "link entities",
+
     // Device type labels (used in device selector)
     type_switch:  "Switch",
     type_gateway: "Gateway",
@@ -91,6 +128,43 @@ const TRANSLATIONS = {
     editor_hint:           "Nur Geräte aus der UniFi Network Integration werden angezeigt.",
     editor_error:          "UniFi-Geräte konnten nicht geladen werden.",
 
+    // Raw HA state values
+    state_on:           "Ein",
+    state_off:          "Aus",
+    state_up:           "Verbunden",
+    state_down:         "Kein Link",
+    state_connected:    "Verbunden",
+    state_disconnected: "Getrennt",
+    state_true:         "Verbunden",
+    state_false:        "Kein Link",
+    state_active:       "Aktiv",
+
+    // Port label prefix
+    port_label:         "Port",
+
+    // Background color field (editor)
+    editor_bg_label: "Hintergrundfarbe (optional)",
+    editor_bg_hint:  "Standard: var(--card-background-color)",
+
+    // Entity warning — loading hint
+    warning_checking: "Ausgewähltes Gerät auf deaktivierte oder versteckte UniFi-Entities prüfen…",
+
+    // Entity warning — content
+    warning_title:   "Deaktivierte oder versteckte UniFi-Entities erkannt",
+    warning_body:    "Das ausgewählte Gerät hat relevante UniFi-Entities, die derzeit deaktiviert oder versteckt sind. Das kann zu fehlenden Bedienelementen, unvollständiger Telemetrie oder falschem Portstatus in der Karte führen.",
+    warning_status:  "Zusammenfassung: {disabled} deaktiviert, {hidden} versteckt.",
+    warning_check_in: "In Home Assistant prüfen unter:",
+    warning_ha_path: "Einstellungen → Geräte &amp; Dienste → UniFi → Geräte / Entities",
+
+    // Entity warning — entity type labels
+    warning_entity_port_switch: "Port-Switch-Entities",
+    warning_entity_poe_switch:  "PoE-Switch-Entities",
+    warning_entity_poe_power:   "PoE-Leistungssensoren",
+    warning_entity_link_speed:  "Linkgeschwindigkeitssensoren",
+    warning_entity_rx_tx:       "RX/TX-Sensoren",
+    warning_entity_power_cycle: "Power-Cycle-Buttons",
+    warning_entity_link:        "Link-Entities",
+
     type_switch:  "Switch",
     type_gateway: "Gateway",
   },
@@ -130,6 +204,43 @@ const TRANSLATIONS = {
     editor_hint:           "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error:          "UniFi-apparaten konden niet worden geladen.",
 
+    // Raw HA state values
+    state_on:           "Aan",
+    state_off:          "Uit",
+    state_up:           "Verbonden",
+    state_down:         "Geen link",
+    state_connected:    "Verbonden",
+    state_disconnected: "Verbroken",
+    state_true:         "Verbonden",
+    state_false:        "Geen link",
+    state_active:       "Actief",
+
+    // Port label prefix
+    port_label:         "Poort",
+
+    // Background color field (editor)
+    editor_bg_label: "Achtergrondkleur (optioneel)",
+    editor_bg_hint:  "Standaard: var(--card-background-color)",
+
+    // Entity warning — loading hint
+    warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten…",
+
+    // Entity warning — content
+    warning_title:   "Uitgeschakelde of verborgen UniFi-entiteiten gevonden",
+    warning_body:    "Het geselecteerde apparaat heeft relevante UniFi-entiteiten die momenteel uitgeschakeld of verborgen zijn. Dit kan leiden tot ontbrekende bediening, onvolledige telemetrie of een onjuiste poortstatus in de kaart.",
+    warning_status:  "Samenvatting: {disabled} uitgeschakeld, {hidden} verborgen.",
+    warning_check_in: "Controleer in Home Assistant onder:",
+    warning_ha_path: "Instellingen → Apparaten &amp; Diensten → UniFi → Apparaten / Entiteiten",
+
+    // Entity warning — entity type labels
+    warning_entity_port_switch: "poortschakelaar-entiteiten",
+    warning_entity_poe_switch:  "PoE-schakelaar-entiteiten",
+    warning_entity_poe_power:   "PoE-vermogenssensoren",
+    warning_entity_link_speed:  "linksnelheidssensoren",
+    warning_entity_rx_tx:       "RX/TX-sensoren",
+    warning_entity_power_cycle: "power cycle-knoppen",
+    warning_entity_link:        "link-entiteiten",
+
     type_switch:  "Switch",
     type_gateway: "Gateway",
   },
@@ -168,6 +279,43 @@ const TRANSLATIONS = {
     editor_no_devices:     "Aucun switch ou gateway UniFi trouvé dans Home Assistant.",
     editor_hint:           "Seuls les appareils de l'intégration UniFi Network sont affichés.",
     editor_error:          "Impossible de charger les appareils UniFi.",
+
+    // Raw HA state values
+    state_on:           "Activé",
+    state_off:          "Désactivé",
+    state_up:           "Connecté",
+    state_down:         "Pas de lien",
+    state_connected:    "Connecté",
+    state_disconnected: "Déconnecté",
+    state_true:         "Connecté",
+    state_false:        "Pas de lien",
+    state_active:       "Actif",
+
+    // Port label prefix
+    port_label:         "Port",
+
+    // Background color field (editor)
+    editor_bg_label: "Couleur de fond (optionnel)",
+    editor_bg_hint:  "Défaut : var(--card-background-color)",
+
+    // Entity warning — loading hint
+    warning_checking: "Vérification des entités UniFi désactivées ou masquées pour l'appareil sélectionné…",
+
+    // Entity warning — content
+    warning_title:   "Entités UniFi désactivées ou masquées détectées",
+    warning_body:    "L'appareil sélectionné possède des entités UniFi pertinentes actuellement désactivées ou masquées. Cela peut entraîner des commandes manquantes, une télémétrie incomplète ou un état de port incorrect dans la carte.",
+    warning_status:  "Résumé : {disabled} désactivée(s), {hidden} masquée(s).",
+    warning_check_in: "Vérifier dans Home Assistant sous :",
+    warning_ha_path: "Paramètres → Appareils &amp; Services → UniFi → Appareils / Entités",
+
+    // Entity warning — entity type labels
+    warning_entity_port_switch: "entités de commutateur de port",
+    warning_entity_poe_switch:  "entités de commutateur PoE",
+    warning_entity_poe_power:   "capteurs de puissance PoE",
+    warning_entity_link_speed:  "capteurs de vitesse de lien",
+    warning_entity_rx_tx:       "capteurs RX/TX",
+    warning_entity_power_cycle: "boutons de redémarrage PoE",
+    warning_entity_link:        "entités de lien",
 
     type_switch:  "Switch",
     type_gateway: "Passerelle",
