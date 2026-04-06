@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b7e61bd */
+/* UniFi Device Card 0.0.0-dev.2a2aa1b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -966,6 +966,37 @@ var TRANSLATIONS = {
     editor_no_devices: "No UniFi switches or gateways found in Home Assistant.",
     editor_hint: "Only devices from the UniFi Network Integration are shown.",
     editor_error: "Failed to load UniFi devices.",
+    // Raw HA state values that may appear in the link status / PoE fields
+    state_on: "On",
+    state_off: "Off",
+    state_up: "Up",
+    state_down: "Down",
+    state_connected: "Connected",
+    state_disconnected: "Disconnected",
+    state_true: "Connected",
+    state_false: "No link",
+    state_active: "Active",
+    // Port label prefix (used in detail panel title)
+    port_label: "Port",
+    // Background color field (editor)
+    editor_bg_label: "Background color (optional)",
+    editor_bg_hint: "Default: var(--card-background-color)",
+    // Entity warning — loading hint
+    warning_checking: "Checking selected device for disabled or hidden UniFi entities\u2026",
+    // Entity warning — content
+    warning_title: "Disabled or hidden UniFi entities detected",
+    warning_body: "The selected device has relevant UniFi entities that are currently disabled or hidden. This can lead to missing controls, incomplete telemetry, or incorrect port status in the card.",
+    warning_status: "Status summary: {disabled} disabled, {hidden} hidden.",
+    warning_check_in: "Check in Home Assistant under:",
+    warning_ha_path: "Settings \u2192 Devices &amp; Services \u2192 UniFi \u2192 Devices / Entities",
+    // Entity warning — entity type labels (used with a leading count number)
+    warning_entity_port_switch: "port switch entities",
+    warning_entity_poe_switch: "PoE switch entities",
+    warning_entity_poe_power: "PoE power sensors",
+    warning_entity_link_speed: "link speed sensors",
+    warning_entity_rx_tx: "RX/TX sensors",
+    warning_entity_power_cycle: "power cycle buttons",
+    warning_entity_link: "link entities",
     // Device type labels (used in device selector)
     type_switch: "Switch",
     type_gateway: "Gateway"
@@ -999,6 +1030,37 @@ var TRANSLATIONS = {
     editor_no_devices: "Keine UniFi Switches oder Gateways in Home Assistant gefunden.",
     editor_hint: "Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.",
     editor_error: "UniFi-Ger\xE4te konnten nicht geladen werden.",
+    // Raw HA state values
+    state_on: "Ein",
+    state_off: "Aus",
+    state_up: "Verbunden",
+    state_down: "Kein Link",
+    state_connected: "Verbunden",
+    state_disconnected: "Getrennt",
+    state_true: "Verbunden",
+    state_false: "Kein Link",
+    state_active: "Aktiv",
+    // Port label prefix
+    port_label: "Port",
+    // Background color field (editor)
+    editor_bg_label: "Hintergrundfarbe (optional)",
+    editor_bg_hint: "Standard: var(--card-background-color)",
+    // Entity warning — loading hint
+    warning_checking: "Ausgew\xE4hltes Ger\xE4t auf deaktivierte oder versteckte UniFi-Entities pr\xFCfen\u2026",
+    // Entity warning — content
+    warning_title: "Deaktivierte oder versteckte UniFi-Entities erkannt",
+    warning_body: "Das ausgew\xE4hlte Ger\xE4t hat relevante UniFi-Entities, die derzeit deaktiviert oder versteckt sind. Das kann zu fehlenden Bedienelementen, unvollst\xE4ndiger Telemetrie oder falschem Portstatus in der Karte f\xFChren.",
+    warning_status: "Zusammenfassung: {disabled} deaktiviert, {hidden} versteckt.",
+    warning_check_in: "In Home Assistant pr\xFCfen unter:",
+    warning_ha_path: "Einstellungen \u2192 Ger\xE4te &amp; Dienste \u2192 UniFi \u2192 Ger\xE4te / Entities",
+    // Entity warning — entity type labels
+    warning_entity_port_switch: "Port-Switch-Entities",
+    warning_entity_poe_switch: "PoE-Switch-Entities",
+    warning_entity_poe_power: "PoE-Leistungssensoren",
+    warning_entity_link_speed: "Linkgeschwindigkeitssensoren",
+    warning_entity_rx_tx: "RX/TX-Sensoren",
+    warning_entity_power_cycle: "Power-Cycle-Buttons",
+    warning_entity_link: "Link-Entities",
     type_switch: "Switch",
     type_gateway: "Gateway"
   },
@@ -1031,6 +1093,37 @@ var TRANSLATIONS = {
     editor_no_devices: "Geen UniFi-switches of gateways gevonden in Home Assistant.",
     editor_hint: "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error: "UniFi-apparaten konden niet worden geladen.",
+    // Raw HA state values
+    state_on: "Aan",
+    state_off: "Uit",
+    state_up: "Verbonden",
+    state_down: "Geen link",
+    state_connected: "Verbonden",
+    state_disconnected: "Verbroken",
+    state_true: "Verbonden",
+    state_false: "Geen link",
+    state_active: "Actief",
+    // Port label prefix
+    port_label: "Poort",
+    // Background color field (editor)
+    editor_bg_label: "Achtergrondkleur (optioneel)",
+    editor_bg_hint: "Standaard: var(--card-background-color)",
+    // Entity warning — loading hint
+    warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
+    // Entity warning — content
+    warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gevonden",
+    warning_body: "Het geselecteerde apparaat heeft relevante UniFi-entiteiten die momenteel uitgeschakeld of verborgen zijn. Dit kan leiden tot ontbrekende bediening, onvolledige telemetrie of een onjuiste poortstatus in de kaart.",
+    warning_status: "Samenvatting: {disabled} uitgeschakeld, {hidden} verborgen.",
+    warning_check_in: "Controleer in Home Assistant onder:",
+    warning_ha_path: "Instellingen \u2192 Apparaten &amp; Diensten \u2192 UniFi \u2192 Apparaten / Entiteiten",
+    // Entity warning — entity type labels
+    warning_entity_port_switch: "poortschakelaar-entiteiten",
+    warning_entity_poe_switch: "PoE-schakelaar-entiteiten",
+    warning_entity_poe_power: "PoE-vermogenssensoren",
+    warning_entity_link_speed: "linksnelheidssensoren",
+    warning_entity_rx_tx: "RX/TX-sensoren",
+    warning_entity_power_cycle: "power cycle-knoppen",
+    warning_entity_link: "link-entiteiten",
     type_switch: "Switch",
     type_gateway: "Gateway"
   },
@@ -1063,6 +1156,37 @@ var TRANSLATIONS = {
     editor_no_devices: "Aucun switch ou gateway UniFi trouv\xE9 dans Home Assistant.",
     editor_hint: "Seuls les appareils de l'int\xE9gration UniFi Network sont affich\xE9s.",
     editor_error: "Impossible de charger les appareils UniFi.",
+    // Raw HA state values
+    state_on: "Activ\xE9",
+    state_off: "D\xE9sactiv\xE9",
+    state_up: "Connect\xE9",
+    state_down: "Pas de lien",
+    state_connected: "Connect\xE9",
+    state_disconnected: "D\xE9connect\xE9",
+    state_true: "Connect\xE9",
+    state_false: "Pas de lien",
+    state_active: "Actif",
+    // Port label prefix
+    port_label: "Port",
+    // Background color field (editor)
+    editor_bg_label: "Couleur de fond (optionnel)",
+    editor_bg_hint: "D\xE9faut : var(--card-background-color)",
+    // Entity warning — loading hint
+    warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
+    // Entity warning — content
+    warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
+    warning_body: "L'appareil s\xE9lectionn\xE9 poss\xE8de des entit\xE9s UniFi pertinentes actuellement d\xE9sactiv\xE9es ou masqu\xE9es. Cela peut entra\xEEner des commandes manquantes, une t\xE9l\xE9m\xE9trie incompl\xE8te ou un \xE9tat de port incorrect dans la carte.",
+    warning_status: "R\xE9sum\xE9 : {disabled} d\xE9sactiv\xE9e(s), {hidden} masqu\xE9e(s).",
+    warning_check_in: "V\xE9rifier dans Home Assistant sous :",
+    warning_ha_path: "Param\xE8tres \u2192 Appareils &amp; Services \u2192 UniFi \u2192 Appareils / Entit\xE9s",
+    // Entity warning — entity type labels
+    warning_entity_port_switch: "entit\xE9s de commutateur de port",
+    warning_entity_poe_switch: "entit\xE9s de commutateur PoE",
+    warning_entity_poe_power: "capteurs de puissance PoE",
+    warning_entity_link_speed: "capteurs de vitesse de lien",
+    warning_entity_rx_tx: "capteurs RX/TX",
+    warning_entity_power_cycle: "boutons de red\xE9marrage PoE",
+    warning_entity_link: "entit\xE9s de lien",
     type_switch: "Switch",
     type_gateway: "Passerelle"
   }
@@ -1340,7 +1464,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b7e61bd";
+var VERSION = "0.0.0-dev.2a2aa1b";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
