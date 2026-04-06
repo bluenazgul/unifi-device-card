@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b3774af */
+/* UniFi Device Card 0.0.0-dev.6b9b4fc */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -226,8 +226,8 @@ var init_model_registry = __esm({
         kind: "switch",
         frontStyle: "quad-row",
         rows: [oddRange(1, 24), evenRange(1, 24), oddRange(1, 48), evenRange(1, 48)],
-        portCount: 26,
-        displayModel: "USW Pro 24",
+        portCount: 52,
+        displayModel: "USW Pro 48 PoE",
         theme: "silver",
         specialSlots: [
           { key: "sfp_1", label: "SFP+ 1", port: 49 },
@@ -1841,7 +1841,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b3774af";
+var VERSION = "0.0.0-dev.6b9b4fc";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
