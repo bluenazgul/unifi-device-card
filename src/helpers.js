@@ -61,7 +61,7 @@ function classifyDevice(device, entities) {
     if (["US8P60", "USMINI", "USL8LP", "USL8LPB", "USL16LP", "USL16LPB", "US16P150", "US24PRO2", "USW24P", "USW48P"].includes(modelKey)) return "switch";
   }
 
-  if (modelStartsWith(device, SWITCH_MODEL_PREFIXES))  return "switch";
+  if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
 
   const hasPorts = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
@@ -86,9 +86,6 @@ async function safeCallWS(hass, msg, fallback = []) {
   }
 }
 
-// ─────────────────────────────────────────────────
-// Filter disabled/hidden entities.
-// ─────────────────────────────────────────────────
 async function getAllData(hass) {
   const [devices, rawEntities, configEntries] = await Promise.all([
     safeCallWS(hass, { type: "config/device_registry/list" }, []),
@@ -241,6 +238,76 @@ export async function getDeviceContext(hass, deviceId) {
     manufacturer: normalize(device.manufacturer),
     firmware:     extractFirmware(device, entities),
   };
+}
+
+// Editor helper: report disabled/hidden relevant entities for selected device only
+function classifyRelevantEntityType(entity) {
+  const id  = lower(entity.entity_id);
+  const eid = entity.entity_id || "";
+
+  if (eid.startsWith("button.") && id.includes("power_cycle")) return "power_cycle";
+  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) return "poe_switch";
+  if (eid.startsWith("switch.") && id.includes("_port_")) return "port_switch";
+  if (eid.startsWith("sensor.") && id.includes("_poe_power")) return "poe_power";
+  if (
+    eid.startsWith("sensor.") &&
+    (id.endsWith("_rx") || id.endsWith("_tx") || id.includes("_rx_") || id.includes("_tx_") ||
+     id.includes("throughput") || id.includes("bandwidth"))
+  ) return "rx_tx";
+  if (eid.startsWith("sensor.") && (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed"))) return "link_speed";
+  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) return "link_entity";
+
+  return null;
+}
+
+function makeEntityWarningResult() {
+  return {
+    total: 0,
+    disabled: 0,
+    hidden: 0,
+    counts: {
+      port_switch: 0,
+      poe_switch: 0,
+      poe_power: 0,
+      link_speed: 0,
+      rx_tx: 0,
+      power_cycle: 0,
+      link_entity: 0,
+    },
+    items: [],
+  };
+}
+
+export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
+  const result = makeEntityWarningResult();
+  if (!hass || !deviceId) return result;
+
+  const entities = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
+  for (const entity of entities || []) {
+    if (entity.device_id !== deviceId) continue;
+
+    const kind = classifyRelevantEntityType(entity);
+    if (!kind) continue;
+
+    const disabledBy = entity.disabled_by || null;
+    const hiddenBy   = entity.hidden_by || null;
+    if (!disabledBy && !hiddenBy) continue;
+
+    result.total += 1;
+    if (disabledBy) result.disabled += 1;
+    if (hiddenBy) result.hidden += 1;
+    result.counts[kind] = (result.counts[kind] || 0) + 1;
+
+    result.items.push({
+      entity_id: entity.entity_id,
+      name: entity.original_name || entity.name || entity.entity_id,
+      kind,
+      disabled_by: disabledBy,
+      hidden_by: hiddenBy,
+    });
+  }
+
+  return result;
 }
 
 // ─────────────────────────────────────────────────
