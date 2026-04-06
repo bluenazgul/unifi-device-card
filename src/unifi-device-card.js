@@ -27,25 +27,25 @@ class UnifiDeviceCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    this._config         = {};
-    this._ctx            = null;
-    this._selectedKey    = null;
-    this._loading        = false;
-    this._loadToken      = 0;
+    this._config = {};
+    this._ctx = null;
+    this._selectedKey = null;
+    this._loading = false;
+    this._loadToken = 0;
     this._loadedDeviceId = null;
   }
 
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
-    const newConfig   = config || {};
+    const newConfig = config || {};
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
 
     if (oldDeviceId !== newDeviceId) {
-      this._ctx            = null;
-      this._selectedKey    = null;
+      this._ctx = null;
+      this._selectedKey = null;
       this._loadedDeviceId = null;
-      this._loading        = false;
+      this._loading = false;
       if (this._hass && newDeviceId) {
         this._ensureLoaded();
         return;
@@ -88,12 +88,12 @@ class UnifiDeviceCard extends HTMLElement {
       const ctx = await getDeviceContext(this._hass, currentId);
       if (token !== this._loadToken) return;
 
-      this._ctx            = ctx;
+      this._ctx = ctx;
       this._loadedDeviceId = currentId;
 
       const discovered = discoverPorts(ctx?.entities || []);
-      const numbered   = mergePortsWithLayout(ctx?.layout, discovered);
-      const specials   = mergeSpecialsWithLayout(
+      const numbered = mergePortsWithLayout(ctx?.layout, discovered);
+      const specials = mergeSpecialsWithLayout(
         ctx?.layout,
         discoverSpecialPorts(ctx?.entities || []),
         discovered
@@ -103,7 +103,7 @@ class UnifiDeviceCard extends HTMLElement {
     } catch (err) {
       console.error("[unifi-device-card] Failed to load device context", err);
       if (token !== this._loadToken) return;
-      this._ctx            = null;
+      this._ctx = null;
       this._loadedDeviceId = null;
     }
 
@@ -129,7 +129,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _subtitle() {
     if (!this._config?.device_id || !this._ctx) return `Version ${VERSION}`;
-    const fw    = this._ctx?.firmware;
+    const fw = this._ctx?.firmware;
     const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
     return fw ? `${model} · FW ${fw}` : model;
   }
@@ -141,7 +141,7 @@ class UnifiDeviceCard extends HTMLElement {
   _styles() {
     return `<style>
       :host {
-        --udc-bg:      var(--udc-card-bg, var(--card-background-color));
+        --udc-bg:      #141820;
         --udc-surface: #1e2433;
         --udc-surf2:   #252d3d;
         --udc-border:  rgba(255,255,255,0.07);
@@ -156,8 +156,9 @@ class UnifiDeviceCard extends HTMLElement {
         --udc-r:       14px;
         --udc-rsm:     8px;
       }
+
       ha-card {
-        background: var(--udc-bg) !important;
+        background: var(--udc-card-bg, var(--card-background-color)) !important;
         color: var(--udc-text) !important;
         border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--udc-border)) !important;
         border-radius: var(--ha-card-border-radius, var(--udc-r)) !important;
@@ -170,206 +171,453 @@ class UnifiDeviceCard extends HTMLElement {
         padding: 16px 18px 13px;
         background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
         border-bottom: 1px solid var(--udc-border);
-        display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
       }
-      .header-info { display: grid; gap: 2px; min-width: 0; }
+
+      .header-info {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
       .title {
-        font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-      .subtitle { font-size: 0.73rem; color: var(--udc-muted); }
+
+      .subtitle {
+        font-size: 0.73rem;
+        color: var(--udc-muted);
+      }
+
       .chip {
-        display: flex; align-items: center; gap: 5px;
-        background: var(--udc-surf2); border: 1px solid var(--udc-border);
-        border-radius: 20px; padding: 3px 10px;
-        font-size: 0.71rem; font-weight: 700; white-space: nowrap;
-        color: var(--udc-dim); flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--udc-surf2);
+        border: 1px solid var(--udc-border);
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.71rem;
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--udc-dim);
+        flex-shrink: 0;
       }
+
       .chip .dot {
-        width: 6px; height: 6px; border-radius: 50%;
-        background: var(--udc-green); box-shadow: 0 0 5px var(--udc-green);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--udc-green);
+        box-shadow: 0 0 5px var(--udc-green);
         animation: blink 2.5s ease-in-out infinite;
       }
-      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .4; }
+      }
 
       .frontpanel {
-        padding: 12px 14px 10px; display: grid; gap: 5px;
+        padding: 12px 14px 10px;
+        display: grid;
+        gap: 5px;
         border-bottom: 1px solid var(--udc-border);
       }
+
       .frontpanel.theme-white  { background: #d8dde6; }
       .frontpanel.theme-silver { background: #2a2e35; }
       .frontpanel.theme-dark   { background: var(--udc-surface); }
 
       .panel-label {
-        font-size: 0.63rem; font-weight: 700; letter-spacing: .1em;
-        text-transform: uppercase; margin-bottom: 2px;
+        font-size: 0.63rem;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        margin-bottom: 2px;
       }
+
       .theme-white  .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
       .theme-dark   .panel-label { color: var(--udc-muted); }
 
-      .special-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
-      .port-row    { display: grid; gap: 5px; }
-      .frontpanel.single-row         .port-row,
-      .frontpanel.gateway-single-row .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
-      .frontpanel.dual-row           .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
-      .frontpanel.gateway-rack       .port-row { grid-template-columns: repeat(8, minmax(0,1fr)); }
-      .frontpanel.gateway-compact    .port-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
-      .frontpanel.six-grid           .port-row { grid-template-columns: repeat(6, minmax(0,1fr)); }
-      .frontpanel.quad-row           .port-row { grid-template-columns: repeat(12, minmax(0,1fr)); }
-      .frontpanel.ultra-row          .port-row { grid-template-columns: repeat(7, minmax(0,1fr)); }
+      .special-row {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+      }
+
+      .port-row {
+        display: grid;
+        gap: 5px;
+      }
+
+      .frontpanel.single-row .port-row,
+      .frontpanel.gateway-single-row .port-row {
+        grid-template-columns: repeat(8, minmax(0,1fr));
+      }
+
+      .frontpanel.dual-row .port-row {
+        grid-template-columns: repeat(8, minmax(0,1fr));
+      }
+
+      .frontpanel.gateway-rack .port-row {
+        grid-template-columns: repeat(8, minmax(0,1fr));
+      }
+
+      .frontpanel.gateway-compact .port-row {
+        grid-template-columns: repeat(5, minmax(0,1fr));
+      }
+
+      .frontpanel.six-grid .port-row {
+        grid-template-columns: repeat(6, minmax(0,1fr));
+      }
+
+      .frontpanel.quad-row .port-row {
+        grid-template-columns: repeat(12, minmax(0,1fr));
+      }
+
+      .frontpanel.ultra-row .port-row {
+        grid-template-columns: repeat(7, minmax(0,1fr));
+      }
 
       .port {
-        cursor: pointer; font: inherit;
-        display: flex; flex-direction: column; align-items: center;
-        padding: 4px 2px 3px; border-radius: 4px;
-        transition: outline .1s ease; position: relative; min-width: 0;
-        border: none; background: transparent;
+        cursor: pointer;
+        font: inherit;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 4px 2px 3px;
+        border-radius: 4px;
+        transition: outline .1s ease;
+        position: relative;
+        min-width: 0;
+        border: none;
+        background: transparent;
       }
-      .port:focus { outline: none; }
-      .port.selected { outline: 2px solid var(--udc-accent); outline-offset: 1px; border-radius: 5px; }
-      .port:hover    { outline: 1px solid rgba(0,144,217,.5); outline-offset: 1px; border-radius: 5px; }
+
+      .port:focus {
+        outline: none;
+      }
+
+      .port.selected {
+        outline: 2px solid var(--udc-accent);
+        outline-offset: 1px;
+        border-radius: 5px;
+      }
+
+      .port:hover {
+        outline: 1px solid rgba(0,144,217,.5);
+        outline-offset: 1px;
+        border-radius: 5px;
+      }
 
       .port-leds {
-        display: flex; justify-content: center;
-        width: 100%; padding: 0 1px; margin-bottom: 2px;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding: 0 1px;
+        margin-bottom: 2px;
       }
+
       .port-led {
-        width: 4px; height: 4px; border-radius: 50%;
-        transition: background .2s; flex-shrink: 0;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        transition: background .2s;
+        flex-shrink: 0;
       }
+
       .port-socket {
-        width: 100%; height: 13px; border-radius: 2px 2px 0 0;
-        position: relative; flex-shrink: 0;
+        width: 100%;
+        height: 13px;
+        border-radius: 2px 2px 0 0;
+        position: relative;
+        flex-shrink: 0;
       }
+
       .port-socket::after {
-        content: ''; position: absolute; bottom: 0; left: 12%; right: 12%;
-        height: 4px; border-radius: 1px 1px 0 0;
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 12%;
+        right: 12%;
+        height: 4px;
+        border-radius: 1px 1px 0 0;
       }
+
       .port-num {
-        font-size: 8px; font-weight: 800; line-height: 1;
-        margin-top: 2px; letter-spacing: 0; user-select: none;
+        font-size: 8px;
+        font-weight: 800;
+        line-height: 1;
+        margin-top: 2px;
+        letter-spacing: 0;
+        user-select: none;
       }
 
-      .theme-white .port-socket            { background: #b0b8c4; }
-      .theme-white .port-socket::after     { background: #8a8060; }
-      .theme-white .port-num               { color: #8a96a8; }
-      .theme-white .port.up .port-socket   { background: #9aa8b8; }
-      .theme-white .port.up .port-num      { color: #4a5568; }
-      .theme-white .port-led               { background: #c8d0d8; }
-      .theme-silver .port-socket           { background: #1a1e24; }
-      .theme-silver .port-socket::after    { background: #6a6040; }
-      .theme-silver .port-num              { color: #5a6070; }
-      .theme-silver .port.up .port-socket  { background: #141c14; }
-      .theme-silver .port.up .port-num     { color: #9aabb8; }
-      .theme-silver .port-led              { background: #252a30; }
-      .theme-dark .port-socket             { background: #1a2030; }
-      .theme-dark .port-socket::after      { background: #5a5030; }
-      .theme-dark .port-num                { color: var(--udc-muted); }
-      .theme-dark .port.up .port-socket    { background: #0f2010; }
-      .theme-dark .port.up .port-num       { color: var(--udc-text); }
-      .theme-dark .port-led                { background: #1e2433; }
+      .theme-white .port-socket         { background: #b0b8c4; }
+      .theme-white .port-socket::after  { background: #8a8060; }
+      .theme-white .port-num            { color: #8a96a8; }
+      .theme-white .port.up .port-socket { background: #9aa8b8; }
+      .theme-white .port.up .port-num   { color: #4a5568; }
+      .theme-white .port-led            { background: #c8d0d8; }
 
-      .port.up          .port-led-link  { background: var(--udc-red); }
-      .port.speed-10000 .port-led-link  { background: #1560bd; }
-      .port.speed-2500  .port-led-link  { background: #1e90ff; }
-      .port.speed-1000  .port-led-link  { background: var(--udc-green); }
-      .port.speed-100   .port-led-link  { background: var(--udc-orange); }
-      .port.speed-low   .port-led-link  { background: #7a5c10; }
-      .port.poe-on      .port-led-link  { box-shadow: 0 0 0 1px rgba(255,165,0,.45); }
+      .theme-silver .port-socket        { background: #1a1e24; }
+      .theme-silver .port-socket::after { background: #6a6040; }
+      .theme-silver .port-num           { color: #5a6070; }
+      .theme-silver .port.up .port-socket { background: #141c14; }
+      .theme-silver .port.up .port-num  { color: #9aabb8; }
+      .theme-silver .port-led           { background: #252a30; }
 
-      .port.special { padding: 5px 5px 4px; border-radius: 5px; }
-      .port.special .port-socket { height: 15px; border-radius: 3px 3px 0 0; }
-      .port.special .port-num { font-size: 9px; }
+      .theme-dark .port-socket          { background: #1a2030; }
+      .theme-dark .port-socket::after   { background: #5a5030; }
+      .theme-dark .port-num             { color: var(--udc-muted); }
+      .theme-dark .port.up .port-socket { background: #0f2010; }
+      .theme-dark .port.up .port-num    { color: var(--udc-text); }
+      .theme-dark .port-led             { background: #1e2433; }
 
-      .section { padding: 14px 18px 18px; display: grid; gap: 14px; }
+      .port.up .port-led-link       { background: var(--udc-red); }
+      .port.speed-10000 .port-led-link { background: #1560bd; }
+      .port.speed-2500 .port-led-link  { background: #1e90ff; }
+      .port.speed-1000 .port-led-link  { background: var(--udc-green); }
+      .port.speed-100 .port-led-link   { background: var(--udc-orange); }
+      .port.speed-low .port-led-link   { background: #7a5c10; }
+      .port.poe-on .port-led-link      { box-shadow: 0 0 0 1px rgba(255,165,0,.45); }
+
+      .port.special {
+        padding: 5px 5px 4px;
+        border-radius: 5px;
+      }
+
+      .port.special .port-socket {
+        height: 15px;
+        border-radius: 3px 3px 0 0;
+      }
+
+      .port.special .port-num {
+        font-size: 9px;
+      }
+
+      .section {
+        padding: 14px 18px 18px;
+        display: grid;
+        gap: 14px;
+      }
+
       .detail-header {
-        display: flex; align-items: center; justify-content: space-between;
-        padding-bottom: 11px; border-bottom: 1px solid var(--udc-border); margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 11px;
+        border-bottom: 1px solid var(--udc-border);
+        margin-bottom: 12px;
       }
-      .detail-title { font-size: .92rem; font-weight: 700; letter-spacing: -.01em; }
-      .port-custom-label { font-weight: 400; color: var(--udc-dim); font-size: .82rem; }
+
+      .detail-title {
+        font-size: .92rem;
+        font-weight: 700;
+        letter-spacing: -.01em;
+      }
+
+      .port-custom-label {
+        font-weight: 400;
+        color: var(--udc-dim);
+        font-size: .82rem;
+      }
+
       .status-badge {
-        display: inline-flex; align-items: center; gap: 4px;
-        padding: 3px 9px; border-radius: 20px;
-        font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
       }
-      .status-badge.up   { background: rgba(34,197,94,.1); color: var(--udc-green); border: 1px solid rgba(34,197,94,.2); }
-      .status-badge.down { background: rgba(78,93,115,.2); color: var(--udc-muted); border: 1px solid var(--udc-border); }
 
-      .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+      .status-badge.up {
+        background: rgba(34,197,94,.1);
+        color: var(--udc-green);
+        border: 1px solid rgba(34,197,94,.2);
+      }
+
+      .status-badge.down {
+        background: rgba(78,93,115,.2);
+        color: var(--udc-muted);
+        border: 1px solid var(--udc-border);
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
       .detail-card {
-        background: var(--udc-surface); border: 1px solid var(--udc-border);
-        border-radius: var(--udc-rsm); padding: 9px 12px; display: grid; gap: 2px;
+        background: var(--udc-surface);
+        border: 1px solid var(--udc-border);
+        border-radius: var(--udc-rsm);
+        padding: 9px 12px;
+        display: grid;
+        gap: 2px;
       }
-      .dc-label { font-size: .63rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--udc-muted); }
-      .dc-value { font-size: .87rem; font-weight: 700; color: var(--udc-text); }
-      .dc-value.accent { color: var(--udc-accent); }
-      .dc-value.poe-on { color: var(--udc-orange); }
-      .dc-value.na { color: var(--udc-muted); font-weight: 400; }
 
-      .tput-row { display: flex; gap: 6px; margin-bottom: 10px; }
-      .tput-chip {
-        display: inline-flex; align-items: center; gap: 4px;
-        background: var(--udc-surf2); border: 1px solid var(--udc-border);
-        border-radius: 6px; padding: 3px 8px;
-        font-size: .7rem; font-weight: 600; color: var(--udc-dim);
+      .dc-label {
+        font-size: .63rem;
+        font-weight: 700;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        color: var(--udc-muted);
       }
-      .tput-chip .arr { font-size: 8px; opacity: .6; }
+
+      .dc-value {
+        font-size: .87rem;
+        font-weight: 700;
+        color: var(--udc-text);
+      }
+
+      .dc-value.accent {
+        color: var(--udc-accent);
+      }
+
+      .dc-value.poe-on {
+        color: var(--udc-orange);
+      }
+
+      .dc-value.na {
+        color: var(--udc-muted);
+        font-weight: 400;
+      }
+
+      .tput-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .tput-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--udc-surf2);
+        border: 1px solid var(--udc-border);
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: .7rem;
+        font-weight: 600;
+        color: var(--udc-dim);
+      }
+
+      .tput-chip .arr {
+        font-size: 8px;
+        opacity: .6;
+      }
 
       .hint-disabled {
-        font-size: .72rem; color: var(--udc-muted); padding: 6px 10px;
-        border-radius: 6px; margin-bottom: 10px;
-        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+        font-size: .72rem;
+        color: var(--udc-muted);
+        padding: 6px 10px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        background: var(--udc-surf2);
+        border: 1px solid var(--udc-border);
       }
 
-      .actions { display: flex; gap: 7px; flex-wrap: wrap; }
-      .action-btn {
-        border: 1px solid var(--udc-border); border-radius: 7px;
-        padding: 7px 14px; cursor: pointer; font: inherit;
-        font-size: .8rem; font-weight: 600; transition: all .13s ease;
-        display: inline-flex; align-items: center; gap: 5px;
+      .actions {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
       }
+
+      .action-btn {
+        border: 1px solid var(--udc-border);
+        border-radius: 7px;
+        padding: 7px 14px;
+        cursor: pointer;
+        font: inherit;
+        font-size: .8rem;
+        font-weight: 600;
+        transition: all .13s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
       .action-btn.primary {
         background: var(--udc-accent);
         color: white;
         border-color: var(--udc-accent);
       }
+
       .action-btn.primary:hover {
         background: #0077bb;
         box-shadow: 0 0 14px var(--udc-aglow);
       }
+
       .action-btn.secondary {
         background: var(--udc-surf2);
         color: var(--udc-dim);
       }
+
       .action-btn.secondary:hover {
         color: var(--udc-text);
         border-color: rgba(255,255,255,.14);
       }
 
-      .muted { color: var(--udc-muted); font-size: .875rem; }
+      .muted {
+        color: var(--udc-muted);
+        font-size: .875rem;
+      }
+
       .loading-state {
-        display: flex; align-items: center; gap: 10px;
-        padding: 20px; color: var(--udc-muted); font-size: .875rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 20px;
+        color: var(--udc-muted);
+        font-size: .875rem;
       }
+
       .spinner {
-        width: 16px; height: 16px; flex-shrink: 0;
-        border: 2px solid var(--udc-surf2); border-top-color: var(--udc-accent);
-        border-radius: 50%; animation: spin .65s linear infinite;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        border: 2px solid var(--udc-surf2);
+        border-top-color: var(--udc-accent);
+        border-radius: 50%;
+        animation: spin .65s linear infinite;
       }
-      @keyframes spin { to { transform: rotate(360deg); } }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
       .empty-state {
-        padding: 24px 18px; color: var(--udc-muted);
-        font-size: .875rem; text-align: center; line-height: 1.5;
+        padding: 24px 18px;
+        color: var(--udc-muted);
+        font-size: .875rem;
+        text-align: center;
+        line-height: 1.5;
       }
     </style>`;
   }
 
   _renderPortButton(slot, selectedKey) {
-    const linkUp    = isOn(this._hass, slot.link_entity, slot);
+    const linkUp = isOn(this._hass, slot.link_entity, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
-    const poeOn     = poeStatus.hasPoe ? poeStatus.poeOn : false;
+    const poeOn = poeStatus.hasPoe ? poeStatus.poeOn : false;
     const isSpecial = slot.kind === "special";
 
     let speedClass = "";
@@ -408,18 +656,18 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail(title) {
-    const ctx        = this._ctx;
+    const ctx = this._ctx;
     const discovered = discoverPorts(ctx?.entities || []);
-    const numbered   = mergePortsWithLayout(ctx?.layout, discovered);
-    const specials   = mergeSpecialsWithLayout(
+    const numbered = mergePortsWithLayout(ctx?.layout, discovered);
+    const specials = mergeSpecialsWithLayout(
       ctx?.layout,
       discoverSpecialPorts(ctx?.entities || []),
       discovered
     );
-    const allSlots   = [...specials, ...numbered];
-    const selected   = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
-    const connected  = this._connectedCount(allSlots);
-    const theme      = ctx?.layout?.theme || "dark";
+    const allSlots = [...specials, ...numbered];
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const connected = this._connectedCount(allSlots);
+    const theme = ctx?.layout?.theme || "dark";
 
     const specialRow = specials.length
       ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
@@ -450,15 +698,15 @@ class UnifiDeviceCard extends HTMLElement {
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
 
     if (selected) {
-      const linkUp    = isOn(this._hass, selected.link_entity, selected);
-      const linkText  = getPortLinkText(this._hass, selected);
+      const linkUp = isOn(this._hass, selected.link_entity, selected);
+      const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
-      const hasPoe    = poeStatus.hasPoe;
-      const poeOn     = poeStatus.poeOn;
-      const poePower  = hasPoe ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
-      const rxVal     = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
-      const txVal     = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
+      const hasPoe = poeStatus.hasPoe;
+      const poeOn = poeStatus.poeOn;
+      const poePower = hasPoe ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
+      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
+      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
       const portLabel = selected.port_label || null;
 
       const portTitle = selected.kind === "special"
