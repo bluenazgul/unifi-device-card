@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a4c9db9 */
+/* UniFi Device Card 0.0.0-dev.92293c1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1273,14 +1273,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   // ─── Smart render helper ───────────────────────────────────────────────────
   // After the first full render we never rebuild the whole shadow DOM again.
-  // Instead we patch only the parts that actually changed.
+  // Instead we patch only the parts that actually changed — except when the
+  // DOM structure itself must change (e.g. loading hint ↔ device select).
   _smartRender() {
-    if (!this._rendered) {
+    const root = this.shadowRoot;
+    const hasDeviceSelect = !!root?.getElementById("device");
+    const shouldHaveDeviceSelect = !this._loading;
+    if (!this._rendered || hasDeviceSelect !== shouldHaveDeviceSelect) {
       this._render();
-    } else {
-      this._patchFields();
-      this._patchWarning();
+      return;
     }
+    this._patchFields();
+    this._patchWarning();
   }
   // ─── Async loaders ────────────────────────────────────────────────────────
   async _loadDevices() {
@@ -1540,7 +1544,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a4c9db9";
+var VERSION = "0.0.0-dev.92293c1";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
