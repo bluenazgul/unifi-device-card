@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.91] preview Build - 2026-04-07
+## [0.3.0] - 2026-04-07
 
 ### ✨ Features
 - Added support for new devices (including correct model identification and naming)
