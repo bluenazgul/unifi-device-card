@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.515662a */
+/* UniFi Device Card 0.0.0-dev.2b8e1a4 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -976,7 +976,9 @@ async function getDeviceContext(hass, deviceId) {
 function classifyRelevantEntityType(entity) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const tk = entity.translation_key || "";
+  const tk = lower(entity.translation_key || "");
+  const dc = lower(entity.device_class || "");
+  const odc = lower(entity.original_device_class || "");
   if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) {
     return "power_cycle";
   }
@@ -986,13 +988,13 @@ function classifyRelevantEntityType(entity) {
   if (eid.startsWith("switch.") && id.includes("_port_")) {
     return "port_switch";
   }
-  if (eid.startsWith("sensor.") && (id.includes("_poe_power") || id.includes("_power") || tk === "poe_power" || tk === "port_poe_power")) {
+  if (eid.startsWith("sensor.") && (id.includes("_poe_power") || id.includes("_poe") && id.includes("power") || id.includes("power_draw") || id.includes("power_consumption") || id.includes("consumption") || tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption" || dc === "power" || odc === "power")) {
     return "poe_power";
   }
-  if (eid.startsWith("sensor.") && (id.endsWith("_rx") || id.endsWith("_tx") || id.includes("_rx_") || id.includes("_tx_") || id.includes("throughput") || id.includes("bandwidth") || tk === "port_bandwidth_rx" || tk === "port_bandwidth_tx")) {
+  if (eid.startsWith("sensor.") && (id.endsWith("_rx") || id.endsWith("_tx") || id.includes("_rx_") || id.includes("_tx_") || id.includes("throughput") || id.includes("bandwidth") || id.includes("download") || id.includes("upload") || tk === "port_bandwidth_rx" || tk === "port_bandwidth_tx" || tk === "rx" || tk === "tx")) {
     return "rx_tx";
   }
-  if (eid.startsWith("sensor.") && (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || tk === "port_link_speed")) {
+  if (eid.startsWith("sensor.") && (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || id.endsWith("_speed") || tk === "port_link_speed" || tk === "link_speed")) {
     return "link_speed";
   }
   if (eid.startsWith("binary_sensor.") && (id.includes("_port_") || id.includes("_link") || tk === "port_link")) {
@@ -1053,7 +1055,9 @@ function extractPortNumber(entity) {
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const tk = entity.translation_key || "";
+  const tk = lower(entity.translation_key || "");
+  const dc = lower(entity.device_class || "");
+  const odc = lower(entity.original_device_class || "");
   if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle" || id.includes("_restart") || id.includes("_reboot"))) {
     return "power_cycle_entity";
   }
@@ -1071,24 +1075,30 @@ function classifyPortEntity(entity, isSpecial = false) {
   }
   if (eid.startsWith("sensor.")) {
     if (id.includes("_port_")) {
-      if (id.endsWith("_rx") || id.includes("_rx_") || tk === "port_bandwidth_rx") {
+      if (id.endsWith("_rx") || id.includes("_rx_") || tk === "port_bandwidth_rx" || tk === "rx" || id.includes("download")) {
         return "rx_entity";
       }
-      if (id.endsWith("_tx") || id.includes("_tx_") || tk === "port_bandwidth_tx") {
+      if (id.endsWith("_tx") || id.includes("_tx_") || tk === "port_bandwidth_tx" || tk === "tx" || id.includes("upload")) {
         return "tx_entity";
       }
-      if (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || tk === "port_link_speed") {
+      if (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || id.endsWith("_speed") || tk === "port_link_speed" || tk === "link_speed") {
         return "speed_entity";
       }
-      if (id.includes("_poe_power") || id.includes("_power") || tk === "poe_power" || tk === "port_poe_power") {
+      if (id.includes("_poe_power") || id.includes("_poe") && id.includes("power") || id.includes("power_draw") || id.includes("power_consumption") || id.includes("consumption") || tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption" || dc === "power" || odc === "power") {
         return "poe_power_entity";
       }
     }
     if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))) {
-      if (id.includes("download") || id.includes("_rx")) return "rx_entity";
-      if (id.includes("upload") || id.includes("_tx")) return "tx_entity";
-      if (id.includes("link_speed") || tk === "port_link_speed") return "speed_entity";
-      if (id.includes("_poe_power") || id.includes("_power") || tk === "poe_power" || tk === "port_poe_power") {
+      if (id.includes("download") || id.includes("_rx") || tk === "port_bandwidth_rx" || tk === "rx") {
+        return "rx_entity";
+      }
+      if (id.includes("upload") || id.includes("_tx") || tk === "port_bandwidth_tx" || tk === "tx") {
+        return "tx_entity";
+      }
+      if (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || id.endsWith("_speed") || tk === "port_link_speed" || tk === "link_speed") {
+        return "speed_entity";
+      }
+      if (id.includes("_poe_power") || id.includes("_poe") && id.includes("power") || id.includes("power_draw") || id.includes("power_consumption") || id.includes("consumption") || tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption" || dc === "power" || odc === "power") {
         return "poe_power_entity";
       }
     }
@@ -1319,7 +1329,7 @@ function applyWanPortOverride(wanPort, specials, numbered, layout) {
   const newNumbered = [...numbered.map((p) => ({ ...p }))];
   const targetSpecialIdx = newSpecials.findIndex((s) => s.key === normalizedWanPort);
   const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
-  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx) {
+  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx || oldWanIdx === -1) {
     return { specials, numbered };
   }
   const oldWan = { ...newSpecials[oldWanIdx] };
@@ -1354,43 +1364,38 @@ function formatState(hass, entityId) {
   const val = obj.state;
   const unit = obj.attributes?.unit_of_measurement;
   if (!val || val === "unavailable" || val === "unknown") return "\u2014";
-  const num = parseFloat(val);
+  const num = parseFloat(String(val).replace(",", "."));
   if (!isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
   return val;
 }
 function getPoeStatus(hass, port) {
   const sw = stateValue(hass, port.poe_switch_entity);
   const pwr = stateValue(hass, port.poe_power_entity);
-  const powerNum = pwr !== null ? parseFloat(pwr) : NaN;
-  const hasPowerDraw = !isNaN(powerNum) && powerNum > 0;
-  if (sw !== null) {
-    return {
-      active: isOn(hass, port.poe_switch_entity) || hasPowerDraw,
-      power: pwr
-    };
-  }
-  if (pwr !== null) {
-    return {
-      active: hasPowerDraw,
-      power: pwr
-    };
-  }
-  return { active: false, power: null };
+  const powerNum = pwr != null ? parseFloat(String(pwr).replace(",", ".")) : NaN;
+  const hasPowerDraw = !Number.isNaN(powerNum) && powerNum > 0;
+  return {
+    active: isOn(hass, port.poe_switch_entity) || hasPowerDraw,
+    power: pwr ?? null
+  };
 }
 function isPortConnected(hass, port) {
   if (port.link_entity) {
-    const s = stateValue(hass, port.link_entity);
-    if (s === "on" || s === "true" || s === "connected" || s === "up") return true;
-    if (s === "off" || s === "false" || s === "disconnected" || s === "down") return false;
+    const s = lower(stateValue(hass, port.link_entity));
+    if (["on", "true", "connected", "up", "active"].includes(s)) return true;
+    if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
   const speed = stateValue(hass, port.speed_entity);
   if (speed && speed !== "unavailable" && speed !== "unknown") {
-    const n = parseFloat(speed);
-    if (!isNaN(n) && n > 0) return true;
+    const speedNum = parseFloat(String(speed).replace(",", "."));
+    if (!Number.isNaN(speedNum) && speedNum > 0) return true;
   }
   const rx = stateValue(hass, port.rx_entity);
   const tx = stateValue(hass, port.tx_entity);
-  if (rx && parseFloat(rx) > 0 || tx && parseFloat(tx) > 0) return true;
+  const rxNum = rx != null ? parseFloat(String(rx).replace(",", ".")) : NaN;
+  const txNum = tx != null ? parseFloat(String(tx).replace(",", ".")) : NaN;
+  if (!Number.isNaN(rxNum) && rxNum > 0 || !Number.isNaN(txNum) && txNum > 0) {
+    return true;
+  }
   return false;
 }
 function getPortLinkText(hass, port) {
@@ -2162,7 +2167,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.515662a";
+var VERSION = "0.0.0-dev.2b8e1a4";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
