@@ -58,17 +58,11 @@ function hasUbiquitiManufacturer(device) {
   return m.includes("ubiquiti") || m.includes("unifi");
 }
 
-// Prefix-based fallback (catches unknown / future models by model string prefix)
-const SWITCH_MODEL_PREFIXES = [
-  "USW", "USL", "US8", "US16", "US24", "US48",
-  "USMINI", "FLEXMINI",
-];
-const GATEWAY_MODEL_PREFIXES = [
-  "UDM", "UCG", "UXG", "UDR", "UX",
-  "UDRULT", "UDMPRO", "UDMSE",
-  "EFG",
-];
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7"];
+// NOTE: Prefix-Listen — minimal, kompatibel mit v0.2.8
+// Neue Geräte werden über MODEL_REGISTRY erkannt, nicht über Prefixe
+const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "US16", "US24", "USMINI", "FLEXMINI"];
+const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
+const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -96,7 +90,7 @@ function classifyDevice(device, entities) {
 
   const modelKey = resolveModelKey(device);
   if (modelKey) {
-    // ── Gateways ─────────────────────────────────
+    // ── Gateways (alle neuen Keys ergänzt) ───────────────────────
     if ([
       "UDRULT", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL",
       "UDMPRO", "UDMSE", "UDMPROMAX",
@@ -106,57 +100,44 @@ function classifyDevice(device, entities) {
       "EFG",
     ].includes(modelKey)) return "gateway";
 
-    // ── Switches ──────────────────────────────────
+    // ── Switches (alle neuen Keys ergänzt) ────────────────────────
     if ([
-      // Utility / Flex / Mini
       "USMINI", "USWFLEX25G5", "USWFLEX25G8", "USWFLEX", "USWFLEXXG",
-      // 8-port
       "US8", "US8P60", "US8150W",
       "USL8LP", "USL8LPB",
       "USWPRO8POE", "USWENTERPRISE8POE", "USWPROXG8POE",
-      // 16-port
       "USL16LP", "USL16LPB",
-      "USW16POE",
-      "US16P150",
+      "USW16POE", "US16P150",
       "USWPROMAX16POE", "USWPROMAX16",
       "USWPROXG10POE",
-      // 24-port
       "USW24P", "USW24", "US24", "US24500W",
       "US24PRO2", "USWPRO24POE", "USWPROMAX24POE", "USWPROMAX24",
       "USWPROHD24POE", "USWPROHD24", "USWPROXG24POE", "USWPROXG24",
-      // 48-port
       "USW48P", "USW48", "US48", "US48500W", "US48750W",
       "USWPRO48", "USWPRO48POE",
       "USWPROMAX48POE", "USWPROMAX48",
       "USWENTERPRISE48POE",
       "USWPROXG48POE", "USWPROXG48",
-      // Ultra
       "USWULTRA", "USWULTRA60W", "USWULTRA210W",
     ].includes(modelKey)) return "switch";
   }
 
-  // Fallback: prefix-based detection
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES))  return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
 
-  // Fallback: entity presence
   const hasPorts = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
   if (hasPorts) return "switch";
 
-  // Fallback: manufacturer + model string matching
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
     const name  = lower(device?.name_by_user || device?.name);
     if (
       model.includes("udm") || model.includes("ucg") ||
-      model.includes("uxg") || model.includes("udr") ||
-      name.includes("gateway") || name.includes("router")
+      model.includes("uxg") || name.includes("gateway")
     ) return "gateway";
     if (
       model.includes("usw") || model.includes("usl") ||
-      model.includes("us8") || model.includes("us16") ||
-      model.includes("us24") || model.includes("us48") ||
-      name.includes("switch")
+      model.includes("us8") || name.includes("switch")
     ) return "switch";
   }
 
@@ -768,7 +749,6 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
   const isPortKey = wanPort.startsWith("port_");
   const targetPortNum = isPortKey ? parseInt(wanPort.replace("port_", ""), 10) : null;
 
-  // ── Case 1: target is a numbered LAN port ("port_N") ──────────────────────
   if (isPortKey && targetPortNum != null) {
     const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
     const targetIdx = newNumbered.findIndex((p) => p.port === targetPortNum);
@@ -780,12 +760,7 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
     const oldWan     = newSpecials[oldWanIdx];
     const targetPort = newNumbered[targetIdx];
 
-    const newWanSlot = {
-      ...targetPort,
-      key:   "wan",
-      label: "WAN",
-      kind:  "special",
-    };
+    const newWanSlot = { ...targetPort, key: "wan", label: "WAN", kind: "special" };
 
     const layoutSlot = (layout?.specialSlots || []).find((s) => s.key === oldWan.key);
     const restoredOldWan = {
@@ -805,7 +780,6 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
     return { specials: newSpecials, numbered: newNumbered };
   }
 
-  // ── Case 2: target is a special slot key ("sfp_1", "sfp_2", …) ───────────
   const targetSpecialIdx = newSpecials.findIndex((s) => s.key === wanPort);
   const oldWanIdx        = newSpecials.findIndex((s) => s.key === "wan");
 
@@ -818,12 +792,7 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
 
   const layoutOldWan = (layout?.specialSlots || []).find((s) => s.key === oldWan.key);
 
-  newSpecials[targetSpecialIdx] = {
-    ...targetSlot,
-    key:   "wan",
-    label: "WAN",
-  };
-
+  newSpecials[targetSpecialIdx] = { ...targetSlot, key: "wan", label: "WAN" };
   newSpecials[oldWanIdx] = {
     ...oldWan,
     key:   layoutOldWan?.key   || oldWan.key,
@@ -834,12 +803,11 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
 }
 
 // ─────────────────────────────────────────────────
-// State helpers used by the card
+// State helpers — exakt wie v0.2.8
 // ─────────────────────────────────────────────────
 
 export function stateObj(hass, entityId) {
-  if (!hass || !entityId) return null;
-  return entityId ? hass.states[entityId] || null : null;
+  return entityId ? hass?.states?.[entityId] || null : null;
 }
 
 export function stateValue(hass, entityId, fallback = "—") {
@@ -854,6 +822,19 @@ function numericState(hass, entityId) {
   if (raw === "unknown" || raw === "unavailable" || raw === "") return null;
   const num = parseFloat(raw);
   return Number.isNaN(num) ? null : num;
+}
+
+function hasAvailableState(hass, entityId) {
+  const state = stateObj(hass, entityId);
+  if (!state) return false;
+  const v = String(state.state ?? "").toLowerCase();
+  return v !== "unknown" && v !== "unavailable" && v !== "";
+}
+
+function isPoeSwitchOn(hass, port) {
+  const state = stateObj(hass, port?.poe_switch_entity);
+  if (!state) return false;
+  return String(state.state ?? "").toLowerCase() === "on";
 }
 
 function getTrafficStatus(hass, port) {
