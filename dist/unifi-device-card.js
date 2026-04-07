@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6e86f3a */
+/* UniFi Device Card 0.0.0-dev.1bc23a7 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -1101,13 +1101,11 @@ function classifyDevice(device, entities) {
       "EFG"
     ].includes(modelKey)) return "gateway";
     if ([
-      // Utility / Flex / Mini
       "USMINI",
       "USWFLEX25G5",
       "USWFLEX25G8",
       "USWFLEX",
       "USWFLEXXG",
-      // 8-port
       "US8",
       "US8P60",
       "US8150W",
@@ -1116,7 +1114,6 @@ function classifyDevice(device, entities) {
       "USWPRO8POE",
       "USWENTERPRISE8POE",
       "USWPROXG8POE",
-      // 16-port
       "USL16LP",
       "USL16LPB",
       "USW16POE",
@@ -1124,7 +1121,6 @@ function classifyDevice(device, entities) {
       "USWPROMAX16POE",
       "USWPROMAX16",
       "USWPROXG10POE",
-      // 24-port
       "USW24P",
       "USW24",
       "US24",
@@ -1137,7 +1133,6 @@ function classifyDevice(device, entities) {
       "USWPROHD24",
       "USWPROXG24POE",
       "USWPROXG24",
-      // 48-port
       "USW48P",
       "USW48",
       "US48",
@@ -1150,7 +1145,6 @@ function classifyDevice(device, entities) {
       "USWENTERPRISE48POE",
       "USWPROXG48POE",
       "USWPROXG48",
-      // Ultra
       "USWULTRA",
       "USWULTRA60W",
       "USWULTRA210W"
@@ -1163,8 +1157,8 @@ function classifyDevice(device, entities) {
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
     const name = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("udr") || name.includes("gateway") || name.includes("router")) return "gateway";
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("us16") || model.includes("us24") || model.includes("us48") || name.includes("switch")) return "switch";
+    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || name.includes("gateway")) return "gateway";
+    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || name.includes("switch")) return "switch";
   }
   return "unknown";
 }
@@ -1600,12 +1594,7 @@ function applyWanPortOverride(specials, numbered, layout, wanPort) {
     }
     const oldWan2 = newSpecials[oldWanIdx2];
     const targetPort = newNumbered[targetIdx];
-    const newWanSlot = {
-      ...targetPort,
-      key: "wan",
-      label: "WAN",
-      kind: "special"
-    };
+    const newWanSlot = { ...targetPort, key: "wan", label: "WAN", kind: "special" };
     const layoutSlot = (layout?.specialSlots || []).find((s) => s.key === oldWan2.key);
     const restoredOldWan = {
       ...oldWan2,
@@ -1627,11 +1616,7 @@ function applyWanPortOverride(specials, numbered, layout, wanPort) {
   const oldWan = { ...newSpecials[oldWanIdx] };
   const targetSlot = { ...newSpecials[targetSpecialIdx] };
   const layoutOldWan = (layout?.specialSlots || []).find((s) => s.key === oldWan.key);
-  newSpecials[targetSpecialIdx] = {
-    ...targetSlot,
-    key: "wan",
-    label: "WAN"
-  };
+  newSpecials[targetSpecialIdx] = { ...targetSlot, key: "wan", label: "WAN" };
   newSpecials[oldWanIdx] = {
     ...oldWan,
     key: layoutOldWan?.key || oldWan.key,
@@ -1640,8 +1625,7 @@ function applyWanPortOverride(specials, numbered, layout, wanPort) {
   return { specials: newSpecials, numbered: newNumbered };
 }
 function stateObj(hass, entityId) {
-  if (!hass || !entityId) return null;
-  return entityId ? hass.states[entityId] || null : null;
+  return entityId ? hass?.states?.[entityId] || null : null;
 }
 function stateValue(hass, entityId, fallback = "\u2014") {
   const state = stateObj(hass, entityId);
@@ -1803,28 +1787,9 @@ var SWITCH_MODEL_PREFIXES, GATEWAY_MODEL_PREFIXES, AP_MODEL_PREFIXES, PORT_TRANS
 var init_helpers = __esm({
   "src/helpers.js"() {
     init_model_registry();
-    SWITCH_MODEL_PREFIXES = [
-      "USW",
-      "USL",
-      "US8",
-      "US16",
-      "US24",
-      "US48",
-      "USMINI",
-      "FLEXMINI"
-    ];
-    GATEWAY_MODEL_PREFIXES = [
-      "UDM",
-      "UCG",
-      "UXG",
-      "UDR",
-      "UX",
-      "UDRULT",
-      "UDMPRO",
-      "UDMSE",
-      "EFG"
-    ];
-    AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7"];
+    SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "US16", "US24", "USMINI", "FLEXMINI"];
+    GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
+    AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
     PORT_TRANSLATION_KEYS = /* @__PURE__ */ new Set([
       "port_bandwidth_rx",
       "port_bandwidth_tx",
@@ -2579,7 +2544,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6e86f3a";
+var VERSION = "0.0.0-dev.1bc23a7";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
