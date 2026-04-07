@@ -47,27 +47,7 @@ function defaultSwitchLayout(portCount) {
 // rows: only contains *LAN* RJ45 port numbers.
 // portCount: total physical ports including special slots.
 // ─────────────────────────────────────────────────────────────────────────────
-export const MODEL_REGISTRY = {
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SWITCHES — Generation 1 (US-*)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  // US 8 60W  (API key: US8P60)
-  // 8× 1G RJ45 PoE, 2× 1G SFP uplinks
-// ─────────────────────────────────────────────────────────────────────────────
-// MODEL REGISTRY
-//
-// poePortRange: [firstPoEPort, lastPoEPort] — inclusive range of ports that
-//   physically support PoE output. Ports outside this range (and all special
-//   slots) must never show PoE toggle or Power Cycle controls.
-//   Omitting poePortRange means NO ports have PoE (non-PoE switches, gateways).
-//   Use null explicitly to mark "all RJ45 LAN ports have PoE" for clarity.
-//
-// specialSlots: WAN / SFP / Uplink ports — never have PoE controls.
-// rows: only LAN RJ45 ports.
-// portCount: total physical ports including special slots.
-// ─────────────────────────────────────────────────────────────────────────────
 export const MODEL_REGISTRY = {
 
   // ══════════════════════════════════════════════════════════════════════════
