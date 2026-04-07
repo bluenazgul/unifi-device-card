@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d9ee0ae */
+/* UniFi Device Card 0.0.0-dev.272e969 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -2547,7 +2547,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d9ee0ae";
+var VERSION = "0.0.0-dev.272e969";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3046,9 +3046,15 @@ var UnifiDeviceCard = class extends HTMLElement {
     return "";
   }
   _renderPortButton(slot, selectedKey) {
+    if (!slot) return "";
     const isSpecial = slot.kind === "special";
     const linkUp = isOn(this._hass, slot.link_entity, slot);
-    const poeStatus = getPoeStatus(this._hass, slot);
+    const poeStatus = getPoeStatus(this._hass, slot) || {
+      hasPoe: false,
+      poeOn: false,
+      poeText: "\u2014",
+      canToggle: false
+    };
     const poeOn = poeStatus.poeOn;
     const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
     const tooltip = [
