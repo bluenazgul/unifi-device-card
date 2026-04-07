@@ -6,16 +6,6 @@ import { t } from "./translations.js";
 
 // ─── Port type detection helpers ─────────────────────────────────────────────
 
-/**
- * Determine the port type badge for the WAN port selector dropdown.
- * Returns one of: "wan" | "sfp_wan" | "sfp" | "lan"
- *
- * Priority:
- *  1. Slot key starts with "wan"     → default WAN port
- *  2. Slot key contains "sfp_wan"    → SFP used as WAN
- *  3. Slot key contains "sfp"        → SFP (could be used as WAN)
- *  4. Otherwise                      → LAN port
- */
 function slotPortType(slot) {
   const key = String(slot.key || "").toLowerCase();
   if (key === "wan" || key === "wan2") return "wan";
@@ -24,10 +14,6 @@ function slotPortType(slot) {
   return "lan";
 }
 
-/**
- * Build the human-readable label for a slot in the WAN port dropdown.
- * Format: "WAN (Port 5)" / "SFP+ 1 — SFP (Port 10)" / "Port 3 — LAN"
- */
 function slotDropdownLabel(slot, tFn) {
   const type = slotPortType(slot);
   const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
@@ -44,20 +30,12 @@ function slotDropdownLabel(slot, tFn) {
   }
 }
 
-/**
- * Build the list of all selectable port options for the WAN dropdown.
- * Includes all specialSlots (WAN, SFP) AND all numbered LAN ports.
- * The value stored in config is the slot key (for specials) or "port_N" (for numbered).
- */
 function buildWanPortOptions(layout, tFn) {
   const options = [];
-
-  // Default / auto option
   options.push({ value: "auto", label: tFn("editor_wan_port_auto") });
 
   if (!layout) return options;
 
-  // Special slots first (WAN, SFP, etc.)
   for (const slot of layout.specialSlots || []) {
     const type = slotPortType(slot);
     options.push({
@@ -67,7 +45,6 @@ function buildWanPortOptions(layout, tFn) {
     });
   }
 
-  // Numbered LAN ports (rows are arrays of port numbers)
   const specialPortNums = new Set(
     (layout.specialSlots || []).map((s) => s.port).filter((p) => p != null)
   );
@@ -99,7 +76,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._entityHintLoading = false;
     this._entityHintToken = 0;
     this._rendered = false;
-    // Context of the currently selected device (type + layout)
     this._deviceCtx = null;
     this._deviceCtxLoading = false;
     this._deviceCtxToken = 0;
@@ -114,9 +90,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
       this._entityHint = null;
       this._deviceCtx = null;
     }
-    // DOM already exists → patch only field values, never rebuild
+
     if (this._rendered) {
       this._patchFields();
+      this._patchWarning();
     } else {
       this._render();
     }
@@ -131,9 +108,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     }
   }
 
-  _t(key) { return t(this._hass, key); }
+  _t(key) {
+    return t(this._hass, key);
+  }
 
-  // ─── Smart render helper ───────────────────────────────────────────────────
   _smartRender() {
     const root = this.shadowRoot;
     const hasDeviceSelect = !!root?.getElementById("device");
@@ -148,7 +126,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._patchWarning();
   }
 
-  // ─── Async loaders ────────────────────────────────────────────────────────
   async _loadDevices() {
     if (!this._hass) return;
     this._loading = true;
@@ -199,11 +176,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._smartRender();
   }
 
-  /**
-   * Load the device type and layout for the selected device so we know
-   * whether to show the WAN port selector (gateway only) and which ports
-   * to offer.
-   */
   async _loadDeviceCtx(deviceId) {
     if (!this._hass || !deviceId) {
       this._deviceCtx = null;
@@ -215,7 +187,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._deviceCtxLoading = true;
 
     try {
-      // We only need device type + layout — reuse the same WS call via helpers
       const { getDeviceContext } = await import("./helpers.js");
       const ctx = await getDeviceContext(this._hass, deviceId);
       if (token !== this._deviceCtxToken) return;
@@ -227,11 +198,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     }
 
     this._deviceCtxLoading = false;
-    // WAN selector is structural — needs a full re-render when ctx changes
     this._render();
   }
 
-  // ─── Event dispatching ────────────────────────────────────────────────────
   _dispatch(config) {
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config },
@@ -244,7 +213,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     return this._devices.find((d) => d.id === deviceId)?.name || "";
   }
 
-  // ─── Input handlers ───────────────────────────────────────────────────────
   _onDeviceChange(ev) {
     const newDeviceId = ev.target.value || "";
     const oldDeviceId = this._config?.device_id || "";
@@ -261,8 +229,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
       else delete next.name;
     }
 
-    // Reset WAN port when device changes — the previous selection may not
-    // exist on the newly chosen device.
     delete next.wan_port;
 
     this._config = next;
@@ -270,12 +236,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._loadEntityHint(newDeviceId);
     this._deviceCtx = null;
     this._loadDeviceCtx(newDeviceId);
-    // Device change needs a full re-render (select options must reflect new state)
     this._render();
   }
 
   _onNameInput(ev) {
-    // No _render() – just dispatch; the input retains focus naturally
     this._config = { ...this._config, name: ev.target.value || "" };
     this._dispatch(this._config);
   }
@@ -287,29 +251,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
     else delete next.background_color;
     this._config = next;
     this._dispatch(next);
-    // No _render() – focus preserved
   }
 
   _onWanPortChange(ev) {
     const value = ev.target.value || "auto";
     const next = { ...this._config };
-    if (value && value !== "auto") {
-      next.wan_port = value;
-    } else {
-      delete next.wan_port;
-    }
+    if (value && value !== "auto") next.wan_port = value;
+    else delete next.wan_port;
     this._config = next;
     this._dispatch(next);
-    // No _render() – focus preserved via patchFields
   }
 
-  // ─── DOM patch helpers ────────────────────────────────────────────────────
-
-  /**
-   * Update only the *values* of existing input fields without touching the DOM
-   * structure. Skips any field that currently has focus so the user's cursor
-   * position is never disturbed.
-   */
   _patchFields() {
     const root = this.shadowRoot;
     if (!root) return;
@@ -326,23 +278,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
       bgEl.value = this._config?.background_color || "";
     }
 
-    // Re-sync the device select (value may change from outside)
     const selEl = root.getElementById("device");
     if (selEl && selEl !== active) {
       selEl.value = this._config?.device_id || "";
     }
 
-    // Re-sync WAN port select if present
     const wanEl = root.getElementById("wan_port");
     if (wanEl && wanEl !== active) {
       wanEl.value = this._config?.wan_port || "auto";
     }
   }
 
-  /**
-   * Replace only the warning/hint block without touching any input elements.
-   * This prevents the full-DOM rebuild that would steal focus.
-   */
   _patchWarning() {
     const root = this.shadowRoot;
     if (!root) return;
@@ -359,27 +305,42 @@ class UnifiDeviceCardEditor extends HTMLElement {
           : "");
   }
 
-  // ─── Warning block renderer ───────────────────────────────────────────────
   _renderEntityWarning() {
     if (this._entityHintLoading) {
       return `<div class="hint">${this._t("warning_checking")}</div>`;
     }
 
     const info = this._entityHint;
-    if (!info || !info.total) return "";
+    if (!info) return "";
+
+    const disabled = info.disabled || {};
+    const hidden = info.hidden || {};
+
+    const counts = {
+      port_switch: (disabled.port_switch?.length || 0) + (hidden.port_switch?.length || 0),
+      poe_switch:  (disabled.poe_switch?.length || 0) + (hidden.poe_switch?.length || 0),
+      poe_power:   (disabled.poe_power?.length || 0) + (hidden.poe_power?.length || 0),
+      link_speed:  (disabled.link_speed?.length || 0) + (hidden.link_speed?.length || 0),
+      rx_tx:       (disabled.rx_tx?.length || 0) + (hidden.rx_tx?.length || 0),
+      power_cycle: (disabled.power_cycle?.length || 0) + (hidden.power_cycle?.length || 0),
+      link:        (disabled.link?.length || 0) + (hidden.link?.length || 0),
+    };
+
+    const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+    if (total === 0) return "";
 
     const lines = [];
-    if (info.counts.port_switch) lines.push(`<li>${info.counts.port_switch} ${this._t("warning_entity_port_switch")}</li>`);
-    if (info.counts.poe_switch)  lines.push(`<li>${info.counts.poe_switch} ${this._t("warning_entity_poe_switch")}</li>`);
-    if (info.counts.poe_power)   lines.push(`<li>${info.counts.poe_power} ${this._t("warning_entity_poe_power")}</li>`);
-    if (info.counts.link_speed)  lines.push(`<li>${info.counts.link_speed} ${this._t("warning_entity_link_speed")}</li>`);
-    if (info.counts.rx_tx)       lines.push(`<li>${info.counts.rx_tx} ${this._t("warning_entity_rx_tx")}</li>`);
-    if (info.counts.power_cycle) lines.push(`<li>${info.counts.power_cycle} ${this._t("warning_entity_power_cycle")}</li>`);
-    if (info.counts.link_entity) lines.push(`<li>${info.counts.link_entity} ${this._t("warning_entity_link")}</li>`);
+    if (counts.port_switch) lines.push(`<li>${counts.port_switch} ${this._t("warning_entity_port_switch")}</li>`);
+    if (counts.poe_switch)  lines.push(`<li>${counts.poe_switch} ${this._t("warning_entity_poe_switch")}</li>`);
+    if (counts.poe_power)   lines.push(`<li>${counts.poe_power} ${this._t("warning_entity_poe_power")}</li>`);
+    if (counts.link_speed)  lines.push(`<li>${counts.link_speed} ${this._t("warning_entity_link_speed")}</li>`);
+    if (counts.rx_tx)       lines.push(`<li>${counts.rx_tx} ${this._t("warning_entity_rx_tx")}</li>`);
+    if (counts.power_cycle) lines.push(`<li>${counts.power_cycle} ${this._t("warning_entity_power_cycle")}</li>`);
+    if (counts.link)        lines.push(`<li>${counts.link} ${this._t("warning_entity_link")}</li>`);
 
     const statusText = this._t("warning_status")
-      .replace("{disabled}", `<strong>${info.disabled}</strong>`)
-      .replace("{hidden}",   `<strong>${info.hidden}</strong>`);
+      .replace("{disabled}", `<strong>${info.disabledCount || 0}</strong>`)
+      .replace("{hidden}", `<strong>${info.hiddenCount || 0}</strong>`);
 
     return `
       <div class="warning">
@@ -395,19 +356,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     `;
   }
 
-  // ─── WAN port selector renderer ───────────────────────────────────────────
-
-  /**
-   * Render the WAN port dropdown.
-   * Only shown when:
-   *   1. A device is selected
-   *   2. The device type is "gateway"
-   *   3. The layout has at least one slot (so there is something to choose from)
-   */
   _renderWanPortSelector() {
     if (!this._config?.device_id) return "";
 
-    // While ctx is loading show a subtle loading hint
     if (this._deviceCtxLoading) {
       return `
         <div class="field">
@@ -418,13 +369,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     }
 
     const ctx = this._deviceCtx;
-    // Only show for gateways
     if (!ctx || ctx.type !== "gateway") return "";
 
     const layout = ctx.layout;
     const options = buildWanPortOptions(layout, (k) => this._t(k));
-
-    // If there's only the "auto" option (no ports discovered) skip rendering
     if (options.length <= 1) return "";
 
     const currentVal = this._config?.wan_port || "auto";
@@ -445,12 +393,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
     `;
   }
 
-  // ─── Full render (first time only / device change) ────────────────────────
   _render() {
     const cfg = this._config;
-    const selId  = cfg?.device_id || "";
+    const selId = cfg?.device_id || "";
     const selName = String(cfg?.name || "").replace(/"/g, "&quot;");
-    const selBg   = String(cfg?.background_color || "").replace(/"/g, "&quot;");
+    const selBg = String(cfg?.background_color || "").replace(/"/g, "&quot;");
 
     const options = this._devices
       .map((d) => `<option value="${d.id}" ${d.id === selId ? "selected" : ""}>${d.label}</option>`)
