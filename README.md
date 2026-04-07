@@ -41,108 +41,21 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 
 ## Supported Devices
 
-### Switches — Utility / Flex / Mini
-
 | Model | Ports | Panel |
 |---|---|---|
 | USW Flex Mini | 5 | White |
-| USW Flex Mini 2.5G (`USW-Flex-2.5G-5`) | 5 | White |
-| USW Flex | 5 | White |
-| USW Flex 2.5G (`USW-Flex-2.5G-8`) | 8 | White |
-| USW Flex XG | 4 + 1 SFP+ | White |
-
-### Switches — 8 Port
-
-| Model | Ports | Panel |
-|---|---|---|
-| US 8 | 8 | Silver |
-| US 8 60W | 8 + 2 SFP | Silver |
-| US 8 150W | 8 + 2 SFP | Silver |
 | USW Lite 8 PoE | 8 | White |
-| USW Pro 8 PoE | 8 + 2 SFP+ | Silver |
-| USW Enterprise 8 PoE | 8 + 2 SFP+ | Silver |
-| USW Pro XG 8 PoE | 8 + 2 SFP28 | Silver |
-
-### Switches — 16 Port
-
-| Model | Ports | Panel |
-|---|---|---|
 | USW Lite 16 PoE | 16 | White |
-| USW 16 PoE (`USW-16-POE`) | 16 + 2 SFP | Silver |
+| USW Ultra family | Varies | White |
+| US 8 60W | 8 | Silver |
 | US 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
-| USW Pro Max 16 PoE | 16 + 2 SFP+ | Silver |
-| USW Pro Max 16 | 16 + 2 SFP+ | Silver |
-| USW Pro XG 10 PoE | 10 + 2 SFP28 | Silver |
-
-### Switches — 24 Port
-
-| Model | Ports | Panel |
-|---|---|---|
-| USW 24 PoE (`USW-24-POE`) | 24 + 2 SFP | Silver |
-| USW 24 (`USW-24`) | 24 + 2 SFP | Silver |
-| US 24 | 24 + 2 SFP | Silver |
-| US 24 500W | 24 + 2 SFP | Silver |
-| USW Pro 24 (`US24PRO2`, `USW-Pro-24`) | 24 + 2 SFP+ | Silver |
-| USW Pro 24 PoE (`USW-Pro-24-POE`) | 24 + 2 SFP+ | Silver |
-| USW Pro Max 24 PoE | 24 + 2 SFP+ | Silver |
-| USW Pro Max 24 | 24 + 2 SFP+ | Silver |
-| USW Pro HD 24 PoE | 24 + 4 SFP+ | Silver |
-| USW Pro HD 24 | 24 + 4 SFP+ | Silver |
-| USW Pro XG 24 PoE | 24 + 2 SFP28 | Silver |
-| USW Pro XG 24 | 24 + 2 SFP28 | Silver |
-
-### Switches — 48 Port
-
-| Model | Ports | Panel |
-|---|---|---|
-| USW 48 PoE (`USW-48-POE`) | 48 + 4 SFP | Silver |
-| USW 48 (`USW-48`) | 48 + 4 SFP | Silver |
-| US 48 | 48 + 2 SFP + 2 SFP+ | Silver |
-| US 48 500W | 48 + 2 SFP + 2 SFP+ | Silver |
-| US 48 750W | 48 + 2 SFP + 2 SFP+ | Silver |
-| USW Pro 48 (`USW-Pro-48`) | 48 + 4 SFP+ | Silver |
-| USW Pro 48 PoE (`USW-Pro-48-POE`) | 48 + 4 SFP+ | Silver |
-| USW Pro Max 48 PoE | 48 + 4 SFP+ | Silver |
-| USW Pro Max 48 | 48 + 4 SFP+ | Silver |
-| USW Enterprise 48 PoE | 48 + 4 SFP+ | Silver |
-| USW Pro XG 48 PoE | 48 + 4 SFP28 | Silver |
-| USW Pro XG 48 | 48 + 4 SFP28 | Silver |
-
-### Switches — Ultra
-
-| Model | Ports | Panel |
-|---|---|---|
-| USW Ultra | 7 + Uplink | White |
-| USW Ultra 60W | 7 + Uplink | White |
-| USW Ultra 210W | 7 + Uplink | White |
-
-### Gateways — Desktop / Compact
-
-| Model | Ports | Panel |
-|---|---|---|
-| Cloud Gateway Ultra (`UCG-Ultra`) | 4 LAN + WAN | White |
-| Cloud Gateway Max (`UCG-Max`) | 4 LAN + WAN | White |
-| Cloud Gateway Fiber (`UCG-Fiber`) | 4 LAN + SFP+ + WAN + SFP+ | White |
-| Cloud Gateway Industrial (`UCG-Industrial`) | 5 LAN + SFP+ | Silver |
-| Dream Router (`UDR`) | 4 LAN + WAN | White |
-| Dream Router 7 (`UDR7`) | 3 LAN + WAN + SFP+ | White |
-| UniFi Express (`UX`) | 1 LAN + WAN | White |
-| UniFi Express 7 (`UX7`) | 1 LAN + SFP+ | White |
-| UXG Lite | 1 LAN + WAN | White |
-| UXG Max | 4 LAN + SFP+ | White |
-
-### Gateways — Rack
-
-| Model | Ports | Panel |
-|---|---|---|
-| UDM Pro | 8 LAN + WAN + 2 SFP+ | Silver |
-| UDM SE | 8 LAN + WAN + 2 SFP+ | Silver |
-| UDM Pro Max | 8 LAN + WAN + 2 SFP+ | Silver |
-| UXG Pro | 2 RJ45 + 2 SFP+ | Silver |
-| UXG Enterprise | 4 × 10G RJ45 + 2 SFP28 | Silver |
-| Enterprise Fortress Gateway (`EFG`) | 8 × 10G RJ45 + 2 SFP28 | Silver |
-
-Unknown models are auto-detected by port count and fall back to a generic layout.
+| USW 24 PoE | 24 | Silver |
+| USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
+| USW 48 PoE | 48 | Silver |
+| Cloud Gateway Ultra | 4 + WAN | White |
+| Cloud Gateway Max | 5 + WAN | White |
+| UDM Pro | 8 + WAN/SFP | Silver |
+| UDM SE | 8 + WAN/SFP | Silver |
 
 Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
 
@@ -151,6 +64,7 @@ Unknown models are auto-detected by port count and fall back to a generic dark t
 - **Access Points are not supported** and are filtered automatically
 - Some models are still **layout-inferred** if no dedicated registry entry exists
 - WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
+- **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x
 
 > [!NOTE]
 > For best results, make sure the relevant UniFi switch and sensor entities are enabled in Home Assistant.  
