@@ -68,7 +68,7 @@ const GATEWAY_MODEL_PREFIXES = [
   "UDRULT", "UDMPRO", "UDMSE",
   "EFG",
 ];
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UAC"];
+const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -382,30 +382,49 @@ function classifyRelevantEntityType(entity) {
   return null;
 }
 
-export async function getEditorWarnings(hass, deviceId) {
-  if (!hass || !deviceId) return [];
-
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
-  const unifiEntryIds = extractUnifiEntryIds(configEntries);
-
-  const device = devices.find((d) => d.id === deviceId);
-  if (!device) return [];
+export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
+  if (!hass || !deviceId) return null;
 
   const allRaw = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
   const deviceEntities = (allRaw || []).filter((e) => e.device_id === deviceId);
 
-  const warnings = [];
+  const counts = {
+    port_switch: 0,
+    poe_switch:  0,
+    poe_power:   0,
+    link_speed:  0,
+    rx_tx:       0,
+    power_cycle: 0,
+    link_entity: 0,
+  };
+  let disabled = 0;
+  let hidden   = 0;
+
   for (const entity of deviceEntities) {
     const type = classifyRelevantEntityType(entity);
     if (!type) continue;
-    if (entity.disabled_by) {
-      warnings.push({ type, entity_id: entity.entity_id, reason: "disabled" });
-    } else if (entity.hidden_by) {
-      warnings.push({ type, entity_id: entity.entity_id, reason: "hidden" });
-    }
+
+    const isDisabled = !!entity.disabled_by;
+    const isHidden   = !!entity.hidden_by;
+    if (!isDisabled && !isHidden) continue;
+
+    if (isDisabled) disabled++;
+    else hidden++;
+
+    // map classifyRelevantEntityType output → counts keys
+    if (type === "port_switch") counts.port_switch++;
+    else if (type === "poe_switch")  counts.poe_switch++;
+    else if (type === "poe_power")   counts.poe_power++;
+    else if (type === "link_speed")  counts.link_speed++;
+    else if (type === "rx_tx")       counts.rx_tx++;
+    else if (type === "power_cycle") counts.power_cycle++;
+    else if (type === "port_link")   counts.link_entity++;
   }
 
-  return warnings;
+  const total = disabled + hidden;
+  if (total === 0) return null;
+
+  return { total, disabled, hidden, counts };
 }
 
 // ─────────────────────────────────────────────────
@@ -737,9 +756,13 @@ export function applyWanPortOverride(layout, specialPorts, wanPortConfig) {
 // State formatting
 // ─────────────────────────────────────────────────
 
-function stateObj(hass, entityId) {
+export function stateObj(hass, entityId) {
   if (!hass || !entityId) return null;
   return hass.states[entityId] ?? null;
+}
+
+export function stateValue(hass, entityId) {
+  return stateObj(hass, entityId)?.state ?? null;
 }
 
 export function isOn(hass, entityId) {
