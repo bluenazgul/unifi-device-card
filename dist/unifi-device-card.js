@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4d403a4 */
+/* UniFi Device Card 0.0.0-dev.28ec570 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -1610,7 +1610,7 @@ function applyWanPortOverride(specials, numbered, layout, wanPort) {
   }
   const targetSpecialIdx = newSpecials.findIndex((s) => s.key === wanPort);
   const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
-  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx) {
+  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx || oldWanIdx === -1) {
     return { specials, numbered };
   }
   const oldWan = { ...newSpecials[oldWanIdx] };
@@ -1653,6 +1653,9 @@ function getTrafficStatus(hass, port) {
   return "unknown";
 }
 function getPoeStatus(hass, port) {
+  if (!port) {
+    return { hasPoe: false, poeOn: false, poeText: "\u2014", canToggle: false };
+  }
   const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
   if (!hasPoe) {
     return { hasPoe: false, poeOn: false, poeText: "\u2014", canToggle: false };
@@ -2544,7 +2547,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4d403a4";
+var VERSION = "0.0.0-dev.28ec570";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
