@@ -513,6 +513,7 @@ function detectSpecialPortKey(entity) {
   const tk = entity.translation_key || "";
 
   if (id.includes("_wan_") || id.endsWith("_wan") || tk.includes("wan")) return { key: "wan", label: "WAN" };
+  if (id.includes("_wan2") || id.endsWith("wan2") || tk.includes("wan2")) return { key: "wan2", label: "WAN 2" };
 
   const sfpMatch = id.match(/_sfp[_+]?(\d+)[_-]/) || tk.match(/sfp[_+]?(\d+)/);
   if (sfpMatch) return { key: `sfp_${sfpMatch[1]}`, label: `SFP+ ${sfpMatch[1]}` };
@@ -659,13 +660,9 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
       raw_entities: [],
     };
 
-    // If the model defines a PoE range and this port is outside it,
-    // clear any PoE/power-cycle entities HA may have exposed incorrectly.
     merged.push(hasPoe ? port : stripPoeEntities(port));
   }
 
-  // Add any discovered ports that weren't in the layout rows.
-  // For these we can't verify PoE capability, so leave entities as-is.
   for (const port of discoveredPorts) {
     if (!layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port))
       merged.push(port);
@@ -718,7 +715,6 @@ export function applyWanPortOverride(wanPort, specials, numbered, layout) {
   const newSpecials = [...specials.map((s) => ({ ...s }))];
   const newNumbered = [...numbered];
 
-  // ── Case 1: target is a numbered port ────────────────────────────────────
   const targetIdx = newNumbered.findIndex((p) => String(p.port) === String(wanPort));
   if (targetIdx !== -1) {
     const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
@@ -726,7 +722,6 @@ export function applyWanPortOverride(wanPort, specials, numbered, layout) {
 
     const oldWan = oldWanIdx !== -1 ? { ...newSpecials[oldWanIdx] } : null;
 
-    // Restore old WAN slot label from layout
     const layoutOldWan = oldWan
       ? (layout?.specialSlots || []).find((s) => s.key === oldWan.key)
       : null;
@@ -761,7 +756,6 @@ export function applyWanPortOverride(wanPort, specials, numbered, layout) {
     return { specials: newSpecials, numbered: newNumbered };
   }
 
-  // ── Case 2: target is a special slot key ("sfp_1", "sfp_2", …) ───────────
   const targetSpecialIdx = newSpecials.findIndex((s) => s.key === wanPort);
   const oldWanIdx        = newSpecials.findIndex((s) => s.key === "wan");
 
@@ -837,7 +831,6 @@ export function getPortLinkText(hass, port) {
     if (s === "off" || s === "false" || s === "disconnected" || s === "down") return "no_link";
   }
 
-  // Fallback: infer from speed or traffic
   const speed = stateValue(hass, port.speed_entity);
   if (speed && speed !== "unavailable" && speed !== "unknown" && parseFloat(speed) > 0) return "connected";
 
@@ -845,8 +838,7 @@ export function getPortLinkText(hass, port) {
   const tx = stateValue(hass, port.tx_entity);
   if ((rx && parseFloat(rx) > 0) || (tx && parseFloat(tx) > 0)) return "connected";
 
-  // WAN/SFP special ports: only call connected if there is traffic evidence
-  if (port.kind === "special" && (port.key === "wan" || port.key?.startsWith("sfp"))) {
+  if (port.kind === "special" && (port.key === "wan" || port.key === "wan2" || port.key?.startsWith("sfp"))) {
     return "no_link";
   }
 
