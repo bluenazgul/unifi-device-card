@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.787085b */
+/* UniFi Device Card 0.0.0-dev.a8b68d4 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -2167,7 +2167,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.787085b";
+var VERSION = "0.0.0-dev.a8b68d4";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
