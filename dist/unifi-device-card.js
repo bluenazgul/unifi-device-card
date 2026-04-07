@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e2fe0cc */
+/* UniFi Device Card 0.0.0-dev.91f48c5 */
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -383,6 +383,7 @@ var init_unifi_device_card_editor = __esm({
         }
         if (this._rendered) {
           this._patchFields();
+          this._patchWarning();
         } else {
           this._render();
         }
@@ -398,7 +399,6 @@ var init_unifi_device_card_editor = __esm({
       _t(key) {
         return t(this._hass, key);
       }
-      // ─── Smart render helper ───────────────────────────────────────────────────
       _smartRender() {
         const root = this.shadowRoot;
         const hasDeviceSelect = !!root?.getElementById("device");
@@ -410,7 +410,6 @@ var init_unifi_device_card_editor = __esm({
         this._patchFields();
         this._patchWarning();
       }
-      // ─── Async loaders ────────────────────────────────────────────────────────
       async _loadDevices() {
         if (!this._hass) return;
         this._loading = true;
@@ -455,11 +454,6 @@ var init_unifi_device_card_editor = __esm({
         this._entityHintLoading = false;
         this._smartRender();
       }
-      /**
-       * Load the device type and layout for the selected device so we know
-       * whether to show the WAN port selector (gateway only) and which ports
-       * to offer.
-       */
       async _loadDeviceCtx(deviceId) {
         if (!this._hass || !deviceId) {
           this._deviceCtx = null;
@@ -481,7 +475,6 @@ var init_unifi_device_card_editor = __esm({
         this._deviceCtxLoading = false;
         this._render();
       }
-      // ─── Event dispatching ────────────────────────────────────────────────────
       _dispatch(config) {
         this.dispatchEvent(new CustomEvent("config-changed", {
           detail: { config },
@@ -492,7 +485,6 @@ var init_unifi_device_card_editor = __esm({
       _selectedDeviceName(deviceId) {
         return this._devices.find((d) => d.id === deviceId)?.name || "";
       }
-      // ─── Input handlers ───────────────────────────────────────────────────────
       _onDeviceChange(ev) {
         const newDeviceId = ev.target.value || "";
         const oldDeviceId = this._config?.device_id || "";
@@ -529,20 +521,11 @@ var init_unifi_device_card_editor = __esm({
       _onWanPortChange(ev) {
         const value = ev.target.value || "auto";
         const next = { ...this._config };
-        if (value && value !== "auto") {
-          next.wan_port = value;
-        } else {
-          delete next.wan_port;
-        }
+        if (value && value !== "auto") next.wan_port = value;
+        else delete next.wan_port;
         this._config = next;
         this._dispatch(next);
       }
-      // ─── DOM patch helpers ────────────────────────────────────────────────────
-      /**
-       * Update only the *values* of existing input fields without touching the DOM
-       * structure. Skips any field that currently has focus so the user's cursor
-       * position is never disturbed.
-       */
       _patchFields() {
         const root = this.shadowRoot;
         if (!root) return;
@@ -564,10 +547,6 @@ var init_unifi_device_card_editor = __esm({
           wanEl.value = this._config?.wan_port || "auto";
         }
       }
-      /**
-       * Replace only the warning/hint block without touching any input elements.
-       * This prevents the full-DOM rebuild that would steal focus.
-       */
       _patchWarning() {
         const root = this.shadowRoot;
         if (!root) return;
@@ -575,22 +554,34 @@ var init_unifi_device_card_editor = __esm({
         if (!container) return;
         container.innerHTML = this._renderEntityWarning() + (this._error ? `<div class="error">${this._error}</div>` : "") + (!this._loading && !this._devices.length && !this._error ? `<div class="hint">${this._t("editor_no_devices")}</div>` : !this._loading ? `<div class="hint">${this._t("editor_hint")}</div>` : "");
       }
-      // ─── Warning block renderer ───────────────────────────────────────────────
       _renderEntityWarning() {
         if (this._entityHintLoading) {
           return `<div class="hint">${this._t("warning_checking")}</div>`;
         }
         const info = this._entityHint;
-        if (!info || !info.total) return "";
+        if (!info) return "";
+        const disabled = info.disabled || {};
+        const hidden = info.hidden || {};
+        const counts = {
+          port_switch: (disabled.port_switch?.length || 0) + (hidden.port_switch?.length || 0),
+          poe_switch: (disabled.poe_switch?.length || 0) + (hidden.poe_switch?.length || 0),
+          poe_power: (disabled.poe_power?.length || 0) + (hidden.poe_power?.length || 0),
+          link_speed: (disabled.link_speed?.length || 0) + (hidden.link_speed?.length || 0),
+          rx_tx: (disabled.rx_tx?.length || 0) + (hidden.rx_tx?.length || 0),
+          power_cycle: (disabled.power_cycle?.length || 0) + (hidden.power_cycle?.length || 0),
+          link: (disabled.link?.length || 0) + (hidden.link?.length || 0)
+        };
+        const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+        if (total === 0) return "";
         const lines = [];
-        if (info.counts.port_switch) lines.push(`<li>${info.counts.port_switch} ${this._t("warning_entity_port_switch")}</li>`);
-        if (info.counts.poe_switch) lines.push(`<li>${info.counts.poe_switch} ${this._t("warning_entity_poe_switch")}</li>`);
-        if (info.counts.poe_power) lines.push(`<li>${info.counts.poe_power} ${this._t("warning_entity_poe_power")}</li>`);
-        if (info.counts.link_speed) lines.push(`<li>${info.counts.link_speed} ${this._t("warning_entity_link_speed")}</li>`);
-        if (info.counts.rx_tx) lines.push(`<li>${info.counts.rx_tx} ${this._t("warning_entity_rx_tx")}</li>`);
-        if (info.counts.power_cycle) lines.push(`<li>${info.counts.power_cycle} ${this._t("warning_entity_power_cycle")}</li>`);
-        if (info.counts.link_entity) lines.push(`<li>${info.counts.link_entity} ${this._t("warning_entity_link")}</li>`);
-        const statusText = this._t("warning_status").replace("{disabled}", `<strong>${info.disabled}</strong>`).replace("{hidden}", `<strong>${info.hidden}</strong>`);
+        if (counts.port_switch) lines.push(`<li>${counts.port_switch} ${this._t("warning_entity_port_switch")}</li>`);
+        if (counts.poe_switch) lines.push(`<li>${counts.poe_switch} ${this._t("warning_entity_poe_switch")}</li>`);
+        if (counts.poe_power) lines.push(`<li>${counts.poe_power} ${this._t("warning_entity_poe_power")}</li>`);
+        if (counts.link_speed) lines.push(`<li>${counts.link_speed} ${this._t("warning_entity_link_speed")}</li>`);
+        if (counts.rx_tx) lines.push(`<li>${counts.rx_tx} ${this._t("warning_entity_rx_tx")}</li>`);
+        if (counts.power_cycle) lines.push(`<li>${counts.power_cycle} ${this._t("warning_entity_power_cycle")}</li>`);
+        if (counts.link) lines.push(`<li>${counts.link} ${this._t("warning_entity_link")}</li>`);
+        const statusText = this._t("warning_status").replace("{disabled}", `<strong>${info.disabledCount || 0}</strong>`).replace("{hidden}", `<strong>${info.hiddenCount || 0}</strong>`);
         return `
       <div class="warning">
         <div class="warning-title">${this._t("warning_title")}</div>
@@ -604,14 +595,6 @@ var init_unifi_device_card_editor = __esm({
       </div>
     `;
       }
-      // ─── WAN port selector renderer ───────────────────────────────────────────
-      /**
-       * Render the WAN port dropdown.
-       * Only shown when:
-       *   1. A device is selected
-       *   2. The device type is "gateway"
-       *   3. The layout has at least one slot (so there is something to choose from)
-       */
       _renderWanPortSelector() {
         if (!this._config?.device_id) return "";
         if (this._deviceCtxLoading) {
@@ -642,7 +625,6 @@ var init_unifi_device_card_editor = __esm({
       </div>
     `;
       }
-      // ─── Full render (first time only / device change) ────────────────────────
       _render() {
         const cfg = this._config;
         const selId = cfg?.device_id || "";
@@ -762,7 +744,7 @@ var init_helpers = __esm({
     init_helpers();
     init_translations();
     init_unifi_device_card_editor();
-    VERSION = "0.0.0-dev.e2fe0cc";
+    VERSION = "0.0.0-dev.91f48c5";
     UnifiDeviceCard = class extends HTMLElement {
       static getConfigElement() {
         return document.createElement("unifi-device-card-editor");
@@ -1466,7 +1448,7 @@ var init_helpers = __esm({
 init_helpers();
 init_translations();
 init_unifi_device_card_editor();
-var VERSION2 = "0.0.0-dev.e2fe0cc";
+var VERSION2 = "0.0.0-dev.91f48c5";
 var UnifiDeviceCard2 = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
