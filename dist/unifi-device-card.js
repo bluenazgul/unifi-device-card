@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.28ec570 */
+/* UniFi Device Card 0.0.0-dev.d9ee0ae */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -26,13 +26,13 @@ function defaultSwitchLayout(portCount) {
   if (portCount <= 8) {
     return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
   }
-  if (portCount <= 16) {
+  if (portCount === 16) {
     return { kind: "switch", frontStyle: "dual-row", rows: [oddRange(1, 16), evenRange(1, 16)], portCount, specialSlots: [] };
   }
-  if (portCount <= 24) {
+  if (portCount === 24) {
     return { kind: "switch", frontStyle: "six-grid", rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)], portCount, specialSlots: [] };
   }
-  if (portCount <= 48) {
+  if (portCount === 48) {
     return { kind: "switch", frontStyle: "quad-row", rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)], portCount, specialSlots: [] };
   }
   return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
@@ -2547,7 +2547,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.28ec570";
+var VERSION = "0.0.0-dev.d9ee0ae";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
