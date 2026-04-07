@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.62aba5b */
+/* UniFi Device Card 0.0.0-dev.0f0d325 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -58,67 +58,60 @@ function resolveModelKey(device) {
     if (candidate.includes("UXGLITE")) return "UXGL";
     if (candidate.includes("UXGL")) return "UXGL";
     if (candidate === "UGW3") return "UGW3";
+    if (candidate.includes("USG3P")) return "UGW3";
     if (candidate.includes("USG3")) return "UGW3";
     if (candidate === "UGW4") return "UGW4";
     if (candidate.includes("USGPRO4")) return "UGW4";
     if (candidate.includes("USG4")) return "UGW4";
+    if (candidate === "USAGGPRO") return "USAGGPRO";
+    if (candidate.includes("PROAGGREGATION")) return "USAGGPRO";
+    if (candidate.includes("AGGREGATIONPRO")) return "USAGGPRO";
+    if (candidate === "USL8A") return "USL8A";
+    if (candidate.includes("USWAGGREGATION")) return "USL8A";
+    if (candidate.includes("SWITCHAGGREGATION")) return "USL8A";
+    if (candidate === "US648P") return "US648P";
+    if (candidate.includes("ENTERPRISE48")) return "US648P";
+    if (candidate === "US624P") return "US624P";
+    if (candidate.includes("ENTERPRISE24")) return "US624P";
+    if (candidate === "US68P") return "US68P";
+    if (candidate.includes("ENTERPRISE8")) return "US68P";
+    if (candidate === "US48PRO") return "US48PRO";
+    if (candidate.includes("US48PRO2")) return "US48PRO2";
+    if (candidate.includes("US48PRO")) return "US48PRO";
+    if (candidate.includes("USWPRO48POE")) return "US48PRO";
+    if (candidate.includes("PRO48POE")) return "US48PRO";
+    if (candidate.includes("USWPRO48")) return "US48PRO2";
+    if (candidate.includes("PRO48")) return "US48PRO2";
+    if (candidate === "US24PRO2") return "US24PRO2";
+    if (candidate.includes("US24PRO2")) return "US24PRO2";
+    if (candidate === "US24PRO") return "US24PRO";
+    if (candidate.includes("USWPRO24POE")) return "US24PRO";
+    if (candidate.includes("PRO24POE")) return "US24PRO";
+    if (candidate.includes("US24PRO")) return "US24PRO";
+    if (candidate.includes("USWPRO24")) return "US24PRO2";
+    if (candidate.includes("SWITCHPRO24")) return "US24PRO2";
     if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
-    if (candidate.includes("USWLITE16POE")) return "USL16LPB";
     if (candidate.includes("USWLITE16")) return "USL16LPB";
-    if ((candidate.includes("LITE") || candidate.includes("USW")) && candidate.includes("16") && candidate.includes("POE")) return "USL16LPB";
+    if (candidate.includes("LITE16")) return "USL16LPB";
+    if (candidate.includes("LITE") && candidate.includes("16")) return "USL16LPB";
     if (candidate.includes("USL8LPB")) return "USL8LPB";
     if (candidate.includes("USL8LP")) return "USL8LP";
-    if (candidate.includes("USWLITE8POE")) return "USL8LPB";
     if (candidate.includes("USWLITE8")) return "USL8LPB";
-    if ((candidate.includes("LITE") || candidate.includes("USW")) && candidate.includes("8") && candidate.includes("POE")) return "USL8LPB";
+    if (candidate.includes("LITE8")) return "USL8LPB";
+    if (candidate.includes("LITE") && candidate.includes("8")) return "USL8LPB";
     if (candidate.includes("US8P60")) return "US8P60";
     if (candidate.includes("US860W")) return "US8P60";
     if (candidate.includes("US8P150")) return "US8P150";
     if (candidate.includes("US8150W")) return "US8P150";
     if (candidate.includes("US16P150")) return "US16P150";
     if (candidate.includes("US16POE150")) return "US16P150";
-    if (candidate.includes("US16P")) return "US16P150";
+    if (candidate.includes("US16150W")) return "US16P150";
     if (candidate.includes("USMINI")) return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
     if (candidate === "USF5P") return "USF5P";
     if (candidate.includes("USWFLEX")) return "USF5P";
-    if (candidate === "USL8A") return "USL8A";
-    if (candidate.includes("USWAGGREGATION")) return "USL8A";
-    if (candidate.includes("SWITCHAGGREGATION")) return "USL8A";
-    if (candidate === "USAGGPRO") return "USAGGPRO";
-    if (candidate.includes("PROAGGREGATION")) return "USAGGPRO";
-    if (candidate.includes("USWPROAGGREGATION")) return "USAGGPRO";
-    if (candidate === "US48PRO") return "US48PRO";
-    if (candidate.includes("US48PRO")) return "US48PRO";
-    if (candidate.includes("USWPRO48POE")) return "US48PRO";
-    if (candidate.includes("PRO48POE")) return "US48PRO";
-    if (candidate === "US48PRO2") return "US48PRO2";
-    if (candidate.includes("USWPRO48")) return "US48PRO2";
-    if (candidate.includes("PRO48")) return "US48PRO2";
-    if (candidate === "US24PRO2") return "US24PRO2";
-    if (candidate.includes("US24PRO2")) return "US24PRO2";
-    if (candidate.includes("USWPRO24")) return "US24PRO2";
-    if (candidate.includes("SWITCHPRO24")) return "US24PRO2";
-    if (candidate === "US24PRO") return "US24PRO";
-    if (candidate.includes("US24PRO")) return "US24PRO";
-    if (candidate.includes("USWPRO24POE")) return "US24PRO";
-    if (candidate.includes("PRO24POE")) return "US24PRO";
-    if (candidate === "US648P") return "US648P";
-    if (candidate.includes("ENTERPRISE48POE")) return "US648P";
-    if (candidate.includes("USWENTERPRISE48")) return "US648P";
-    if (candidate === "US624P") return "US624P";
-    if (candidate.includes("ENTERPRISE24POE")) return "US624P";
-    if (candidate.includes("USWENTERPRISE24")) return "US624P";
-    if (candidate === "US68P") return "US68P";
-    if (candidate.includes("ENTERPRISE8POE")) return "US68P";
-    if (candidate.includes("USWENTERPRISE8")) return "US68P";
-    if (candidate === "USL16P") return "USL16P";
-    if (candidate === "USL24P") return "USL24P";
-    if (candidate === "USL24") return "USL24";
-    if (candidate === "USL48P") return "USL48P";
-    if (candidate === "USL48") return "USL48";
     if (candidate === "USWULTRA210W") return "USWULTRA210W";
     if (candidate === "USWULTRA60W") return "USWULTRA60W";
     if (candidate === "USWULTRA") return "USWULTRA";
@@ -128,8 +121,21 @@ function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60")) return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA")) return "USWULTRA";
+    if (candidate === "USL16P") return "USL16P";
+    if (candidate.includes("USW16POE")) return "USL16P";
+    if (candidate.includes("USW16P")) return "USL16P";
+    if (candidate === "USL24P") return "USL24P";
+    if (candidate === "USL24") return "USL24";
+    if (candidate.includes("USW24G2")) return "USL24";
+    if (candidate.includes("USW24POE")) return "USL24P";
+    if (candidate === "USL48P") return "USL48P";
+    if (candidate === "USL48") return "USL48";
+    if (candidate.includes("USW48G2")) return "USL48";
+    if (candidate.includes("USW48POE")) return "USL48P";
     if (candidate.includes("USW24")) return "USL24P";
     if (candidate.includes("USW48")) return "USL48P";
+    if (candidate.startsWith("US24")) return "USL24P";
+    if (candidate.startsWith("US48")) return "USL48P";
   }
   return null;
 }
@@ -2095,7 +2101,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.62aba5b";
+var VERSION = "0.0.0-dev.0f0d325";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
