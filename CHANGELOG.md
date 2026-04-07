@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.9] - 2026-04-07
+
+### 🐛 Bug Fixes
+
+- **clean rollback to stable 0.2.8 baseline**
+
 ## [v0.2.8] - 2026-04-06
 
 ### ✨ new Feature
