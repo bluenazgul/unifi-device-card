@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.669d397 */
+/* UniFi Device Card 0.0.0-dev.e1cfe66 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -156,7 +156,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("USL8A") || text.includes("USWAGGREGATION")) return 8;
   if (text.includes("USL16LPB") || text.includes("USL16LP") || text.includes("USWLITE16POE") || text.includes("LITE16")) return 16;
   if (text.includes("USL8LPB") || text.includes("USL8LP") || text.includes("USWLITE8POE") || text.includes("LITE8")) return 8;
-  if (text.includes("US8P60") || text.includes("US8")) return 8;
+  if (text.includes("US8P60") || text.includes("US860W")) return 8;
   if (text.includes("US8P150")) return 10;
   if (text.includes("USMINI") || text.includes("FLEXMINI")) return 5;
   if (text.includes("USF5P") || text.includes("USWFLEX")) return 5;
@@ -169,7 +169,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("US68P") || text.includes("ENTERPRISE8POE")) return 10;
   if (text.includes("USL48P") || text.includes("USL48")) return 52;
   if (text.includes("USL24P") || text.includes("USL24")) return 26;
-  if (text.includes("USWULTRA")) return 7;
+  if (text.includes("USWULTRA")) return 8;
   if (text.includes("48")) return 48;
   if (text.includes("24")) return 24;
   if (text.includes("16")) return 16;
@@ -205,19 +205,16 @@ var init_model_registry = __esm({
       // ══════════════════════════════════════════════════════════════════════════
       // SWITCHES — Generation 1 (US-*)
       // ══════════════════════════════════════════════════════════════════════════
-      // US 8 60W  — 8× 1G RJ45 PoE (all), 2× 1G SFP
+      // US 8 60W  — 8× 1G RJ45, PoE on ports 5-8
       US8P60: {
         kind: "switch",
         frontStyle: "single-row",
         rows: [range(1, 8)],
-        portCount: 10,
+        portCount: 8,
         displayModel: "US 8 60W",
         theme: "silver",
-        poePortRange: [1, 8],
-        specialSlots: [
-          { key: "sfp_1", label: "SFP 1", port: 9 },
-          { key: "sfp_2", label: "SFP 2", port: 10 }
-        ]
+        poePortRange: [5, 8],
+        specialSlots: []
       },
       // US 8 150W  — 8× 1G RJ45 PoE (all), 2× 1G SFP
       US8P150: {
@@ -250,18 +247,17 @@ var init_model_registry = __esm({
       // ══════════════════════════════════════════════════════════════════════════
       // SWITCHES — Generation 2 Standard (USW-*)
       // ══════════════════════════════════════════════════════════════════════════
-      // USW Flex Mini  — 4× 1G RJ45 (no PoE out), Port 5 = PoE-in / Uplink
+      // USW Flex Mini  — 5× 1G RJ45, no PoE out
       USMINI: {
         kind: "switch",
         frontStyle: "single-row",
-        rows: [range(1, 4)],
+        rows: [range(1, 5)],
         portCount: 5,
         displayModel: "USW Flex Mini",
         theme: "white",
-        // no poePortRange — ports 1-4 receive but do not output PoE
-        specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }]
+        specialSlots: []
       },
-      // USW Flex  — 4× 1G RJ45 PoE-out (all), Port 5 = PoE-in / Uplink
+      // USW Flex  — 4× 1G RJ45 PoE-out (1-4), Port 5 uplink / PoE-in
       USF5P: {
         kind: "switch",
         frontStyle: "single-row",
@@ -272,7 +268,7 @@ var init_model_registry = __esm({
         poePortRange: [1, 4],
         specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }]
       },
-      // USW Lite 8 PoE  — 8× 1G RJ45, Ports 1-4: PoE+, Ports 5-8: no PoE
+      // USW Lite 8 PoE  — 8× 1G RJ45, Ports 1-4 PoE+
       USL8LP: {
         kind: "switch",
         frontStyle: "single-row",
@@ -293,7 +289,7 @@ var init_model_registry = __esm({
         poePortRange: [1, 4],
         specialSlots: []
       },
-      // USW Lite 16 PoE  — 16× 1G RJ45, Ports 1-8: PoE+, Ports 9-16: no PoE
+      // USW Lite 16 PoE  — 16× 1G RJ45, Ports 1-8 PoE+
       USL16LP: {
         kind: "switch",
         frontStyle: "dual-row",
@@ -314,7 +310,7 @@ var init_model_registry = __esm({
         poePortRange: [1, 8],
         specialSlots: []
       },
-      // USW 16 PoE Gen2  — 16× 1G RJ45, Ports 1-8: PoE+, Ports 9-16: no PoE, 2× SFP
+      // USW 16 PoE Gen2  — 16× 1G RJ45, Ports 1-8 PoE+, 2× SFP
       USL16P: {
         kind: "switch",
         frontStyle: "dual-row",
@@ -328,7 +324,7 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP 2", port: 18 }
         ]
       },
-      // USW 24 Gen2 no PoE  — 24× 1G RJ45 (no PoE), 2× SFP
+      // USW 24 Gen2  — 24× 1G RJ45, 2× SFP
       USL24: {
         kind: "switch",
         frontStyle: "six-grid",
@@ -336,13 +332,12 @@ var init_model_registry = __esm({
         portCount: 26,
         displayModel: "USW 24",
         theme: "silver",
-        // no poePortRange
         specialSlots: [
           { key: "sfp_1", label: "SFP 1", port: 25 },
           { key: "sfp_2", label: "SFP 2", port: 26 }
         ]
       },
-      // USW 24 PoE Gen2  — 24× 1G RJ45, Ports 1-16: PoE+, Ports 17-24: no PoE, 2× SFP
+      // USW 24 PoE Gen2  — 24× 1G RJ45, Ports 1-16 PoE+, 2× SFP
       USL24P: {
         kind: "switch",
         frontStyle: "six-grid",
@@ -356,7 +351,6 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP 2", port: 26 }
         ]
       },
-      // USW 24 PoE (legacy firmware key)  — identisch zu USL24P
       USW24P: {
         kind: "switch",
         frontStyle: "six-grid",
@@ -370,7 +364,7 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP 2", port: 26 }
         ]
       },
-      // USW 48 Gen2 no PoE  — 48× 1G RJ45 (no PoE), 4× SFP
+      // USW 48 Gen2  — 48× 1G RJ45, 4× SFP
       USL48: {
         kind: "switch",
         frontStyle: "quad-row",
@@ -378,7 +372,6 @@ var init_model_registry = __esm({
         portCount: 52,
         displayModel: "USW 48",
         theme: "silver",
-        // no poePortRange
         specialSlots: [
           { key: "sfp_1", label: "SFP 1", port: 49 },
           { key: "sfp_2", label: "SFP 2", port: 50 },
@@ -386,7 +379,7 @@ var init_model_registry = __esm({
           { key: "sfp_4", label: "SFP 4", port: 52 }
         ]
       },
-      // USW 48 PoE Gen2  — 48× 1G RJ45, Ports 1-32: PoE+, Ports 33-48: no PoE, 4× SFP
+      // USW 48 PoE Gen2  — 48× 1G RJ45, Ports 1-32 PoE+, 4× SFP
       USL48P: {
         kind: "switch",
         frontStyle: "quad-row",
@@ -402,7 +395,6 @@ var init_model_registry = __esm({
           { key: "sfp_4", label: "SFP 4", port: 52 }
         ]
       },
-      // USW 48 PoE (legacy firmware key)  — identisch zu USL48P
       USW48P: {
         kind: "switch",
         frontStyle: "quad-row",
@@ -419,9 +411,8 @@ var init_model_registry = __esm({
         ]
       },
       // ══════════════════════════════════════════════════════════════════════════
-      // SWITCHES — Generation 2 Professional (USW-Pro-*)
+      // SWITCHES — Professional
       // ══════════════════════════════════════════════════════════════════════════
-      // USW Pro 24 PoE  — 24× 1G RJ45, Ports 1-16: PoE+, 17-24: no PoE, 2× 10G SFP+
       US24PRO: {
         kind: "switch",
         frontStyle: "six-grid",
@@ -435,7 +426,6 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP+ 2", port: 26 }
         ]
       },
-      // USW Pro 24 no PoE  — 24× 1G RJ45 (no PoE), 2× 10G SFP+
       US24PRO2: {
         kind: "switch",
         frontStyle: "six-grid",
@@ -443,13 +433,11 @@ var init_model_registry = __esm({
         portCount: 26,
         displayModel: "USW Pro 24",
         theme: "silver",
-        // no poePortRange
         specialSlots: [
           { key: "sfp_1", label: "SFP+ 1", port: 25 },
           { key: "sfp_2", label: "SFP+ 2", port: 26 }
         ]
       },
-      // USW Pro 48 PoE  — 48× 1G RJ45, Ports 1-40: PoE+, 41-48: no PoE, 4× 10G SFP+
       US48PRO: {
         kind: "switch",
         frontStyle: "quad-row",
@@ -465,7 +453,6 @@ var init_model_registry = __esm({
           { key: "sfp_4", label: "SFP+ 4", port: 52 }
         ]
       },
-      // USW Pro 48 no PoE  — 48× 1G RJ45 (no PoE), 4× 10G SFP+
       US48PRO2: {
         kind: "switch",
         frontStyle: "quad-row",
@@ -473,7 +460,6 @@ var init_model_registry = __esm({
         portCount: 52,
         displayModel: "USW Pro 48",
         theme: "silver",
-        // no poePortRange
         specialSlots: [
           { key: "sfp_1", label: "SFP+ 1", port: 49 },
           { key: "sfp_2", label: "SFP+ 2", port: 50 },
@@ -482,9 +468,8 @@ var init_model_registry = __esm({
         ]
       },
       // ══════════════════════════════════════════════════════════════════════════
-      // SWITCHES — Generation 2 Enterprise (USW-Enterprise-*)
+      // SWITCHES — Enterprise
       // ══════════════════════════════════════════════════════════════════════════
-      // USW Enterprise 8 PoE  — 8× 1G RJ45 PoE+ (all), 2× 10G SFP+
       US68P: {
         kind: "switch",
         frontStyle: "single-row",
@@ -498,7 +483,6 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP+ 2", port: 10 }
         ]
       },
-      // USW Enterprise 24 PoE  — 24× RJ45 PoE+ (all: 12× 2.5G + 12× 1G), 2× 10G SFP+
       US624P: {
         kind: "switch",
         frontStyle: "six-grid",
@@ -512,7 +496,6 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP+ 2", port: 26 }
         ]
       },
-      // USW Enterprise 48 PoE  — 48× 2.5G RJ45 PoE+ (all), 4× 10G SFP+
       US648P: {
         kind: "switch",
         frontStyle: "quad-row",
@@ -529,9 +512,8 @@ var init_model_registry = __esm({
         ]
       },
       // ══════════════════════════════════════════════════════════════════════════
-      // SWITCHES — Aggregation (all SFP, no PoE)
+      // SWITCHES — Aggregation
       // ══════════════════════════════════════════════════════════════════════════
-      // USW Aggregation  — 8× 10G SFP+ only, no RJ45, no PoE
       USL8A: {
         kind: "switch",
         frontStyle: "single-row",
@@ -539,7 +521,6 @@ var init_model_registry = __esm({
         portCount: 8,
         displayModel: "USW Aggregation",
         theme: "silver",
-        // no poePortRange — SFP-only, no PoE
         specialSlots: [
           { key: "sfp_1", label: "SFP+ 1", port: 1 },
           { key: "sfp_2", label: "SFP+ 2", port: 2 },
@@ -551,7 +532,6 @@ var init_model_registry = __esm({
           { key: "sfp_8", label: "SFP+ 8", port: 8 }
         ]
       },
-      // USW Pro Aggregation  — 28× 10G SFP+ + 4× 25G SFP28, no PoE
       USAGGPRO: {
         kind: "switch",
         frontStyle: "single-row",
@@ -559,7 +539,6 @@ var init_model_registry = __esm({
         portCount: 32,
         displayModel: "USW Pro Aggregation",
         theme: "silver",
-        // no poePortRange — SFP-only, no PoE
         specialSlots: [
           ...range(1, 28).map((p) => ({ key: `sfp_${p}`, label: `SFP+ ${p}`, port: p })),
           { key: "sfp28_1", label: "25G 1", port: 29 },
@@ -569,41 +548,41 @@ var init_model_registry = __esm({
         ]
       },
       // ══════════════════════════════════════════════════════════════════════════
-      // SWITCHES — USW Ultra family (all LAN ports have PoE)
+      // SWITCHES — Ultra family
       // ══════════════════════════════════════════════════════════════════════════
-      // USW Ultra  — 6× 1G RJ45 PoE+ (all), Port 7 = SFP+ Uplink (no PoE)
+      // 8 total RJ45; one is PoE++ input / uplink, seven are LAN PoE out
       USWULTRA: {
         kind: "switch",
-        frontStyle: "ultra-row",
-        rows: [range(1, 6)],
-        portCount: 7,
+        frontStyle: "single-row",
+        rows: [range(1, 7)],
+        portCount: 8,
         displayModel: "USW Ultra",
         theme: "white",
-        poePortRange: [1, 6],
-        specialSlots: [{ key: "uplink", label: "Uplink", port: 7 }]
+        poePortRange: [1, 7],
+        specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }]
       },
       USWULTRA60W: {
         kind: "switch",
-        frontStyle: "ultra-row",
-        rows: [range(1, 6)],
-        portCount: 7,
+        frontStyle: "single-row",
+        rows: [range(1, 7)],
+        portCount: 8,
         displayModel: "USW Ultra 60W",
         theme: "white",
-        poePortRange: [1, 6],
-        specialSlots: [{ key: "uplink", label: "Uplink", port: 7 }]
+        poePortRange: [1, 7],
+        specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }]
       },
       USWULTRA210W: {
         kind: "switch",
-        frontStyle: "ultra-row",
-        rows: [range(1, 6)],
-        portCount: 7,
+        frontStyle: "single-row",
+        rows: [range(1, 7)],
+        portCount: 8,
         displayModel: "USW Ultra 210W",
         theme: "white",
-        poePortRange: [1, 6],
-        specialSlots: [{ key: "uplink", label: "Uplink", port: 7 }]
+        poePortRange: [1, 7],
+        specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }]
       },
       // ══════════════════════════════════════════════════════════════════════════
-      // GATEWAYS — no PoE output on any port
+      // GATEWAYS
       // ══════════════════════════════════════════════════════════════════════════
       UCGULTRA: {
         kind: "gateway",
@@ -640,9 +619,9 @@ var init_model_registry = __esm({
         displayModel: "Cloud Gateway Fiber",
         theme: "white",
         specialSlots: [
-          { key: "sfp_1", label: "SFP+ 1", port: 5 },
-          { key: "wan", label: "WAN", port: 6 },
-          { key: "sfp_2", label: "SFP+ 2", port: 7 }
+          { key: "wan", label: "WAN", port: 5 },
+          { key: "sfp_1", label: "SFP+ LAN", port: 6 },
+          { key: "sfp_2", label: "SFP+ WAN", port: 7 }
         ]
       },
       UDMPRO: {
@@ -658,7 +637,6 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP+ 2", port: 11 }
         ]
       },
-      // ⚠ API key is UDMPROSE, not UDMSE
       UDMPROSE: {
         kind: "gateway",
         frontStyle: "gateway-rack",
@@ -685,7 +663,6 @@ var init_model_registry = __esm({
           { key: "sfp_2", label: "SFP+ WAN", port: 4 }
         ]
       },
-      // UXG-Lite — API key UXGL (unconfirmed, device too new for official table)
       UXGL: {
         kind: "gateway",
         frontStyle: "gateway-single-row",
@@ -2107,7 +2084,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.669d397";
+var VERSION = "0.0.0-dev.e1cfe66";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
