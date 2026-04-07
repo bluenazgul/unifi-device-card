@@ -1,0 +1,134 @@
+name: Create Dev Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Dev release version, e.g. 0.3.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  RELEASE_BRANCH: develop
+
+jobs:
+  create-dev-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ env.RELEASE_BRANCH }}
+
+      - name: Verify branch exists and is checked out
+        run: |
+          CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+          if [ "$CURRENT_BRANCH" != "${RELEASE_BRANCH}" ]; then
+            echo "Expected branch '${RELEASE_BRANCH}', got '${CURRENT_BRANCH}'"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Validate and normalize dev version format
+        run: |
+          RAW="${{ inputs.version }}"
+
+          if ! [[ "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must look like 0.3.0 (got: $RAW)"
+            exit 1
+          fi
+
+          echo "BASE_VERSION=${RAW}" >> "$GITHUB_ENV"
+          echo "VERSION=v${RAW}-dev" >> "$GITHUB_ENV"
+
+      - name: Check if tag already exists
+        run: |
+          git fetch --tags
+          if git rev-parse "${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "Tag ${{ env.VERSION }} already exists."
+            exit 1
+          fi
+
+      - name: Extract changelog for base version
+        id: changelog
+        run: |
+          # Wir suchen bewusst nach der Basisversion ohne -dev:
+          # erlaubt z.B.
+          #   ## [0.3.0]
+          #   ## [v0.3.0]
+          #   ## 0.3.0
+          #   ## v0.3.0
+          NOTES=$(awk \
+            -v ver="$BASE_VERSION" \
+            'BEGIN { found=0 }
+             /^##[[:space:]]/ {
+               if (found) exit
+               line=$0
+               if (
+                 line ~ "^##[[:space:]]*\\[" ver "\\]" ||
+                 line ~ "^##[[:space:]]*\\[v" ver "\\]" ||
+                 line ~ "^##[[:space:]]*" ver "([[:space:]]|$)" ||
+                 line ~ "^##[[:space:]]*v" ver "([[:space:]]|$)"
+               ) {
+                 found=1
+                 next
+               }
+             }
+             found { print }' CHANGELOG.md)
+
+          if [ -z "$NOTES" ]; then
+            NOTES="Dev pre-release for ${VERSION}. See CHANGELOG.md for details."
+          fi
+
+          echo "$NOTES" > /tmp/release_notes.md
+          echo "notes_file=/tmp/release_notes.md" >> "$GITHUB_OUTPUT"
+        env:
+          BASE_VERSION: ${{ env.BASE_VERSION }}
+          VERSION: ${{ env.VERSION }}
+
+      - name: Build dist for dev release
+        run: npm run build
+        env:
+          GITHUB_EVENT_NAME: release
+          GITHUB_REF_NAME: ${{ env.VERSION }}
+
+      - name: Commit dist if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add dist/unifi-device-card.js
+          git diff --cached --quiet || git commit -m "release: prepare ${{ env.VERSION }} [skip ci]"
+          git push origin "${RELEASE_BRANCH}"
+
+      - name: Create Git tag on develop
+        run: |
+          git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
+          git push origin "${{ env.VERSION }}"
+
+      - name: Create GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          target_commitish: ${{ env.RELEASE_BRANCH }}
+          body_path: ${{ steps.changelog.outputs.notes_file }}
+          prerelease: true
+          files: dist/unifi-device-card.js
