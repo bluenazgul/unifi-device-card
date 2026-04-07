@@ -41,6 +41,10 @@ export const MODEL_REGISTRY = {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 5)],
     portCount: 5, displayModel: "USW Flex Mini", theme: "white", specialSlots: [],
   },
+  USWED35: {
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 5)],
+    portCount: 5, displayModel: "USW Flex Mini 2.5G", theme: "white", specialSlots: [],
+  },
   USL8LP: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
     portCount: 8, displayModel: "USW Lite 8 PoE", theme: "white", specialSlots: [],
@@ -85,8 +89,26 @@ export const MODEL_REGISTRY = {
 
   USW48P: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
-    portCount: 48, displayModel: "USW 48 PoE", theme: "silver", specialSlots: [],
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
+    portCount: 48, displayModel: "USW 48 PoE", theme: "silver",
+    specialSlots:  [
+      { key: "sfp_1", label: "SFP 1", port: 49 },
+      { key: "sfp_2", label: "SFP 2", port: 50 },
+      { key: "sfp_3", label: "SFP 3", port: 51 },
+      { key: "sfp_4", label: "SFP 4", port: 52 },
+    ],
+  },
+
+  US48PRO: {
+    kind: "switch", frontStyle: "quad-row",
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
+    portCount: 52, displayModel: "USW Pro 48 PoE", theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 49 },
+      { key: "sfp_2", label: "SFP+ 2", port: 50 },
+      { key: "sfp_3", label: "SFP+ 3", port: 51 },
+      { key: "sfp_4", label: "SFP+ 4", port: 52 },
+    ],
   },
 
   // ── Cloud Gateways ────────────────────────────────
@@ -116,19 +138,31 @@ export const MODEL_REGISTRY = {
 
   // UCG-Fiber
   //   7 physical ports:
-  //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+)
-  //     Port 5    : 10G SFP+ (LAN default, WAN-capable)
-  //     Port 6    : 10G RJ45 (default WAN)
-  //     Port 7    : 10G SFP+ (default WAN 2)
+  //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+, all WAN-capable)
+  //     Port 5    : 10G RJ45 (default WAN, LAN-capable)
+  //     Port 6    : 10G SFP+ (LAN default, WAN-capable)
+  //     Port 7    : 10G SFP+ (default WAN 2, LAN-capable)
   //   Max WAN ports: 6 (all ports can be remapped)
   //   Note: port numbers are assumed based on physical order; verify against real HA entity IDs.
   UCGFIBER: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 5 },
-      { key: "wan",   label: "WAN",    port: 6 },
+      { key: "wan", label: "WAN", port: 5 },
+      { key: "sfp_1", label: "SFP+ 1", port: 6 },
       { key: "sfp_2", label: "SFP+ 2", port: 7 },
+    ],
+  },
+
+  // UDR
+  //   5 physical ports:
+  //     Ports 1–4 : 1G RJ45 (LAN, ports 3-4 has PoE,)
+  //     Port 5    : 1G RJ45 (WAN)
+  UDR: {
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
+    portCount: 7, displayModel: "Dream Router", theme: "white",
+    specialSlots: [
+      { key: "wan", label: "WAN", port: 5 },
     ],
   },
 
@@ -154,8 +188,8 @@ export const MODEL_REGISTRY = {
   // ── USW Ultra family ──────────────────────────────
   USWULTRA: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
-    portCount: 7, displayModel: "USW Ultra", theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
+    portCount: 8, displayModel: "USW Ultra", theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }],
   },
   USWULTRA60W: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
@@ -196,6 +230,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USMINI"))         return "USMINI";
     if (candidate.includes("FLEXMINI"))       return "USMINI";
     if (candidate.includes("USWFLEXMINI"))    return "USMINI";
+    if (candidate.includes("USWED35"))        return "USWED35";
 
     // US 16 PoE 150W — before generic US16 patterns
     if (candidate.includes("US16P150"))       return "US16P150";
@@ -208,15 +243,23 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWPRO24"))       return "US24PRO2";
     if (candidate.includes("SWITCHPRO24"))    return "US24PRO2";
 
+    // USW Pro 24 — before generic USW24 pattern
+    if (candidate.includes("US48PRO2"))       return "US48PRO";
+    if (candidate.includes("US48PRO"))        return "US48PRO";
+    if (candidate.includes("USWPRO48"))       return "US48PRO";
+    if (candidate.includes("SWITCHPRO48"))    return "US48PRO";
+
     // Cloud Gateways — UCGFIBER before UCGMAX/UCGULTRA to avoid partial matches
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
+    if (candidate.includes("UDMA6A8"))  return "UCGFIBER";
 
     if (candidate.includes("UDRULT"))             return "UDRULT";
     if (candidate.includes("UCGULTRA"))           return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
     if (candidate.includes("UCGMAX"))             return "UCGMAX";
     if (candidate.includes("CLOUDGATEWAYMAX"))    return "UCGMAX";
+    if (candidate === "UDR")                      return "UDR";
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
     if (candidate.includes("UDMSE"))              return "UDMSE";
 
@@ -229,10 +272,12 @@ export function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210"))  return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60"))   return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA"))     return "USWULTRA";
+    if (candidate.includes("USM8P"))           return "USWULTRA";
 
     // Generic — must come AFTER specific models above
     if (candidate.includes("USW24"))  return "USW24P";
     if (candidate.includes("USW48"))  return "USW48P";
+    if (candidate.includes("USW48P"))  return "USW48P";
   }
 
   return null;
@@ -250,6 +295,7 @@ export function inferPortCountFromModel(device) {
 
   if (text.includes("US16P150") || text.includes("US16P"))   return 18;
   if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
+  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48")) return 52;
 
   // UCGFIBER before UCGULTRA/UCGMAX to avoid partial matches
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
