@@ -548,16 +548,9 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPortButton(slot, selectedKey) {
-    if (!slot) return "";
-
     const isSpecial  = slot.kind === "special";
     const linkUp     = isOn(this._hass, slot.link_entity, slot);
-    const poeStatus  = getPoeStatus(this._hass, slot) || {
-      hasPoe: false,
-      poeOn: false,
-      poeText: "—",
-      canToggle: false,
-    };
+    const poeStatus  = getPoeStatus(this._hass, slot);
     const poeOn      = poeStatus.poeOn;
     const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
 
