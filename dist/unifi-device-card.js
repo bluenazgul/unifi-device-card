@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.5608ce3 */
+/* UniFi Device Card 0.0.0-dev.180e040 */
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -762,7 +762,7 @@ var init_helpers = __esm({
     init_helpers();
     init_translations();
     init_unifi_device_card_editor();
-    VERSION = "0.0.0-dev.5608ce3";
+    VERSION = "0.0.0-dev.180e040";
     UnifiDeviceCard = class extends HTMLElement {
       static getConfigElement() {
         return document.createElement("unifi-device-card-editor");
@@ -1466,7 +1466,7 @@ var init_helpers = __esm({
 init_helpers();
 init_translations();
 init_unifi_device_card_editor();
-var VERSION2 = "0.0.0-dev.5608ce3";
+var VERSION2 = "0.0.0-dev.180e040";
 var UnifiDeviceCard2 = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1512,11 +1512,6 @@ var UnifiDeviceCard2 = class extends HTMLElement {
   _t(key) {
     return t(this._hass, key);
   }
-  /**
-   * Translate a raw HA state value (e.g. "on", "connected", "up") to a
-   * localised string. Falls back to the original value if not recognised,
-   * so sensor readings / firmware strings are passed through unchanged.
-   */
   _translateState(raw) {
     if (!raw || raw === "\u2014") return raw;
     const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
@@ -1547,7 +1542,7 @@ var UnifiDeviceCard2 = class extends HTMLElement {
         discovered
       );
       const wanPort = this._config?.wan_port;
-      const { specials, numbered } = ctx?.type === "gateway" && wanPort && wanPort !== "auto" ? (void 0)(specialsRaw, numberedRaw, ctx?.layout, wanPort) : { specials: specialsRaw, numbered: numberedRaw };
+      const { specials, numbered } = ctx?.type === "gateway" && wanPort && wanPort !== "auto" ? (void 0)(wanPort, specialsRaw, numberedRaw, ctx?.layout) : { specials: specialsRaw, numbered: numberedRaw };
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
@@ -1579,7 +1574,7 @@ var UnifiDeviceCard2 = class extends HTMLElement {
     return fw ? `${model} \xB7 FW ${fw}` : model;
   }
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => (void 0)(this._hass, s.link_entity, s)).length;
+    return allSlots.filter((s) => (void 0)(this._hass, s)).length;
   }
   _styles() {
     return `<style>
@@ -1828,19 +1823,16 @@ var UnifiDeviceCard2 = class extends HTMLElement {
       .theme-dark .port.up .port-num    { color: var(--udc-dim); }
       .theme-dark .port-led             { background: var(--udc-surf2); }
 
-      /* port states */
       .port.up   .port-led-link { background: var(--udc-green); box-shadow: 0 0 4px var(--udc-green); }
       .port.down .port-led-link { background: var(--udc-muted); }
       .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
 
-      /* speed badges */
       .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
       .port.speed-25g  .port-socket::after { background: #a855f7; }
       .port.speed-1g   .port-socket::after { background: var(--udc-green); }
       .port.speed-100m .port-socket::after { background: var(--udc-orange); }
       .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
 
-      /* special port (WAN/SFP) */
       .port.special {
         min-width: 38px;
         max-width: 56px;
@@ -1853,7 +1845,6 @@ var UnifiDeviceCard2 = class extends HTMLElement {
         font-size: 7px;
       }
 
-      /* detail section */
       .section {
         padding: 12px 14px 14px;
       }
@@ -1957,8 +1948,8 @@ var UnifiDeviceCard2 = class extends HTMLElement {
     const speedText = (void 0)(hass, slot);
     if (!speedText || speedText === "\u2014") return "";
     const num = parseInt(speedText, 10);
+    if (num >= 25e3) return "speed-25g";
     if (num >= 1e4) return "speed-10g";
-    if (num >= 2500) return "speed-25g";
     if (num >= 1e3) return "speed-1g";
     if (num >= 100) return "speed-100m";
     if (num >= 10) return "speed-10m";
@@ -1966,15 +1957,15 @@ var UnifiDeviceCard2 = class extends HTMLElement {
   }
   _renderPortButton(slot, selectedKey) {
     const isSpecial = slot.kind === "special";
-    const linkUp = (void 0)(this._hass, slot.link_entity, slot);
+    const linkUp = (void 0)(this._hass, slot);
     const poeStatus = (void 0)(this._hass, slot);
-    const poeOn = poeStatus.poeOn;
+    const poeOn = poeStatus.active;
     const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      linkUp ? this._t("connected") : this._t("no_link"),
+      this._translateState((void 0)(this._hass, slot)),
       linkUp ? (void 0)(this._hass, slot) : null,
-      poeOn ? "PoE ON" : null
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null
     ].filter((v) => v && v !== "\u2014").join(" \xB7 ");
     const classes = [
       "port",
@@ -2002,7 +1993,7 @@ var UnifiDeviceCard2 = class extends HTMLElement {
       discovered
     );
     const wanPort = this._config?.wan_port;
-    const { specials, numbered } = ctx?.type === "gateway" && wanPort && wanPort !== "auto" ? (void 0)(specialsRaw, numberedRaw, ctx?.layout, wanPort) : { specials: specialsRaw, numbered: numberedRaw };
+    const { specials, numbered } = ctx?.type === "gateway" && wanPort && wanPort !== "auto" ? (void 0)(wanPort, specialsRaw, numberedRaw, ctx?.layout) : { specials: specialsRaw, numbered: numberedRaw };
     const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
@@ -2031,13 +2022,13 @@ var UnifiDeviceCard2 = class extends HTMLElement {
     });
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
     if (selected) {
-      const linkUp = (void 0)(this._hass, selected.link_entity, selected);
+      const linkUp = (void 0)(this._hass, selected);
       const linkText = (void 0)(this._hass, selected);
       const speedText = (void 0)(this._hass, selected);
       const poeStatus = (void 0)(this._hass, selected);
-      const hasPoe = poeStatus.hasPoe;
-      const poeOn = poeStatus.poeOn;
-      const poePower = hasPoe ? (void 0)(this._hass, selected.poe_power_entity, "\u2014") : "\u2014";
+      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
+      const poeOn = poeStatus.active;
+      const poePower = selected.poe_power_entity ? (void 0)(this._hass, selected.poe_power_entity) : "\u2014";
       const rxVal = selected.rx_entity ? (void 0)(this._hass, selected.rx_entity, null) : null;
       const txVal = selected.tx_entity ? (void 0)(this._hass, selected.tx_entity, null) : null;
       const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
@@ -2057,11 +2048,13 @@ var UnifiDeviceCard2 = class extends HTMLElement {
           ${hasPoe ? `
           <div class="detail-item">
             <div class="detail-label">${this._t("poe")}</div>
-            <div class="detail-value">${this._translateState(poeStatus.poeText)}</div>
+            <div class="detail-value ${poeOn ? "online" : "offline"}">
+              ${poeOn ? this._t("state_on") : this._t("state_off")}
+            </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower}</div>
+            <div class="detail-value">${poePower || "\u2014"}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
@@ -2081,7 +2074,7 @@ var UnifiDeviceCard2 = class extends HTMLElement {
               ${enabled ? this._t("port_disable") : this._t("port_enable")}
             </button>`;
       })() : ""}
-          ${poeStatus.canToggle ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
             \u26A1 ${poeOn ? this._t("poe_off") : this._t("poe_on")}
           </button>` : ""}
           ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
