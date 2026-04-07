@@ -51,11 +51,6 @@ jobs:
         run: |
           RAW="${{ inputs.version }}"
 
-          # erlaubt:
-          # 0.2.9
-          # 0.2.91
-          # 0.2.91a
-          # 0.2.91-beta
           if ! [[ "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9-]*)$ ]]; then
             echo "Version must look like 0.2.9, 0.2.91 or 0.2.91a (got: $RAW)"
             exit 1
@@ -79,14 +74,7 @@ jobs:
             BEGIN { found=0 }
             /^##[[:space:]]/ {
               if (found) exit
-              line=$0
-              is_match = (
-                line ~ "^##[[:space:]]*\\[" ver "\\]" ||
-                line ~ "^##[[:space:]]*\\[v" ver "\\]" ||
-                line ~ "^##[[:space:]]*" ver "([[:space:]]|$)" ||
-                line ~ "^##[[:space:]]*v" ver "([[:space:]]|$)"
-              )
-              if (is_match) {
+              if (index($0, ver)) {
                 found=1
                 next
               }
