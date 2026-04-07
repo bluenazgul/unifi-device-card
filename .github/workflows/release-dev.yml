@@ -51,8 +51,13 @@ jobs:
         run: |
           RAW="${{ inputs.version }}"
 
-          if ! [[ "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must look like 0.3.0 (got: $RAW)"
+          # Erlaubt:
+          # 0.2.9
+          # 0.2.91
+          # 0.2.91a
+          # 0.2.91-beta
+          if ! [[ "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9-]*)$ ]]; then
+            echo "Version must look like 0.2.9, 0.2.91 or 0.2.91a (got: $RAW)"
             exit 1
           fi
 
@@ -70,12 +75,6 @@ jobs:
       - name: Extract changelog for base version
         id: changelog
         run: |
-          # Wir suchen bewusst nach der Basisversion ohne -dev:
-          # erlaubt z.B.
-          #   ## [0.3.0]
-          #   ## [v0.3.0]
-          #   ## 0.3.0
-          #   ## v0.3.0
           NOTES=$(awk \
             -v ver="$BASE_VERSION" \
             'BEGIN { found=0 }
