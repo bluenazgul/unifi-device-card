@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e1cfe66 */
+/* UniFi Device Card 0.0.0-dev.ac1e898 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -1069,6 +1069,7 @@ function detectSpecialPortKey(entity) {
   const id = lower(entity.entity_id);
   const tk = entity.translation_key || "";
   if (id.includes("_wan_") || id.endsWith("_wan") || tk.includes("wan")) return { key: "wan", label: "WAN" };
+  if (id.includes("_wan2") || id.endsWith("wan2") || tk.includes("wan2")) return { key: "wan2", label: "WAN 2" };
   const sfpMatch = id.match(/_sfp[_+]?(\d+)[_-]/) || tk.match(/sfp[_+]?(\d+)/);
   if (sfpMatch) return { key: `sfp_${sfpMatch[1]}`, label: `SFP+ ${sfpMatch[1]}` };
   if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: "SFP+" };
@@ -1312,7 +1313,7 @@ function getPortLinkText(hass, port) {
   const rx = stateValue(hass, port.rx_entity);
   const tx = stateValue(hass, port.tx_entity);
   if (rx && parseFloat(rx) > 0 || tx && parseFloat(tx) > 0) return "connected";
-  if (port.kind === "special" && (port.key === "wan" || port.key?.startsWith("sfp"))) {
+  if (port.kind === "special" && (port.key === "wan" || port.key === "wan2" || port.key?.startsWith("sfp"))) {
     return "no_link";
   }
   if (speed && speed !== "unavailable" && speed !== "unknown") return "connected";
@@ -2084,7 +2085,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e1cfe66";
+var VERSION = "0.0.0-dev.ac1e898";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
