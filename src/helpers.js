@@ -405,7 +405,9 @@ export async function getDeviceContext(hass, deviceId) {
 function classifyRelevantEntityType(entity) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const tk = entity.translation_key || "";
+  const tk = lower(entity.translation_key || "");
+  const dc = lower(entity.device_class || "");
+  const odc = lower(entity.original_device_class || "");
 
   if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) {
     return "power_cycle";
@@ -418,7 +420,18 @@ function classifyRelevantEntityType(entity) {
   }
   if (
     eid.startsWith("sensor.") &&
-    (id.includes("_poe_power") || id.includes("_power") || tk === "poe_power" || tk === "port_poe_power")
+    (
+      id.includes("_poe_power") ||
+      (id.includes("_poe") && id.includes("power")) ||
+      id.includes("power_draw") ||
+      id.includes("power_consumption") ||
+      id.includes("consumption") ||
+      tk === "poe_power" ||
+      tk === "port_poe_power" ||
+      tk === "poe_power_consumption" ||
+      dc === "power" ||
+      odc === "power"
+    )
   ) {
     return "poe_power";
   }
@@ -431,8 +444,12 @@ function classifyRelevantEntityType(entity) {
       id.includes("_tx_") ||
       id.includes("throughput") ||
       id.includes("bandwidth") ||
+      id.includes("download") ||
+      id.includes("upload") ||
       tk === "port_bandwidth_rx" ||
-      tk === "port_bandwidth_tx"
+      tk === "port_bandwidth_tx" ||
+      tk === "rx" ||
+      tk === "tx"
     )
   ) {
     return "rx_tx";
@@ -443,7 +460,9 @@ function classifyRelevantEntityType(entity) {
       id.includes("link_speed") ||
       id.includes("ethernet_speed") ||
       id.includes("negotiated_speed") ||
-      tk === "port_link_speed"
+      id.endsWith("_speed") ||
+      tk === "port_link_speed" ||
+      tk === "link_speed"
     )
   ) {
     return "link_speed";
@@ -533,7 +552,9 @@ function extractPortNumber(entity) {
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const tk = entity.translation_key || "";
+  const tk = lower(entity.translation_key || "");
+  const dc = lower(entity.device_class || "");
+  const odc = lower(entity.original_device_class || "");
 
   if (
     eid.startsWith("button.") &&
@@ -569,10 +590,23 @@ function classifyPortEntity(entity, isSpecial = false) {
 
   if (eid.startsWith("sensor.")) {
     if (id.includes("_port_")) {
-      if (id.endsWith("_rx") || id.includes("_rx_") || tk === "port_bandwidth_rx") {
+      if (
+        id.endsWith("_rx") ||
+        id.includes("_rx_") ||
+        id.includes("download") ||
+        tk === "port_bandwidth_rx" ||
+        tk === "rx"
+      ) {
         return "rx_entity";
       }
-      if (id.endsWith("_tx") || id.includes("_tx_") || tk === "port_bandwidth_tx") {
+
+      if (
+        id.endsWith("_tx") ||
+        id.includes("_tx_") ||
+        id.includes("upload") ||
+        tk === "port_bandwidth_tx" ||
+        tk === "tx"
+      ) {
         return "tx_entity";
       }
 
@@ -580,16 +614,24 @@ function classifyPortEntity(entity, isSpecial = false) {
         id.includes("link_speed") ||
         id.includes("ethernet_speed") ||
         id.includes("negotiated_speed") ||
-        tk === "port_link_speed"
+        id.endsWith("_speed") ||
+        tk === "port_link_speed" ||
+        tk === "link_speed"
       ) {
         return "speed_entity";
       }
 
       if (
         id.includes("_poe_power") ||
-        id.includes("_power") ||
+        (id.includes("_poe") && id.includes("power")) ||
+        id.includes("power_draw") ||
+        id.includes("power_consumption") ||
+        id.includes("consumption") ||
         tk === "poe_power" ||
-        tk === "port_poe_power"
+        tk === "port_poe_power" ||
+        tk === "poe_power_consumption" ||
+        dc === "power" ||
+        odc === "power"
       ) {
         return "poe_power_entity";
       }
@@ -599,14 +641,46 @@ function classifyPortEntity(entity, isSpecial = false) {
       isSpecial &&
       (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))
     ) {
-      if (id.includes("download") || id.includes("_rx")) return "rx_entity";
-      if (id.includes("upload") || id.includes("_tx")) return "tx_entity";
-      if (id.includes("link_speed") || tk === "port_link_speed") return "speed_entity";
+      if (
+        id.includes("download") ||
+        id.includes("_rx") ||
+        tk === "port_bandwidth_rx" ||
+        tk === "rx"
+      ) {
+        return "rx_entity";
+      }
+
+      if (
+        id.includes("upload") ||
+        id.includes("_tx") ||
+        tk === "port_bandwidth_tx" ||
+        tk === "tx"
+      ) {
+        return "tx_entity";
+      }
+
+      if (
+        id.includes("link_speed") ||
+        id.includes("ethernet_speed") ||
+        id.includes("negotiated_speed") ||
+        id.endsWith("_speed") ||
+        tk === "port_link_speed" ||
+        tk === "link_speed"
+      ) {
+        return "speed_entity";
+      }
+
       if (
         id.includes("_poe_power") ||
-        id.includes("_power") ||
+        (id.includes("_poe") && id.includes("power")) ||
+        id.includes("power_draw") ||
+        id.includes("power_consumption") ||
+        id.includes("consumption") ||
         tk === "poe_power" ||
-        tk === "port_poe_power"
+        tk === "port_poe_power" ||
+        tk === "poe_power_consumption" ||
+        dc === "power" ||
+        odc === "power"
       ) {
         return "poe_power_entity";
       }
@@ -950,7 +1024,7 @@ export function formatState(hass, entityId) {
   const val = obj.state;
   const unit = obj.attributes?.unit_of_measurement;
   if (!val || val === "unavailable" || val === "unknown") return "—";
-  const num = parseFloat(val);
+  const num = parseFloat(String(val).replace(",", "."));
   if (!isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
   return val;
 }
@@ -959,42 +1033,37 @@ export function getPoeStatus(hass, port) {
   const sw = stateValue(hass, port.poe_switch_entity);
   const pwr = stateValue(hass, port.poe_power_entity);
 
-  const powerNum = pwr !== null ? parseFloat(pwr) : NaN;
-  const hasPowerDraw = !isNaN(powerNum) && powerNum > 0;
+  const powerNum = pwr != null ? parseFloat(String(pwr).replace(",", ".")) : NaN;
+  const hasPowerDraw = !Number.isNaN(powerNum) && powerNum > 0;
 
-  if (sw !== null) {
-    return {
-      active: isOn(hass, port.poe_switch_entity) || hasPowerDraw,
-      power: pwr,
-    };
-  }
-
-  if (pwr !== null) {
-    return {
-      active: hasPowerDraw,
-      power: pwr,
-    };
-  }
-
-  return { active: false, power: null };
+  return {
+    active: isOn(hass, port.poe_switch_entity) || hasPowerDraw,
+    power: pwr ?? null,
+  };
 }
 
 export function isPortConnected(hass, port) {
   if (port.link_entity) {
-    const s = stateValue(hass, port.link_entity);
-    if (s === "on" || s === "true" || s === "connected" || s === "up") return true;
-    if (s === "off" || s === "false" || s === "disconnected" || s === "down") return false;
+    const s = lower(stateValue(hass, port.link_entity));
+    if (["on", "true", "connected", "up", "active"].includes(s)) return true;
+    if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
 
   const speed = stateValue(hass, port.speed_entity);
   if (speed && speed !== "unavailable" && speed !== "unknown") {
-    const n = parseFloat(speed);
-    if (!isNaN(n) && n > 0) return true;
+    const n = parseFloat(String(speed).replace(",", "."));
+    if (!Number.isNaN(n) && n > 0) return true;
   }
 
   const rx = stateValue(hass, port.rx_entity);
   const tx = stateValue(hass, port.tx_entity);
-  if ((rx && parseFloat(rx) > 0) || (tx && parseFloat(tx) > 0)) return true;
+
+  const rxNum = rx != null ? parseFloat(String(rx).replace(",", ".")) : NaN;
+  const txNum = tx != null ? parseFloat(String(tx).replace(",", ".")) : NaN;
+
+  if ((!Number.isNaN(rxNum) && rxNum > 0) || (!Number.isNaN(txNum) && txNum > 0)) {
+    return true;
+  }
 
   return false;
 }
