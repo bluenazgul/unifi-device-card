@@ -58,9 +58,17 @@ function hasUbiquitiManufacturer(device) {
   return m.includes("ubiquiti") || m.includes("unifi");
 }
 
-const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "US16", "US24", "USMINI", "FLEXMINI"];
-const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
-const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+// Prefix-based fallback classification (catches unknown / future models)
+const SWITCH_MODEL_PREFIXES = [
+  "USW", "USL", "US8", "US16", "US24", "US48",
+  "USMINI", "FLEXMINI",
+];
+const GATEWAY_MODEL_PREFIXES = [
+  "UDM", "UCG", "UXG", "UDR", "UX",
+  "UDRULT", "UDMPRO", "UDMSE",
+  "EFG",
+];
+const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UAC"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -88,35 +96,64 @@ function classifyDevice(device, entities) {
 
   const modelKey = resolveModelKey(device);
   if (modelKey) {
-    if (
-      ["UDRULT", "UCGULTRA", "UCGMAX", "UCGFIBER", "UDMPRO", "UDMSE"].includes(modelKey)
-    ) return "gateway";
-    if (
-      [
-        "US8P60", "USMINI", "USL8LP", "USL8LPB",
-        "USL16LP", "USL16LPB",
-        "US16P150", "US24PRO2", "USW24P", "USW48P",
-        "USWULTRA", "USWULTRA60W", "USWULTRA210W",
-      ].includes(modelKey)
-    ) return "switch";
+    // ── Gateways ─────────────────────────────────
+    if ([
+      "UDRULT", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL",
+      "UDMPRO", "UDMSE", "UDMPROMAX",
+      "UDR", "UDR7",
+      "UX", "UX7",
+      "UXGPRO", "UXGLITE", "UXGMAX", "UXGENTERPRISE",
+      "EFG",
+    ].includes(modelKey)) return "gateway";
+
+    // ── Switches ──────────────────────────────────
+    if ([
+      // Utility / Flex / Mini
+      "USMINI", "USWFLEX25G5", "USWFLEX25G8", "USWFLEX", "USWFLEXXG",
+      // 8-port
+      "US8", "US8P60", "US8150W",
+      "USL8LP", "USL8LPB",
+      "USWPRO8POE", "USWENTERPRISE8POE",
+      // 16-port
+      "USL16LP", "USL16LPB",
+      "USW16POE",
+      "US16P150",
+      "USWPROMAX16POE", "USWPROMAX16",
+      // 24-port
+      "USW24P", "USW24", "US24", "US24500W",
+      "US24PRO2", "USWPRO24POE", "USWPROMAX24POE", "USWPROMAX24",
+      // 48-port
+      "USW48P", "USW48", "US48", "US48500W", "US48750W",
+      "USWPRO48", "USWPRO48POE",
+      "USWPROMAX48POE", "USWPROMAX48",
+      "USWENTERPRISE48POE",
+      // Ultra
+      "USWULTRA", "USWULTRA60W", "USWULTRA210W",
+    ].includes(modelKey)) return "switch";
   }
 
+  // Fallback: prefix-based detection
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES))  return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
 
+  // Fallback: entity presence
   const hasPorts = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
   if (hasPorts) return "switch";
 
+  // Fallback: manufacturer + model string matching
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
     const name  = lower(device?.name_by_user || device?.name);
     if (
       model.includes("udm") || model.includes("ucg") ||
-      model.includes("uxg") || name.includes("gateway")
+      model.includes("uxg") || model.includes("udr") ||
+      name.includes("gateway") || name.includes("router")
     ) return "gateway";
     if (
       model.includes("usw") || model.includes("usl") ||
-      model.includes("us8") || name.includes("switch")
+      model.includes("us8") || model.includes("us16") ||
+      model.includes("us24") || model.includes("us48") ||
+      name.includes("switch")
     ) return "switch";
   }
 
@@ -340,69 +377,46 @@ function classifyRelevantEntityType(entity) {
     eid.startsWith("sensor.") &&
     (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed"))
   ) return "link_speed";
-  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) return "link_entity";
+  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) return "port_link";
 
   return null;
 }
 
-function makeEntityWarningResult() {
-  return {
-    total: 0,
-    disabled: 0,
-    hidden: 0,
-    counts: {
-      port_switch: 0,
-      poe_switch: 0,
-      poe_power: 0,
-      link_speed: 0,
-      rx_tx: 0,
-      power_cycle: 0,
-      link_entity: 0,
-    },
-    items: [],
-  };
-}
+export async function getEditorWarnings(hass, deviceId) {
+  if (!hass || !deviceId) return [];
 
-export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
-  const result = makeEntityWarningResult();
-  if (!hass || !deviceId) return result;
+  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
-  const entities = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
-  for (const entity of entities || []) {
-    if (entity.device_id !== deviceId) continue;
+  const device = devices.find((d) => d.id === deviceId);
+  if (!device) return [];
 
-    const kind = classifyRelevantEntityType(entity);
-    if (!kind) continue;
+  const allRaw = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
+  const deviceEntities = (allRaw || []).filter((e) => e.device_id === deviceId);
 
-    const disabledBy = entity.disabled_by || null;
-    const hiddenBy   = entity.hidden_by || null;
-    if (!disabledBy && !hiddenBy) continue;
-
-    result.total += 1;
-    if (disabledBy) result.disabled += 1;
-    if (hiddenBy) result.hidden += 1;
-    result.counts[kind] = (result.counts[kind] || 0) + 1;
-
-    result.items.push({
-      entity_id:   entity.entity_id,
-      name:        entity.original_name || entity.name || entity.entity_id,
-      kind,
-      disabled_by: disabledBy,
-      hidden_by:   hiddenBy,
-    });
+  const warnings = [];
+  for (const entity of deviceEntities) {
+    const type = classifyRelevantEntityType(entity);
+    if (!type) continue;
+    if (entity.disabled_by) {
+      warnings.push({ type, entity_id: entity.entity_id, reason: "disabled" });
+    } else if (entity.hidden_by) {
+      warnings.push({ type, entity_id: entity.entity_id, reason: "hidden" });
+    }
   }
 
-  return result;
+  return warnings;
 }
 
 // ─────────────────────────────────────────────────
-// Port discovery helpers
+// Port discovery
 // ─────────────────────────────────────────────────
 
 function extractPortNumber(entity) {
-  const id           = entity.entity_id || "";
-  const originalName = entity.original_name || "";
-  const name         = entity.name || "";
+  const id           = lower(entity.entity_id);
+  const originalName = lower(entity.original_name || "");
+  const name         = lower(entity.name || "");
+  const uniqueId     = entity.unique_id || "";
 
   let match = id.match(/_port_(\d+)(?:_|$)/i);
   if (match) return Number(match[1]);
@@ -413,10 +427,10 @@ function extractPortNumber(entity) {
   match = name.match(/\bport\s+(\d+)\b/i);
   if (match) return Number(match[1]);
 
-  if (entity.unique_id) {
-    match = entity.unique_id.match(/[_-](\d+)$/);
+  if (uniqueId) {
+    match = uniqueId.match(/[_-](\d+)$/);
     if (match) return Number(match[1]);
-    match = entity.unique_id.match(/port[_-](\d+)/i);
+    match = uniqueId.match(/port[_-](\d+)/i);
     if (match) return Number(match[1]);
   }
 
@@ -521,60 +535,42 @@ function classifyPortEntity(entity, isSpecial = false) {
   }
 
   if (eid.startsWith("sensor.")) {
-    if (id.includes("_port_")) {
-      if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
-      if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
+    if (isThroughputEntity(id)) {
+      if (id.endsWith("_rx") || id.includes("_rx_") || id.includes("download")) return "rx_entity";
+      if (id.endsWith("_tx") || id.includes("_tx_") || id.includes("upload"))   return "tx_entity";
     }
-    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))) {
-      if (id.includes("download") || id.includes("_rx")) return "rx_entity";
-      if (id.includes("upload")   || id.includes("_tx")) return "tx_entity";
+    if (id.includes("_poe_power") || id.includes("_poe_current") || id.includes("_poe_voltage")) {
+      return "poe_power_entity";
     }
     if (isSpeedEntity(id)) return "speed_entity";
-    if (id.includes("_port_") && id.includes("_poe_power")) return "poe_power_entity";
-    if (
-      id.includes("_port_") &&
-      (id.includes("_link") || id.includes("_status") || id.includes("_state")) &&
-      !isThroughputEntity(id)
-    ) {
-      return "link_entity";
-    }
   }
 
   return null;
 }
 
 function detectSpecialPortKey(entity) {
-  const text = entityText(entity);
-  const id   = lower(entity.entity_id);
+  const id = lower(entity.entity_id);
+  const t  = entityText(entity);
 
-  if (id.includes("_wan_port") || id.includes("wan_port")) return { key: "wan", label: "WAN" };
-  if (text.includes("wan 2") || id.includes("wan2"))        return { key: "wan2", label: "WAN 2" };
-
-  if (
-    (text.includes("wan") || id.includes("wan")) &&
-    (text.includes("sfp") || id.includes("sfp"))
-  ) {
-    return { key: "sfp_wan", label: "WAN SFP+" };
+  if (id.includes("_wan") || t.includes("wan port") || t.includes("wan link")) {
+    return { key: "wan", label: "WAN" };
   }
-
-  if (
-    (text.includes("lan") || id.includes("lan")) &&
-    (text.includes("sfp") || id.includes("sfp"))
-  ) {
-    return { key: "sfp_lan", label: "LAN SFP+" };
+  if (id.includes("_sfp2") || id.includes("_sfp_2") || t.includes("sfp+ 2") || t.includes("sfp 2")) {
+    return { key: "sfp_2", label: "SFP+ 2" };
   }
-
-  if (id.endsWith("_wan_port") || id.endsWith("_wan")) return { key: "wan", label: "WAN" };
-  if (text.includes("wan") || id.includes("_wan_"))     return { key: "wan", label: "WAN" };
-  if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
-    return { key: "sfp", label: "SFP" };
+  if (id.includes("_sfp1") || id.includes("_sfp_1") || t.includes("sfp+ 1") || t.includes("sfp 1") || id.includes("_sfp")) {
+    return { key: "sfp_1", label: "SFP+ 1" };
+  }
+  if (id.includes("_uplink") || t.includes("uplink")) {
+    return { key: "uplink", label: "Uplink" };
+  }
 
   return null;
 }
 
 function extractPortLabel(entity) {
   const eid = entity.entity_id || "";
-  const id  = eid.toLowerCase();
+  const id  = lower(eid);
 
   const isLabelSource =
     (eid.startsWith("button.") && id.includes("power_cycle")) ||
@@ -679,356 +675,130 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   return merged.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
 }
 
-// ─────────────────────────────────────────────────
-// WAN port override
-// ─────────────────────────────────────────────────
-
-/**
- * Apply the user-configured WAN port override for gateway devices.
- *
- * The config value `wan_port` can be:
- *   "auto"     → no change, use detected layout as-is
- *   "wan"      → a special slot key (e.g. "wan", "sfp_1", "sfp_wan", …)
- *   "port_N"   → a numbered LAN port (e.g. "port_5")
- *
- * What we do:
- *   1. Find which slot is currently the WAN slot (key === "wan").
- *   2. Find the target slot chosen by the user.
- *   3. Swap the "wan" label/key onto the target slot and rename the old WAN
- *      slot back to its original layout label (or "Port N").
- *
- * The result is a new array of special slots that the card renders exactly
- * as before, but with the WAN data pointing at the correct physical port.
- *
- * @param {object[]} specials   Output of mergeSpecialsWithLayout()
- * @param {object[]} numbered   Output of mergePortsWithLayout()
- * @param {object}   layout     Device layout from model-registry
- * @param {string}   wanPort    Config value: "auto" | slot-key | "port_N"
- * @returns {{ specials: object[], numbered: object[] }}
- */
-export function applyWanPortOverride(specials, numbered, layout, wanPort) {
-  // Nothing to do for switches or when auto / unset
-  if (!wanPort || wanPort === "auto") {
-    return { specials, numbered };
-  }
-
-  // Deep-clone to avoid mutating the originals
-  let newSpecials = specials.map((s) => ({ ...s }));
-  let newNumbered = numbered.map((p) => ({ ...p }));
-
-  const isPortKey = wanPort.startsWith("port_");
-  const targetPortNum = isPortKey ? parseInt(wanPort.replace("port_", ""), 10) : null;
-
-  // ── Case 1: target is a numbered LAN port ("port_N") ──────────────────────
-  if (isPortKey && targetPortNum != null) {
-    // Find the existing WAN special slot
-    const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
-    const targetIdx = newNumbered.findIndex((p) => p.port === targetPortNum);
-
-    if (oldWanIdx === -1 || targetIdx === -1) {
-      // Can't apply — return unchanged
-      return { specials, numbered };
-    }
-
-    const oldWan    = newSpecials[oldWanIdx];
-    const targetPort = newNumbered[targetIdx];
-
-    // The chosen LAN port becomes the new WAN special slot
-    const newWanSlot = {
-      ...targetPort,
-      key:   "wan",
-      label: "WAN",
-      kind:  "special",
-    };
-
-    // The old WAN slot becomes a regular numbered port in the special row
-    // Restore its original layout label if available
-    const layoutSlot = (layout?.specialSlots || []).find((s) => s.key === oldWan.key);
-    const restoredOldWan = {
-      ...oldWan,
-      label: layoutSlot?.label || `Port ${oldWan.port ?? "?"}`,
-    };
-
-    // Swap: remove old WAN, insert new WAN at same position
-    newSpecials.splice(oldWanIdx, 1, newWanSlot);
-
-    // The old WAN physical port now needs to appear somewhere in specials
-    // (it was a special slot before — keep it there so layout is consistent)
-    // Only add if it's not already present under a different key
-    const alreadyInSpecials = newSpecials.some((s) => s.port === oldWan.port);
-    if (!alreadyInSpecials && oldWan.port != null) {
-      newSpecials.push(restoredOldWan);
-    }
-
-    // Remove the target port from the numbered array so it doesn't render twice
-    newNumbered.splice(targetIdx, 1);
-
-    return { specials: newSpecials, numbered: newNumbered };
-  }
-
-  // ── Case 2: target is a special slot key ("sfp_1", "sfp_2", …) ───────────
-  const targetSpecialIdx = newSpecials.findIndex((s) => s.key === wanPort);
-  const oldWanIdx        = newSpecials.findIndex((s) => s.key === "wan");
-
-  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx) {
-    // Already correct or target not found
-    return { specials, numbered };
-  }
-
-  const oldWan    = { ...newSpecials[oldWanIdx] };
-  const targetSlot = { ...newSpecials[targetSpecialIdx] };
-
-  // Restore old WAN slot label from layout
-  const layoutOldWan = (layout?.specialSlots || []).find((s) => s.key === oldWan.key);
-  const layoutTarget  = (layout?.specialSlots || []).find((s) => s.key === targetSlot.key);
-
-  // The target slot becomes WAN
-  newSpecials[targetSpecialIdx] = {
-    ...targetSlot,
-    key:   "wan",
-    label: "WAN",
-  };
-
-  // The old WAN slot keeps its old key but gets the target slot's data
-  // so port data is displayed correctly at the old WAN position
-  newSpecials[oldWanIdx] = {
-    ...oldWan,
-    key:   layoutOldWan?.key    || oldWan.key,
-    label: layoutOldWan?.label  || `Port ${oldWan.port ?? "?"}`,
-  };
-
-  return { specials: newSpecials, numbered: newNumbered };
-}
-
-export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = []) {
+export function mergeSpecialsWithLayout(layout, discoveredSpecials) {
   const byKey  = new Map(discoveredSpecials.map((s) => [s.key, s]));
-  const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
-  const layoutSpecials = layout?.specialSlots || [];
+  const merged = [];
 
-  const merged = layoutSpecials.map((slot) => {
-    if (slot.port != null) {
-      const portData = byPort.get(slot.port);
-      if (portData) return { ...portData, key: slot.key, label: slot.label, kind: "special" };
-    }
-
-    const keyData = byKey.get(slot.key);
-    if (keyData) return keyData;
-
-    return {
-      key: slot.key,
-      port: slot.port ?? null,
-      label: slot.label,
-      kind: "special",
-      link_entity: null,
-      port_switch_entity: null,
-      speed_entity: null,
-      poe_switch_entity: null,
-      poe_power_entity: null,
-      power_cycle_entity: null,
-      rx_entity: null,
-      tx_entity: null,
-      raw_entities: [],
-    };
-  });
+  for (const slot of layout?.specialSlots || []) {
+    merged.push(
+      byKey.get(slot.key) || {
+        key:               slot.key,
+        port:              slot.port ?? null,
+        label:             slot.label,
+        port_label:        null,
+        kind:              "special",
+        link_entity:       null,
+        port_switch_entity: null,
+        speed_entity:      null,
+        poe_switch_entity: null,
+        poe_power_entity:  null,
+        power_cycle_entity: null,
+        rx_entity:         null,
+        tx_entity:         null,
+        raw_entities:      [],
+      }
+    );
+  }
 
   for (const special of discoveredSpecials) {
-    if (!layoutSpecials.some((s) => s.key === special.key)) merged.push(special);
+    if (!layout?.specialSlots?.some((s) => s.key === special.key)) {
+      merged.push(special);
+    }
   }
 
   return merged;
 }
 
 // ─────────────────────────────────────────────────
-// State helpers used by the card
+// WAN port override
 // ─────────────────────────────────────────────────
 
-export function stateObj(hass, entityId) {
-  return entityId ? hass.states[entityId] || null : null;
-}
+export function applyWanPortOverride(layout, specialPorts, wanPortConfig) {
+  if (!wanPortConfig || !layout) return { layout, specialPorts };
 
-export function stateValue(hass, entityId, fallback = "—") {
-  const state = stateObj(hass, entityId);
-  return state ? state.state : fallback;
-}
+  const wanPort = Number(wanPortConfig);
+  if (!wanPort || isNaN(wanPort)) return { layout, specialPorts };
 
-function numericState(hass, entityId) {
-  const state = stateObj(hass, entityId);
-  if (!state) return null;
-  const raw = String(state.state ?? "").replace(",", ".");
-  if (raw === "unknown" || raw === "unavailable" || raw === "") return null;
-  const num = parseFloat(raw);
-  return Number.isNaN(num) ? null : num;
-}
+  const updatedSlots = (layout.specialSlots || []).map((slot) =>
+    slot.key === "wan" ? { ...slot, port: wanPort } : slot
+  );
 
-function hasAvailableState(hass, entityId) {
-  const state = stateObj(hass, entityId);
-  if (!state) return false;
-  const v = String(state.state ?? "").toLowerCase();
-  return v !== "unknown" && v !== "unavailable" && v !== "";
-}
-
-function isPoeSwitchOn(hass, port) {
-  const state = stateObj(hass, port?.poe_switch_entity);
-  if (!state) return false;
-  return String(state.state ?? "").toLowerCase() === "on";
-}
-
-function getTrafficStatus(hass, port) {
-  const ids = [port?.rx_entity, port?.tx_entity].filter(Boolean);
-  if (!ids.length) return "none";
-  let sawNumeric = false;
-  for (const entityId of ids) {
-    const value = numericState(hass, entityId);
-    if (value == null) continue;
-    sawNumeric = true;
-    if (value > 0) return "positive";
+  if (!updatedSlots.some((s) => s.key === "wan")) {
+    updatedSlots.push({ key: "wan", label: "WAN", port: wanPort });
   }
-  if (sawNumeric) return "zero";
-  return "unknown";
+
+  return {
+    layout: { ...layout, specialSlots: updatedSlots },
+    specialPorts,
+  };
+}
+
+// ─────────────────────────────────────────────────
+// State formatting
+// ─────────────────────────────────────────────────
+
+function stateObj(hass, entityId) {
+  if (!hass || !entityId) return null;
+  return hass.states[entityId] ?? null;
+}
+
+export function isOn(hass, entityId) {
+  const s = stateObj(hass, entityId);
+  if (!s) return null;
+  const v = lower(s.state);
+  if (["on", "true", "connected", "up"].includes(v))  return true;
+  if (["off", "false", "disconnected", "down"].includes(v)) return false;
+  return null;
 }
 
 export function getPoeStatus(hass, port) {
-  const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
-  if (!hasPoe) {
-    return { hasPoe: false, poeOn: false, poeText: "—", canToggle: false };
+  const sw = stateObj(hass, port?.poe_switch_entity);
+  if (sw) {
+    const v = lower(sw.state);
+    if (v === "on")  return "active";
+    if (v === "off") return "inactive";
   }
-
-  const poeSwitch = stateObj(hass, port?.poe_switch_entity);
-  const switchVal = String(poeSwitch?.state ?? "").toLowerCase();
-  if (poeSwitch && switchVal !== "unknown" && switchVal !== "unavailable") {
-    return {
-      hasPoe:    true,
-      poeOn:     switchVal === "on",
-      poeText:   String(poeSwitch.state),
-      canToggle: Boolean(port?.poe_switch_entity),
-    };
+  const pw = stateObj(hass, port?.poe_power_entity);
+  if (pw) {
+    const watts = parseFloat(pw.state);
+    if (!isNaN(watts) && watts > 0) return "active";
+    if (!isNaN(watts))              return "inactive";
   }
-
-  const poePower = numericState(hass, port?.poe_power_entity);
-  if (poePower != null) {
-    return {
-      hasPoe:    true,
-      poeOn:     poePower > 0,
-      poeText:   poePower > 0 ? `${poePower.toFixed(1)} W` : "0 W",
-      canToggle: false,
-    };
-  }
-
-  return { hasPoe: true, poeOn: false, poeText: "—", canToggle: false };
-}
-
-export function isOn(hass, entityId, port) {
-  const traffic = getTrafficStatus(hass, port);
-  const speed   = numericState(hass, port?.speed_entity);
-
-  // --- Direct link entity ---
-  if (entityId) {
-    const state = stateObj(hass, entityId);
-    if (state) {
-      const v = String(state.state ?? "").toLowerCase();
-      if (["on", "connected", "up", "true"].includes(v)) {
-        const isSpecialPort  = port?.kind === "special";
-        const hasSpeedData   = speed != null;
-        const hasTrafficData = traffic !== "none" && traffic !== "unknown";
-        if (!isSpecialPort && (hasSpeedData || hasTrafficData)) {
-          const speedIsZero   = hasSpeedData   && speed === 0;
-          const trafficIsZero = hasTrafficData && traffic === "zero";
-          if (speedIsZero || trafficIsZero) return false;
-        }
-        return true;
-      }
-      if (["off", "disconnected", "false"].includes(v)) return false;
-    }
-  }
-
-  // --- Traffic-based fallback ---
-  if (traffic === "positive") return true;
-  if (traffic === "zero")     return false;
-
-  // --- Speed-based fallback ---
-  const isSpecial = port?.kind === "special";
-  if (!isSpecial || traffic === "none" || traffic === "unknown") {
-    if (speed != null && speed > 0) return true;
-    if (speed != null && speed === 0) return false;
-  }
-
-  return false;
-}
-
-export function formatState(hass, entityId, fallback = "—") {
-  const state = stateObj(hass, entityId);
-  if (!state) return fallback;
-
-  const unit = state.attributes?.unit_of_measurement || "";
-  if (state.state === "unknown" || state.state === "unavailable") return "—";
-
-  const num = parseFloat(state.state);
-  if (!Number.isNaN(num)) {
-    const rounded = num % 1 === 0 ? String(num) : num.toFixed(2);
-    return unit ? `${rounded} ${unit}` : rounded;
-  }
-
-  return unit ? `${state.state} ${unit}` : state.state;
+  return null;
 }
 
 export function getPortLinkText(hass, port) {
-  const direct = stateObj(hass, port?.link_entity);
-  if (direct) {
-    const value = String(direct.state ?? "");
-    if (isLikelyLinkStateValue(value)) return value;
-  }
+  const link = stateObj(hass, port?.link_entity);
+  if (link) return link.state;
+
+  const sw = stateObj(hass, port?.port_switch_entity);
+  if (sw) return sw.state;
 
   for (const entityId of port?.raw_entities || []) {
     const st = stateObj(hass, entityId);
     if (!st) continue;
-
-    const value = String(st.state ?? "");
-    const id    = lower(entityId);
-
-    if (
-      isLikelyLinkStateValue(value) &&
-      !id.includes("poe") &&
-      !id.includes("power") &&
-      !id.includes("speed")
-    ) {
-      return value;
-    }
+    const v = lower(st.state);
+    if (isLikelyLinkStateValue(v)) return st.state;
   }
 
-  const traffic = getTrafficStatus(hass, port);
-  const speed   = numericState(hass, port?.speed_entity);
-
-  if (traffic === "positive") return "connected";
-  if (traffic === "zero")     return "no link";
-
-  const isSpecial = port?.kind === "special";
-  if (!isSpecial || traffic === "none" || traffic === "unknown") {
-    if (speed != null && speed > 0) return "connected";
-    if (speed != null && speed === 0) return "no link";
-  }
-
-  return "—";
+  return null;
 }
 
-function simplifySpeed(value, unit = "") {
-  const raw     = String(value ?? "").trim().toLowerCase();
+function simplifySpeed(raw, unit) {
+  const rawLow  = String(raw  ?? "").trim().toLowerCase();
   const rawUnit = String(unit ?? "").trim().toLowerCase();
-
   if (!raw || raw === "unknown" || raw === "unavailable") return "—";
-
-  const number = parseFloat(raw.replace(",", "."));
+  const number = parseFloat(rawLow.replace(",", "."));
   if (!Number.isNaN(number)) {
-    if (rawUnit.includes("gbit")) return `${Math.round(number * 1000)} Mbit`;
+    if (rawUnit.includes("gbit")) return `${Math.round(number * 1_000)} Mbit`;
     if (rawUnit.includes("mbit")) return `${Math.round(number)} Mbit`;
-    if ([10, 100, 1000, 2500, 10000].includes(number)) return `${Math.round(number)} Mbit`;
+    if ([10, 100, 1_000, 2_500, 10_000].includes(number)) return `${Math.round(number)} Mbit`;
   }
-
-  if (raw.includes("10g"))                        return "10000 Mbit";
-  if (raw.includes("2.5g"))                       return "2500 Mbit";
-  if (raw.includes("1g") || raw.includes("1000")) return "1000 Mbit";
-  if (raw.includes("100m") || raw === "100")      return "100 Mbit";
-  if (raw.includes("10m")  || raw === "10")       return "10 Mbit";
-
+  if (rawLow.includes("10g"))   return "10000 Mbit";
+  if (rawLow.includes("2.5g")) return "2500 Mbit";
+  if (rawLow.includes("1g") || rawLow.includes("1000")) return "1000 Mbit";
+  if (rawLow.includes("100m") || rawLow === "100") return "100 Mbit";
+  if (rawLow.includes("10m")  || rawLow === "10")  return "10 Mbit";
   return "—";
 }
 
@@ -1038,27 +808,25 @@ export function getPortSpeedText(hass, port) {
     const result = simplifySpeed(direct.state, direct.attributes?.unit_of_measurement);
     if (result !== "—") return result;
   }
-
   for (const entityId of port?.raw_entities || []) {
     const st = stateObj(hass, entityId);
     if (!st) continue;
-
-    const id    = lower(entityId);
-    const unit  = st.attributes?.unit_of_measurement || "";
+    const id   = lower(entityId);
+    const unit = st.attributes?.unit_of_measurement || "";
     const value = String(st.state ?? "");
-
     if (isThroughputEntity(id)) continue;
-
-    if (
-      id.includes("link_speed") ||
-      id.endsWith("_speed") ||
-      id.includes("ethernet_speed") ||
-      id.includes("negotiated_speed")
-    ) {
+    if (id.includes("link_speed") || id.endsWith("_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed")) {
       const result = simplifySpeed(value, unit);
       if (result !== "—") return result;
     }
   }
-
   return "—";
+}
+
+export function formatState(hass, entityId) {
+  const s = stateObj(hass, entityId);
+  if (!s) return "—";
+  const unit = s.attributes?.unit_of_measurement;
+  if (unit) return `${s.state} ${unit}`;
+  return s.state;
 }
