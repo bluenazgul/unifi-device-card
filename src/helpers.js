@@ -553,6 +553,24 @@ export function discoverSpecialPorts(entities) {
   return Array.from(specials.values());
 }
 
+// Returns true when a port number is within the model's declared PoE range.
+// poePortRange: [firstPoEPort, lastPoEPort] inclusive, or absent/null = no PoE.
+function portHasPoe(portNumber, layout) {
+  const r = layout?.poePortRange;
+  if (!r) return false;
+  return portNumber >= r[0] && portNumber <= r[1];
+}
+
+// Strip PoE and power-cycle entities from a port object that has no physical PoE.
+function stripPoeEntities(port) {
+  return {
+    ...port,
+    poe_switch_entity:  null,
+    poe_power_entity:   null,
+    power_cycle_entity: null,
+  };
+}
+
 export function mergePortsWithLayout(layout, discoveredPorts) {
   const byPort      = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutPorts = (layout?.rows || []).flat();
@@ -565,26 +583,32 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   for (const portNumber of layoutPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
 
-    merged.push(
-      byPort.get(portNumber) || {
-        key: `port-${portNumber}`,
-        port: portNumber,
-        label: String(portNumber),
-        kind: "numbered",
-        link_entity: null,
-        speed_entity: null,
-        poe_switch_entity: null,
-        poe_power_entity: null,
-        port_switch_entity: null,
-        power_cycle_entity: null,
-        rx_entity: null,
-        tx_entity: null,
-        raw_entities: [],
-      }
-    );
+    const discovered = byPort.get(portNumber);
+    const hasPoe     = portHasPoe(portNumber, layout);
+
+    const port = discovered || {
+      key: `port-${portNumber}`,
+      port: portNumber,
+      label: String(portNumber),
+      kind: "numbered",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      port_switch_entity: null,
+      power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
+      raw_entities: [],
+    };
+
+    // If the model defines a PoE range and this port is outside it,
+    // clear any PoE/power-cycle entities HA may have exposed incorrectly.
+    merged.push(hasPoe ? port : stripPoeEntities(port));
   }
 
-  // Add any discovered ports that weren't in the layout
+  // Add any discovered ports that weren't in the layout rows.
+  // For these we can't verify PoE capability, so leave entities as-is.
   for (const port of discoveredPorts) {
     if (!layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port))
       merged.push(port);
