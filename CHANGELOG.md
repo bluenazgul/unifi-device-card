@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.2.91] preview Build - 2026-04-07
+
+### ✨ Features
+- Added support for new devices (including correct model identification and naming)
+  - US68P → USW Enterprise 8 PoE
+  - US624P → USW Enterprise 24 PoE
+  - US648P → USW Enterprise 48 PoE
+  - USL8A → USW Aggregation
+  - USAGGPRO → USW Pro Aggregation
+  - USF5P → USW Flex
+  - US8P150 → UniFi Switch 8 150W
+  - US24PRO → USW Pro 24 PoE
+  - US48PRO → USW Pro 48 PoE
+  - US48PRO2 → USW Pro 48
+  - USL16P → USW 16 PoE (Gen2)
+  - USL24 → USW 24 (Gen2)
+  - USL24P → USW 24 PoE (Gen2)
+  - USL48 → USW 48 (Gen2)
+  - USL48P → USW 48 PoE (Gen2)
+  - UXGPRO → UXG-Pro
+  - UXGL → UXG-Lite
+  - UDMPROSE → UDM SE
+  - UGW3 → UniFi Security Gateway
+  - UGW4 → USG Pro 4
+
+### 🐛 Bug Fixes
+- Improve device detection
+- Improve port detection
+- Improve PoE port detection
+
 ## [v0.2.9] - 2026-04-07
 
 ### 🐛 Bug Fixes
