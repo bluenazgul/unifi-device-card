@@ -1,4 +1,4 @@
-import { 
+import {
   applyWanPortOverride,
   discoverPorts,
   discoverSpecialPorts,
@@ -8,6 +8,7 @@ import {
   getPortLinkText,
   getPortSpeedText,
   isOn,
+  isPortConnected,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
 } from "./helpers.js";
@@ -70,22 +71,14 @@ class UnifiDeviceCard extends HTMLElement {
     return t(this._hass, key);
   }
 
-  /**
-   * Translate a raw HA state value (e.g. "on", "connected", "up") to a
-   * localised string. Falls back to the original value if not recognised,
-   * so sensor readings / firmware strings are passed through unchanged.
-   */
   _translateState(raw) {
     if (!raw || raw === "—") return raw;
     const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
     const translated = this._t(key);
-    // If the key was not found, t() returns the key itself – use original value instead
     return translated === key ? raw : translated;
   }
 
   _cardBgStyle() {
-    // Return the custom colour only when explicitly set.
-    // An empty string means "use the HA theme" so we never force a value.
     return this._config?.background_color || "";
   }
 
@@ -115,12 +108,11 @@ class UnifiDeviceCard extends HTMLElement {
         discovered
       );
 
-      // Apply WAN port override so the initial selected port is correct
-      // even when a custom WAN port is configured.
       const wanPort = this._config?.wan_port;
-      const { specials, numbered } = (ctx?.type === "gateway" && wanPort && wanPort !== "auto")
-        ? applyWanPortOverride(specialsRaw, numberedRaw, ctx?.layout, wanPort)
-        : { specials: specialsRaw, numbered: numberedRaw };
+      const { specials, numbered } =
+        ctx?.type === "gateway" && wanPort && wanPort !== "auto"
+          ? applyWanPortOverride(wanPort, specialsRaw, numberedRaw, ctx?.layout)
+          : { specials: specialsRaw, numbered: numberedRaw };
 
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
@@ -159,7 +151,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => isOn(this._hass, s.link_entity, s)).length;
+    return allSlots.filter((s) => isPortConnected(this._hass, s)).length;
   }
 
   _styles() {
@@ -409,19 +401,16 @@ class UnifiDeviceCard extends HTMLElement {
       .theme-dark .port.up .port-num    { color: var(--udc-dim); }
       .theme-dark .port-led             { background: var(--udc-surf2); }
 
-      /* port states */
       .port.up   .port-led-link { background: var(--udc-green); box-shadow: 0 0 4px var(--udc-green); }
       .port.down .port-led-link { background: var(--udc-muted); }
       .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
 
-      /* speed badges */
       .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
       .port.speed-25g  .port-socket::after { background: #a855f7; }
       .port.speed-1g   .port-socket::after { background: var(--udc-green); }
       .port.speed-100m .port-socket::after { background: var(--udc-orange); }
       .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
 
-      /* special port (WAN/SFP) */
       .port.special {
         min-width: 38px;
         max-width: 56px;
@@ -434,7 +423,6 @@ class UnifiDeviceCard extends HTMLElement {
         font-size: 7px;
       }
 
-      /* detail section */
       .section {
         padding: 12px 14px 14px;
       }
@@ -539,8 +527,8 @@ class UnifiDeviceCard extends HTMLElement {
     const speedText = getPortSpeedText(hass, slot);
     if (!speedText || speedText === "—") return "";
     const num = parseInt(speedText, 10);
+    if (num >= 25000) return "speed-25g";
     if (num >= 10000) return "speed-10g";
-    if (num >= 2500)  return "speed-25g";
     if (num >= 1000)  return "speed-1g";
     if (num >= 100)   return "speed-100m";
     if (num >= 10)    return "speed-10m";
@@ -548,17 +536,17 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPortButton(slot, selectedKey) {
-    const isSpecial  = slot.kind === "special";
-    const linkUp     = isOn(this._hass, slot.link_entity, slot);
-    const poeStatus  = getPoeStatus(this._hass, slot);
-    const poeOn      = poeStatus.poeOn;
+    const isSpecial = slot.kind === "special";
+    const linkUp = isPortConnected(this._hass, slot);
+    const poeStatus = getPoeStatus(this._hass, slot);
+    const poeOn = poeStatus.active;
     const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
 
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      linkUp ? this._t("connected") : this._t("no_link"),
+      this._translateState(getPortLinkText(this._hass, slot)),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
-      poeOn ? "PoE ON" : null,
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
     ].filter((v) => v && v !== "—").join(" · ");
 
     const classes = [
@@ -589,13 +577,11 @@ class UnifiDeviceCard extends HTMLElement {
       discovered
     );
 
-    // ── WAN port override (gateway only) ──────────────────────────────────────
-    // When the user has configured a custom WAN port we remap which slot
-    // carries the "WAN" key so the card displays the correct port as WAN.
     const wanPort = this._config?.wan_port;
-    const { specials, numbered } = (ctx?.type === "gateway" && wanPort && wanPort !== "auto")
-      ? applyWanPortOverride(specialsRaw, numberedRaw, ctx?.layout, wanPort)
-      : { specials: specialsRaw, numbered: numberedRaw };
+    const { specials, numbered } =
+      ctx?.type === "gateway" && wanPort && wanPort !== "auto"
+        ? applyWanPortOverride(wanPort, specialsRaw, numberedRaw, ctx?.layout)
+        : { specials: specialsRaw, numbered: numberedRaw };
 
     const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
@@ -631,15 +617,15 @@ class UnifiDeviceCard extends HTMLElement {
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
 
     if (selected) {
-      const linkUp    = isOn(this._hass, selected.link_entity, selected);
-      const linkText  = getPortLinkText(this._hass, selected);
+      const linkUp = isPortConnected(this._hass, selected);
+      const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
-      const hasPoe    = poeStatus.hasPoe;
-      const poeOn     = poeStatus.poeOn;
-      const poePower  = hasPoe ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
-      const rxVal     = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
-      const txVal     = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
+      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
+      const poeOn = poeStatus.active;
+      const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
+      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
+      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
 
       const portTitle = selected.port_label
         || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
@@ -660,11 +646,13 @@ class UnifiDeviceCard extends HTMLElement {
           ${hasPoe ? `
           <div class="detail-item">
             <div class="detail-label">${this._t("poe")}</div>
-            <div class="detail-value">${this._translateState(poeStatus.poeText)}</div>
+            <div class="detail-value ${poeOn ? "online" : "offline"}">
+              ${poeOn ? this._t("state_on") : this._t("state_off")}
+            </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower}</div>
+            <div class="detail-value">${poePower || "—"}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
@@ -684,7 +672,7 @@ class UnifiDeviceCard extends HTMLElement {
               ${enabled ? this._t("port_disable") : this._t("port_enable")}
             </button>`;
           })() : ""}
-          ${poeStatus.canToggle ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
             ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
           </button>` : ""}
           ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
