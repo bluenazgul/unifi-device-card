@@ -838,6 +838,7 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
 // ─────────────────────────────────────────────────
 
 export function stateObj(hass, entityId) {
+  if (!hass || !entityId) return null;
   return entityId ? hass.states[entityId] || null : null;
 }
 
