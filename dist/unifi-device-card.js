@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1342840 */
+/* UniFi Device Card 0.0.0-dev.e2fe0cc */
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -762,7 +762,7 @@ var init_helpers = __esm({
     init_helpers();
     init_translations();
     init_unifi_device_card_editor();
-    VERSION = "0.0.0-dev.1342840";
+    VERSION = "0.0.0-dev.e2fe0cc";
     UnifiDeviceCard = class extends HTMLElement {
       static getConfigElement() {
         return document.createElement("unifi-device-card-editor");
@@ -1466,7 +1466,7 @@ var init_helpers = __esm({
 init_helpers();
 init_translations();
 init_unifi_device_card_editor();
-var VERSION2 = "0.0.0-dev.1342840";
+var VERSION2 = "0.0.0-dev.e2fe0cc";
 var UnifiDeviceCard2 = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1827,8 +1827,8 @@ var UnifiDeviceCard2 = class extends HTMLElement {
       .port.down .port-led-link { background: var(--udc-muted); }
       .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
 
-      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
       .port.speed-25g  .port-socket::after { background: #a855f7; }
+      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
       .port.speed-1g   .port-socket::after { background: var(--udc-green); }
       .port.speed-100m .port-socket::after { background: var(--udc-orange); }
       .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
@@ -2029,8 +2029,8 @@ var UnifiDeviceCard2 = class extends HTMLElement {
       const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
       const poeOn = poeStatus.active;
       const poePower = selected.poe_power_entity ? (void 0)(this._hass, selected.poe_power_entity) : "\u2014";
-      const rxVal = selected.rx_entity ? (void 0)(this._hass, selected.rx_entity, null) : null;
-      const txVal = selected.tx_entity ? (void 0)(this._hass, selected.tx_entity, null) : null;
+      const rxVal = selected.rx_entity ? (void 0)(this._hass, selected.rx_entity) : null;
+      const txVal = selected.tx_entity ? (void 0)(this._hass, selected.tx_entity) : null;
       const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
       detail = `
         <div class="detail-title">${portTitle}</div>
