@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.59bb01b */
+/* UniFi Device Card 0.0.0-dev.3cc4568 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -1640,6 +1640,7 @@ function applyWanPortOverride(specials, numbered, layout, wanPort) {
   return { specials: newSpecials, numbered: newNumbered };
 }
 function stateObj(hass, entityId) {
+  if (!hass || !entityId) return null;
   return entityId ? hass.states[entityId] || null : null;
 }
 function stateValue(hass, entityId, fallback = "\u2014") {
@@ -2578,7 +2579,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.59bb01b";
+var VERSION = "0.0.0-dev.3cc4568";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
