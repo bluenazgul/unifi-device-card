@@ -783,7 +783,7 @@ export function applyWanPortOverride(specials, numbered, layout, wanPort) {
   const targetSpecialIdx = newSpecials.findIndex((s) => s.key === wanPort);
   const oldWanIdx        = newSpecials.findIndex((s) => s.key === "wan");
 
-  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx) {
+  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx || oldWanIdx === -1) {
     return { specials, numbered };
   }
 
@@ -852,6 +852,10 @@ function getTrafficStatus(hass, port) {
 }
 
 export function getPoeStatus(hass, port) {
+  if (!port) {
+    return { hasPoe: false, poeOn: false, poeText: "—", canToggle: false };
+  }
+
   const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
   if (!hasPoe) {
     return { hasPoe: false, poeOn: false, poeText: "—", canToggle: false };
