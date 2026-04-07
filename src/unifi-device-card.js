@@ -405,8 +405,8 @@ class UnifiDeviceCard extends HTMLElement {
       .port.down .port-led-link { background: var(--udc-muted); }
       .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
 
-      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
       .port.speed-25g  .port-socket::after { background: #a855f7; }
+      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
       .port.speed-1g   .port-socket::after { background: var(--udc-green); }
       .port.speed-100m .port-socket::after { background: var(--udc-orange); }
       .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
@@ -624,8 +624,8 @@ class UnifiDeviceCard extends HTMLElement {
       const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
       const poeOn = poeStatus.active;
       const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
-      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
-      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
+      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
+      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
 
       const portTitle = selected.port_label
         || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
