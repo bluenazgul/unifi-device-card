@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.991a8e0 */
+/* UniFi Device Card 0.0.0-dev.84b1b60 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -847,7 +847,7 @@ function classifyDevice(device, entities) {
   }
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
-  const hasPorts = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
+  const hasPorts = entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id));
   if (hasPorts) return "switch";
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
@@ -885,7 +885,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) return true;
   if (resolveModelKey(device)) return true;
   if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES])) return true;
-  if (entities.some((e) => /_port_\d+_/i.test(e.entity_id)) && hasUbiquitiManufacturer(device)) return true;
+  if (entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id)) && hasUbiquitiManufacturer(device)) return true;
   return false;
 }
 function buildDeviceLabel(device, type) {
@@ -990,13 +990,14 @@ async function getDeviceContext(hass, deviceId) {
 function classifyRelevantEntityType(entity) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  if (eid.startsWith("button.") && id.includes("power_cycle")) return "power_cycle";
+  const tk = entity.translation_key || "";
+  if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) return "power_cycle";
   if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) return "poe_switch";
   if (eid.startsWith("switch.") && id.includes("_port_")) return "port_switch";
-  if (eid.startsWith("sensor.") && id.includes("_poe_power")) return "poe_power";
-  if (eid.startsWith("sensor.") && (id.endsWith("_rx") || id.endsWith("_tx") || id.includes("_rx_") || id.includes("_tx_") || id.includes("throughput") || id.includes("bandwidth"))) return "rx_tx";
-  if (eid.startsWith("sensor.") && (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed"))) return "link_speed";
-  if (eid.startsWith("binary_sensor.") && id.includes("_link")) return "link";
+  if (eid.startsWith("sensor.") && (id.includes("_poe_power") || tk === "poe_power")) return "poe_power";
+  if (eid.startsWith("sensor.") && (id.endsWith("_rx") || id.endsWith("_tx") || id.includes("_rx_") || id.includes("_tx_") || id.includes("throughput") || id.includes("bandwidth") || tk === "port_bandwidth_rx" || tk === "port_bandwidth_tx")) return "rx_tx";
+  if (eid.startsWith("sensor.") && (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || tk === "port_link_speed")) return "link_speed";
+  if (eid.startsWith("binary_sensor.") && (id.includes("_port_") || id.includes("_link") || tk === "port_link")) return "link";
   return null;
 }
 async function getRelevantEntityWarningsForDevice(hass, deviceId) {
@@ -1022,12 +1023,14 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
 }
 function extractPortNumber(entity) {
   const uid = normalize(entity.unique_id);
-  const uidMatch = uid.match(/_port[_-]?(\d+)(?:[_-]|$)/i) || uid.match(/-(\d+)-[a-z]/i);
+  const uidMatch = uid.match(/_port[_-]?(\d+)(?:[_-]|$)/i) || uid.match(/-(\d+)-[a-z]/i) || uid.match(/port[_-](\d+)/i) || uid.match(/[_-](\d+)$/);
   if (uidMatch) return parseInt(uidMatch[1], 10);
   const eid = lower(entity.entity_id);
-  const eidMatch = eid.match(/_port_(\d+)_/i);
+  const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
   if (eidMatch) return parseInt(eidMatch[1], 10);
-  const nameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
+  const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
+  if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
+  const nameMatch = (entity.name || "").match(/\bport\s+(\d+)\b/i);
   if (nameMatch) return parseInt(nameMatch[1], 10);
   return null;
 }
@@ -1035,14 +1038,33 @@ function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
   const tk = entity.translation_key || "";
-  if (eid.startsWith("binary_sensor.") && (id.includes("_link") || tk === "port_link")) return "link_entity";
-  if (eid.startsWith("sensor.") && (id.includes("link_speed") || tk === "port_link_speed")) return "speed_entity";
-  if (eid.startsWith("sensor.") && (id.includes("_poe_power") || tk === "poe_power")) return "poe_power_entity";
-  if (eid.startsWith("switch.") && id.includes("_poe") && !id.endsWith("_port")) return "poe_switch_entity";
-  if (eid.startsWith("switch.") && (id.includes("_port_") || isSpecial)) return "port_switch_entity";
-  if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) return "power_cycle_entity";
-  if (eid.startsWith("sensor.") && (id.endsWith("_rx") || id.includes("_rx_") || tk === "port_bandwidth_rx")) return "rx_entity";
-  if (eid.startsWith("sensor.") && (id.endsWith("_tx") || id.includes("_tx_") || tk === "port_bandwidth_tx")) return "tx_entity";
+  if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle" || id.includes("_restart") || id.includes("_reboot"))) return "power_cycle_entity";
+  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
+    return "poe_switch_entity";
+  }
+  if (eid.startsWith("switch.") && (id.includes("_port_") || isSpecial)) {
+    return "port_switch_entity";
+  }
+  if (eid.startsWith("binary_sensor.")) {
+    if (id.includes("_port_")) return "link_entity";
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink") || id.includes("_connected") || id.includes("_link") || tk === "port_link")) return "link_entity";
+  }
+  if (eid.startsWith("sensor.")) {
+    if (id.includes("_port_")) {
+      if (id.endsWith("_rx") || id.includes("_rx_") || tk === "port_bandwidth_rx") return "rx_entity";
+      if (id.endsWith("_tx") || id.includes("_tx_") || tk === "port_bandwidth_tx") return "tx_entity";
+      if (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || tk === "port_link_speed") {
+        return "speed_entity";
+      }
+      if (id.includes("_poe_power") || tk === "poe_power") return "poe_power_entity";
+    }
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))) {
+      if (id.includes("download") || id.includes("_rx")) return "rx_entity";
+      if (id.includes("upload") || id.includes("_tx")) return "tx_entity";
+      if (id.includes("link_speed") || tk === "port_link_speed") return "speed_entity";
+      if (id.includes("_poe_power") || tk === "poe_power") return "poe_power_entity";
+    }
+  }
   return null;
 }
 function ensurePort(map, port) {
@@ -2085,7 +2107,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.991a8e0";
+var VERSION = "0.0.0-dev.84b1b60";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
