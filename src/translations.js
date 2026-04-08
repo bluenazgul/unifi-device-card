@@ -51,13 +51,17 @@ const TRANSLATIONS = {
     editor_hint:           "Only devices from the UniFi Network Integration are shown.",
     editor_error:          "Failed to load UniFi devices.",
 
-    // WAN port selector (editor — gateway only)
-    editor_wan_port_label:  "WAN Port",
-    editor_wan_port_auto:   "Default (automatic)",
-    editor_wan_port_hint:   "Select which port is used as WAN. Only shown for gateway devices.",
-    editor_wan_port_lan:    "LAN",
-    editor_wan_port_sfp:    "SFP",
-    editor_wan_port_sfpwan: "SFP (WAN-capable)",
+    // WAN / WAN2 selector (editor — gateway only)
+    editor_wan_port_label:   "WAN Port",
+    editor_wan_port_auto:    "Default (automatic)",
+    editor_wan_port_hint:    "Select which port is used as WAN. Only shown for gateway devices.",
+    editor_wan_port_lan:     "LAN",
+    editor_wan_port_sfp:     "SFP",
+    editor_wan_port_sfpwan:  "SFP (WAN-capable)",
+
+    editor_wan2_port_label:  "WAN 2 Port",
+    editor_wan2_port_hint:   "Optional second WAN/uplink port. Set to “Disabled” if not needed.",
+    editor_wan2_port_none:   "Disabled",
 
     // Raw HA state values that may appear in the link status / PoE fields
     state_on:           "On",
@@ -102,13 +106,16 @@ const TRANSLATIONS = {
   },
 
   de: {
+    // Card states
     select_device:      "Bitte im Karteneditor ein UniFi-Gerät auswählen.",
     loading:            "Lade Gerätedaten…",
     no_data:            "Keine Gerätedaten verfügbar.",
     no_ports:           "Keine Ports erkannt.",
 
+    // Front panel
     front_panel:        "Front Panel",
 
+    // Port detail
     link_status:        "Link Status",
     speed:              "Geschwindigkeit",
     poe:                "PoE",
@@ -118,14 +125,17 @@ const TRANSLATIONS = {
     online:             "Online",
     offline:            "Offline",
 
+    // Actions
     port_disable:       "Port deaktivieren",
     port_enable:        "Port aktivieren",
     poe_off:            "PoE Aus",
     poe_on:             "PoE Ein",
     power_cycle:        "Power Cycle",
 
+    // Hints
     speed_disabled:     "Speed-Entity deaktiviert — in HA aktivieren für Geschwindigkeitsanzeige.",
 
+    // Editor
     editor_device_title:   "Gerät",
     editor_device_label:   "UniFi Gerät",
     editor_device_loading: "Lade Geräte aus Home Assistant…",
@@ -136,13 +146,17 @@ const TRANSLATIONS = {
     editor_hint:           "Nur Geräte aus der UniFi Network Integration werden angezeigt.",
     editor_error:          "UniFi-Geräte konnten nicht geladen werden.",
 
-    // WAN port selector
-    editor_wan_port_label:  "WAN-Port",
-    editor_wan_port_auto:   "Standard (automatisch)",
-    editor_wan_port_hint:   "Wähle, welcher Port als WAN verwendet wird. Nur für Gateway-Geräte.",
-    editor_wan_port_lan:    "LAN",
-    editor_wan_port_sfp:    "SFP",
-    editor_wan_port_sfpwan: "SFP (WAN-fähig)",
+    // WAN / WAN2 selector
+    editor_wan_port_label:   "WAN-Port",
+    editor_wan_port_auto:    "Standard (automatisch)",
+    editor_wan_port_hint:    "Wähle, welcher Port als WAN verwendet wird. Nur für Gateway-Geräte.",
+    editor_wan_port_lan:     "LAN",
+    editor_wan_port_sfp:     "SFP",
+    editor_wan_port_sfpwan:  "SFP (WAN-fähig)",
+
+    editor_wan2_port_label:  "WAN2-Port",
+    editor_wan2_port_hint:   "Optionaler zweiter WAN-/Uplink-Port. Bei Bedarf auf „Deaktiviert“ setzen.",
+    editor_wan2_port_none:   "Deaktiviert",
 
     // Raw HA state values
     state_on:           "Ein",
@@ -181,18 +195,22 @@ const TRANSLATIONS = {
     warning_entity_power_cycle: "Power-Cycle-Buttons",
     warning_entity_link:        "Link-Entities",
 
+    // Device type labels
     type_switch:  "Switch",
     type_gateway: "Gateway",
   },
 
   nl: {
+    // Card states
     select_device:      "Selecteer een UniFi-apparaat in de kaarteditor.",
     loading:            "Apparaatgegevens laden…",
     no_data:            "Geen apparaatgegevens beschikbaar.",
     no_ports:           "Geen poorten gedetecteerd.",
 
+    // Front panel
     front_panel:        "Frontpaneel",
 
+    // Port detail
     link_status:        "Linkstatus",
     speed:              "Snelheid",
     poe:                "PoE",
@@ -202,14 +220,17 @@ const TRANSLATIONS = {
     online:             "Online",
     offline:            "Offline",
 
+    // Actions
     port_disable:       "Poort uitschakelen",
     port_enable:        "Poort inschakelen",
     poe_off:            "PoE uit",
     poe_on:             "PoE aan",
     power_cycle:        "Power Cycle",
 
+    // Hints
     speed_disabled:     "Snelheidsentiteit uitgeschakeld — schakel in HA in om linksnelheid te tonen.",
 
+    // Editor
     editor_device_title:   "Apparaat",
     editor_device_label:   "UniFi-apparaat",
     editor_device_loading: "Apparaten laden uit Home Assistant…",
@@ -220,13 +241,17 @@ const TRANSLATIONS = {
     editor_hint:           "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error:          "UniFi-apparaten konden niet worden geladen.",
 
-    // WAN port selector
-    editor_wan_port_label:  "WAN-poort",
-    editor_wan_port_auto:   "Standaard (automatisch)",
-    editor_wan_port_hint:   "Selecteer welke poort als WAN wordt gebruikt. Alleen voor gateway-apparaten.",
-    editor_wan_port_lan:    "LAN",
-    editor_wan_port_sfp:    "SFP",
-    editor_wan_port_sfpwan: "SFP (WAN-geschikt)",
+    // WAN / WAN2 selector
+    editor_wan_port_label:   "WAN-poort",
+    editor_wan_port_auto:    "Standaard (automatisch)",
+    editor_wan_port_hint:    "Selecteer welke poort als WAN wordt gebruikt. Alleen voor gateway-apparaten.",
+    editor_wan_port_lan:     "LAN",
+    editor_wan_port_sfp:     "SFP",
+    editor_wan_port_sfpwan:  "SFP (WAN-geschikt)",
+
+    editor_wan2_port_label:  "WAN 2-poort",
+    editor_wan2_port_hint:   "Optionele tweede WAN-/uplinkpoort. Zet op “Uitgeschakeld” als die niet nodig is.",
+    editor_wan2_port_none:   "Uitgeschakeld",
 
     // Raw HA state values
     state_on:           "Aan",
@@ -239,11 +264,14 @@ const TRANSLATIONS = {
     state_false:        "Geen link",
     state_active:       "Actief",
 
+    // Port label prefix
     port_label:         "Poort",
 
+    // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint:  "Standaard: var(--card-background-color)",
 
+    // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten…",
     warning_title:   "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
     warning_body:    "Het geselecteerde apparaat heeft relevante UniFi-entiteiten die momenteel uitgeschakeld of verborgen zijn. Dit kan leiden tot ontbrekende bediening, onvolledige telemetrie of een onjuiste poortstatus in de kaart.",
@@ -264,13 +292,16 @@ const TRANSLATIONS = {
   },
 
   fr: {
+    // Card states
     select_device:      "Veuillez sélectionner un appareil UniFi dans l'éditeur de carte.",
     loading:            "Chargement des données…",
     no_data:            "Aucune donnée disponible.",
     no_ports:           "Aucun port détecté.",
 
+    // Front panel
     front_panel:        "Panneau avant",
 
+    // Port detail
     link_status:        "État du lien",
     speed:              "Vitesse",
     poe:                "PoE",
@@ -280,14 +311,17 @@ const TRANSLATIONS = {
     online:             "En ligne",
     offline:            "Hors ligne",
 
+    // Actions
     port_disable:       "Désactiver le port",
     port_enable:        "Activer le port",
     poe_off:            "PoE désactivé",
     poe_on:             "PoE activé",
     power_cycle:        "Redémarrage PoE",
 
+    // Hints
     speed_disabled:     "Entité de vitesse désactivée — activez-la dans HA pour afficher la vitesse.",
 
+    // Editor
     editor_device_title:   "Appareil",
     editor_device_label:   "Appareil UniFi",
     editor_device_loading: "Chargement des appareils…",
@@ -298,13 +332,17 @@ const TRANSLATIONS = {
     editor_hint:           "Seuls les appareils de l'intégration UniFi Network sont affichés.",
     editor_error:          "Impossible de charger les appareils UniFi.",
 
-    // WAN port selector
-    editor_wan_port_label:  "Port WAN",
-    editor_wan_port_auto:   "Par défaut (automatique)",
-    editor_wan_port_hint:   "Sélectionnez le port utilisé comme WAN. Uniquement pour les passerelles.",
-    editor_wan_port_lan:    "LAN",
-    editor_wan_port_sfp:    "SFP",
-    editor_wan_port_sfpwan: "SFP (capable WAN)",
+    // WAN / WAN2 selector
+    editor_wan_port_label:   "Port WAN",
+    editor_wan_port_auto:    "Par défaut (automatique)",
+    editor_wan_port_hint:    "Sélectionnez le port utilisé comme WAN. Uniquement pour les passerelles.",
+    editor_wan_port_lan:     "LAN",
+    editor_wan_port_sfp:     "SFP",
+    editor_wan_port_sfpwan:  "SFP (compatible WAN)",
+
+    editor_wan2_port_label:  "Port WAN 2",
+    editor_wan2_port_hint:   "Second port WAN/uplink optionnel. Réglez sur « Désactivé » si inutile.",
+    editor_wan2_port_none:   "Désactivé",
 
     // Raw HA state values
     state_on:           "Activé",
@@ -317,11 +355,14 @@ const TRANSLATIONS = {
     state_false:        "Pas de lien",
     state_active:       "Actif",
 
+    // Port label prefix
     port_label:         "Port",
 
+    // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint:  "Défaut : var(--card-background-color)",
 
+    // Entity warning
     warning_checking: "Vérification des entités UniFi désactivées ou masquées pour l'appareil sélectionné…",
     warning_title:   "Entités UniFi désactivées ou masquées détectées",
     warning_body:    "L'appareil sélectionné possède des entités UniFi pertinentes actuellement désactivées ou masquées. Cela peut entraîner des commandes manquantes, une télémétrie incomplète ou un état de port incorrect dans la carte.",
