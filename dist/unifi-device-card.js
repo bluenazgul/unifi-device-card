@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.36d5923 */
+/* UniFi Device Card 0.0.0-dev.2d6fc9f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -938,6 +938,13 @@ async function getUnifiDevices(hass) {
     (a, b) => a.name.localeCompare(b.name, void 0, { sensitivity: "base" })
   );
 }
+function filterPortsByLayout(discoveredPorts, layout) {
+  const layoutRows = (layout?.rows || []).flat();
+  const specialPorts = (layout?.specialSlots || []).map((slot) => slot?.port).filter((port) => Number.isInteger(port));
+  const allowed = /* @__PURE__ */ new Set([...layoutRows, ...specialPorts]);
+  if (!allowed.size) return discoveredPorts;
+  return discoveredPorts.filter((port) => allowed.has(port.port));
+}
 async function getDeviceContext(hass, deviceId) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
@@ -969,9 +976,10 @@ async function getDeviceContext(hass, deviceId) {
       );
     }
   }
-  const numberedPorts = discoverPorts(entities);
+  const discoveredPortsRaw = discoverPorts(entities);
+  const layout = getDeviceLayout(device, discoveredPortsRaw);
+  const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
-  const layout = getDeviceLayout(device, numberedPorts);
   return {
     device,
     entities,
@@ -981,7 +989,8 @@ async function getDeviceContext(hass, deviceId) {
     name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
-    firmware: extractFirmware(device, entities)
+    firmware: extractFirmware(device, entities),
+    numberedPorts
   };
 }
 function classifyRelevantEntityType(entity) {
@@ -2386,7 +2395,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.36d5923";
+var VERSION = "0.0.0-dev.2d6fc9f";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
