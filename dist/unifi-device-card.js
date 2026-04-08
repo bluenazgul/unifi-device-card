@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a84bd09 */
+/* UniFi Device Card 0.0.0-dev.32cf6c3 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2264,7 +2264,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a84bd09";
+var VERSION = "0.0.0-dev.32cf6c3";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2319,6 +2319,28 @@ var UnifiDeviceCard = class extends HTMLElement {
   _cardBgStyle() {
     return this._config?.background_color || "";
   }
+  _buildSlotData(ctx) {
+    const discovered = discoverPorts(ctx?.entities || []);
+    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
+    const discoveredSpecials = ctx?.type === "gateway" ? discoverSpecialPorts(ctx?.entities || []) : [];
+    const specialsRaw = mergeSpecialsWithLayout(
+      ctx?.layout,
+      discoveredSpecials,
+      discovered
+    );
+    if (ctx?.type === "gateway") {
+      return applyGatewayPortOverrides(
+        this._config,
+        specialsRaw,
+        numberedRaw,
+        ctx?.layout
+      );
+    }
+    return {
+      specials: specialsRaw,
+      numbered: numberedRaw
+    };
+  }
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
     const currentId = this._config.device_id;
@@ -2332,14 +2354,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (token !== this._loadToken) return;
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
-      const discovered = discoverPorts(ctx?.entities || []);
-      const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
-      const specialsRaw = mergeSpecialsWithLayout(
-        ctx?.layout,
-        discoverSpecialPorts(ctx?.entities || []),
-        discovered
-      );
-      const { specials, numbered } = ctx?.type === "gateway" ? applyGatewayPortOverrides(this._config, specialsRaw, numberedRaw, ctx?.layout) : { specials: specialsRaw, numbered: numberedRaw };
+      const { specials, numbered } = this._buildSlotData(ctx);
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
@@ -2376,20 +2391,20 @@ var UnifiDeviceCard = class extends HTMLElement {
   _styles() {
     return `<style>
       :host {
-        --udc-bg:      #141820;
+        --udc-bg: #141820;
         --udc-surface: #1e2433;
-        --udc-surf2:   #252d3d;
-        --udc-border:  rgba(255,255,255,0.07);
-        --udc-accent:  #0090d9;
-        --udc-aglow:   rgba(0,144,217,0.2);
-        --udc-green:   #22c55e;
-        --udc-orange:  #f59e0b;
-        --udc-red:     #ef4444;
-        --udc-text:    #e2e8f0;
-        --udc-muted:   #4e5d73;
-        --udc-dim:     #8896a8;
-        --udc-r:       14px;
-        --udc-rsm:     8px;
+        --udc-surf2: #252d3d;
+        --udc-border: rgba(255,255,255,0.07);
+        --udc-accent: #0090d9;
+        --udc-aglow: rgba(0,144,217,0.2);
+        --udc-green: #22c55e;
+        --udc-orange: #f59e0b;
+        --udc-red: #ef4444;
+        --udc-text: #e2e8f0;
+        --udc-muted: #4e5d73;
+        --udc-dim: #8896a8;
+        --udc-r: 14px;
+        --udc-rsm: 8px;
       }
 
       ha-card {
@@ -2480,9 +2495,9 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-bottom: 2px;
       }
 
-      .theme-white  .panel-label { color: #8a96a8; }
+      .theme-white .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark   .panel-label { color: var(--udc-muted); }
+      .theme-dark .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
@@ -2765,14 +2780,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _renderPanelAndDetail(title) {
     const ctx = this._ctx;
-    const discovered = discoverPorts(ctx?.entities || []);
-    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
-    const specialsRaw = mergeSpecialsWithLayout(
-      ctx?.layout,
-      discoverSpecialPorts(ctx?.entities || []),
-      discovered
-    );
-    const { specials, numbered } = ctx?.type === "gateway" ? applyGatewayPortOverrides(this._config, specialsRaw, numberedRaw, ctx?.layout) : { specials: specialsRaw, numbered: numberedRaw };
+    const { specials, numbered } = this._buildSlotData(ctx);
     const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
@@ -2850,15 +2858,15 @@ var UnifiDeviceCard = class extends HTMLElement {
           ${selected.port_switch_entity ? (() => {
         const enabled = isOn(this._hass, selected.port_switch_entity);
         return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-              ${enabled ? this._t("port_disable") : this._t("port_enable")}
-            </button>`;
+                    ${enabled ? this._t("port_disable") : this._t("port_enable")}
+                  </button>`;
       })() : ""}
           ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            \u26A1 ${poeOn ? this._t("poe_off") : this._t("poe_on")}
-          </button>` : ""}
+                  \u26A1 ${poeOn ? this._t("poe_off") : this._t("poe_on")}
+                </button>` : ""}
           ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-            \u21BA ${this._t("power_cycle")}
-          </button>` : ""}
+                  \u21BA ${this._t("power_cycle")}
+                </button>` : ""}
         </div>`;
     }
     this.shadowRoot.innerHTML = `${this._styles()}
@@ -2879,10 +2887,21 @@ var UnifiDeviceCard = class extends HTMLElement {
 
         <div class="section">${detail}</div>
       </ha-card>`;
-    this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
-    this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
-    this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
-    this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
+    this.shadowRoot.querySelectorAll(".port").forEach(
+      (btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key))
+    );
+    this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener(
+      "click",
+      (e) => this._toggleEntity(e.currentTarget.dataset.entity)
+    );
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener(
+      "click",
+      (e) => this._toggleEntity(e.currentTarget.dataset.entity)
+    );
+    this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener(
+      "click",
+      (e) => this._pressButton(e.currentTarget.dataset.entity)
+    );
   }
   _render() {
     const title = this._config?.name || "UniFi Device Card";
