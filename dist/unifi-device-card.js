@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.fd9c74c */
+/* UniFi Device Card 0.0.0-dev.f45ff0f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2395,7 +2395,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.fd9c74c";
+var VERSION = "0.0.0-dev.f45ff0f";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2451,7 +2451,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return this._config?.background_color || "";
   }
   _buildSlotData(ctx) {
-    const discovered = discoverPorts(ctx?.entities || []);
+    const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
     const specialsRaw = mergeSpecialsWithLayout(
       ctx?.layout,
