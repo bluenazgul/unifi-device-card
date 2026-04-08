@@ -69,6 +69,7 @@ const SWITCH_MODEL_PREFIXES = [
   "USMINI",
   "FLEXMINI",
 ];
+
 const GATEWAY_MODEL_PREFIXES = [
   "UDM",
   "UCG",
@@ -78,6 +79,7 @@ const GATEWAY_MODEL_PREFIXES = [
   "UDMPRO",
   "UDMPROSE",
 ];
+
 const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
 
 function normalizeModelStr(value) {
@@ -88,6 +90,7 @@ function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version]
     .filter(Boolean)
     .map(normalizeModelStr);
+
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
 }
 
@@ -162,6 +165,7 @@ function classifyDevice(device, entities) {
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
     const name = lower(device?.name_by_user || device?.name);
+
     if (
       model.includes("udm") ||
       model.includes("ucg") ||
@@ -171,6 +175,7 @@ function classifyDevice(device, entities) {
     ) {
       return "gateway";
     }
+
     if (
       model.includes("usw") ||
       model.includes("usl") ||
@@ -282,6 +287,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   }
 
   if (resolveModelKey(device)) return true;
+
   if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES])) {
     return true;
   }
@@ -302,19 +308,23 @@ function buildDeviceLabel(device, type) {
     normalize(device.name) ||
     normalize(device.model) ||
     "Unknown device";
+
   const model = normalize(device.model);
   const typeLabel = type === "gateway" ? "Gateway" : "Switch";
+
   if (model && lower(model) !== lower(name)) return `${name} · ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
 }
 
 function extractFirmware(device, entities) {
   if (normalize(device?.sw_version)) return normalize(device.sw_version);
+
   const fe = entities.find((e) => {
     const id = lower(e.entity_id);
     const t = entityText(e);
     return id.includes("firmware") || id.includes("version") || t.includes("firmware");
   });
+
   return fe ? fe.entity_id : "";
 }
 
@@ -365,6 +375,20 @@ export async function getUnifiDevices(hass) {
 // Public: full device context for card rendering
 // ─────────────────────────────────────────────────
 
+function filterPortsByLayout(discoveredPorts, layout) {
+  const layoutRows = (layout?.rows || []).flat();
+  const specialPorts = (layout?.specialSlots || [])
+    .map((slot) => slot?.port)
+    .filter((port) => Number.isInteger(port));
+
+  const allowed = new Set([...layoutRows, ...specialPorts]);
+
+  // Kein Filter, wenn das Layout keine belastbare Portliste liefert
+  if (!allowed.size) return discoveredPorts;
+
+  return discoveredPorts.filter((port) => allowed.has(port.port));
+}
+
 export async function getDeviceContext(hass, deviceId) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
@@ -397,6 +421,7 @@ export async function getDeviceContext(hass, deviceId) {
         )
       )
     );
+
     const uidMap = new Map(
       details
         .filter(Boolean)
@@ -411,9 +436,10 @@ export async function getDeviceContext(hass, deviceId) {
     }
   }
 
-  const numberedPorts = discoverPorts(entities);
+  const discoveredPortsRaw = discoverPorts(entities);
+  const layout = getDeviceLayout(device, discoveredPortsRaw);
+  const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
-  const layout = getDeviceLayout(device, numberedPorts);
 
   return {
     device,
@@ -425,6 +451,7 @@ export async function getDeviceContext(hass, deviceId) {
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device, entities),
+    numberedPorts,
   };
 }
 
@@ -1244,11 +1271,14 @@ export function isOn(hass, entityId) {
 export function formatState(hass, entityId) {
   const obj = stateObj(hass, entityId);
   if (!obj) return "—";
+
   const val = obj.state;
   const unit = obj.attributes?.unit_of_measurement;
   if (!val || val === "unavailable" || val === "unknown") return "—";
+
   const num = parseFloat(String(val).replace(",", "."));
   if (!isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
+
   return val;
 }
 
