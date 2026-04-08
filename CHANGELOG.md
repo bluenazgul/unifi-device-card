@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.3.6] - 2026-04-08
+
+### 🐛 Bug Fixes
+- Fixed incorrect link status detection on ports reporting `10 Mbit/s`
+- Fixed WAN port selection on gateway devices
+- Fixed port remapping so reassigned WAN/WAN2 ports are shown correctly
+- Fixed Ghost Ports
+
+### 🐛 known Bug
+- in some cases slow Card rendering when changed WAN and WAN2 (help needed)
 ## [0.3.0] - 2026-04-07
 
 ### ✨ Features
