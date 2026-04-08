@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.3ba9da1 */
+/* UniFi Device Card 0.0.0-dev.d12eaf4 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2365,7 +2365,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.3ba9da1";
+var VERSION = "0.0.0-dev.d12eaf4";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2592,9 +2592,9 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-bottom: 2px;
       }
 
-      .theme-white  .panel-label { color: #8a96a8; }
+      .theme-white .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark   .panel-label { color: var(--udc-muted); }
+      .theme-dark .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
@@ -2857,7 +2857,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _speedClass(hass, port) {
     const speedText = getPortSpeedText(hass, port);
-    const match = String(speedText || "").match(/(\d+)\s*Mbit/i);
+    const match = String(speedText || "").match(/(\d+)/);
     if (!match) return "";
     const mbps = parseInt(match[1], 10);
     if (mbps >= 25e3) return "speed-25g";
@@ -2875,8 +2875,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     const speedClass = this._speedClass(this._hass, slot);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      getPortSpeedText(this._hass, slot)
-    ].filter(Boolean).filter((v) => v !== "\u2014").join(" \xB7 ");
+      this._translateState(getPortLinkText(this._hass, slot)),
+      linkUp ? getPortSpeedText(this._hass, slot) : null,
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null
+    ].filter((v) => v && v !== "\u2014").join(" \xB7 ");
     const classes = [
       "port",
       isSpecial ? "special" : "",
@@ -2940,12 +2942,12 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="detail-item">
             <div class="detail-label">${this._t("link_status")}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${linkUp ? this._t("connected") : this._t("no_link")}
+              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
             </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText}</div>
+            <div class="detail-value">${speedText || "\u2014"}</div>
           </div>
           ${hasPoe ? `
           <div class="detail-item">
@@ -2956,7 +2958,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower}</div>
+            <div class="detail-value">${poePower || "\u2014"}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
