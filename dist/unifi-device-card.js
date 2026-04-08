@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.cc2a152 */
+/* UniFi Device Card 0.0.0-dev.3e09d2d */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1538,7 +1538,8 @@ function isPortConnected(hass, port) {
   const speed = stateValue(hass, port.speed_entity);
   if (speed && speed !== "unavailable" && speed !== "unknown") {
     const n = parseFloat(String(speed).replace(",", "."));
-    if (!Number.isNaN(n) && n > 0) return true;
+    if (!Number.isNaN(n) && n > 10) return true;
+    if (!Number.isNaN(n) && n <= 10) return false;
   }
   const rx = stateValue(hass, port.rx_entity);
   const tx = stateValue(hass, port.tx_entity);
@@ -2365,7 +2366,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.cc2a152";
+var VERSION = "0.0.0-dev.3e09d2d";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
