@@ -82,6 +82,36 @@ class UnifiDeviceCard extends HTMLElement {
     return this._config?.background_color || "";
   }
 
+  _buildSlotData(ctx) {
+    const discovered = discoverPorts(ctx?.entities || []);
+    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
+
+    const discoveredSpecials =
+      ctx?.type === "gateway"
+        ? discoverSpecialPorts(ctx?.entities || [])
+        : [];
+
+    const specialsRaw = mergeSpecialsWithLayout(
+      ctx?.layout,
+      discoveredSpecials,
+      discovered
+    );
+
+    if (ctx?.type === "gateway") {
+      return applyGatewayPortOverrides(
+        this._config,
+        specialsRaw,
+        numberedRaw,
+        ctx?.layout
+      );
+    }
+
+    return {
+      specials: specialsRaw,
+      numbered: numberedRaw,
+    };
+  }
+
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
 
@@ -100,19 +130,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
 
-      const discovered = discoverPorts(ctx?.entities || []);
-      const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
-      const specialsRaw = mergeSpecialsWithLayout(
-        ctx?.layout,
-        discoverSpecialPorts(ctx?.entities || []),
-        discovered
-      );
-
-      const { specials, numbered } =
-        ctx?.type === "gateway"
-          ? applyGatewayPortOverrides(this._config, specialsRaw, numberedRaw, ctx?.layout)
-          : { specials: specialsRaw, numbered: numberedRaw };
-
+      const { specials, numbered } = this._buildSlotData(ctx);
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
@@ -156,20 +174,20 @@ class UnifiDeviceCard extends HTMLElement {
   _styles() {
     return `<style>
       :host {
-        --udc-bg:      #141820;
+        --udc-bg: #141820;
         --udc-surface: #1e2433;
-        --udc-surf2:   #252d3d;
-        --udc-border:  rgba(255,255,255,0.07);
-        --udc-accent:  #0090d9;
-        --udc-aglow:   rgba(0,144,217,0.2);
-        --udc-green:   #22c55e;
-        --udc-orange:  #f59e0b;
-        --udc-red:     #ef4444;
-        --udc-text:    #e2e8f0;
-        --udc-muted:   #4e5d73;
-        --udc-dim:     #8896a8;
-        --udc-r:       14px;
-        --udc-rsm:     8px;
+        --udc-surf2: #252d3d;
+        --udc-border: rgba(255,255,255,0.07);
+        --udc-accent: #0090d9;
+        --udc-aglow: rgba(0,144,217,0.2);
+        --udc-green: #22c55e;
+        --udc-orange: #f59e0b;
+        --udc-red: #ef4444;
+        --udc-text: #e2e8f0;
+        --udc-muted: #4e5d73;
+        --udc-dim: #8896a8;
+        --udc-r: 14px;
+        --udc-rsm: 8px;
       }
 
       ha-card {
@@ -260,9 +278,9 @@ class UnifiDeviceCard extends HTMLElement {
         margin-bottom: 2px;
       }
 
-      .theme-white  .panel-label { color: #8a96a8; }
+      .theme-white .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark   .panel-label { color: var(--udc-muted); }
+      .theme-dark .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
@@ -511,9 +529,9 @@ class UnifiDeviceCard extends HTMLElement {
     const num = parseInt(speedText, 10);
     if (num >= 25000) return "speed-25g";
     if (num >= 10000) return "speed-10g";
-    if (num >= 1000)  return "speed-1g";
-    if (num >= 100)   return "speed-100m";
-    if (num >= 10)    return "speed-10m";
+    if (num >= 1000) return "speed-1g";
+    if (num >= 100) return "speed-100m";
+    if (num >= 10) return "speed-10m";
     return "";
   }
 
@@ -529,7 +547,9 @@ class UnifiDeviceCard extends HTMLElement {
       this._translateState(getPortLinkText(this._hass, slot)),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
-    ].filter((v) => v && v !== "—").join(" · ");
+    ]
+      .filter((v) => v && v !== "—")
+      .join(" · ");
 
     const classes = [
       "port",
@@ -538,7 +558,9 @@ class UnifiDeviceCard extends HTMLElement {
       selectedKey === slot.key ? "selected" : "",
       speedClass,
       poeOn ? "poe-on" : "",
-    ].filter(Boolean).join(" ");
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
       <div class="port-leds">
@@ -551,47 +573,42 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderPanelAndDetail(title) {
     const ctx = this._ctx;
-    const discovered = discoverPorts(ctx?.entities || []);
-    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
-    const specialsRaw = mergeSpecialsWithLayout(
-      ctx?.layout,
-      discoverSpecialPorts(ctx?.entities || []),
-      discovered
-    );
-
-    const { specials, numbered } =
-      ctx?.type === "gateway"
-        ? applyGatewayPortOverrides(this._config, specialsRaw, numberedRaw, ctx?.layout)
-        : { specials: specialsRaw, numbered: numberedRaw };
+    const { specials, numbered } = this._buildSlotData(ctx);
 
     const allSlots = [...specials, ...numbered];
-    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const selected =
+      allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
 
     const specialRow = specials.length
-      ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
+      ? `<div class="special-row">${specials
+          .map((s) => this._renderPortButton(s, selected?.key))
+          .join("")}</div>`
       : "";
 
     const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
-      const items = rowPorts.map((portNumber) => {
-        const slot = numbered.find((p) => p.port === portNumber) || {
-          key: `port-${portNumber}`,
-          port: portNumber,
-          label: String(portNumber),
-          kind: "numbered",
-          link_entity: null,
-          port_switch_entity: null,
-          speed_entity: null,
-          poe_switch_entity: null,
-          poe_power_entity: null,
-          power_cycle_entity: null,
-          rx_entity: null,
-          tx_entity: null,
-          raw_entities: [],
-        };
-        return this._renderPortButton(slot, selected?.key);
-      }).join("");
+      const items = rowPorts
+        .map((portNumber) => {
+          const slot = numbered.find((p) => p.port === portNumber) || {
+            key: `port-${portNumber}`,
+            port: portNumber,
+            label: String(portNumber),
+            kind: "numbered",
+            link_entity: null,
+            port_switch_entity: null,
+            speed_entity: null,
+            poe_switch_entity: null,
+            poe_power_entity: null,
+            power_cycle_entity: null,
+            rx_entity: null,
+            tx_entity: null,
+            raw_entities: [],
+          };
+          return this._renderPortButton(slot, selected?.key);
+        })
+        .join("");
       return `<div class="port-row">${items}</div>`;
     });
 
@@ -602,14 +619,23 @@ class UnifiDeviceCard extends HTMLElement {
       const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
-      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
+      const hasPoe = !!(
+        selected.poe_switch_entity ||
+        selected.poe_power_entity ||
+        selected.power_cycle_entity
+      );
       const poeOn = poeStatus.active;
-      const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
+      const poePower = selected.poe_power_entity
+        ? formatState(this._hass, selected.poe_power_entity)
+        : "—";
       const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
 
-      const portTitle = selected.port_label
-        || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
+      const portTitle =
+        selected.port_label ||
+        (selected.kind === "special"
+          ? selected.label
+          : `${this._t("port_label")} ${selected.label}`);
 
       detail = `
         <div class="detail-title">${portTitle}</div>
@@ -624,7 +650,9 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="detail-label">${this._t("speed")}</div>
             <div class="detail-value">${speedText || "—"}</div>
           </div>
-          ${hasPoe ? `
+          ${
+            hasPoe
+              ? `
           <div class="detail-item">
             <div class="detail-label">${this._t("poe")}</div>
             <div class="detail-value ${poeOn ? "online" : "offline"}">
@@ -634,31 +662,53 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="detail-item">
             <div class="detail-label">${this._t("poe_power")}</div>
             <div class="detail-value">${poePower || "—"}</div>
-          </div>` : ""}
-          ${rxVal != null ? `
+          </div>`
+              : ""
+          }
+          ${
+            rxVal != null
+              ? `
           <div class="detail-item">
             <div class="detail-label">RX</div>
             <div class="detail-value">${rxVal}</div>
-          </div>` : ""}
-          ${txVal != null ? `
+          </div>`
+              : ""
+          }
+          ${
+            txVal != null
+              ? `
           <div class="detail-item">
             <div class="detail-label">TX</div>
             <div class="detail-value">${txVal}</div>
-          </div>` : ""}
+          </div>`
+              : ""
+          }
         </div>
         <div class="actions">
-          ${selected.port_switch_entity ? (() => {
-            const enabled = isOn(this._hass, selected.port_switch_entity);
-            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-              ${enabled ? this._t("port_disable") : this._t("port_enable")}
-            </button>`;
-          })() : ""}
-          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
-          </button>` : ""}
-          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-            ↺ ${this._t("power_cycle")}
-          </button>` : ""}
+          ${
+            selected.port_switch_entity
+              ? (() => {
+                  const enabled = isOn(this._hass, selected.port_switch_entity);
+                  return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
+                    ${enabled ? this._t("port_disable") : this._t("port_enable")}
+                  </button>`;
+                })()
+              : ""
+          }
+          ${
+            selected.poe_switch_entity
+              ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+                  ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
+                </button>`
+              : ""
+          }
+          ${
+            selected.power_cycle_entity
+              ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
+                  ↺ ${this._t("power_cycle")}
+                </button>`
+              : ""
+          }
         </div>`;
     }
 
@@ -681,17 +731,29 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="section">${detail}</div>
       </ha-card>`;
 
-    this.shadowRoot.querySelectorAll(".port")
-      .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+    this.shadowRoot
+      .querySelectorAll(".port")
+      .forEach((btn) =>
+        btn.addEventListener("click", () => this._selectKey(btn.dataset.key))
+      );
 
-    this.shadowRoot.querySelector("[data-action='toggle-port']")
-      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+    this.shadowRoot
+      .querySelector("[data-action='toggle-port']")
+      ?.addEventListener("click", (e) =>
+        this._toggleEntity(e.currentTarget.dataset.entity)
+      );
 
-    this.shadowRoot.querySelector("[data-action='toggle-poe']")
-      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+    this.shadowRoot
+      .querySelector("[data-action='toggle-poe']")
+      ?.addEventListener("click", (e) =>
+        this._toggleEntity(e.currentTarget.dataset.entity)
+      );
 
-    this.shadowRoot.querySelector("[data-action='power-cycle']")
-      ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
+    this.shadowRoot
+      .querySelector("[data-action='power-cycle']")
+      ?.addEventListener("click", (e) =>
+        this._pressButton(e.currentTarget.dataset.entity)
+      );
   }
 
   _render() {
