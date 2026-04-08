@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.3.7] - 2026-04-08
+
+### ✨ Features
+- Added support for USC8  → 8 Port Switch
+
 ## [v0.3.6] - 2026-04-08
 
 ### 🐛 Bug Fixes
