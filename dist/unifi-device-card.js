@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b76d098 */
+/* UniFi Device Card 0.0.0-dev.108a352 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2365,7 +2365,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b76d098";
+var VERSION = "0.0.0-dev.108a352";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2437,6 +2437,16 @@ var UnifiDeviceCard = class extends HTMLElement {
       );
     }
     return { specials: specialsRaw, numbered: numberedRaw };
+  }
+  _buildEffectiveRows(ctx, numbered) {
+    const baseRows = (ctx?.layout?.rows || []).map((row) => [...row]);
+    const knownPorts = new Set(baseRows.flat());
+    const extraPorts = numbered.map((slot) => slot?.port).filter((port) => Number.isInteger(port) && !knownPorts.has(port)).sort((a, b) => a - b);
+    if (!extraPorts.length) return baseRows;
+    if (!baseRows.length) return [extraPorts];
+    const rows = baseRows.map((row) => [...row]);
+    rows[rows.length - 1].push(...extraPorts);
+    return rows;
   }
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
@@ -2902,8 +2912,9 @@ var UnifiDeviceCard = class extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
+    const effectiveRows = this._buildEffectiveRows(ctx, numbered);
     const specialRow = specials.length ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
-    const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
+    const layoutRows = effectiveRows.map((rowPorts) => {
       const items = rowPorts.map((portNumber) => {
         const slot = numbered.find((p) => p.port === portNumber) || {
           key: `port-${portNumber}`,
