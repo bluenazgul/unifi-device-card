@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d496a92 */
+/* UniFi Device Card 0.0.0-dev.a84bd09 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -820,15 +820,23 @@ function classifyDevice(device, entities) {
   }
   return "unknown";
 }
+function isIgnorableWSError(err) {
+  if (!err) return false;
+  const code = err?.code;
+  const message = String(err?.message ?? "").toLowerCase();
+  return code === 3 || code === "3" || message.includes("disconnected") || message.includes("connection lost") || message.includes("not connected") || message.includes("socket closed");
+}
 async function safeCallWS(hass, msg, fallback = []) {
   try {
     return await hass.callWS(msg);
   } catch (err) {
-    console.warn("[unifi-device-card] WS failed", msg?.type, err);
+    if (!isIgnorableWSError(err)) {
+      console.warn("[unifi-device-card] WS failed", msg?.type, err);
+    }
     return fallback;
   }
 }
-var REGISTRY_CACHE_TTL = 1500;
+var REGISTRY_CACHE_TTL = 2500;
 var _registryCache = /* @__PURE__ */ new WeakMap();
 async function getAllData(hass) {
   const now = Date.now();
@@ -837,8 +845,12 @@ async function getAllData(hass) {
     return cached.data;
   }
   const [devices, rawEntities] = await Promise.all([
-    safeCallWS(hass, { type: "config/device_registry/list" }, []),
-    safeCallWS(hass, { type: "config/entity_registry/list" }, [])
+    safeCallWS(hass, { type: "config/device_registry/list" }, cached?.data?.devices || []),
+    safeCallWS(
+      hass,
+      { type: "config/entity_registry/list" },
+      Array.from(cached?.data?.entitiesByDevice?.values?.() || []).flat()
+    )
   ]);
   const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
   const entitiesByDevice = /* @__PURE__ */ new Map();
@@ -849,8 +861,14 @@ async function getAllData(hass) {
     }
     entitiesByDevice.get(entity.device_id).push(entity);
   }
-  const data = { devices, entitiesByDevice, configEntries: [] };
-  _registryCache.set(hass, { ts: now, data });
+  const data = {
+    devices: devices || [],
+    entitiesByDevice,
+    configEntries: []
+  };
+  if ((data.devices?.length || 0) > 0 || entities.length > 0) {
+    _registryCache.set(hass, { ts: now, data });
+  }
   return data;
 }
 function isUnifiDevice(device, unifiEntryIds, entities) {
@@ -878,7 +896,10 @@ function buildDeviceLabel(device, type) {
 function sortDevices(a, b) {
   const an = lower(a?.label || a?.name || "");
   const bn = lower(b?.label || b?.name || "");
-  return an.localeCompare(bn, void 0, { numeric: true, sensitivity: "base" });
+  return an.localeCompare(bn, void 0, {
+    numeric: true,
+    sensitivity: "base"
+  });
 }
 async function getUnifiDevices(hass) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
@@ -980,7 +1001,11 @@ function bucketEntityWarning(entity) {
   return null;
 }
 async function getRelevantEntityWarningsForDevice(hass, deviceId) {
-  const rawEntities = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
+  const rawEntities = await safeCallWS(
+    hass,
+    { type: "config/entity_registry/list" },
+    []
+  );
   const entities = (rawEntities || []).filter((e) => e?.device_id === deviceId);
   const disabled = [];
   const hidden = [];
@@ -1027,12 +1052,15 @@ function parsePortNumberFromEntityId(entityId) {
   }
   return null;
 }
-function parseSpecialPortKey(entity) {
-  const txt = entityText(entity);
-  if (/\bwan2\b/i.test(txt) || /\bwan_2\b/i.test(txt)) return "wan2";
-  if (/\bwan\b/i.test(txt)) return "wan";
-  if (/\bsfp\+?\s*wan\b/i.test(txt) || /\bwan\s*sfp\+?\b/i.test(txt)) return "sfp_wan";
-  if (/\bsfp\+?\b/i.test(txt)) return "sfp";
+function parseSpecialPortKeyFromEntityId(entityId) {
+  const text = String(entityId || "").toLowerCase();
+  if (/\bwan2\b/.test(text) || /(?:^|_)wan_?2(?:_|$)/.test(text)) return "wan2";
+  if (/(?:^|_)wan(?:_|$)/.test(text)) return "wan";
+  if (/(?:^|_)sfp_?wan(?:_|$)|(?:^|_)wan_?sfp(?:_|$)/.test(text)) return "sfp_wan";
+  const sfpMatch = text.match(/(?:^|_)sfp(?:\+|plus|28)?[_-]?(\d+)(?:_|$)/);
+  if (sfpMatch) return `sfp_${sfpMatch[1]}`;
+  if (/(?:^|_)sfp(?:\+|plus|28)?(?:_|$)/.test(text)) return "sfp";
+  if (/(?:^|_)uplink(?:_|$)/.test(text)) return "uplink";
   return null;
 }
 function guessEntityRole(entity) {
@@ -1075,7 +1103,7 @@ function emptySpecial(key, port = null) {
   return {
     key,
     port,
-    label: key === "wan2" ? "WAN 2" : key === "wan" ? "WAN" : key === "sfp_wan" ? "SFP WAN" : key === "sfp" ? "SFP" : key,
+    label: key === "wan2" ? "WAN 2" : key === "wan" ? "WAN" : key === "sfp_wan" ? "SFP WAN" : key === "uplink" ? "Uplink" : key.startsWith("sfp_") ? key.replace("sfp_", "SFP ") : key === "sfp" ? "SFP" : key,
     kind: "special",
     link_entity: null,
     speed_entity: null,
@@ -1137,7 +1165,7 @@ function discoverPorts(entities) {
 function discoverSpecialPorts(entities) {
   const byKey = /* @__PURE__ */ new Map();
   for (const entity of entities || []) {
-    const specialKey = parseSpecialPortKey(entity);
+    const specialKey = parseSpecialPortKeyFromEntityId(entity?.entity_id);
     if (!specialKey) continue;
     if (!byKey.has(specialKey)) {
       byKey.set(specialKey, emptySpecial(specialKey));
@@ -1170,7 +1198,9 @@ function mergePortsWithLayout(layout, discoveredPorts) {
   const added = /* @__PURE__ */ new Set();
   for (const portNumber of rows) {
     if (added.has(portNumber)) continue;
-    merged.push(discoveredByPort.get(portNumber) || createEmptyNumberedPort(portNumber));
+    merged.push(
+      discoveredByPort.get(portNumber) || createEmptyNumberedPort(portNumber)
+    );
     added.add(portNumber);
   }
   for (const slot of discoveredByPort.values()) {
@@ -1185,7 +1215,7 @@ function normalizeSpecialLayoutSlot(slot) {
   return {
     key: slot.key,
     port: Number.isInteger(slot.port) ? slot.port : null,
-    label: slot.label || (slot.key === "wan2" ? "WAN 2" : slot.key === "wan" ? "WAN" : slot.key === "sfp_wan" ? "SFP WAN" : slot.key === "sfp" ? "SFP" : slot.key),
+    label: slot.label || (slot.key === "wan2" ? "WAN 2" : slot.key === "wan" ? "WAN" : slot.key === "sfp_wan" ? "SFP WAN" : slot.key === "uplink" ? "Uplink" : slot.key),
     kind: "special"
   };
 }
@@ -1246,9 +1276,19 @@ function resolveGatewayRoleSelection(selection, roleKey, layout, specialsByKey) 
     const defaultSlot = (layout?.specialSlots || []).find((slot) => slot.key === roleKey);
     if (!defaultSlot) return null;
     if (defaultSlot.port != null) {
-      return { type: "port", port: defaultSlot.port, source: "default", sourceKey: defaultSlot.key };
+      return {
+        type: "port",
+        port: defaultSlot.port,
+        source: "default",
+        sourceKey: defaultSlot.key
+      };
     }
-    return { type: "special", key: defaultSlot.key, source: "default", sourceKey: defaultSlot.key };
+    return {
+      type: "special",
+      key: defaultSlot.key,
+      source: "default",
+      sourceKey: defaultSlot.key
+    };
   }
   if (normalized.startsWith("port_")) {
     const portNumber = parseInt(normalized.replace(/^port_/, ""), 10);
@@ -2224,7 +2264,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d496a92";
+var VERSION = "0.0.0-dev.a84bd09";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
