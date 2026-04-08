@@ -63,6 +63,7 @@ const SWITCH_MODEL_PREFIXES = [
   "USL",
   "USF",
   "US8",
+  "USC8",
   "US16",
   "US24",
   "US48",
@@ -122,6 +123,7 @@ function classifyDevice(device, entities) {
 
     if (
       [
+        "USC8",
         "US8P60",
         "US8P150",
         "US16P150",
@@ -180,6 +182,7 @@ function classifyDevice(device, entities) {
       model.includes("usw") ||
       model.includes("usl") ||
       model.includes("us8") ||
+      model.includes("usc8") ||
       name.includes("switch")
     ) {
       return "switch";
