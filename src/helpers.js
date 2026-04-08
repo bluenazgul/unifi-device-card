@@ -198,11 +198,19 @@ async function safeCallWS(hass, msg, fallback = []) {
   }
 }
 
+const REGISTRY_CACHE_TTL = 1500;
+const _registryCache = new WeakMap();
+
 async function getAllData(hass) {
-  const [devices, rawEntities, configEntries] = await Promise.all([
+  const now = Date.now();
+  const cached = _registryCache.get(hass);
+  if (cached && now - cached.ts < REGISTRY_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const [devices, rawEntities] = await Promise.all([
     safeCallWS(hass, { type: "config/device_registry/list" }, []),
     safeCallWS(hass, { type: "config/entity_registry/list" }, []),
-    safeCallWS(hass, { type: "config/config_entries/entry" }, []),
   ]);
 
   const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
@@ -216,7 +224,9 @@ async function getAllData(hass) {
     entitiesByDevice.get(entity.device_id).push(entity);
   }
 
-  return { devices, entitiesByDevice, configEntries };
+  const data = { devices, entitiesByDevice, configEntries: [] };
+  _registryCache.set(hass, { ts: now, data });
+  return data;
 }
 
 function isUnifiDevice(device, unifiEntryIds, entities) {
@@ -248,756 +258,645 @@ function buildDeviceLabel(device, type) {
     normalize(device.name) ||
     normalize(device.model) ||
     "Unknown device";
+
   const model = normalize(device.model);
-  const typeLabel = type === "gateway" ? "Gateway" : "Switch";
-  if (model && lower(model) !== lower(name)) return `${name} · ${model} (${typeLabel})`;
-  return `${name} (${typeLabel})`;
+  const typeSuffix =
+    type === "gateway" ? "Gateway" :
+    type === "switch" ? "Switch" :
+    type === "access_point" ? "AP" :
+    "Device";
+
+  if (model && !name.includes(model)) {
+    return `${name} · ${model} (${typeSuffix})`;
+  }
+
+  return `${name} (${typeSuffix})`;
 }
 
-function extractFirmware(device, entities) {
-  if (normalize(device?.sw_version)) return normalize(device.sw_version);
-  const fe = entities.find((e) => {
-    const id = lower(e.entity_id);
-    const t = entityText(e);
-    return id.includes("firmware") || id.includes("version") || t.includes("firmware");
-  });
-  return fe ? fe.entity_id : "";
+function sortDevices(a, b) {
+  const an = lower(a?.label || a?.name || "");
+  const bn = lower(b?.label || b?.name || "");
+  return an.localeCompare(bn, undefined, { numeric: true, sensitivity: "base" });
 }
-
-// ─────────────────────────────────────────────────
-// Port translation keys that may need unique_id lookup
-// ─────────────────────────────────────────────────
-
-const PORT_TRANSLATION_KEYS = new Set([
-  "port_bandwidth_rx",
-  "port_bandwidth_tx",
-  "port_link_speed",
-  "poe",
-  "poe_power",
-  "poe_port_control",
-]);
-
-// ─────────────────────────────────────────────────
-// Public: device list for editor
-// ─────────────────────────────────────────────────
 
 export async function getUnifiDevices(hass) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
-  console.debug(
-    "[unifi-device-card] Config entries:",
-    (configEntries || []).map((e) => ({
-      domain: e.domain,
-      title: e.title,
-      id: e.entry_id,
-    }))
-  );
+  const result = [];
 
-  const results = [];
   for (const device of devices || []) {
     const entities = entitiesByDevice.get(device.id) || [];
-    const byConfigEntry =
-      Array.isArray(device?.config_entries) &&
-      device.config_entries.some((id) => unifiEntryIds.has(id));
-    const modelKey = resolveModelKey(device);
-    const type = classifyDevice(device, entities);
-
-    if (hasUbiquitiManufacturer(device) || byConfigEntry) {
-      console.debug("[unifi-device-card] Candidate:", {
-        name: device.name_by_user || device.name,
-        model: device.model,
-        byConfigEntry,
-        modelKey,
-        type,
-        isUnifi: isUnifiDevice(device, unifiEntryIds, entities),
-      });
-    }
+    if (!entities.length) continue;
 
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
-    if (type !== "switch" && type !== "gateway") continue;
 
-    results.push({
+    const type = classifyDevice(device, entities);
+    if (type !== "gateway" && type !== "switch") continue;
+
+    result.push({
       id: device.id,
-      name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
       label: buildDeviceLabel(device, type),
+      name:
+        normalize(device.name_by_user) ||
+        normalize(device.name) ||
+        normalize(device.model) ||
+        "Unknown device",
       model: normalize(device.model),
       type,
     });
   }
 
-  return results.sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
-  );
+  return result.sort(sortDevices);
 }
 
-// ─────────────────────────────────────────────────
-// Public: full device context for card rendering
-// ─────────────────────────────────────────────────
-
 export async function getDeviceContext(hass, deviceId) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
-  const unifiEntryIds = extractUnifiEntryIds(configEntries);
-
-  const device = devices.find((d) => d.id === deviceId);
+  const { devices, entitiesByDevice } = await getAllData(hass);
+  const device = (devices || []).find((d) => d.id === deviceId) || null;
   if (!device) return null;
 
-  let entities = entitiesByDevice.get(deviceId) || [];
-  if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
-
+  const entities = (entitiesByDevice.get(deviceId) || []).slice();
   const type = classifyDevice(device, entities);
-  if (type !== "switch" && type !== "gateway") return null;
-
-  const needsUID = entities.filter(
-    (e) =>
-      !e.unique_id &&
-      e.translation_key &&
-      PORT_TRANSLATION_KEYS.has(e.translation_key) &&
-      !/_port_\d+/i.test(e.entity_id) &&
-      !/\bport\s+\d+\b/i.test(e.original_name || "")
-  );
-
-  if (needsUID.length > 0) {
-    const details = await Promise.all(
-      needsUID.map((e) =>
-        safeCallWS(
-          hass,
-          { type: "config/entity_registry/get", entity_id: e.entity_id },
-          null
-        )
-      )
-    );
-    const uidMap = new Map(
-      details
-        .filter(Boolean)
-        .filter((d) => d.unique_id)
-        .map((d) => [d.entity_id, d.unique_id])
-    );
-
-    if (uidMap.size > 0) {
-      entities = entities.map((e) =>
-        uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e
-      );
-    }
-  }
-
-  const numberedPorts = discoverPorts(entities);
-  const specialPorts = discoverSpecialPorts(entities);
-  const layout = getDeviceLayout(device, numberedPorts);
+  const layout = getDeviceLayout(device, entities);
 
   return {
-    device,
-    entities,
+    id: device.id,
+    name:
+      normalize(device.name_by_user) ||
+      normalize(device.name) ||
+      normalize(device.model) ||
+      "Unknown device",
+    model: normalize(device.model),
+    firmware: normalize(device.sw_version || device.firmware_version || ""),
+    manufacturer: normalize(device.manufacturer),
     type,
     layout,
-    specialPorts,
-    name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
-    model: normalize(device.model),
-    manufacturer: normalize(device.manufacturer),
-    firmware: extractFirmware(device, entities),
+    device,
+    entities,
   };
 }
 
 // ─────────────────────────────────────────────────
-// Editor helper: disabled/hidden entity warnings
+// Disabled / hidden entity warnings
 // ─────────────────────────────────────────────────
 
-function classifyRelevantEntityType(entity) {
-  const id = lower(entity.entity_id);
-  const eid = entity.entity_id || "";
-  const tk = lower(entity.translation_key || "");
-  const dc = lower(entity.device_class || "");
-  const odc = lower(entity.original_device_class || "");
+const WARNING_PATTERNS = [
+  {
+    key: "port_switch",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return (
+        entity.platform === "switch" &&
+        /port/i.test(txt) &&
+        !/poe/i.test(txt)
+      );
+    },
+  },
+  {
+    key: "poe_switch",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return entity.platform === "switch" && /poe/i.test(txt);
+    },
+  },
+  {
+    key: "poe_power",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return entity.platform === "sensor" && /poe/i.test(txt) && /power|consumption|watt/i.test(txt);
+    },
+  },
+  {
+    key: "link_speed",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return entity.platform === "sensor" && /speed|link speed/i.test(txt);
+    },
+  },
+  {
+    key: "rx_tx",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return entity.platform === "sensor" && /(rx|tx|throughput|traffic)/i.test(txt);
+    },
+  },
+  {
+    key: "power_cycle",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return entity.platform === "button" && /power cycle|cycle power|restart port/i.test(txt);
+    },
+  },
+  {
+    key: "link",
+    match: (entity) => {
+      const txt = entityText(entity);
+      return /(link|uplink)/i.test(txt);
+    },
+  },
+];
 
-  if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) {
-    return "power_cycle";
+function bucketEntityWarning(entity) {
+  for (const def of WARNING_PATTERNS) {
+    try {
+      if (def.match(entity)) return def.key;
+    } catch (_err) {}
   }
-  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
-    return "poe_switch";
-  }
-  if (eid.startsWith("switch.") && id.includes("_port_")) {
-    return "port_switch";
-  }
-  if (
-    eid.startsWith("sensor.") &&
-    (
-      id.includes("_poe_power") ||
-      (id.includes("_poe") && id.includes("power")) ||
-      id.includes("power_draw") ||
-      id.includes("power_consumption") ||
-      id.includes("consumption") ||
-      tk === "poe_power" ||
-      tk === "port_poe_power" ||
-      tk === "poe_power_consumption" ||
-      dc === "power" ||
-      odc === "power"
-    )
-  ) {
-    return "poe_power";
-  }
-  if (
-    eid.startsWith("sensor.") &&
-    (
-      id.endsWith("_rx") ||
-      id.endsWith("_tx") ||
-      id.includes("_rx_") ||
-      id.includes("_tx_") ||
-      id.includes("throughput") ||
-      id.includes("bandwidth") ||
-      id.includes("download") ||
-      id.includes("upload") ||
-      tk === "port_bandwidth_rx" ||
-      tk === "port_bandwidth_tx" ||
-      tk === "rx" ||
-      tk === "tx"
-    )
-  ) {
-    return "rx_tx";
-  }
-  if (
-    eid.startsWith("sensor.") &&
-    (
-      id.includes("link_speed") ||
-      id.includes("ethernet_speed") ||
-      id.includes("negotiated_speed") ||
-      id.endsWith("_speed") ||
-      tk === "port_link_speed" ||
-      tk === "link_speed"
-    )
-  ) {
-    return "link_speed";
-  }
-  if (
-    eid.startsWith("binary_sensor.") &&
-    (id.includes("_port_") || id.includes("_link") || tk === "port_link")
-  ) {
-    return "link";
-  }
-
   return null;
 }
 
 export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
-  const [devices, allEntities] = await Promise.all([
-    safeCallWS(hass, { type: "config/device_registry/list" }, []),
-    safeCallWS(hass, { type: "config/entity_registry/list" }, []),
-  ]);
+  const rawEntities = await safeCallWS(hass, { type: "config/entity_registry/list" }, []);
+  const entities = (rawEntities || []).filter((e) => e?.device_id === deviceId);
 
-  const device = (devices || []).find((d) => d.id === deviceId);
-  if (!device) return null;
-
-  const allForDevice = (allEntities || []).filter((e) => e.device_id === deviceId);
-
-  const disabled = {
-    port_switch: [],
-    poe_switch: [],
-    poe_power: [],
-    link_speed: [],
-    rx_tx: [],
-    power_cycle: [],
-    link: [],
-  };
-  const hidden = {
-    port_switch: [],
-    poe_switch: [],
-    poe_power: [],
-    link_speed: [],
-    rx_tx: [],
-    power_cycle: [],
-    link: [],
+  const disabled = [];
+  const hidden = [];
+  const buckets = {
+    port_switch: 0,
+    poe_switch: 0,
+    poe_power: 0,
+    link_speed: 0,
+    rx_tx: 0,
+    power_cycle: 0,
+    link: 0,
   };
 
-  for (const entity of allForDevice) {
-    const type = classifyRelevantEntityType(entity);
-    if (!type) continue;
+  for (const entity of entities) {
+    const isDisabled = !!entity?.disabled_by;
+    const isHidden = !!entity?.hidden_by;
+    if (!isDisabled && !isHidden) continue;
 
-    if (entity.disabled_by) disabled[type]?.push(entity.entity_id);
-    else if (entity.hidden_by) hidden[type]?.push(entity.entity_id);
+    const bucket = bucketEntityWarning(entity);
+    if (bucket) {
+      buckets[bucket] += 1;
+    }
+
+    if (isDisabled) disabled.push(entity);
+    if (isHidden) hidden.push(entity);
   }
 
-  const disabledCount = Object.values(disabled).flat().length;
-  const hiddenCount = Object.values(hidden).flat().length;
-
-  if (disabledCount === 0 && hiddenCount === 0) return null;
-  return { disabled, hidden, disabledCount, hiddenCount };
+  return {
+    disabled,
+    hidden,
+    buckets,
+    disabledCount: disabled.length,
+    hiddenCount: hidden.length,
+    hasWarnings: disabled.length > 0 || hidden.length > 0,
+  };
 }
 
 // ─────────────────────────────────────────────────
-// Port discovery
+// Port entity parsing
 // ─────────────────────────────────────────────────
 
-function extractPortNumber(entity) {
-  const uid = normalize(entity.unique_id);
-  const uidMatch =
-    uid.match(/_port[_-]?(\d+)(?:[_-]|$)/i) ||
-    uid.match(/-(\d+)-[a-z]/i) ||
-    uid.match(/port[_-](\d+)/i) ||
-    uid.match(/[_-](\d+)$/);
+function parsePortNumberFromEntityId(entityId) {
+  const text = String(entityId || "");
 
-  if (uidMatch) return parseInt(uidMatch[1], 10);
+  const patterns = [
+    /(?:^|_)port_(\d+)(?:_|$)/i,
+    /(?:^|_)eth(\d+)(?:_|$)/i,
+    /(?:^|_)(\d+)_(?:link|speed|poe|rx|tx)(?:_|$)/i,
+    /(?:^|_)(?:link|speed|poe|rx|tx)_(\d+)(?:_|$)/i,
+  ];
 
-  const eid = lower(entity.entity_id);
-  const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
-  if (eidMatch) return parseInt(eidMatch[1], 10);
-
-  const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
-  if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
-
-  const nameMatch = (entity.name || "").match(/\bport\s+(\d+)\b/i);
-  if (nameMatch) return parseInt(nameMatch[1], 10);
-
-  return null;
-}
-
-function classifyPortEntity(entity, isSpecial = false) {
-  const id = lower(entity.entity_id);
-  const eid = entity.entity_id || "";
-  const tk = lower(entity.translation_key || "");
-  const dc = lower(entity.device_class || "");
-  const odc = lower(entity.original_device_class || "");
-
-  if (
-    eid.startsWith("button.") &&
-    (id.includes("power_cycle") || tk === "power_cycle" || id.includes("_restart") || id.includes("_reboot"))
-  ) {
-    return "power_cycle_entity";
-  }
-
-  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
-    return "poe_switch_entity";
-  }
-
-  if (eid.startsWith("switch.") && (id.includes("_port_") || isSpecial)) {
-    return "port_switch_entity";
-  }
-
-  if (eid.startsWith("binary_sensor.")) {
-    if (id.includes("_port_")) return "link_entity";
-    if (
-      isSpecial &&
-      (
-        id.includes("_wan") ||
-        id.includes("_sfp") ||
-        id.includes("_uplink") ||
-        id.includes("_connected") ||
-        id.includes("_link") ||
-        tk === "port_link"
-      )
-    ) {
-      return "link_entity";
-    }
-  }
-
-  if (eid.startsWith("sensor.")) {
-    if (id.includes("_port_")) {
-      if (
-        id.endsWith("_rx") ||
-        id.includes("_rx_") ||
-        id.includes("download") ||
-        tk === "port_bandwidth_rx" ||
-        tk === "rx"
-      ) {
-        return "rx_entity";
-      }
-
-      if (
-        id.endsWith("_tx") ||
-        id.includes("_tx_") ||
-        id.includes("upload") ||
-        tk === "port_bandwidth_tx" ||
-        tk === "tx"
-      ) {
-        return "tx_entity";
-      }
-
-      if (
-        id.includes("link_speed") ||
-        id.includes("ethernet_speed") ||
-        id.includes("negotiated_speed") ||
-        id.endsWith("_speed") ||
-        tk === "port_link_speed" ||
-        tk === "link_speed"
-      ) {
-        return "speed_entity";
-      }
-
-      if (
-        id.includes("_poe_power") ||
-        (id.includes("_poe") && id.includes("power")) ||
-        id.includes("power_draw") ||
-        id.includes("power_consumption") ||
-        id.includes("consumption") ||
-        tk === "poe_power" ||
-        tk === "port_poe_power" ||
-        tk === "poe_power_consumption" ||
-        dc === "power" ||
-        odc === "power"
-      ) {
-        return "poe_power_entity";
-      }
-    }
-
-    if (
-      isSpecial &&
-      (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))
-    ) {
-      if (
-        id.includes("download") ||
-        id.includes("_rx") ||
-        tk === "port_bandwidth_rx" ||
-        tk === "rx"
-      ) {
-        return "rx_entity";
-      }
-
-      if (
-        id.includes("upload") ||
-        id.includes("_tx") ||
-        tk === "port_bandwidth_tx" ||
-        tk === "tx"
-      ) {
-        return "tx_entity";
-      }
-
-      if (
-        id.includes("link_speed") ||
-        id.includes("ethernet_speed") ||
-        id.includes("negotiated_speed") ||
-        id.endsWith("_speed") ||
-        tk === "port_link_speed" ||
-        tk === "link_speed"
-      ) {
-        return "speed_entity";
-      }
-
-      if (
-        id.includes("_poe_power") ||
-        (id.includes("_poe") && id.includes("power")) ||
-        id.includes("power_draw") ||
-        id.includes("power_consumption") ||
-        id.includes("consumption") ||
-        tk === "poe_power" ||
-        tk === "port_poe_power" ||
-        tk === "poe_power_consumption" ||
-        dc === "power" ||
-        odc === "power"
-      ) {
-        return "poe_power_entity";
-      }
-    }
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m) return parseInt(m[1], 10);
   }
 
   return null;
 }
 
-function ensurePort(map, port) {
-  if (!map.has(port)) {
-    map.set(port, {
-      key: `port-${port}`,
-      port,
-      label: String(port),
-      kind: "numbered",
-      link_entity: null,
-      speed_entity: null,
-      poe_switch_entity: null,
-      poe_power_entity: null,
-      port_switch_entity: null,
-      power_cycle_entity: null,
-      rx_entity: null,
-      tx_entity: null,
-      port_label: null,
-      raw_entities: [],
-    });
-  }
-  return map.get(port);
-}
+function parseSpecialPortKey(entity) {
+  const txt = entityText(entity);
 
-function detectSpecialPortKey(entity) {
-  const id = lower(entity.entity_id);
-  const tk = entity.translation_key || "";
-
-  if (id.includes("_wan_") || id.endsWith("_wan") || tk.includes("wan")) {
-    return { key: "wan", label: "WAN" };
-  }
-  if (id.includes("_wan2") || id.endsWith("wan2") || tk.includes("wan2")) {
-    return { key: "wan2", label: "WAN 2" };
-  }
-
-  const sfpMatch = id.match(/_sfp[_+]?(\d+)[_-]/) || tk.match(/sfp[_+]?(\d+)/);
-  if (sfpMatch) return { key: `sfp_${sfpMatch[1]}`, label: `SFP+ ${sfpMatch[1]}` };
-  if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: "SFP+" };
-
-  if (id.includes("_uplink") || tk.includes("uplink")) {
-    return { key: "uplink", label: "Uplink" };
-  }
+  if (/\bwan2\b/i.test(txt) || /\bwan_2\b/i.test(txt)) return "wan2";
+  if (/\bwan\b/i.test(txt)) return "wan";
+  if (/\bsfp\+?\s*wan\b/i.test(txt) || /\bwan\s*sfp\+?\b/i.test(txt)) return "sfp_wan";
+  if (/\bsfp\+?\b/i.test(txt)) return "sfp";
 
   return null;
 }
 
-function ensureSpecialPort(map, key, label) {
-  if (!map.has(key)) {
-    map.set(key, {
+function guessEntityRole(entity) {
+  const txt = entityText(entity);
+  const platform = entity?.platform;
+
+  if (platform === "switch") {
+    if (/poe/i.test(txt)) return "poe_switch";
+    return "port_switch";
+  }
+
+  if (platform === "button") {
+    if (/power cycle|cycle power|restart port/i.test(txt)) return "power_cycle";
+  }
+
+  if (platform === "sensor") {
+    if (/rx|receive/i.test(txt)) return "rx";
+    if (/tx|transmit/i.test(txt)) return "tx";
+    if (/poe/i.test(txt) && /power|consumption|watt/i.test(txt)) return "poe_power";
+    if (/speed|link speed/i.test(txt)) return "speed";
+  }
+
+  if (/link|uplink/i.test(txt)) return "link";
+
+  return null;
+}
+
+function emptyPort(portNumber) {
+  return {
+    key: `port-${portNumber}`,
+    port: portNumber,
+    label: String(portNumber),
+    kind: "numbered",
+    link_entity: null,
+    speed_entity: null,
+    poe_switch_entity: null,
+    poe_power_entity: null,
+    port_switch_entity: null,
+    power_cycle_entity: null,
+    rx_entity: null,
+    tx_entity: null,
+    raw_entities: [],
+  };
+}
+
+function emptySpecial(key, port = null) {
+  return {
+    key,
+    port,
+    label:
+      key === "wan2" ? "WAN 2" :
+      key === "wan" ? "WAN" :
+      key === "sfp_wan" ? "SFP WAN" :
+      key === "sfp" ? "SFP" :
       key,
-      port: null,
-      label,
-      kind: "special",
-      link_entity: null,
-      speed_entity: null,
-      poe_switch_entity: null,
-      poe_power_entity: null,
-      port_switch_entity: null,
-      power_cycle_entity: null,
-      rx_entity: null,
-      tx_entity: null,
-      raw_entities: [],
-    });
-  }
-  return map.get(key);
+    kind: "special",
+    link_entity: null,
+    speed_entity: null,
+    poe_switch_entity: null,
+    poe_power_entity: null,
+    port_switch_entity: null,
+    power_cycle_entity: null,
+    rx_entity: null,
+    tx_entity: null,
+    raw_entities: [],
+  };
 }
 
-function extractPortLabel(entity) {
-  const isLabelSource =
-    (entity.entity_id?.startsWith("button.") && lower(entity.entity_id).includes("power_cycle")) ||
-    (entity.entity_id?.startsWith("sensor.") && lower(entity.entity_id).includes("_link_speed")) ||
-    (entity.entity_id?.startsWith("sensor.") && lower(entity.entity_id).includes("_poe_power"));
+function assignRoleToPort(port, role, entityId) {
+  if (!port || !role || !entityId) return;
 
-  if (!isLabelSource) return null;
-
-  const name = normalize(entity.original_name || entity.name || "");
-  if (!name) return null;
-
-  let stripped = name;
-  for (const suffix of [/ power cycle$/i, / link speed$/i, / poe power$/i]) {
-    const c = name.replace(suffix, "").trim();
-    if (c.length < name.length) {
-      stripped = c;
+  switch (role) {
+    case "link":
+      port.link_entity = port.link_entity || entityId;
       break;
-    }
+    case "speed":
+      port.speed_entity = port.speed_entity || entityId;
+      break;
+    case "poe_switch":
+      port.poe_switch_entity = port.poe_switch_entity || entityId;
+      break;
+    case "poe_power":
+      port.poe_power_entity = port.poe_power_entity || entityId;
+      break;
+    case "port_switch":
+      port.port_switch_entity = port.port_switch_entity || entityId;
+      break;
+    case "power_cycle":
+      port.power_cycle_entity = port.power_cycle_entity || entityId;
+      break;
+    case "rx":
+      port.rx_entity = port.rx_entity || entityId;
+      break;
+    case "tx":
+      port.tx_entity = port.tx_entity || entityId;
+      break;
+    default:
+      break;
   }
-
-  stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
-  if (!stripped || /^(rx|tx|poe|link|uplink|downlink|sfp|wan|lan)$/i.test(stripped)) {
-    return null;
-  }
-  return stripped;
 }
 
 export function discoverPorts(entities) {
-  const ports = new Map();
+  const byPort = new Map();
 
   for (const entity of entities || []) {
-    const port = extractPortNumber(entity);
-    if (!port) continue;
+    const portNumber = parsePortNumberFromEntityId(entity?.entity_id);
+    if (!Number.isInteger(portNumber)) continue;
 
-    const row = ensurePort(ports, port);
-    row.raw_entities.push(entity.entity_id);
-
-    const type = classifyPortEntity(entity);
-    if (type && !row[type]) row[type] = entity.entity_id;
-
-    if (!row.port_label) {
-      const label = extractPortLabel(entity);
-      if (label) row.port_label = label;
+    if (!byPort.has(portNumber)) {
+      byPort.set(portNumber, emptyPort(portNumber));
     }
+
+    const port = byPort.get(portNumber);
+    port.raw_entities.push(entity.entity_id);
+
+    const role = guessEntityRole(entity);
+    assignRoleToPort(port, role, entity.entity_id);
   }
 
-  return Array.from(ports.values()).sort((a, b) => a.port - b.port);
+  return Array.from(byPort.values()).sort((a, b) => a.port - b.port);
 }
 
 export function discoverSpecialPorts(entities) {
-  const specials = new Map();
+  const byKey = new Map();
 
   for (const entity of entities || []) {
-    if (extractPortNumber(entity)) continue;
+    const specialKey = parseSpecialPortKey(entity);
+    if (!specialKey) continue;
 
-    const special = detectSpecialPortKey(entity);
-    if (!special) continue;
+    if (!byKey.has(specialKey)) {
+      byKey.set(specialKey, emptySpecial(specialKey));
+    }
 
-    const row = ensureSpecialPort(specials, special.key, special.label);
-    row.raw_entities.push(entity.entity_id);
+    const port = byKey.get(specialKey);
+    port.raw_entities.push(entity.entity_id);
 
-    const type = classifyPortEntity(entity, true);
-    if (type && !row[type]) row[type] = entity.entity_id;
+    const role = guessEntityRole(entity);
+    assignRoleToPort(port, role, entity.entity_id);
   }
 
-  return Array.from(specials.values());
+  return Array.from(byKey.values());
 }
 
-function portHasPoe(portNumber, layout) {
-  const r = layout?.poePortRange;
-  if (!r) return false;
-  return portNumber >= r[0] && portNumber <= r[1];
-}
-
-function stripPoeEntities(port) {
+function cloneSlot(slot) {
   return {
-    ...port,
-    poe_switch_entity: null,
-    poe_power_entity: null,
-    power_cycle_entity: null,
+    ...slot,
+    raw_entities: Array.isArray(slot?.raw_entities) ? [...slot.raw_entities] : [],
   };
 }
 
-export function mergePortsWithLayout(layout, discoveredPorts) {
-  const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
-  const layoutPorts = (layout?.rows || []).flat();
+function createEmptyNumberedPort(portNumber) {
+  return emptyPort(portNumber);
+}
 
-  const specialPortNumbers = new Set(
-    (layout?.specialSlots || []).map((s) => s.port).filter((p) => p != null)
+export function mergePortsWithLayout(layout, discoveredPorts) {
+  const rows = (layout?.rows || []).flat();
+  if (!rows.length) {
+    return (discoveredPorts || []).map(cloneSlot).sort((a, b) => (a.port || 999) - (b.port || 999));
+  }
+
+  const discoveredByPort = new Map(
+    (discoveredPorts || [])
+      .filter((slot) => Number.isInteger(slot?.port))
+      .map((slot) => [slot.port, cloneSlot(slot)])
   );
 
   const merged = [];
-  for (const portNumber of layoutPorts) {
-    if (specialPortNumbers.has(portNumber)) continue;
+  const added = new Set();
 
-    const discovered = byPort.get(portNumber);
-    const hasPoe = portHasPoe(portNumber, layout);
-
-    const port = discovered || {
-      key: `port-${portNumber}`,
-      port: portNumber,
-      label: String(portNumber),
-      kind: "numbered",
-      link_entity: null,
-      speed_entity: null,
-      poe_switch_entity: null,
-      poe_power_entity: null,
-      port_switch_entity: null,
-      power_cycle_entity: null,
-      rx_entity: null,
-      tx_entity: null,
-      raw_entities: [],
-    };
-
-    merged.push(hasPoe ? port : stripPoeEntities(port));
+  for (const portNumber of rows) {
+    if (added.has(portNumber)) continue;
+    merged.push(discoveredByPort.get(portNumber) || createEmptyNumberedPort(portNumber));
+    added.add(portNumber);
   }
 
-  for (const port of discoveredPorts) {
-    if (!layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port)) {
-      merged.push(port);
+  for (const slot of discoveredByPort.values()) {
+    if (!added.has(slot.port)) {
+      merged.push(cloneSlot(slot));
+      added.add(slot.port);
     }
   }
 
-  return merged.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
+  return merged.sort((a, b) => (a.port || 999) - (b.port || 999));
+}
+
+function normalizeSpecialLayoutSlot(slot) {
+  return {
+    key: slot.key,
+    port: Number.isInteger(slot.port) ? slot.port : null,
+    label:
+      slot.label ||
+      (slot.key === "wan2" ? "WAN 2" :
+       slot.key === "wan" ? "WAN" :
+       slot.key === "sfp_wan" ? "SFP WAN" :
+       slot.key === "sfp" ? "SFP" :
+       slot.key),
+    kind: "special",
+  };
 }
 
 export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = []) {
-  const byKey = new Map(discoveredSpecials.map((s) => [s.key, s]));
-  const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
-  const layoutSpecials = layout?.specialSlots || [];
+  const layoutSpecials = (layout?.specialSlots || []).map(normalizeSpecialLayoutSlot);
+  const discoveredByKey = new Map(
+    (discoveredSpecials || []).map((slot) => [slot.key, cloneSlot(slot)])
+  );
+  const discoveredByPort = new Map(
+    (discoveredPorts || [])
+      .filter((slot) => Number.isInteger(slot?.port))
+      .map((slot) => [slot.port, cloneSlot(slot)])
+  );
 
-  const merged = layoutSpecials.map((slot) => {
-    if (slot.port != null) {
-      const portData = byPort.get(slot.port);
-      if (portData) return { ...portData, key: slot.key, label: slot.label, kind: "special" };
-    }
+  const merged = [];
+  const usedKeys = new Set();
 
-    const keyData = byKey.get(slot.key);
-    if (keyData) return keyData;
+  for (const layoutSlot of layoutSpecials) {
+    const fromKey = discoveredByKey.get(layoutSlot.key);
+    const fromPort =
+      layoutSlot.port != null ? discoveredByPort.get(layoutSlot.port) : null;
 
-    return {
-      key: slot.key,
-      port: slot.port ?? null,
-      label: slot.label,
+    const source = fromKey || fromPort || {};
+    merged.push({
+      ...cloneSlot(source),
+      ...layoutSlot,
+      key: layoutSlot.key,
+      label: layoutSlot.label,
       kind: "special",
-      link_entity: null,
-      speed_entity: null,
-      poe_switch_entity: null,
-      poe_power_entity: null,
-      port_switch_entity: null,
-      power_cycle_entity: null,
-      rx_entity: null,
-      tx_entity: null,
-      raw_entities: [],
-    };
-  });
+      port: layoutSlot.port,
+      raw_entities: Array.isArray(source?.raw_entities) ? [...source.raw_entities] : [],
+    });
+
+    usedKeys.add(layoutSlot.key);
+  }
+
+  for (const slot of discoveredSpecials || []) {
+    if (usedKeys.has(slot.key)) continue;
+    merged.push(cloneSlot(slot));
+  }
 
   return merged;
 }
 
 // ─────────────────────────────────────────────────
-// WAN port override
+// Gateway WAN / WAN2 role remapping
 // ─────────────────────────────────────────────────
 
-export function applyWanPortOverride(wanPort, specials, numbered, layout) {
-  if (!wanPort || wanPort === "auto") return { specials, numbered };
+function asNumberedLanPort(slot, portNumber) {
+  const base = cloneSlot(slot || createEmptyNumberedPort(portNumber));
+  return {
+    ...base,
+    key: `port-${portNumber}`,
+    port: portNumber,
+    label: String(portNumber),
+    kind: "numbered",
+  };
+}
 
-  const normalizedWanPort = String(wanPort);
+function asRoleSpecial(slot, roleKey, roleLabel) {
+  const base = cloneSlot(slot || {});
+  return {
+    ...base,
+    key: roleKey,
+    label: roleLabel,
+    kind: "special",
+  };
+}
 
-  if (normalizedWanPort.startsWith("port_")) {
-    const selectedPortNumber = parseInt(normalizedWanPort.replace(/^port_/, ""), 10);
-    if (!Number.isInteger(selectedPortNumber)) return { specials, numbered };
+function resolveGatewayRoleSelection(selection, roleKey, layout, specialsByKey) {
+  const normalized = String(selection || "auto");
 
-    const newSpecials = [...specials.map((s) => ({ ...s }))];
-    const newNumbered = [...numbered.map((p) => ({ ...p }))];
+  if (normalized === "none") return null;
 
-    const targetIdx = newNumbered.findIndex((p) => p.port === selectedPortNumber);
-    if (targetIdx === -1) return { specials, numbered };
-
-    const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
-    const target = { ...newNumbered[targetIdx] };
-    const oldWan = oldWanIdx !== -1 ? { ...newSpecials[oldWanIdx] } : null;
-    const layoutOldWan = oldWan
-      ? (layout?.specialSlots || []).find((s) => s.key === oldWan.key)
-      : null;
-
-    const newWanSlot = {
-      ...target,
-      key: "wan",
-      label: "WAN",
-      kind: "special",
-    };
-
-    const restoredOldWan = oldWan
-      ? {
-          ...oldWan,
-          key: layoutOldWan?.key || oldWan.key,
-          label: layoutOldWan?.label || `Port ${oldWan.port ?? "?"}`,
-        }
-      : null;
-
-    if (oldWanIdx !== -1) {
-      newSpecials.splice(oldWanIdx, 1, newWanSlot);
-    } else {
-      newSpecials.push(newWanSlot);
+  if (!selection || normalized === "auto") {
+    const defaultSlot = (layout?.specialSlots || []).find((slot) => slot.key === roleKey);
+    if (!defaultSlot) return null;
+    if (defaultSlot.port != null) {
+      return { type: "port", port: defaultSlot.port, source: "default", sourceKey: defaultSlot.key };
     }
-
-    const alreadyInSpecials = newSpecials.some((s) => s.port === oldWan?.port);
-    if (!alreadyInSpecials && oldWan?.port != null && restoredOldWan) {
-      newSpecials.push(restoredOldWan);
-    }
-
-    newNumbered.splice(targetIdx, 1);
-    return { specials: newSpecials, numbered: newNumbered };
+    return { type: "special", key: defaultSlot.key, source: "default", sourceKey: defaultSlot.key };
   }
 
-  const newSpecials = [...specials.map((s) => ({ ...s }))];
-  const newNumbered = [...numbered.map((p) => ({ ...p }))];
+  if (normalized.startsWith("port_")) {
+    const portNumber = parseInt(normalized.replace(/^port_/, ""), 10);
+    if (Number.isInteger(portNumber)) {
+      return { type: "port", port: portNumber, source: "custom", sourceKey: null };
+    }
+    return null;
+  }
 
-  const targetSpecialIdx = newSpecials.findIndex((s) => s.key === normalizedWanPort);
-  const oldWanIdx = newSpecials.findIndex((s) => s.key === "wan");
+  const specialSlot =
+    (layout?.specialSlots || []).find((slot) => slot.key === normalized) ||
+    specialsByKey.get(normalized) ||
+    null;
 
-  if (targetSpecialIdx === -1 || targetSpecialIdx === oldWanIdx) {
+  if (!specialSlot) return null;
+  if (specialSlot.port != null) {
+    return { type: "port", port: specialSlot.port, source: "custom", sourceKey: normalized };
+  }
+  return { type: "special", key: normalized, source: "custom", sourceKey: normalized };
+}
+
+export function applyGatewayPortOverrides(config, specials, numbered, layout) {
+  const wanPort = config?.wan_port;
+  const wan2Port = config?.wan2_port;
+
+  const normalizedWan = String(wanPort || "auto");
+  const normalizedWan2 = String(wan2Port || "auto");
+
+  if (
+    (!wanPort || normalizedWan === "auto") &&
+    (!wan2Port || normalizedWan2 === "auto")
+  ) {
     return { specials, numbered };
   }
 
-  const oldWan = { ...newSpecials[oldWanIdx] };
-  const targetSlot = { ...newSpecials[targetSpecialIdx] };
-  const layoutOldWan = (layout?.specialSlots || []).find((s) => s.key === oldWan.key);
+  const layoutRows = (layout?.rows || []).flat();
+  const originalSpecials = (specials || []).map(cloneSlot);
+  const originalNumbered = (numbered || []).map(cloneSlot);
 
-  newSpecials[targetSpecialIdx] = {
-    ...targetSlot,
-    key: "wan",
-    label: "WAN",
-  };
+  const specialsByKey = new Map(originalSpecials.map((slot) => [slot.key, slot]));
+  const physicalByPort = new Map();
 
-  newSpecials[oldWanIdx] = {
-    ...oldWan,
-    key: layoutOldWan?.key || oldWan.key,
-    label: layoutOldWan?.label || `Port ${oldWan.port ?? "?"}`,
-  };
+  for (const slot of [...originalNumbered, ...originalSpecials]) {
+    if (Number.isInteger(slot?.port) && !physicalByPort.has(slot.port)) {
+      physicalByPort.set(slot.port, cloneSlot(slot));
+    }
+  }
+
+  const roleAssignments = new Map();
+
+  const wanSelection = resolveGatewayRoleSelection(wanPort, "wan", layout, specialsByKey);
+  if (wanSelection) {
+    roleAssignments.set("wan", wanSelection);
+  }
+
+  const wan2Selection = resolveGatewayRoleSelection(wan2Port, "wan2", layout, specialsByKey);
+  if (wan2Selection) {
+    const conflictsWithWan =
+      (wanSelection?.type === "port" &&
+        wan2Selection.type === "port" &&
+        wanSelection.port === wan2Selection.port) ||
+      (wanSelection?.type === "special" &&
+        wan2Selection.type === "special" &&
+        wanSelection.key === wan2Selection.key);
+
+    if (!conflictsWithWan) {
+      roleAssignments.set("wan2", wan2Selection);
+    }
+  }
+
+  const assignedPorts = new Set(
+    Array.from(roleAssignments.values())
+      .filter((selection) => selection?.type === "port")
+      .map((selection) => selection.port)
+  );
+  const assignedSpecialKeys = new Set(
+    Array.from(roleAssignments.values())
+      .filter((selection) => selection?.type === "special")
+      .map((selection) => selection.key)
+  );
+
+  const newSpecials = [];
+  for (const roleKey of ["wan", "wan2"]) {
+    const selection = roleAssignments.get(roleKey);
+    if (!selection) continue;
+
+    const roleLabel = roleKey === "wan2" ? "WAN 2" : "WAN";
+
+    if (selection.type === "port") {
+      const portData = physicalByPort.get(selection.port) || createEmptyNumberedPort(selection.port);
+      newSpecials.push(asRoleSpecial(portData, roleKey, roleLabel));
+      continue;
+    }
+
+    const specialData = specialsByKey.get(selection.key) || {
+      key: selection.key,
+      port: null,
+      label: selection.key,
+      kind: "special",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      port_switch_entity: null,
+      power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
+      raw_entities: [],
+    };
+    newSpecials.push(asRoleSpecial(specialData, roleKey, roleLabel));
+  }
+
+  for (const slot of originalSpecials) {
+    const isRoleSlot = slot.key === "wan" || slot.key === "wan2";
+    if (isRoleSlot) continue;
+    if (Number.isInteger(slot.port) && assignedPorts.has(slot.port)) continue;
+    if (!Number.isInteger(slot.port) && assignedSpecialKeys.has(slot.key)) continue;
+    newSpecials.push(cloneSlot(slot));
+  }
+
+  const newNumbered = [];
+  const addedPorts = new Set();
+
+  for (const portNumber of layoutRows) {
+    if (assignedPorts.has(portNumber)) continue;
+    const portData = physicalByPort.get(portNumber) || createEmptyNumberedPort(portNumber);
+    newNumbered.push(asNumberedLanPort(portData, portNumber));
+    addedPorts.add(portNumber);
+  }
+
+  for (const [portNumber, slot] of physicalByPort.entries()) {
+    if (assignedPorts.has(portNumber) || addedPorts.has(portNumber)) continue;
+    newNumbered.push(asNumberedLanPort(slot, portNumber));
+  }
+
+  newNumbered.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
 
   return { specials: newSpecials, numbered: newNumbered };
+}
+
+export function applyWanPortOverride(wanPort, specials, numbered, layout) {
+  return applyGatewayPortOverrides({ wan_port: wanPort }, specials, numbered, layout);
 }
 
 // ─────────────────────────────────────────────────
@@ -1025,55 +924,64 @@ export function formatState(hass, entityId) {
   const unit = obj.attributes?.unit_of_measurement;
   if (!val || val === "unavailable" || val === "unknown") return "—";
   const num = parseFloat(String(val).replace(",", "."));
-  if (!isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
-  return val;
+  if (Number.isFinite(num)) {
+    if (unit) return `${num} ${unit}`;
+    return String(num);
+  }
+  return unit ? `${val} ${unit}` : String(val);
 }
 
 export function getPoeStatus(hass, port) {
-  const sw = stateValue(hass, port.poe_switch_entity);
-  const pwr = stateValue(hass, port.poe_power_entity);
-
-  const powerNum = pwr != null ? parseFloat(String(pwr).replace(",", ".")) : NaN;
-  const hasPowerDraw = !Number.isNaN(powerNum) && powerNum > 0;
+  const power = port?.poe_power_entity ? formatState(hass, port.poe_power_entity) : null;
+  const active =
+    isOn(hass, port?.poe_switch_entity) ||
+    (power && power !== "—" && power !== "0 W" && power !== "0.0 W");
 
   return {
-    active: isOn(hass, port.poe_switch_entity) || hasPowerDraw,
-    power: pwr ?? null,
+    active,
+    power: power && power !== "—" ? power : null,
   };
 }
 
 export function isPortConnected(hass, port) {
-  if (port.link_entity) {
-    const s = lower(stateValue(hass, port.link_entity));
-    if (["on", "true", "connected", "up", "active"].includes(s)) return true;
-    if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
+  if (!port) return false;
+
+  const link = stateValue(hass, port.link_entity);
+  if (link != null) {
+    const normalized = String(link).toLowerCase();
+    if (["on", "up", "connected", "true", "active"].includes(normalized)) {
+      return true;
+    }
+    if (["off", "down", "disconnected", "false", "inactive"].includes(normalized)) {
+      return false;
+    }
   }
 
   const speed = stateValue(hass, port.speed_entity);
-  if (speed && speed !== "unavailable" && speed !== "unknown") {
-    const n = parseFloat(String(speed).replace(",", "."));
-    if (!Number.isNaN(n) && n > 0) return true;
+  if (speed != null) {
+    const num = parseFloat(String(speed).replace(",", "."));
+    if (Number.isFinite(num) && num > 0) return true;
   }
 
   const rx = stateValue(hass, port.rx_entity);
+  if (rx != null) {
+    const num = parseFloat(String(rx).replace(",", "."));
+    if (Number.isFinite(num) && num > 0) return true;
+  }
+
   const tx = stateValue(hass, port.tx_entity);
-
-  const rxNum = rx != null ? parseFloat(String(rx).replace(",", ".")) : NaN;
-  const txNum = tx != null ? parseFloat(String(tx).replace(",", ".")) : NaN;
-
-  if ((!Number.isNaN(rxNum) && rxNum > 0) || (!Number.isNaN(txNum) && txNum > 0)) {
-    return true;
+  if (tx != null) {
+    const num = parseFloat(String(tx).replace(",", "."));
+    if (Number.isFinite(num) && num > 0) return true;
   }
 
   return false;
 }
 
 export function getPortLinkText(hass, port) {
-  return isPortConnected(hass, port) ? "connected" : "no_link";
+  return formatState(hass, port?.link_entity);
 }
 
 export function getPortSpeedText(hass, port) {
-  const s = stateValue(hass, port.speed_entity);
-  if (!s || s === "unavailable" || s === "unknown") return null;
-  return s;
+  return formatState(hass, port?.speed_entity);
 }
