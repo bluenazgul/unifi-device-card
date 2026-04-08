@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ffcab38 */
+/* UniFi Device Card 0.0.0-dev.e4d489a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2036,13 +2036,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
     const token = ++this._loadToken;
     try {
-      this._devices = await getUnifiDevices(this._hass);
+      const devices = await getUnifiDevices(this._hass);
       if (token !== this._loadToken) return;
+      this._devices = devices;
       this._loaded = true;
     } catch (err) {
       console.error("[unifi-device-card] failed to load devices", err);
       if (token !== this._loadToken) return;
-      this._devices = [];
+      this._devices = this._devices || [];
       this._error = this._t("editor_error");
     }
     this._loading = false;
@@ -2051,7 +2052,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   async _loadEntityHint(deviceId) {
     if (!this._hass || !deviceId) return;
     this._entityHintLoading = true;
-    this._entityHint = null;
     this._lastHintDeviceId = deviceId;
     this._patchWarning();
     const token = ++this._entityHintToken;
@@ -2062,7 +2062,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     } catch (err) {
       console.error("[unifi-device-card] failed to load entity warning", err);
       if (token !== this._entityHintToken) return;
-      this._entityHint = null;
     }
     this._entityHintLoading = false;
     this._patchWarning();
@@ -2070,18 +2069,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   async _loadDeviceCtx(deviceId) {
     if (!this._hass || !deviceId) return;
     this._deviceCtxLoading = true;
-    this._deviceCtx = null;
     this._lastCtxDeviceId = deviceId;
     this._patchFields();
     const token = ++this._deviceCtxToken;
     try {
       const result = await getDeviceContext(this._hass, deviceId);
       if (token !== this._deviceCtxToken) return;
-      this._deviceCtx = result;
+      if (result) {
+        this._deviceCtx = result;
+      }
     } catch (err) {
       console.error("[unifi-device-card] failed to load device context for editor", err);
       if (token !== this._deviceCtxToken) return;
-      this._deviceCtx = null;
     }
     this._deviceCtxLoading = false;
     this._patchFields();
@@ -2147,7 +2146,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _warningItems() {
     const hint = this._entityHint;
-    if (!hint?.hasWarnings) return [];
+    if (!hint) return [];
     const order = [
       "port_switch",
       "poe_switch",
@@ -2159,14 +2158,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     ];
     return order.map((key) => ({
       key,
-      count: hint.buckets?.[key] || 0
+      count: (hint.disabled?.[key]?.length || 0) + (hint.hidden?.[key]?.length || 0)
     })).filter((item) => item.count > 0);
   }
   _warningHTML() {
-    if (this._entityHintLoading) {
+    if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${this._t("warning_checking")}</div>`;
     }
-    if (!this._entityHint?.hasWarnings) return "";
+    if (!this._entityHint) return "";
     const disabled = this._entityHint?.disabledCount || 0;
     const hidden = this._entityHint?.hiddenCount || 0;
     const items = this._warningItems();
@@ -2188,9 +2187,30 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
   }
   _gatewayControlsHTML() {
-    const ctx = this._deviceCtx;
-    if (!ctx || ctx.type !== "gateway") return "";
-    const layout = ctx.layout;
+    const deviceId = this._config?.device_id || "";
+    const selectedDevice = this._devices.find((d) => d.id === deviceId) || null;
+    const isGateway = this._deviceCtx?.type === "gateway" || selectedDevice?.type === "gateway";
+    if (!isGateway) return "";
+    const layout = this._deviceCtx?.layout;
+    if (!layout) {
+      return `
+        <div class="field">
+          <label>${this._t("editor_wan_port_label")}</label>
+          <select id="wan_port" disabled>
+            <option value="auto">${this._t("editor_device_loading")}</option>
+          </select>
+          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_wan2_port_label")}</label>
+          <select id="wan2_port" disabled>
+            <option value="auto">${this._t("editor_device_loading")}</option>
+          </select>
+          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        </div>
+      `;
+    }
     const wanOptions = buildGatewayRoleOptions(layout, (k) => this._t(k));
     const wan2Options = buildGatewayRoleOptions(layout, (k) => this._t(k), { includeNone: true });
     const selectedWan = this._config?.wan_port || "auto";
@@ -2360,25 +2380,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _patchFields() {
     if (!this._rendered || !this.shadowRoot) return;
-    const currentDevice = this.shadowRoot.getElementById("device_id");
-    if (currentDevice && currentDevice.value !== (this._config?.device_id || "")) {
-      currentDevice.value = this._config?.device_id || "";
-    }
-    const currentName = this.shadowRoot.getElementById("name");
-    if (currentName && currentName.value !== (this._config?.name || "")) {
-      currentName.value = this._config?.name || "";
-    }
-    const currentBg = this.shadowRoot.getElementById("background_color");
-    if (currentBg && currentBg.value !== (this._config?.background_color || "")) {
-      currentBg.value = this._config?.background_color || "";
-    }
     this._render();
   }
 };
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ffcab38";
+var VERSION = "0.0.0-dev.e4d489a";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
