@@ -161,13 +161,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const token = ++this._loadToken;
     try {
-      this._devices = await getUnifiDevices(this._hass);
+      const devices = await getUnifiDevices(this._hass);
       if (token !== this._loadToken) return;
+      this._devices = devices;
       this._loaded = true;
     } catch (err) {
       console.error("[unifi-device-card] failed to load devices", err);
       if (token !== this._loadToken) return;
-      this._devices = [];
+      this._devices = this._devices || [];
       this._error = this._t("editor_error");
     }
 
@@ -177,8 +178,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   async _loadEntityHint(deviceId) {
     if (!this._hass || !deviceId) return;
+
     this._entityHintLoading = true;
-    this._entityHint = null;
     this._lastHintDeviceId = deviceId;
     this._patchWarning();
 
@@ -190,7 +191,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     } catch (err) {
       console.error("[unifi-device-card] failed to load entity warning", err);
       if (token !== this._entityHintToken) return;
-      this._entityHint = null;
+      // alten Wert behalten
     }
 
     this._entityHintLoading = false;
@@ -199,8 +200,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   async _loadDeviceCtx(deviceId) {
     if (!this._hass || !deviceId) return;
+
     this._deviceCtxLoading = true;
-    this._deviceCtx = null;
     this._lastCtxDeviceId = deviceId;
     this._patchFields();
 
@@ -208,11 +209,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
     try {
       const result = await getDeviceContext(this._hass, deviceId);
       if (token !== this._deviceCtxToken) return;
-      this._deviceCtx = result;
+
+      if (result) {
+        this._deviceCtx = result;
+      }
     } catch (err) {
       console.error("[unifi-device-card] failed to load device context for editor", err);
       if (token !== this._deviceCtxToken) return;
-      this._deviceCtx = null;
+      // alten Context behalten
     }
 
     this._deviceCtxLoading = false;
@@ -295,7 +299,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _warningItems() {
     const hint = this._entityHint;
-    if (!hint?.hasWarnings) return [];
+    if (!hint) return [];
 
     const order = [
       "port_switch",
@@ -310,17 +314,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
     return order
       .map((key) => ({
         key,
-        count: hint.buckets?.[key] || 0,
+        count: (hint.disabled?.[key]?.length || 0) + (hint.hidden?.[key]?.length || 0),
       }))
       .filter((item) => item.count > 0);
   }
 
   _warningHTML() {
-    if (this._entityHintLoading) {
+    if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${this._t("warning_checking")}</div>`;
     }
 
-    if (!this._entityHint?.hasWarnings) return "";
+    if (!this._entityHint) return "";
 
     const disabled = this._entityHint?.disabledCount || 0;
     const hidden = this._entityHint?.hiddenCount || 0;
@@ -354,10 +358,33 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 
   _gatewayControlsHTML() {
-    const ctx = this._deviceCtx;
-    if (!ctx || ctx.type !== "gateway") return "";
+    const deviceId = this._config?.device_id || "";
+    const selectedDevice = this._devices.find((d) => d.id === deviceId) || null;
+    const isGateway = this._deviceCtx?.type === "gateway" || selectedDevice?.type === "gateway";
 
-    const layout = ctx.layout;
+    if (!isGateway) return "";
+
+    const layout = this._deviceCtx?.layout;
+    if (!layout) {
+      return `
+        <div class="field">
+          <label>${this._t("editor_wan_port_label")}</label>
+          <select id="wan_port" disabled>
+            <option value="auto">${this._t("editor_device_loading")}</option>
+          </select>
+          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_wan2_port_label")}</label>
+          <select id="wan2_port" disabled>
+            <option value="auto">${this._t("editor_device_loading")}</option>
+          </select>
+          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        </div>
+      `;
+    }
+
     const wanOptions = buildGatewayRoleOptions(layout, (k) => this._t(k));
     const wan2Options = buildGatewayRoleOptions(layout, (k) => this._t(k), { includeNone: true });
 
@@ -566,22 +593,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _patchFields() {
     if (!this._rendered || !this.shadowRoot) return;
-
-    const currentDevice = this.shadowRoot.getElementById("device_id");
-    if (currentDevice && currentDevice.value !== (this._config?.device_id || "")) {
-      currentDevice.value = this._config?.device_id || "";
-    }
-
-    const currentName = this.shadowRoot.getElementById("name");
-    if (currentName && currentName.value !== (this._config?.name || "")) {
-      currentName.value = this._config?.name || "";
-    }
-
-    const currentBg = this.shadowRoot.getElementById("background_color");
-    if (currentBg && currentBg.value !== (this._config?.background_color || "")) {
-      currentBg.value = this._config?.background_color || "";
-    }
-
     this._render();
   }
 }
