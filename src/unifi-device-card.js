@@ -270,9 +270,9 @@ class UnifiDeviceCard extends HTMLElement {
         margin-bottom: 2px;
       }
 
-      .theme-white  .panel-label { color: #8a96a8; }
+      .theme-white .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark   .panel-label { color: var(--udc-muted); }
+      .theme-dark .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
@@ -536,7 +536,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _speedClass(hass, port) {
     const speedText = getPortSpeedText(hass, port);
-    const match = String(speedText || "").match(/(\d+)\s*Mbit/i);
+    const match = String(speedText || "").match(/(\d+)/);
     if (!match) return "";
 
     const mbps = parseInt(match[1], 10);
@@ -557,11 +557,10 @@ class UnifiDeviceCard extends HTMLElement {
 
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      getPortSpeedText(this._hass, slot),
-    ]
-      .filter(Boolean)
-      .filter((v) => v !== "—")
-      .join(" · ");
+      this._translateState(getPortLinkText(this._hass, slot)),
+      linkUp ? getPortSpeedText(this._hass, slot) : null,
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
+    ].filter((v) => v && v !== "—").join(" · ");
 
     const classes = [
       "port",
@@ -570,9 +569,7 @@ class UnifiDeviceCard extends HTMLElement {
       selectedKey === slot.key ? "selected" : "",
       speedClass,
       poeOn ? "poe-on" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    ].filter(Boolean).join(" ");
 
     return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
       <div class="port-leds">
@@ -640,12 +637,12 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="detail-item">
             <div class="detail-label">${this._t("link_status")}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${linkUp ? this._t("connected") : this._t("no_link")}
+              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
             </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText}</div>
+            <div class="detail-value">${speedText || "—"}</div>
           </div>
           ${hasPoe ? `
           <div class="detail-item">
@@ -656,7 +653,7 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower}</div>
+            <div class="detail-value">${poePower || "—"}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
