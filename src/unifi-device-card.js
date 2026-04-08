@@ -86,14 +86,9 @@ class UnifiDeviceCard extends HTMLElement {
     const discovered = discoverPorts(ctx?.entities || []);
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
 
-    const discoveredSpecials =
-      ctx?.type === "gateway"
-        ? discoverSpecialPorts(ctx?.entities || [])
-        : [];
-
     const specialsRaw = mergeSpecialsWithLayout(
       ctx?.layout,
-      discoveredSpecials,
+      ctx?.type === "gateway" ? discoverSpecialPorts(ctx?.entities || []) : [],
       discovered
     );
 
@@ -106,10 +101,7 @@ class UnifiDeviceCard extends HTMLElement {
       );
     }
 
-    return {
-      specials: specialsRaw,
-      numbered: numberedRaw,
-    };
+    return { specials: specialsRaw, numbered: numberedRaw };
   }
 
   async _ensureLoaded() {
@@ -174,20 +166,20 @@ class UnifiDeviceCard extends HTMLElement {
   _styles() {
     return `<style>
       :host {
-        --udc-bg: #141820;
+        --udc-bg:      #141820;
         --udc-surface: #1e2433;
-        --udc-surf2: #252d3d;
-        --udc-border: rgba(255,255,255,0.07);
-        --udc-accent: #0090d9;
-        --udc-aglow: rgba(0,144,217,0.2);
-        --udc-green: #22c55e;
-        --udc-orange: #f59e0b;
-        --udc-red: #ef4444;
-        --udc-text: #e2e8f0;
-        --udc-muted: #4e5d73;
-        --udc-dim: #8896a8;
-        --udc-r: 14px;
-        --udc-rsm: 8px;
+        --udc-surf2:   #252d3d;
+        --udc-border:  rgba(255,255,255,0.07);
+        --udc-accent:  #0090d9;
+        --udc-aglow:   rgba(0,144,217,0.2);
+        --udc-green:   #22c55e;
+        --udc-orange:  #f59e0b;
+        --udc-red:     #ef4444;
+        --udc-text:    #e2e8f0;
+        --udc-muted:   #4e5d73;
+        --udc-dim:     #8896a8;
+        --udc-r:       14px;
+        --udc-rsm:     8px;
       }
 
       ha-card {
@@ -278,9 +270,9 @@ class UnifiDeviceCard extends HTMLElement {
         margin-bottom: 2px;
       }
 
-      .theme-white .panel-label { color: #8a96a8; }
+      .theme-white  .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark .panel-label { color: var(--udc-muted); }
+      .theme-dark   .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
@@ -398,140 +390,161 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .theme-white .port-socket         { background: #b0b8c4; }
-      .theme-white .port-socket::after  { background: #9aa4b2; }
-      .theme-white .port-num            { color: #4c5563; }
+      .theme-white .port-socket::after  { background: #8a8060; }
+      .theme-white .port-num            { color: #8a96a8; }
+      .theme-white .port.up .port-socket { background: #9aa8b8; }
+      .theme-white .port.up .port-num   { color: #4a5568; }
+      .theme-white .port-led            { background: #c8d0d8; }
 
-      .theme-silver .port-socket        { background: #828a96; }
-      .theme-silver .port-socket::after { background: #6f7784; }
-      .theme-silver .port-num           { color: #dbe1eb; }
+      .theme-silver .port-socket        { background: #3a4050; }
+      .theme-silver .port-socket::after { background: #5a6070; }
+      .theme-silver .port-num           { color: #5a6070; }
+      .theme-silver .port.up .port-socket { background: #2a3040; }
+      .theme-silver .port.up .port-num  { color: #8a96a8; }
+      .theme-silver .port-led           { background: #3a4050; }
 
-      .theme-dark .port-socket          { background: #5e6b80; }
-      .theme-dark .port-socket::after   { background: #495568; }
-      .theme-dark .port-num             { color: #d7e0ee; }
+      .theme-dark .port-socket          { background: var(--udc-surf2); }
+      .theme-dark .port-socket::after   { background: var(--udc-muted); }
+      .theme-dark .port-num             { color: var(--udc-muted); }
+      .theme-dark .port.up .port-socket { background: #1a2030; }
+      .theme-dark .port.up .port-num    { color: var(--udc-dim); }
+      .theme-dark .port-led             { background: var(--udc-surf2); }
+
+      .port.up   .port-led-link { background: var(--udc-green); box-shadow: 0 0 4px var(--udc-green); }
+      .port.down .port-led-link { background: var(--udc-muted); }
+      .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
+
+      .port.speed-25g  .port-socket::after { background: #a855f7; }
+      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
+      .port.speed-1g   .port-socket::after { background: var(--udc-green); }
+      .port.speed-100m .port-socket::after { background: var(--udc-orange); }
+      .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
+
+      .port.special {
+        min-width: 38px;
+        max-width: 56px;
+      }
 
       .port.special .port-socket {
-        width: 28px;
+        height: 16px;
+        border-radius: 3px 3px 0 0;
       }
 
       .port.special .port-num {
         font-size: 7px;
       }
 
-      .port-led-link { background: #566173; }
-      .port.up .port-led-link {
-        background: var(--udc-green);
-        box-shadow: 0 0 6px rgba(34,197,94,.8);
-      }
-
-      .port.speed-10m .port-led-link  { background: #a3e635; box-shadow: 0 0 6px rgba(163,230,53,.8); }
-      .port.speed-100m .port-led-link { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.8); }
-      .port.speed-1g .port-led-link   { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.8); }
-      .port.speed-10g .port-led-link  { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,.8); }
-      .port.speed-25g .port-led-link  { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,.8); }
-
       .section {
-        padding: 14px 16px 16px;
+        padding: 12px 14px 14px;
       }
 
       .detail-title {
-        font-size: 0.98rem;
+        font-size: 0.8rem;
         font-weight: 700;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
+        color: var(--primary-text-color, var(--udc-text));
       }
 
       .detail-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0,1fr));
-        gap: 10px;
-        margin-bottom: 14px;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        margin-bottom: 10px;
       }
 
       .detail-item {
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
-        border-radius: 10px;
-        padding: 10px 12px;
-        min-width: 0;
+        display: grid;
+        gap: 2px;
       }
 
       .detail-label {
-        font-size: 0.72rem;
-        color: var(--udc-muted);
-        margin-bottom: 4px;
+        font-size: 0.67rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--secondary-text-color, var(--udc-muted));
       }
 
       .detail-value {
-        font-size: 0.93rem;
-        font-weight: 700;
-        overflow-wrap: anywhere;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--primary-text-color, var(--udc-text));
       }
 
       .detail-value.online  { color: var(--udc-green); }
-      .detail-value.offline { color: var(--udc-red); }
+      .detail-value.offline { color: var(--udc-muted); }
 
       .actions {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        margin-top: 8px;
       }
 
       .action-btn {
-        border: 1px solid var(--udc-border);
-        background: var(--udc-surf2);
-        color: var(--udc-text);
-        border-radius: 10px;
-        padding: 9px 12px;
         font: inherit;
-        font-weight: 700;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: var(--udc-rsm);
+        border: none;
         cursor: pointer;
+        transition: opacity .15s, filter .15s;
       }
 
+      .action-btn:hover { opacity: .85; }
+      .action-btn:active { filter: brightness(.9); }
+
       .action-btn.primary {
-        background: rgba(0,144,217,.15);
-        border-color: rgba(0,144,217,.35);
+        background: var(--udc-accent);
+        color: #fff;
       }
 
       .action-btn.secondary {
-        background: rgba(255,255,255,.03);
+        background: var(--udc-surf2);
+        border: 1px solid var(--udc-border);
+        color: var(--primary-text-color, var(--udc-text));
       }
 
-      .empty-state,
-      .loading-state {
-        padding: 22px 18px;
-        color: var(--udc-muted);
+      .muted {
+        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.82rem;
+      }
+
+      .empty-state, .loading-state {
+        padding: 24px 18px;
+        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.85rem;
         display: flex;
         align-items: center;
         gap: 10px;
       }
 
-      .muted {
-        color: var(--udc-muted);
-      }
-
       .spinner {
         width: 16px;
         height: 16px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,255,255,.18);
+        border: 2px solid var(--udc-border);
         border-top-color: var(--udc-accent);
-        animation: spin .9s linear infinite;
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+        flex-shrink: 0;
       }
 
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>`;
   }
 
-  _speedClass(hass, slot) {
-    const speedText = getPortSpeedText(hass, slot);
-    if (!speedText || speedText === "—") return "";
-    const num = parseInt(speedText, 10);
-    if (num >= 25000) return "speed-25g";
-    if (num >= 10000) return "speed-10g";
-    if (num >= 1000) return "speed-1g";
-    if (num >= 100) return "speed-100m";
-    if (num >= 10) return "speed-10m";
+  _speedClass(hass, port) {
+    const speedText = getPortSpeedText(hass, port);
+    const match = String(speedText || "").match(/(\d+)\s*Mbit/i);
+    if (!match) return "";
+
+    const mbps = parseInt(match[1], 10);
+    if (mbps >= 25000) return "speed-25g";
+    if (mbps >= 10000) return "speed-10g";
+    if (mbps >= 1000) return "speed-1g";
+    if (mbps >= 100) return "speed-100m";
+    if (mbps >= 10) return "speed-10m";
     return "";
   }
 
@@ -540,15 +553,14 @@ class UnifiDeviceCard extends HTMLElement {
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
-    const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
+    const speedClass = this._speedClass(this._hass, slot);
 
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      this._translateState(getPortLinkText(this._hass, slot)),
-      linkUp ? getPortSpeedText(this._hass, slot) : null,
-      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
+      getPortSpeedText(this._hass, slot),
     ]
-      .filter((v) => v && v !== "—")
+      .filter(Boolean)
+      .filter((v) => v !== "—")
       .join(" · ");
 
     const classes = [
@@ -576,39 +588,33 @@ class UnifiDeviceCard extends HTMLElement {
     const { specials, numbered } = this._buildSlotData(ctx);
 
     const allSlots = [...specials, ...numbered];
-    const selected =
-      allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
-
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
 
     const specialRow = specials.length
-      ? `<div class="special-row">${specials
-          .map((s) => this._renderPortButton(s, selected?.key))
-          .join("")}</div>`
+      ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
       : "";
 
     const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
-      const items = rowPorts
-        .map((portNumber) => {
-          const slot = numbered.find((p) => p.port === portNumber) || {
-            key: `port-${portNumber}`,
-            port: portNumber,
-            label: String(portNumber),
-            kind: "numbered",
-            link_entity: null,
-            port_switch_entity: null,
-            speed_entity: null,
-            poe_switch_entity: null,
-            poe_power_entity: null,
-            power_cycle_entity: null,
-            rx_entity: null,
-            tx_entity: null,
-            raw_entities: [],
-          };
-          return this._renderPortButton(slot, selected?.key);
-        })
-        .join("");
+      const items = rowPorts.map((portNumber) => {
+        const slot = numbered.find((p) => p.port === portNumber) || {
+          key: `port-${portNumber}`,
+          port: portNumber,
+          label: String(portNumber),
+          kind: "numbered",
+          link_entity: null,
+          port_switch_entity: null,
+          speed_entity: null,
+          poe_switch_entity: null,
+          poe_power_entity: null,
+          power_cycle_entity: null,
+          rx_entity: null,
+          tx_entity: null,
+          raw_entities: [],
+        };
+        return this._renderPortButton(slot, selected?.key);
+      }).join("");
       return `<div class="port-row">${items}</div>`;
     });
 
@@ -619,23 +625,14 @@ class UnifiDeviceCard extends HTMLElement {
       const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
-      const hasPoe = !!(
-        selected.poe_switch_entity ||
-        selected.poe_power_entity ||
-        selected.power_cycle_entity
-      );
+      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
       const poeOn = poeStatus.active;
-      const poePower = selected.poe_power_entity
-        ? formatState(this._hass, selected.poe_power_entity)
-        : "—";
+      const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
       const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
 
-      const portTitle =
-        selected.port_label ||
-        (selected.kind === "special"
-          ? selected.label
-          : `${this._t("port_label")} ${selected.label}`);
+      const portTitle = selected.port_label
+        || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
 
       detail = `
         <div class="detail-title">${portTitle}</div>
@@ -643,16 +640,14 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="detail-item">
             <div class="detail-label">${this._t("link_status")}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
+              ${this._translateState(linkText)}
             </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText || "—"}</div>
+            <div class="detail-value">${speedText}</div>
           </div>
-          ${
-            hasPoe
-              ? `
+          ${hasPoe ? `
           <div class="detail-item">
             <div class="detail-label">${this._t("poe")}</div>
             <div class="detail-value ${poeOn ? "online" : "offline"}">
@@ -661,54 +656,32 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
           <div class="detail-item">
             <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower || "—"}</div>
-          </div>`
-              : ""
-          }
-          ${
-            rxVal != null
-              ? `
+            <div class="detail-value">${poePower}</div>
+          </div>` : ""}
+          ${rxVal != null ? `
           <div class="detail-item">
             <div class="detail-label">RX</div>
             <div class="detail-value">${rxVal}</div>
-          </div>`
-              : ""
-          }
-          ${
-            txVal != null
-              ? `
+          </div>` : ""}
+          ${txVal != null ? `
           <div class="detail-item">
             <div class="detail-label">TX</div>
             <div class="detail-value">${txVal}</div>
-          </div>`
-              : ""
-          }
+          </div>` : ""}
         </div>
         <div class="actions">
-          ${
-            selected.port_switch_entity
-              ? (() => {
-                  const enabled = isOn(this._hass, selected.port_switch_entity);
-                  return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-                    ${enabled ? this._t("port_disable") : this._t("port_enable")}
-                  </button>`;
-                })()
-              : ""
-          }
-          ${
-            selected.poe_switch_entity
-              ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-                  ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
-                </button>`
-              : ""
-          }
-          ${
-            selected.power_cycle_entity
-              ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-                  ↺ ${this._t("power_cycle")}
-                </button>`
-              : ""
-          }
+          ${selected.port_switch_entity ? (() => {
+            const enabled = isOn(this._hass, selected.port_switch_entity);
+            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
+              ${enabled ? this._t("port_disable") : this._t("port_enable")}
+            </button>`;
+          })() : ""}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+            ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
+          </button>` : ""}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
+            ↺ ${this._t("power_cycle")}
+          </button>` : ""}
         </div>`;
     }
 
@@ -731,29 +704,17 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="section">${detail}</div>
       </ha-card>`;
 
-    this.shadowRoot
-      .querySelectorAll(".port")
-      .forEach((btn) =>
-        btn.addEventListener("click", () => this._selectKey(btn.dataset.key))
-      );
+    this.shadowRoot.querySelectorAll(".port")
+      .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
 
-    this.shadowRoot
-      .querySelector("[data-action='toggle-port']")
-      ?.addEventListener("click", (e) =>
-        this._toggleEntity(e.currentTarget.dataset.entity)
-      );
+    this.shadowRoot.querySelector("[data-action='toggle-port']")
+      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
 
-    this.shadowRoot
-      .querySelector("[data-action='toggle-poe']")
-      ?.addEventListener("click", (e) =>
-        this._toggleEntity(e.currentTarget.dataset.entity)
-      );
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")
+      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
 
-    this.shadowRoot
-      .querySelector("[data-action='power-cycle']")
-      ?.addEventListener("click", (e) =>
-        this._pressButton(e.currentTarget.dataset.entity)
-      );
+    this.shadowRoot.querySelector("[data-action='power-cycle']")
+      ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
   }
 
   _render() {
