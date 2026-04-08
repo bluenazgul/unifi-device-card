@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a87066c */
+/* UniFi Device Card 0.0.0-dev.3ba9da1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -704,8 +704,7 @@ function entityText(entity) {
       entity.platform,
       entity.device_class,
       entity.translation_key,
-      entity.original_device_class,
-      entity.unique_id
+      entity.original_device_class
     ].filter(Boolean).join(" ")
   );
 }
@@ -964,13 +963,14 @@ async function getDeviceContext(hass, deviceId) {
     }
   }
   const numberedPorts = discoverPorts(entities);
+  const specialPorts = discoverSpecialPorts(entities);
   const layout = getDeviceLayout(device, numberedPorts);
   return {
     device,
     entities,
     type,
     layout,
-    specialPorts: type === "gateway" ? discoverSpecialPorts(entities) : [],
+    specialPorts,
     name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
@@ -1040,143 +1040,151 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
   }
   const disabledCount = Object.values(disabled).flat().length;
   const hiddenCount = Object.values(hidden).flat().length;
-  return {
-    disabled,
-    hidden,
-    buckets: {
-      port_switch: disabled.port_switch.length + hidden.port_switch.length,
-      poe_switch: disabled.poe_switch.length + hidden.poe_switch.length,
-      poe_power: disabled.poe_power.length + hidden.poe_power.length,
-      link_speed: disabled.link_speed.length + hidden.link_speed.length,
-      rx_tx: disabled.rx_tx.length + hidden.rx_tx.length,
-      power_cycle: disabled.power_cycle.length + hidden.power_cycle.length,
-      link: disabled.link.length + hidden.link.length
-    },
-    disabledCount,
-    hiddenCount,
-    hasWarnings: disabledCount > 0 || hiddenCount > 0
-  };
-}
-function emptyPortRow(portNumber, label = null) {
-  return {
-    key: `port-${portNumber}`,
-    port: portNumber,
-    label: label || String(portNumber),
-    kind: "numbered",
-    link_entity: null,
-    speed_entity: null,
-    poe_switch_entity: null,
-    poe_power_entity: null,
-    port_switch_entity: null,
-    power_cycle_entity: null,
-    rx_entity: null,
-    tx_entity: null,
-    raw_entities: [],
-    port_label: null
-  };
-}
-function emptySpecialRow(key, label, port = null) {
-  return {
-    key,
-    port,
-    label,
-    kind: "special",
-    link_entity: null,
-    speed_entity: null,
-    poe_switch_entity: null,
-    poe_power_entity: null,
-    port_switch_entity: null,
-    power_cycle_entity: null,
-    rx_entity: null,
-    tx_entity: null,
-    raw_entities: [],
-    port_label: null
-  };
-}
-function ensurePort(ports, port) {
-  if (!ports.has(port)) ports.set(port, emptyPortRow(port));
-  return ports.get(port);
-}
-function ensureSpecialPort(specials, key, label) {
-  if (!specials.has(key)) specials.set(key, emptySpecialRow(key, label));
-  return specials.get(key);
+  if (disabledCount === 0 && hiddenCount === 0) return null;
+  return { disabled, hidden, disabledCount, hiddenCount };
 }
 function extractPortNumber(entity) {
-  const entityId = String(entity?.entity_id || "");
-  const originalName = String(entity?.original_name || "");
-  const uniqueId = String(entity?.unique_id || "");
-  const text = `${entityId} ${originalName} ${uniqueId}`;
-  const patterns = [
-    /(?:^|_)port_(\d+)(?:_|$)/i,
-    /(?:^|_)eth(\d+)(?:_|$)/i,
-    /(?:^|_)(\d+)_(?:link|speed|poe|rx|tx)(?:_|$)/i,
-    /(?:^|_)(?:link|speed|poe|rx|tx)_(\d+)(?:_|$)/i,
-    /\bport\s+(\d+)\b/i,
-    /(?:^|[_-])port[_-]?(\d+)(?:_|$)/i,
-    /(?:^|[_-])(\d+)(?:_|$)/i
-  ];
-  for (const re of patterns) {
-    const m = text.match(re);
-    if (m) return parseInt(m[1], 10);
-  }
-  return null;
-}
-function extractPortLabel(entity) {
-  const originalName = String(entity?.original_name || "");
-  const m = originalName.match(/\b(port\s+\d+)\b/i);
-  if (m) return m[1].replace(/^port/i, "Port");
+  const uid = normalize(entity.unique_id);
+  const uidMatch = uid.match(/_port[_-]?(\d+)(?:[_-]|$)/i) || uid.match(/-(\d+)-[a-z]/i) || uid.match(/port[_-](\d+)/i) || uid.match(/[_-](\d+)$/);
+  if (uidMatch) return parseInt(uidMatch[1], 10);
+  const eid = lower(entity.entity_id);
+  const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
+  if (eidMatch) return parseInt(eidMatch[1], 10);
+  const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
+  if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
+  const nameMatch = (entity.name || "").match(/\bport\s+(\d+)\b/i);
+  if (nameMatch) return parseInt(nameMatch[1], 10);
   return null;
 }
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
-  const txt = entityText(entity);
-  const platform = entity?.platform;
-  const tk = lower(entity?.translation_key);
-  if (platform === "switch") {
-    if (id.endsWith("_poe") || tk === "poe_port_control" || /poe/.test(txt)) return "poe_switch";
-    return "port_switch";
+  const eid = entity.entity_id || "";
+  const tk = lower(entity.translation_key || "");
+  const dc = lower(entity.device_class || "");
+  const odc = lower(entity.original_device_class || "");
+  if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle" || id.includes("_restart") || id.includes("_reboot"))) {
+    return "power_cycle_entity";
   }
-  if (platform === "button") {
-    if (id.includes("power_cycle") || tk === "power_cycle" || /power cycle|cycle power|restart port/.test(txt)) {
-      return "power_cycle";
+  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
+    return "poe_switch_entity";
+  }
+  if (eid.startsWith("switch.") && (id.includes("_port_") || isSpecial)) {
+    return "port_switch_entity";
+  }
+  if (eid.startsWith("binary_sensor.")) {
+    if (id.includes("_port_")) return "link_entity";
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink") || id.includes("_connected") || id.includes("_link") || tk === "port_link")) {
+      return "link_entity";
     }
   }
-  if (platform === "sensor") {
-    if (id.endsWith("_rx") || tk === "port_bandwidth_rx" || /\brx\b|receive/.test(txt)) return "rx_entity";
-    if (id.endsWith("_tx") || tk === "port_bandwidth_tx" || /\btx\b|transmit/.test(txt)) return "tx_entity";
-    if (id.includes("poe_power") || tk === "poe_power" || /poe/.test(txt) && /power|consumption|watt/.test(txt)) {
-      return "poe_power_entity";
+  if (eid.startsWith("sensor.")) {
+    if (id.includes("_port_")) {
+      if (id.endsWith("_rx") || id.includes("_rx_") || id.includes("download") || tk === "port_bandwidth_rx" || tk === "rx") {
+        return "rx_entity";
+      }
+      if (id.endsWith("_tx") || id.includes("_tx_") || id.includes("upload") || tk === "port_bandwidth_tx" || tk === "tx") {
+        return "tx_entity";
+      }
+      if (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || id.endsWith("_speed") || tk === "port_link_speed" || tk === "link_speed") {
+        return "speed_entity";
+      }
+      if (id.includes("_poe_power") || id.includes("_poe") && id.includes("power") || id.includes("power_draw") || id.includes("power_consumption") || id.includes("consumption") || tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption" || dc === "power" || odc === "power") {
+        return "poe_power_entity";
+      }
     }
-    if (id.includes("link_speed") || tk === "port_link_speed" || /speed|link speed/.test(txt)) {
-      return "speed_entity";
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))) {
+      if (id.includes("download") || id.includes("_rx") || tk === "port_bandwidth_rx" || tk === "rx") {
+        return "rx_entity";
+      }
+      if (id.includes("upload") || id.includes("_tx") || tk === "port_bandwidth_tx" || tk === "tx") {
+        return "tx_entity";
+      }
+      if (id.includes("link_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed") || id.endsWith("_speed") || tk === "port_link_speed" || tk === "link_speed") {
+        return "speed_entity";
+      }
+      if (id.includes("_poe_power") || id.includes("_poe") && id.includes("power") || id.includes("power_draw") || id.includes("power_consumption") || id.includes("consumption") || tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption" || dc === "power" || odc === "power") {
+        return "poe_power_entity";
+      }
     }
-  }
-  if (platform === "binary_sensor" || /link/.test(txt) || isSpecial && /wan|uplink|sfp/.test(txt)) {
-    return "link_entity";
   }
   return null;
 }
+function ensurePort(map, port) {
+  if (!map.has(port)) {
+    map.set(port, {
+      key: `port-${port}`,
+      port,
+      label: String(port),
+      kind: "numbered",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      port_switch_entity: null,
+      power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
+      port_label: null,
+      raw_entities: []
+    });
+  }
+  return map.get(port);
+}
 function detectSpecialPortKey(entity) {
-  const text = entityText(entity);
-  const entityId = lower(entity?.entity_id || "");
-  const uniqueId = lower(entity?.unique_id || "");
-  const all = `${text} ${entityId} ${uniqueId}`;
-  if (/\bwan2\b|(?:^|_)wan_?2(?:_|$)/.test(all)) {
+  const id = lower(entity.entity_id);
+  const tk = entity.translation_key || "";
+  if (id.includes("_wan2") || id.endsWith("wan2") || tk.includes("wan2")) {
     return { key: "wan2", label: "WAN 2" };
   }
-  if (/(?:^|_)sfp_?wan(?:_|$)|(?:^|_)wan_?sfp(?:_|$)/.test(all)) {
-    return { key: "sfp_wan", label: "SFP WAN" };
-  }
-  if (/\buplink\b/.test(all)) {
-    return { key: "uplink", label: "Uplink" };
-  }
-  if (/\bwan\b|(?:^|_)wan(?:_|$)/.test(all)) {
+  if (id.includes("_wan_") || id.endsWith("_wan") || tk.includes("wan")) {
     return { key: "wan", label: "WAN" };
   }
-  if (/\bsfp\b/.test(all)) {
-    return { key: "sfp", label: "SFP" };
+  const sfpMatch = id.match(/_sfp[_+]?(\d+)[_-]/) || tk.match(/sfp[_+]?(\d+)/);
+  if (sfpMatch) return { key: `sfp_${sfpMatch[1]}`, label: `SFP+ ${sfpMatch[1]}` };
+  if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: "SFP+" };
+  if (id.includes("_uplink") || tk.includes("uplink")) {
+    return { key: "uplink", label: "Uplink" };
   }
   return null;
+}
+function ensureSpecialPort(map, key, label) {
+  if (!map.has(key)) {
+    map.set(key, {
+      key,
+      port: null,
+      label,
+      kind: "special",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      port_switch_entity: null,
+      power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
+      raw_entities: []
+    });
+  }
+  return map.get(key);
+}
+function extractPortLabel(entity) {
+  const isLabelSource = entity.entity_id?.startsWith("button.") && lower(entity.entity_id).includes("power_cycle") || entity.entity_id?.startsWith("sensor.") && lower(entity.entity_id).includes("_link_speed") || entity.entity_id?.startsWith("sensor.") && lower(entity.entity_id).includes("_poe_power");
+  if (!isLabelSource) return null;
+  const name = normalize(entity.original_name || entity.name || "");
+  if (!name) return null;
+  let stripped = name;
+  for (const suffix of [/ power cycle$/i, / link speed$/i, / poe power$/i]) {
+    const c = name.replace(suffix, "").trim();
+    if (c.length < name.length) {
+      stripped = c;
+      break;
+    }
+  }
+  stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
+  if (!stripped || /^(rx|tx|poe|link|uplink|downlink|sfp|wan|lan)$/i.test(stripped)) {
+    return null;
+  }
+  return stripped;
 }
 function discoverPorts(entities) {
   const ports = /* @__PURE__ */ new Map();
@@ -1231,7 +1239,21 @@ function mergePortsWithLayout(layout, discoveredPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
     const discovered = byPort.get(portNumber);
     const hasPoe = portHasPoe(portNumber, layout);
-    const port = discovered || emptyPortRow(portNumber);
+    const port = discovered || {
+      key: `port-${portNumber}`,
+      port: portNumber,
+      label: String(portNumber),
+      kind: "numbered",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      port_switch_entity: null,
+      power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
+      raw_entities: []
+    };
     merged.push(hasPoe ? port : stripPoeEntities(port));
   }
   for (const port of discoveredPorts) {
@@ -1407,7 +1429,6 @@ function applyGatewayPortOverrides(config, specials, numbered, layout) {
   }
   const originalSpecials = (specials || []).map(cloneSlot);
   const originalNumbered = (numbered || []).map(cloneSlot);
-  const layoutRows = (layout?.rows || []).flat();
   const specialsByKey = new Map(originalSpecials.map((s) => [s.key, s]));
   const physicalByPort = /* @__PURE__ */ new Map();
   for (const slot of [...originalSpecials, ...originalNumbered]) {
@@ -1456,18 +1477,26 @@ function applyGatewayPortOverrides(config, specials, numbered, layout) {
     newSpecials.push(cloneSlot(slot));
   }
   const newNumbered = [];
-  for (const portNumber of layoutRows) {
-    if (assignedPorts.has(portNumber)) continue;
-    const physical = physicalByPort.get(portNumber) || emptyNumberedPort(portNumber);
-    newNumbered.push(makeNumberedFromPhysical(portNumber, physical, layout));
+  for (const slot of originalNumbered) {
+    if (assignedPorts.has(slot.port)) continue;
+    newNumbered.push(makeNumberedFromPhysical(slot.port, slot, layout));
   }
-  for (const [portNumber, physical] of physicalByPort.entries()) {
-    if (assignedPorts.has(portNumber)) continue;
-    if (layoutRows.includes(portNumber)) continue;
-    newNumbered.push(makeNumberedFromPhysical(portNumber, physical, layout));
+  for (const slot of originalSpecials) {
+    if (!Number.isInteger(slot.port)) continue;
+    if (assignedPorts.has(slot.port)) continue;
+    if (slot.key === "wan" || slot.key === "wan2") {
+      newNumbered.push(makeNumberedFromPhysical(slot.port, slot, layout));
+    }
   }
-  newNumbered.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
-  return { specials: newSpecials, numbered: newNumbered };
+  const seen = /* @__PURE__ */ new Set();
+  const deduped = [];
+  for (const port of newNumbered.sort((a, b) => (a.port ?? 999) - (b.port ?? 999))) {
+    if (!Number.isInteger(port.port)) continue;
+    if (seen.has(port.port)) continue;
+    seen.add(port.port);
+    deduped.push(port);
+  }
+  return { specials: newSpecials, numbered: deduped };
 }
 function stateObj(hass, entityId) {
   if (!entityId || !hass?.states) return null;
@@ -1524,19 +1553,9 @@ function getPortLinkText(hass, port) {
   return isPortConnected(hass, port) ? "connected" : "no_link";
 }
 function getPortSpeedText(hass, port) {
-  const speed = stateValue(hass, port.speed_entity);
-  if (speed && speed !== "unavailable" && speed !== "unknown") {
-    const num = parseFloat(String(speed).replace(",", "."));
-    if (!Number.isNaN(num) && num >= 1e3) return `${Math.round(num)} Mbit/s`;
-    if (!Number.isNaN(num) && num > 0) return `${Math.round(num)} Mbit/s`;
-  }
-  const link = getPortLinkText(hass, port);
-  if (link === "connected") {
-    const rx = stateValue(hass, port.rx_entity);
-    const tx = stateValue(hass, port.tx_entity);
-    if (rx || tx) return "Active";
-  }
-  return "\u2014";
+  const s = stateValue(hass, port.speed_entity);
+  if (!s || s === "unavailable" || s === "unknown") return null;
+  return s;
 }
 
 // src/translations.js
@@ -2346,7 +2365,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a87066c";
+var VERSION = "0.0.0-dev.3ba9da1";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
