@@ -1,6 +1,5 @@
 import {
   applyGatewayPortOverrides,
-  discoverPorts,
   discoverSpecialPorts,
   formatState,
   getDeviceContext,
@@ -83,7 +82,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _buildSlotData(ctx) {
-    const discovered = discoverPorts(ctx?.entities || []);
+    const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
 
     const specialsRaw = mergeSpecialsWithLayout(
