@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9b28241 */
+/* UniFi Device Card 0.0.0-dev.23e1b01 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2346,7 +2346,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9b28241";
+var VERSION = "0.0.0-dev.23e1b01";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2921,7 +2921,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="detail-item">
             <div class="detail-label">${this._t("link_status")}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText)}
+              ${linkUp ? this._t("connected") : this._t("no_link")}
             </div>
           </div>
           <div class="detail-item">
