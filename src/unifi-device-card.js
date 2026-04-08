@@ -640,7 +640,7 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="detail-item">
             <div class="detail-label">${this._t("link_status")}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText)}
+              ${linkUp ? this._t("connected") : this._t("no_link")}
             </div>
           </div>
           <div class="detail-item">
