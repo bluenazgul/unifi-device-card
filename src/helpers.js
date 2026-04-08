@@ -179,8 +179,10 @@ function classifyDevice(device, entities) {
 
 function isIgnorableWSError(err) {
   if (!err) return false;
+
   const code = err?.code;
   const msg = String(err?.message ?? "").toLowerCase();
+
   return (
     code === 3 ||
     code === "3" ||
@@ -638,7 +640,7 @@ function classifyPortEntity(entity, isSpecial = false) {
   if (platform === "sensor") {
     if (id.endsWith("_rx") || tk === "port_bandwidth_rx" || /\brx\b|receive/.test(txt)) return "rx_entity";
     if (id.endsWith("_tx") || tk === "port_bandwidth_tx" || /\btx\b|transmit/.test(txt)) return "tx_entity";
-    if (id.includes("poe_power") || tk === "poe_power" || /poe/.test(txt) && /power|consumption|watt/.test(txt)) {
+    if (id.includes("poe_power") || tk === "poe_power" || (/poe/.test(txt) && /power|consumption|watt/.test(txt))) {
       return "poe_power_entity";
     }
     if (id.includes("link_speed") || tk === "port_link_speed" || /speed|link speed/.test(txt)) {
@@ -780,20 +782,83 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
   const merged = layoutSpecials.map((slot) => {
     if (slot.port != null) {
       const portData = byPort.get(slot.port);
-      if (portData) {
-        return { ...clonePortRow(portData), key: slot.key, label: slot.label, kind: "special" };
-      }
+      if (portData) return { ...portData, key: slot.key, label: slot.label, kind: "special" };
     }
 
     const keyData = byKey.get(slot.key);
     if (keyData) {
-      return { ...clonePortRow(keyData), key: slot.key, label: slot.label, kind: "special", port: slot.port ?? keyData.port ?? null };
+      return {
+        ...keyData,
+        key: slot.key,
+        label: slot.label,
+        kind: "special",
+        port: slot.port ?? keyData.port ?? null,
+      };
     }
 
-    return emptySpecialRow(slot.key, slot.label, slot.port ?? null);
+    return {
+      key: slot.key,
+      port: slot.port ?? null,
+      label: slot.label,
+      kind: "special",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      port_switch_entity: null,
+      power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
+      raw_entities: [],
+    };
   });
 
   return merged;
+}
+
+function cloneSlot(slot) {
+  return {
+    ...slot,
+    raw_entities: Array.isArray(slot?.raw_entities) ? [...slot.raw_entities] : [],
+  };
+}
+
+function emptyNumberedPort(portNumber) {
+  return {
+    key: `port-${portNumber}`,
+    port: portNumber,
+    label: String(portNumber),
+    kind: "numbered",
+    link_entity: null,
+    speed_entity: null,
+    poe_switch_entity: null,
+    poe_power_entity: null,
+    port_switch_entity: null,
+    power_cycle_entity: null,
+    rx_entity: null,
+    tx_entity: null,
+    raw_entities: [],
+    port_label: null,
+  };
+}
+
+function emptySpecialPort(key, label, port = null) {
+  return {
+    key,
+    port,
+    label,
+    kind: "special",
+    link_entity: null,
+    speed_entity: null,
+    poe_switch_entity: null,
+    poe_power_entity: null,
+    port_switch_entity: null,
+    power_cycle_entity: null,
+    rx_entity: null,
+    tx_entity: null,
+    raw_entities: [],
+    port_label: null,
+  };
 }
 
 function resolveGatewaySelection(selection, roleKey, layout, specialsByKey) {
@@ -804,29 +869,61 @@ function resolveGatewaySelection(selection, roleKey, layout, specialsByKey) {
   if (!selection || normalized === "auto") {
     const def = (layout?.specialSlots || []).find((s) => s.key === roleKey);
     if (!def) return null;
+
     if (def.port != null) {
-      return { type: "port", port: def.port, key: def.key, label: def.label };
+      return {
+        type: "port",
+        port: def.port,
+        key: def.key,
+        label: def.label,
+      };
     }
-    return { type: "special", key: def.key, label: def.label };
+
+    return {
+      type: "special",
+      key: def.key,
+      label: def.label,
+    };
   }
 
   if (normalized.startsWith("port_")) {
     const port = parseInt(normalized.replace(/^port_/, ""), 10);
     if (!Number.isInteger(port)) return null;
-    return { type: "port", port, key: roleKey, label: roleKey === "wan2" ? "WAN 2" : "WAN" };
+
+    return {
+      type: "port",
+      port,
+      key: roleKey,
+      label: roleKey === "wan2" ? "WAN 2" : "WAN",
+    };
   }
 
   const specialLayout = (layout?.specialSlots || []).find((s) => s.key === normalized);
   if (specialLayout?.port != null) {
-    return { type: "port", port: specialLayout.port, key: specialLayout.key, label: specialLayout.label };
+    return {
+      type: "port",
+      port: specialLayout.port,
+      key: specialLayout.key,
+      label: specialLayout.label,
+    };
   }
 
   const specialData = specialsByKey.get(normalized);
   if (specialData) {
     if (specialData.port != null) {
-      return { type: "port", port: specialData.port, key: normalized, label: specialData.label };
+      return {
+        type: "port",
+        port: specialData.port,
+        key: normalized,
+        label: specialData.label,
+      };
     }
-    return { type: "special", key: normalized, label: specialData.label };
+
+    return {
+      type: "special",
+      key: normalized,
+      label: specialData.label,
+    };
   }
 
   return null;
@@ -834,7 +931,7 @@ function resolveGatewaySelection(selection, roleKey, layout, specialsByKey) {
 
 function makeSpecialFromPhysical(roleKey, physical) {
   return {
-    ...clonePortRow(physical),
+    ...cloneSlot(physical),
     key: roleKey,
     label: roleKey === "wan2" ? "WAN 2" : "WAN",
     kind: "special",
@@ -843,7 +940,8 @@ function makeSpecialFromPhysical(roleKey, physical) {
 
 function makeNumberedFromPhysical(portNumber, physical, layout) {
   const hasPoe = portHasPoe(portNumber, layout);
-  const base = physical ? clonePortRow(physical) : emptyPortRow(portNumber);
+  const base = physical ? cloneSlot(physical) : emptyNumberedPort(portNumber);
+
   const numbered = {
     ...base,
     key: `port-${portNumber}`,
@@ -851,6 +949,7 @@ function makeNumberedFromPhysical(portNumber, physical, layout) {
     label: String(portNumber),
     kind: "numbered",
   };
+
   return hasPoe ? numbered : stripPoeEntities(numbered);
 }
 
@@ -868,8 +967,8 @@ export function applyGatewayPortOverrides(config, specials, numbered, layout) {
     return { specials, numbered };
   }
 
-  const originalSpecials = (specials || []).map(clonePortRow);
-  const originalNumbered = (numbered || []).map(clonePortRow);
+  const originalSpecials = (specials || []).map(cloneSlot);
+  const originalNumbered = (numbered || []).map(cloneSlot);
   const layoutRows = (layout?.rows || []).flat();
 
   const specialsByKey = new Map(originalSpecials.map((s) => [s.key, s]));
@@ -877,7 +976,7 @@ export function applyGatewayPortOverrides(config, specials, numbered, layout) {
 
   for (const slot of [...originalSpecials, ...originalNumbered]) {
     if (Number.isInteger(slot?.port) && !physicalByPort.has(slot.port)) {
-      physicalByPort.set(slot.port, clonePortRow(slot));
+      physicalByPort.set(slot.port, cloneSlot(slot));
     }
   }
 
@@ -922,15 +1021,15 @@ export function applyGatewayPortOverrides(config, specials, numbered, layout) {
     if (!sel) continue;
 
     if (sel.type === "port") {
-      const physical = physicalByPort.get(sel.port) || emptyPortRow(sel.port);
+      const physical = physicalByPort.get(sel.port) || emptyNumberedPort(sel.port);
       newSpecials.push(makeSpecialFromPhysical(roleKey, physical));
     } else {
-      const specialData = specialsByKey.get(sel.key) || emptySpecialRow(
-        roleKey,
-        roleKey === "wan2" ? "WAN 2" : "WAN"
-      );
+      const specialData =
+        specialsByKey.get(sel.key) ||
+        emptySpecialPort(roleKey, roleKey === "wan2" ? "WAN 2" : "WAN");
+
       newSpecials.push({
-        ...clonePortRow(specialData),
+        ...cloneSlot(specialData),
         key: roleKey,
         label: roleKey === "wan2" ? "WAN 2" : "WAN",
         kind: "special",
@@ -944,20 +1043,21 @@ export function applyGatewayPortOverrides(config, specials, numbered, layout) {
     if (Number.isInteger(slot.port) && assignedPorts.has(slot.port)) continue;
     if (!Number.isInteger(slot.port) && assignedSpecialKeys.has(slot.key)) continue;
 
-    newSpecials.push(clonePortRow(slot));
+    newSpecials.push(cloneSlot(slot));
   }
 
   const newNumbered = [];
 
   for (const portNumber of layoutRows) {
     if (assignedPorts.has(portNumber)) continue;
-    const physical = physicalByPort.get(portNumber) || emptyPortRow(portNumber);
+    const physical = physicalByPort.get(portNumber) || emptyNumberedPort(portNumber);
     newNumbered.push(makeNumberedFromPhysical(portNumber, physical, layout));
   }
 
   for (const [portNumber, physical] of physicalByPort.entries()) {
     if (assignedPorts.has(portNumber)) continue;
     if (layoutRows.includes(portNumber)) continue;
+
     newNumbered.push(makeNumberedFromPhysical(portNumber, physical, layout));
   }
 
