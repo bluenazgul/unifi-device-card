@@ -1,5 +1,5 @@
 import {
-  applyWanPortOverride,
+  applyGatewayPortOverrides,
   discoverPorts,
   discoverSpecialPorts,
   formatState,
@@ -108,10 +108,9 @@ class UnifiDeviceCard extends HTMLElement {
         discovered
       );
 
-      const wanPort = this._config?.wan_port;
       const { specials, numbered } =
-        ctx?.type === "gateway" && wanPort && wanPort !== "auto"
-          ? applyWanPortOverride(wanPort, specialsRaw, numberedRaw, ctx?.layout)
+        ctx?.type === "gateway"
+          ? applyGatewayPortOverrides(this._config, specialsRaw, numberedRaw, ctx?.layout)
           : { specials: specialsRaw, numbered: numberedRaw };
 
       const first = specials[0] || numbered[0] || null;
@@ -381,145 +380,128 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .theme-white .port-socket         { background: #b0b8c4; }
-      .theme-white .port-socket::after  { background: #8a8060; }
-      .theme-white .port-num            { color: #8a96a8; }
-      .theme-white .port.up .port-socket { background: #9aa8b8; }
-      .theme-white .port.up .port-num   { color: #4a5568; }
-      .theme-white .port-led            { background: #c8d0d8; }
+      .theme-white .port-socket::after  { background: #9aa4b2; }
+      .theme-white .port-num            { color: #4c5563; }
 
-      .theme-silver .port-socket        { background: #3a4050; }
-      .theme-silver .port-socket::after { background: #5a6070; }
-      .theme-silver .port-num           { color: #5a6070; }
-      .theme-silver .port.up .port-socket { background: #2a3040; }
-      .theme-silver .port.up .port-num  { color: #8a96a8; }
-      .theme-silver .port-led           { background: #3a4050; }
+      .theme-silver .port-socket        { background: #828a96; }
+      .theme-silver .port-socket::after { background: #6f7784; }
+      .theme-silver .port-num           { color: #dbe1eb; }
 
-      .theme-dark .port-socket          { background: var(--udc-surf2); }
-      .theme-dark .port-socket::after   { background: var(--udc-muted); }
-      .theme-dark .port-num             { color: var(--udc-muted); }
-      .theme-dark .port.up .port-socket { background: #1a2030; }
-      .theme-dark .port.up .port-num    { color: var(--udc-dim); }
-      .theme-dark .port-led             { background: var(--udc-surf2); }
+      .theme-dark .port-socket          { background: #5e6b80; }
+      .theme-dark .port-socket::after   { background: #495568; }
+      .theme-dark .port-num             { color: #d7e0ee; }
 
-      .port.up   .port-led-link { background: var(--udc-green); box-shadow: 0 0 4px var(--udc-green); }
-      .port.down .port-led-link { background: var(--udc-muted); }
-      .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
-
-      .port.speed-25g  .port-socket::after { background: #a855f7; }
-      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
-      .port.speed-1g   .port-socket::after { background: var(--udc-green); }
-      .port.speed-100m .port-socket::after { background: var(--udc-orange); }
-      .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
-
-      .port.special {
-        min-width: 38px;
-        max-width: 56px;
-      }
       .port.special .port-socket {
-        height: 16px;
-        border-radius: 3px 3px 0 0;
+        width: 28px;
       }
+
       .port.special .port-num {
         font-size: 7px;
       }
 
+      .port-led-link { background: #566173; }
+      .port.up .port-led-link {
+        background: var(--udc-green);
+        box-shadow: 0 0 6px rgba(34,197,94,.8);
+      }
+
+      .port.speed-10m .port-led-link  { background: #a3e635; box-shadow: 0 0 6px rgba(163,230,53,.8); }
+      .port.speed-100m .port-led-link { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.8); }
+      .port.speed-1g .port-led-link   { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.8); }
+      .port.speed-10g .port-led-link  { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,.8); }
+      .port.speed-25g .port-led-link  { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,.8); }
+
       .section {
-        padding: 12px 14px 14px;
+        padding: 14px 16px 16px;
       }
 
       .detail-title {
-        font-size: 0.8rem;
+        font-size: 0.98rem;
         font-weight: 700;
-        margin-bottom: 8px;
-        color: var(--primary-text-color, var(--udc-text));
+        margin-bottom: 10px;
       }
 
       .detail-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px 10px;
-        margin-bottom: 10px;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 10px;
+        margin-bottom: 14px;
       }
 
       .detail-item {
-        display: grid;
-        gap: 2px;
+        background: var(--udc-surf2);
+        border: 1px solid var(--udc-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        min-width: 0;
       }
 
       .detail-label {
-        font-size: 0.67rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.72rem;
+        color: var(--udc-muted);
+        margin-bottom: 4px;
       }
 
       .detail-value {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--primary-text-color, var(--udc-text));
+        font-size: 0.93rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
       }
 
       .detail-value.online  { color: var(--udc-green); }
-      .detail-value.offline { color: var(--udc-muted); }
+      .detail-value.offline { color: var(--udc-red); }
 
       .actions {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
-        margin-top: 8px;
       }
 
       .action-btn {
+        border: 1px solid var(--udc-border);
+        background: var(--udc-surf2);
+        color: var(--udc-text);
+        border-radius: 10px;
+        padding: 9px 12px;
         font: inherit;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 6px 14px;
-        border-radius: var(--udc-rsm);
-        border: none;
+        font-weight: 700;
         cursor: pointer;
-        transition: opacity .15s, filter .15s;
       }
 
-      .action-btn:hover { opacity: .85; }
-      .action-btn:active { filter: brightness(.9); }
-
       .action-btn.primary {
-        background: var(--udc-accent);
-        color: #fff;
+        background: rgba(0,144,217,.15);
+        border-color: rgba(0,144,217,.35);
       }
 
       .action-btn.secondary {
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
-        color: var(--primary-text-color, var(--udc-text));
+        background: rgba(255,255,255,.03);
       }
 
-      .muted {
-        color: var(--secondary-text-color, var(--udc-muted));
-        font-size: 0.82rem;
-      }
-
-      .empty-state, .loading-state {
-        padding: 24px 18px;
-        color: var(--secondary-text-color, var(--udc-muted));
-        font-size: 0.85rem;
+      .empty-state,
+      .loading-state {
+        padding: 22px 18px;
+        color: var(--udc-muted);
         display: flex;
         align-items: center;
         gap: 10px;
       }
 
+      .muted {
+        color: var(--udc-muted);
+      }
+
       .spinner {
         width: 16px;
         height: 16px;
-        border: 2px solid var(--udc-border);
-        border-top-color: var(--udc-accent);
         border-radius: 50%;
-        animation: spin .7s linear infinite;
-        flex-shrink: 0;
+        border: 2px solid rgba(255,255,255,.18);
+        border-top-color: var(--udc-accent);
+        animation: spin .9s linear infinite;
       }
 
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     </style>`;
   }
 
@@ -577,10 +559,9 @@ class UnifiDeviceCard extends HTMLElement {
       discovered
     );
 
-    const wanPort = this._config?.wan_port;
     const { specials, numbered } =
-      ctx?.type === "gateway" && wanPort && wanPort !== "auto"
-        ? applyWanPortOverride(wanPort, specialsRaw, numberedRaw, ctx?.layout)
+      ctx?.type === "gateway"
+        ? applyGatewayPortOverrides(this._config, specialsRaw, numberedRaw, ctx?.layout)
         : { specials: specialsRaw, numbered: numberedRaw };
 
     const allSlots = [...specials, ...numbered];
