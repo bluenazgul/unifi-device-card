@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.791297b */
+/* UniFi Device Card 0.0.0-dev.ffcab38 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -820,11 +820,18 @@ function classifyDevice(device, entities) {
   }
   return "unknown";
 }
+function getWSErrorCode(err) {
+  if (err?.code != null) return err.code;
+  if (err?.error?.code != null) return err.error.code;
+  return null;
+}
+function getWSErrorMessage(err) {
+  return String(err?.message ?? err?.error?.message ?? "").toLowerCase();
+}
 function isIgnorableWSError(err) {
-  if (!err) return false;
-  const code = err?.code;
-  const msg = String(err?.message ?? "").toLowerCase();
-  return code === 3 || code === "3" || msg.includes("unknown command") || msg.includes("not connected") || msg.includes("disconnected") || msg.includes("socket closed");
+  const code = getWSErrorCode(err);
+  const msg = getWSErrorMessage(err);
+  return code === 3 || code === "3" || code === "unknown_command" || msg.includes("unknown command") || msg.includes("not connected") || msg.includes("disconnected") || msg.includes("socket closed") || msg.includes("connection lost");
 }
 async function safeCallWS(hass, msg, fallback = []) {
   try {
@@ -1007,9 +1014,14 @@ function classifyRelevantEntityType(entity) {
   return null;
 }
 async function getRelevantEntityWarningsForDevice(hass, deviceId) {
+  const cached = _registryCache.get(hass)?.data;
   const [devices, allEntities] = await Promise.all([
-    safeCallWS(hass, { type: "config/device_registry/list" }, []),
-    safeCallWS(hass, { type: "config/entity_registry/list" }, [])
+    safeCallWS(hass, { type: "config/device_registry/list" }, cached?.devices || []),
+    safeCallWS(
+      hass,
+      { type: "config/entity_registry/list" },
+      flattenEntitiesByDevice(cached?.entitiesByDevice)
+    )
   ]);
   const device = (devices || []).find((d) => d.id === deviceId);
   if (!device) return null;
@@ -2366,7 +2378,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.791297b";
+var VERSION = "0.0.0-dev.ffcab38";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
