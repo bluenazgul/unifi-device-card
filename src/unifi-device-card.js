@@ -114,16 +114,10 @@ class UnifiDeviceCard extends HTMLElement {
       .sort((a, b) => a - b);
 
     if (!extraPorts.length) return baseRows;
-
     if (!baseRows.length) return [extraPorts];
 
     const rows = baseRows.map((row) => [...row]);
-
-    // Für Geräte wie das Cloud Gateway Ultra:
-    // bestehende Reihe [1,2,3,4] -> extra Port 5 anhängen => [1,2,3,4,5]
-    // Wenn mehrere Extras da sind, werden sie an die letzte Reihe angehängt.
     rows[rows.length - 1].push(...extraPorts);
-
     return rows;
   }
 
@@ -611,33 +605,32 @@ class UnifiDeviceCard extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
-    const effectiveRows = this._buildEffectiveRows(ctx, numbered);
+
+    const specialPortsInUse = new Set(
+      specials
+        .map((slot) => slot?.port)
+        .filter((port) => Number.isInteger(port))
+    );
+
+    const visibleNumbered = numbered.filter(
+      (slot) => !specialPortsInUse.has(slot.port)
+    );
+
+    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
 
     const specialRow = specials.length
       ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
       : "";
 
     const layoutRows = effectiveRows.map((rowPorts) => {
-      const items = rowPorts.map((portNumber) => {
-        const slot = numbered.find((p) => p.port === portNumber) || {
-          key: `port-${portNumber}`,
-          port: portNumber,
-          label: String(portNumber),
-          kind: "numbered",
-          link_entity: null,
-          port_switch_entity: null,
-          speed_entity: null,
-          poe_switch_entity: null,
-          poe_power_entity: null,
-          power_cycle_entity: null,
-          rx_entity: null,
-          tx_entity: null,
-          raw_entities: [],
-        };
-        return this._renderPortButton(slot, selected?.key);
-      }).join("");
-      return `<div class="port-row">${items}</div>`;
-    });
+      const items = rowPorts
+        .map((portNumber) => visibleNumbered.find((p) => p.port === portNumber))
+        .filter(Boolean)
+        .map((slot) => this._renderPortButton(slot, selected?.key))
+        .join("");
+
+      return items ? `<div class="port-row">${items}</div>` : "";
+    }).filter(Boolean);
 
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
 
