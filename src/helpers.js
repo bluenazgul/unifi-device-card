@@ -1,4 +1,3 @@
-// helpers.js
 import { getDeviceLayout, resolveModelKey } from "./model-registry.js";
 
 // ─────────────────────────────────────────────────
@@ -1260,7 +1259,12 @@ export function isPortConnected(hass, port) {
   const speed = stateValue(hass, port.speed_entity);
   if (speed && speed !== "unavailable" && speed !== "unknown") {
     const n = parseFloat(String(speed).replace(",", "."));
-    if (!Number.isNaN(n) && n > 0) return true;
+
+    // UniFi special case:
+    // 10 Mbit/s is often reported even when the connected device is effectively off / sleeping.
+    // Treat 10 as no real active link.
+    if (!Number.isNaN(n) && n > 10) return true;
+    if (!Number.isNaN(n) && n <= 10) return false;
   }
 
   const rx = stateValue(hass, port.rx_entity);
