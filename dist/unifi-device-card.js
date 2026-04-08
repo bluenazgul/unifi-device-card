@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.3e09d2d */
+/* UniFi Device Card 0.0.0-dev.07c5e00 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2366,7 +2366,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.3e09d2d";
+var VERSION = "0.0.0-dev.07c5e00";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2913,29 +2913,18 @@ var UnifiDeviceCard = class extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
-    const effectiveRows = this._buildEffectiveRows(ctx, numbered);
+    const specialPortsInUse = new Set(
+      specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
+    );
+    const visibleNumbered = numbered.filter(
+      (slot) => !specialPortsInUse.has(slot.port)
+    );
+    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
     const specialRow = specials.length ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
     const layoutRows = effectiveRows.map((rowPorts) => {
-      const items = rowPorts.map((portNumber) => {
-        const slot = numbered.find((p) => p.port === portNumber) || {
-          key: `port-${portNumber}`,
-          port: portNumber,
-          label: String(portNumber),
-          kind: "numbered",
-          link_entity: null,
-          port_switch_entity: null,
-          speed_entity: null,
-          poe_switch_entity: null,
-          poe_power_entity: null,
-          power_cycle_entity: null,
-          rx_entity: null,
-          tx_entity: null,
-          raw_entities: []
-        };
-        return this._renderPortButton(slot, selected?.key);
-      }).join("");
-      return `<div class="port-row">${items}</div>`;
-    });
+      const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key)).join("");
+      return items ? `<div class="port-row">${items}</div>` : "";
+    }).filter(Boolean);
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
     if (selected) {
       const linkUp = isPortConnected(this._hass, selected);
