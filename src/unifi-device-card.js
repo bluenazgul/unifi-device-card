@@ -104,6 +104,29 @@ class UnifiDeviceCard extends HTMLElement {
     return { specials: specialsRaw, numbered: numberedRaw };
   }
 
+  _buildEffectiveRows(ctx, numbered) {
+    const baseRows = (ctx?.layout?.rows || []).map((row) => [...row]);
+    const knownPorts = new Set(baseRows.flat());
+
+    const extraPorts = numbered
+      .map((slot) => slot?.port)
+      .filter((port) => Number.isInteger(port) && !knownPorts.has(port))
+      .sort((a, b) => a - b);
+
+    if (!extraPorts.length) return baseRows;
+
+    if (!baseRows.length) return [extraPorts];
+
+    const rows = baseRows.map((row) => [...row]);
+
+    // Für Geräte wie das Cloud Gateway Ultra:
+    // bestehende Reihe [1,2,3,4] -> extra Port 5 anhängen => [1,2,3,4,5]
+    // Wenn mehrere Extras da sind, werden sie an die letzte Reihe angehängt.
+    rows[rows.length - 1].push(...extraPorts);
+
+    return rows;
+  }
+
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
 
@@ -588,12 +611,13 @@ class UnifiDeviceCard extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
+    const effectiveRows = this._buildEffectiveRows(ctx, numbered);
 
     const specialRow = specials.length
       ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
       : "";
 
-    const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
+    const layoutRows = effectiveRows.map((rowPorts) => {
       const items = rowPorts.map((portNumber) => {
         const slot = numbered.find((p) => p.port === portNumber) || {
           key: `port-${portNumber}`,
