@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.585386c */
+/* UniFi Device Card 0.0.0-dev.68586ff */
 
 // src/model-registry.js
 function range(start, end) {
@@ -32,15 +32,26 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
   // ══════════════════════════════════════════════════════════════════════════
+  // US 8 12W  — 8× 1G RJ45, PoE POE-Passthrough 12W (Port 8)
+  USC8: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
+    displayModel: "USC 8",
+    theme: "silver",
+    poePortRange: [],
+    specialSlots: []
+  },
   // US 8 60W  — 8× 1G RJ45, PoE on ports 5-8
   US8P60: {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "US 8 60W",
+    displayModel: "US 8 ",
     theme: "silver",
-    poePortRange: [5, 8],
+    poePortRange: [5 - 8],
     specialSlots: []
   },
   // US 8 150W  — 8× 1G RJ45 PoE (all), 2× 1G SFP
@@ -727,6 +738,7 @@ var SWITCH_MODEL_PREFIXES = [
   "USL",
   "USF",
   "US8",
+  "USC8",
   "US16",
   "US24",
   "US48",
@@ -772,6 +784,7 @@ function classifyDevice(device, entities) {
       return "gateway";
     }
     if ([
+      "USC8",
       "US8P60",
       "US8P150",
       "US16P150",
@@ -814,7 +827,7 @@ function classifyDevice(device, entities) {
     if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("ugw") || name.includes("gateway")) {
       return "gateway";
     }
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || name.includes("switch")) {
+    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usc8") || name.includes("switch")) {
       return "switch";
     }
   }
@@ -2395,7 +2408,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.585386c";
+var VERSION = "0.0.0-dev.68586ff";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
