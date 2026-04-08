@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.3.5] - 2026-04-08
+## [v0.3.6] - 2026-04-08
 
 ### 🐛 Bug Fixes
 - Fixed incorrect link status detection on ports reporting `10 Mbit/s`
