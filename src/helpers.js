@@ -188,19 +188,29 @@ function classifyDevice(device, entities) {
 // WS helpers
 // ─────────────────────────────────────────────────
 
-function isIgnorableWSError(err) {
-  if (!err) return false;
+function getWSErrorCode(err) {
+  if (err?.code != null) return err.code;
+  if (err?.error?.code != null) return err.error.code;
+  return null;
+}
 
-  const code = err?.code;
-  const msg = String(err?.message ?? "").toLowerCase();
+function getWSErrorMessage(err) {
+  return String(err?.message ?? err?.error?.message ?? "").toLowerCase();
+}
+
+function isIgnorableWSError(err) {
+  const code = getWSErrorCode(err);
+  const msg = getWSErrorMessage(err);
 
   return (
     code === 3 ||
     code === "3" ||
+    code === "unknown_command" ||
     msg.includes("unknown command") ||
     msg.includes("not connected") ||
     msg.includes("disconnected") ||
-    msg.includes("socket closed")
+    msg.includes("socket closed") ||
+    msg.includes("connection lost")
   );
 }
 
@@ -498,9 +508,15 @@ function classifyRelevantEntityType(entity) {
 }
 
 export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
+  const cached = _registryCache.get(hass)?.data;
+
   const [devices, allEntities] = await Promise.all([
-    safeCallWS(hass, { type: "config/device_registry/list" }, []),
-    safeCallWS(hass, { type: "config/entity_registry/list" }, []),
+    safeCallWS(hass, { type: "config/device_registry/list" }, cached?.devices || []),
+    safeCallWS(
+      hass,
+      { type: "config/entity_registry/list" },
+      flattenEntitiesByDevice(cached?.entitiesByDevice)
+    ),
   ]);
 
   const device = (devices || []).find((d) => d.id === deviceId);
@@ -1260,9 +1276,6 @@ export function isPortConnected(hass, port) {
   if (speed && speed !== "unavailable" && speed !== "unknown") {
     const n = parseFloat(String(speed).replace(",", "."));
 
-    // UniFi special case:
-    // 10 Mbit/s is often reported even when the connected device is effectively off / sleeping.
-    // Treat 10 as no real active link.
     if (!Number.isNaN(n) && n > 10) return true;
     if (!Number.isNaN(n) && n <= 10) return false;
   }
