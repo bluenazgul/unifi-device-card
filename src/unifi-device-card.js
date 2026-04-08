@@ -1,5 +1,5 @@
 import {
-  applyWanPortOverride,
+  applyGatewayPortOverrides,
   discoverPorts,
   discoverSpecialPorts,
   formatState,
@@ -82,6 +82,45 @@ class UnifiDeviceCard extends HTMLElement {
     return this._config?.background_color || "";
   }
 
+  _buildSlotData(ctx) {
+    const discovered = discoverPorts(ctx?.entities || []);
+    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
+
+    const specialsRaw = mergeSpecialsWithLayout(
+      ctx?.layout,
+      ctx?.type === "gateway" ? discoverSpecialPorts(ctx?.entities || []) : [],
+      discovered
+    );
+
+    if (ctx?.type === "gateway") {
+      return applyGatewayPortOverrides(
+        this._config,
+        specialsRaw,
+        numberedRaw,
+        ctx?.layout
+      );
+    }
+
+    return { specials: specialsRaw, numbered: numberedRaw };
+  }
+
+  _buildEffectiveRows(ctx, numbered) {
+    const baseRows = (ctx?.layout?.rows || []).map((row) => [...row]);
+    const knownPorts = new Set(baseRows.flat());
+
+    const extraPorts = numbered
+      .map((slot) => slot?.port)
+      .filter((port) => Number.isInteger(port) && !knownPorts.has(port))
+      .sort((a, b) => a - b);
+
+    if (!extraPorts.length) return baseRows;
+    if (!baseRows.length) return [extraPorts];
+
+    const rows = baseRows.map((row) => [...row]);
+    rows[rows.length - 1].push(...extraPorts);
+    return rows;
+  }
+
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
 
@@ -100,20 +139,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
 
-      const discovered = discoverPorts(ctx?.entities || []);
-      const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
-      const specialsRaw = mergeSpecialsWithLayout(
-        ctx?.layout,
-        discoverSpecialPorts(ctx?.entities || []),
-        discovered
-      );
-
-      const wanPort = this._config?.wan_port;
-      const { specials, numbered } =
-        ctx?.type === "gateway" && wanPort && wanPort !== "auto"
-          ? applyWanPortOverride(wanPort, specialsRaw, numberedRaw, ctx?.layout)
-          : { specials: specialsRaw, numbered: numberedRaw };
-
+      const { specials, numbered } = this._buildSlotData(ctx);
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
@@ -261,9 +287,9 @@ class UnifiDeviceCard extends HTMLElement {
         margin-bottom: 2px;
       }
 
-      .theme-white  .panel-label { color: #8a96a8; }
+      .theme-white .panel-label { color: #8a96a8; }
       .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark   .panel-label { color: var(--udc-muted); }
+      .theme-dark .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
@@ -415,10 +441,12 @@ class UnifiDeviceCard extends HTMLElement {
         min-width: 38px;
         max-width: 56px;
       }
+
       .port.special .port-socket {
         height: 16px;
         border-radius: 3px 3px 0 0;
       }
+
       .port.special .port-num {
         font-size: 7px;
       }
@@ -523,15 +551,17 @@ class UnifiDeviceCard extends HTMLElement {
     </style>`;
   }
 
-  _speedClass(hass, slot) {
-    const speedText = getPortSpeedText(hass, slot);
-    if (!speedText || speedText === "—") return "";
-    const num = parseInt(speedText, 10);
-    if (num >= 25000) return "speed-25g";
-    if (num >= 10000) return "speed-10g";
-    if (num >= 1000)  return "speed-1g";
-    if (num >= 100)   return "speed-100m";
-    if (num >= 10)    return "speed-10m";
+  _speedClass(hass, port) {
+    const speedText = getPortSpeedText(hass, port);
+    const match = String(speedText || "").match(/(\d+)/);
+    if (!match) return "";
+
+    const mbps = parseInt(match[1], 10);
+    if (mbps >= 25000) return "speed-25g";
+    if (mbps >= 10000) return "speed-10g";
+    if (mbps >= 1000) return "speed-1g";
+    if (mbps >= 100) return "speed-100m";
+    if (mbps >= 10) return "speed-10m";
     return "";
   }
 
@@ -540,7 +570,7 @@ class UnifiDeviceCard extends HTMLElement {
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
-    const speedClass = linkUp ? this._speedClass(this._hass, slot) : "";
+    const speedClass = this._speedClass(this._hass, slot);
 
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
@@ -569,50 +599,38 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderPanelAndDetail(title) {
     const ctx = this._ctx;
-    const discovered = discoverPorts(ctx?.entities || []);
-    const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
-    const specialsRaw = mergeSpecialsWithLayout(
-      ctx?.layout,
-      discoverSpecialPorts(ctx?.entities || []),
-      discovered
-    );
-
-    const wanPort = this._config?.wan_port;
-    const { specials, numbered } =
-      ctx?.type === "gateway" && wanPort && wanPort !== "auto"
-        ? applyWanPortOverride(wanPort, specialsRaw, numberedRaw, ctx?.layout)
-        : { specials: specialsRaw, numbered: numberedRaw };
+    const { specials, numbered } = this._buildSlotData(ctx);
 
     const allSlots = [...specials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
 
+    const specialPortsInUse = new Set(
+      specials
+        .map((slot) => slot?.port)
+        .filter((port) => Number.isInteger(port))
+    );
+
+    const visibleNumbered = numbered.filter(
+      (slot) => !specialPortsInUse.has(slot.port)
+    );
+
+    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
+
     const specialRow = specials.length
       ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
       : "";
 
-    const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
-      const items = rowPorts.map((portNumber) => {
-        const slot = numbered.find((p) => p.port === portNumber) || {
-          key: `port-${portNumber}`,
-          port: portNumber,
-          label: String(portNumber),
-          kind: "numbered",
-          link_entity: null,
-          port_switch_entity: null,
-          speed_entity: null,
-          poe_switch_entity: null,
-          poe_power_entity: null,
-          power_cycle_entity: null,
-          rx_entity: null,
-          tx_entity: null,
-          raw_entities: [],
-        };
-        return this._renderPortButton(slot, selected?.key);
-      }).join("");
-      return `<div class="port-row">${items}</div>`;
-    });
+    const layoutRows = effectiveRows.map((rowPorts) => {
+      const items = rowPorts
+        .map((portNumber) => visibleNumbered.find((p) => p.port === portNumber))
+        .filter(Boolean)
+        .map((slot) => this._renderPortButton(slot, selected?.key))
+        .join("");
+
+      return items ? `<div class="port-row">${items}</div>` : "";
+    }).filter(Boolean);
 
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
 
