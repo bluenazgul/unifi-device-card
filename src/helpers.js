@@ -235,6 +235,7 @@ async function safeCallWS(hass, msg, fallback = []) {
 
 const REGISTRY_CACHE_TTL = 2500;
 const _registryCache = new WeakMap();
+const _registryInflight = new WeakMap();
 
 function flattenEntitiesByDevice(map) {
   if (!map || typeof map.values !== "function") return [];
@@ -249,36 +250,51 @@ async function getAllData(hass) {
     return cached.data;
   }
 
-  const fallbackDevices = cached?.data?.devices || [];
-  const fallbackEntities = flattenEntitiesByDevice(cached?.data?.entitiesByDevice);
+  const inflight = _registryInflight.get(hass);
+  if (inflight) return inflight;
 
-  const [devices, rawEntities] = await Promise.all([
-    safeCallWS(hass, { type: "config/device_registry/list" }, fallbackDevices),
-    safeCallWS(hass, { type: "config/entity_registry/list" }, fallbackEntities),
-  ]);
+  const promise = (async () => {
+    const fallbackDevices = cached?.data?.devices || [];
+    const fallbackEntities = flattenEntitiesByDevice(cached?.data?.entitiesByDevice);
+    const fallbackConfigEntries = cached?.data?.configEntries || [];
 
-  const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
+    const [devices, rawEntities, configEntries] = await Promise.all([
+      safeCallWS(hass, { type: "config/device_registry/list" }, fallbackDevices),
+      safeCallWS(hass, { type: "config/entity_registry/list" }, fallbackEntities),
+      safeCallWS(hass, { type: "config/config_entries" }, fallbackConfigEntries),
+    ]);
 
-  const entitiesByDevice = new Map();
-  for (const entity of entities) {
-    if (!entity.device_id) continue;
-    if (!entitiesByDevice.has(entity.device_id)) {
-      entitiesByDevice.set(entity.device_id, []);
+    const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
+
+    const entitiesByDevice = new Map();
+    for (const entity of entities) {
+      if (!entity.device_id) continue;
+      if (!entitiesByDevice.has(entity.device_id)) {
+        entitiesByDevice.set(entity.device_id, []);
+      }
+      entitiesByDevice.get(entity.device_id).push(entity);
     }
-    entitiesByDevice.get(entity.device_id).push(entity);
+
+    const data = {
+      devices: devices || [],
+      entitiesByDevice,
+      configEntries: configEntries || [],
+    };
+
+    if ((data.devices?.length || 0) > 0 || entities.length > 0) {
+      _registryCache.set(hass, { ts: Date.now(), data });
+    }
+
+    return data;
+  })();
+
+  _registryInflight.set(hass, promise);
+
+  try {
+    return await promise;
+  } finally {
+    _registryInflight.delete(hass);
   }
-
-  const data = {
-    devices: devices || [],
-    entitiesByDevice,
-    configEntries: [],
-  };
-
-  if ((data.devices?.length || 0) > 0 || entities.length > 0) {
-    _registryCache.set(hass, { ts: now, data });
-  }
-
-  return data;
 }
 
 function isUnifiDevice(device, unifiEntryIds, entities) {
@@ -343,6 +359,37 @@ const PORT_TRANSLATION_KEYS = new Set([
   "poe_power",
   "poe_port_control",
 ]);
+
+function findDeviceEntityByPatterns(entities, patterns = []) {
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+    if (patterns.some((pattern) => id.includes(pattern))) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
+
+function getDeviceTelemetry(entities) {
+  return {
+    cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization"]),
+    cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature"]),
+    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization"]),
+  };
+}
+
+function getDeviceRebootEntity(entities) {
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    const tk = lower(entity.translation_key || "");
+    if (!id.startsWith("button.")) continue;
+    if (id.includes("reboot") || id.includes("restart") || tk.includes("reboot") || tk.includes("restart")) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
 
 // ─────────────────────────────────────────────────
 // Public: device list for editor
@@ -444,6 +491,8 @@ export async function getDeviceContext(hass, deviceId) {
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
 
+  const telemetry = getDeviceTelemetry(entities);
+
   return {
     device,
     entities,
@@ -454,6 +503,8 @@ export async function getDeviceContext(hass, deviceId) {
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device, entities),
+    reboot_entity: getDeviceRebootEntity(entities),
+    ...telemetry,
     numberedPorts,
   };
 }
