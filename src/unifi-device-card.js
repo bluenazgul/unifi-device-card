@@ -274,14 +274,10 @@ class UnifiDeviceCard extends HTMLElement {
       : `
         <div class="port-rj45">
           <div class="rj45-shell-top"></div>
-          <div class="rj45-led-row">
-            <div class="rj45-led left ${poeLed}"></div>
-            <div class="rj45-led-separator"></div>
-            <div class="rj45-led right ${linkLed}"></div>
-          </div>
           <div class="rj45-contacts"></div>
           <div class="rj45-cavity"></div>
-          <div class="rj45-divider"></div>
+          <div class="rj45-led left ${poeLed}"></div>
+          <div class="rj45-led right ${linkLed}"></div>
           <div class="rj45-notch"></div>
           <div class="rj45-floor"></div>
         </div>
@@ -523,10 +519,6 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: flex-start;
       }
 
-      .port.is-rj45 {
-        min-width: 0;
-      }
-
       .port-rj45 {
         position: relative;
         width: 100%;
@@ -550,22 +542,48 @@ class UnifiDeviceCard extends HTMLElement {
         pointer-events: none;
       }
 
-      .rj45-led-row {
+      .rj45-contacts {
         position: absolute;
-        top: 1px;
-        left: 2px;
-        right: 2px;
-        height: 4px;
-        display: grid;
-        grid-template-columns: 1fr 4px 1fr;
-        align-items: stretch;
-        z-index: 3;
+        top: 3px;
+        left: 14%;
+        right: 14%;
+        height: 2px;
+        background:
+          repeating-linear-gradient(
+            to right,
+            #c89f4c 0 2px,
+            transparent 2px 4px
+          );
+        z-index: 2;
+      }
+
+      .rj45-cavity {
+        position: absolute;
+        top: 5px;
+        left: 7%;
+        right: 7%;
+        bottom: 2px;
+        background: linear-gradient(180deg, #15181d 0%, #060708 100%);
+        z-index: 1;
       }
 
       .rj45-led {
+        position: absolute;
+        bottom: 1px;
+        width: 9px;
+        height: 3px;
         border-radius: 0;
-        background: #8a8e95;
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,.25);
+        background: #868b93;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
+        z-index: 5;
+      }
+
+      .rj45-led.left {
+        left: calc(50% - 12px);
+      }
+
+      .rj45-led.right {
+        right: calc(50% - 12px);
       }
 
       .rj45-led.orange {
@@ -587,45 +605,6 @@ class UnifiDeviceCard extends HTMLElement {
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
       }
 
-      .rj45-led-separator {
-        background: transparent;
-      }
-
-      .rj45-contacts {
-        position: absolute;
-        top: 5px;
-        left: 14%;
-        right: 14%;
-        height: 2px;
-        background:
-          repeating-linear-gradient(
-            to right,
-            #c89f4c 0 2px,
-            transparent 2px 4px
-          );
-        z-index: 2;
-      }
-
-      .rj45-cavity {
-        position: absolute;
-        top: 7px;
-        left: 7%;
-        right: 7%;
-        bottom: 2px;
-        background: linear-gradient(180deg, #15181d 0%, #060708 100%);
-        z-index: 1;
-      }
-
-      .rj45-divider {
-        position: absolute;
-        left: calc(50% - 2px);
-        width: 4px;
-        top: 1px;
-        bottom: 0;
-        background: #d0d1d4;
-        z-index: 4;
-      }
-
       .rj45-notch {
         position: absolute;
         left: 34%;
@@ -634,7 +613,7 @@ class UnifiDeviceCard extends HTMLElement {
         height: 4px;
         background: #d0d1d4;
         border-radius: 1px 1px 0 0;
-        z-index: 5;
+        z-index: 6;
       }
 
       .rj45-floor {
