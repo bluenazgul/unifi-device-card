@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.3.8] - 2026-04-09
+## [v0.4.0] - 2026-04-09
 
 ### ✨ Improvements
 - Added optional display-name toggle in the editor
