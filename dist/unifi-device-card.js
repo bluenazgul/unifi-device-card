@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.37d49b0 */
+/* UniFi Device Card 0.0.0-dev.6b2f359 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2488,7 +2488,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.37d49b0";
+var VERSION = "0.0.0-dev.6b2f359";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2890,31 +2890,31 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
-        grid-template-columns: repeat(8, 26px);
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.dual-row .port-row {
-        grid-template-columns: repeat(8, 26px);
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.gateway-rack .port-row {
-        grid-template-columns: repeat(8, 26px);
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.gateway-compact .port-row {
-        grid-template-columns: repeat(5, 26px);
+        grid-template-columns: repeat(5, 36px);
       }
 
       .frontpanel.six-grid .port-row {
-        grid-template-columns: repeat(6, 26px);
+        grid-template-columns: repeat(6, 36px);
       }
 
       .frontpanel.quad-row .port-row {
-        grid-template-columns: repeat(12, 26px);
+        grid-template-columns: repeat(12, 36px);
       }
 
       .frontpanel.ultra-row .port-row {
-        grid-template-columns: repeat(7, 26px);
+        grid-template-columns: repeat(7, 36px);
       }
 
       .port {
@@ -2955,8 +2955,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .port-rj45 {
         position: relative;
-        width: 26px;
-        height: 26px;
+        width: 36px;
+        height: 36px;
         background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
         border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
@@ -2967,8 +2967,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .port.is-wan .port-rj45 {
-        width: 28px;
-        height: 28px;
+        width: 38px;
+        height: 38px;
       }
 
       .rj45-shell-top {
@@ -2983,10 +2983,10 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .rj45-contacts {
         position: absolute;
-        top: 3px;
-        left: 3px;
-        right: 3px;
-        height: 2px;
+        top: 4px;
+        left: 4px;
+        right: 4px;
+        height: 3px;
         display: grid;
         grid-template-columns: repeat(8, 1fr);
         gap: 1px;
@@ -3001,9 +3001,9 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .rj45-cavity {
         position: absolute;
-        top: 6px;
-        left: 2px;
-        right: 2px;
+        top: 8px;
+        left: 3px;
+        right: 3px;
         bottom: 2px;
         background: linear-gradient(180deg, #14181d 0%, #060708 100%);
         z-index: 1;
@@ -3012,7 +3012,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       .rj45-led {
         position: absolute;
         bottom: 1px;
-        height: 4px;
+        height: 5px;
         border-radius: 0;
         background: #868b93;
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
@@ -3055,7 +3055,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         left: 35%;
         right: 35%;
         bottom: 0;
-        height: 5px;
+        height: 6px;
         background: #d0d1d4;
         border-radius: 1px 1px 0 0;
         z-index: 6;
@@ -3063,8 +3063,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .rj45-floor {
         position: absolute;
-        left: 2px;
-        right: 2px;
+        left: 3px;
+        right: 3px;
         bottom: 0;
         height: 2px;
         background: #0e1014;
@@ -3079,8 +3079,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .sfp-top-led {
-        width: 12px;
-        height: 4px;
+        width: 16px;
+        height: 5px;
         border-radius: 0;
         background: #8a8e95;
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.25);
@@ -3107,13 +3107,13 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .port-sfp {
         position: relative;
-        width: 26px;
-        height: 28px;
+        width: 36px;
+        height: 38px;
       }
 
       .port.is-wan .port-sfp {
-        width: 28px;
-        height: 30px;
+        width: 38px;
+        height: 40px;
       }
 
       .sfp-frame {
@@ -3126,27 +3126,27 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-rail {
         position: absolute;
-        left: 2px;
-        right: 2px;
+        left: 3px;
+        right: 3px;
         height: 1px;
         background: rgba(230,235,240,.28);
         z-index: 3;
       }
 
       .sfp-rail.top {
-        top: 4px;
+        top: 5px;
       }
 
       .sfp-rail.bottom {
-        bottom: 4px;
+        bottom: 5px;
       }
 
       .sfp-slot {
         position: absolute;
-        left: 2px;
-        right: 2px;
-        top: 4px;
-        bottom: 4px;
+        left: 3px;
+        right: 3px;
+        top: 5px;
+        bottom: 5px;
         background: linear-gradient(180deg, #171b22 0%, #060709 100%);
         border: 1px solid rgba(220,225,230,.10);
         z-index: 1;
@@ -3154,27 +3154,27 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-inner {
         position: absolute;
-        left: 4px;
-        right: 4px;
-        top: 7px;
-        bottom: 7px;
+        left: 6px;
+        right: 6px;
+        top: 9px;
+        bottom: 9px;
         background: rgba(130,140,155,.16);
         z-index: 2;
       }
 
       .sfp-latch {
         position: absolute;
-        left: 7px;
-        right: 7px;
-        bottom: 1px;
-        height: 3px;
+        left: 10px;
+        right: 10px;
+        bottom: 2px;
+        height: 4px;
         background: rgba(210,214,220,.48);
         z-index: 4;
       }
 
       .port.special {
-        min-width: 28px;
-        max-width: 32px;
+        min-width: 38px;
+        max-width: 42px;
       }
 
       .port-num {
