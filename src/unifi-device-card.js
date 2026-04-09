@@ -463,7 +463,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .special-row {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: wrap;
         margin-bottom: 3px;
       }
@@ -471,7 +471,7 @@ class UnifiDeviceCard extends HTMLElement {
       .port-row {
         display: grid;
         row-gap: 4px;
-        column-gap: 8px;
+        column-gap: 6px;
       }
 
       .frontpanel.single-row .port-row,
@@ -541,8 +541,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port-rj45 {
         position: relative;
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
         background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
         border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
@@ -553,8 +553,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port.is-wan .port-rj45 {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
       }
 
       .rj45-shell-top {
@@ -693,13 +693,13 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port-sfp {
         position: relative;
-        width: 36px;
-        height: 38px;
+        width: 34px;
+        height: 36px;
       }
 
       .port.is-wan .port-sfp {
-        width: 38px;
-        height: 40px;
+        width: 36px;
+        height: 38px;
       }
 
       .sfp-frame {
@@ -759,8 +759,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port.special {
-        min-width: 38px;
-        max-width: 42px;
+        min-width: 36px;
+        max-width: 40px;
       }
 
       .port-num {
