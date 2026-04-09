@@ -475,31 +475,31 @@ class UnifiDeviceCard extends HTMLElement {
 
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
-        grid-template-columns: repeat(8, 26px);
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.dual-row .port-row {
-        grid-template-columns: repeat(8, 26px);
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.gateway-rack .port-row {
-        grid-template-columns: repeat(8, 26px);
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.gateway-compact .port-row {
-        grid-template-columns: repeat(5, 26px);
+        grid-template-columns: repeat(5, 36px);
       }
 
       .frontpanel.six-grid .port-row {
-        grid-template-columns: repeat(6, 26px);
+        grid-template-columns: repeat(6, 36px);
       }
 
       .frontpanel.quad-row .port-row {
-        grid-template-columns: repeat(12, 26px);
+        grid-template-columns: repeat(12, 36px);
       }
 
       .frontpanel.ultra-row .port-row {
-        grid-template-columns: repeat(7, 26px);
+        grid-template-columns: repeat(7, 36px);
       }
 
       .port {
@@ -540,8 +540,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port-rj45 {
         position: relative;
-        width: 26px;
-        height: 26px;
+        width: 36px;
+        height: 36px;
         background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
         border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
@@ -552,8 +552,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port.is-wan .port-rj45 {
-        width: 28px;
-        height: 28px;
+        width: 38px;
+        height: 38px;
       }
 
       .rj45-shell-top {
@@ -568,10 +568,10 @@ class UnifiDeviceCard extends HTMLElement {
 
       .rj45-contacts {
         position: absolute;
-        top: 3px;
-        left: 3px;
-        right: 3px;
-        height: 2px;
+        top: 4px;
+        left: 4px;
+        right: 4px;
+        height: 3px;
         display: grid;
         grid-template-columns: repeat(8, 1fr);
         gap: 1px;
@@ -586,9 +586,9 @@ class UnifiDeviceCard extends HTMLElement {
 
       .rj45-cavity {
         position: absolute;
-        top: 6px;
-        left: 2px;
-        right: 2px;
+        top: 8px;
+        left: 3px;
+        right: 3px;
         bottom: 2px;
         background: linear-gradient(180deg, #14181d 0%, #060708 100%);
         z-index: 1;
@@ -597,7 +597,7 @@ class UnifiDeviceCard extends HTMLElement {
       .rj45-led {
         position: absolute;
         bottom: 1px;
-        height: 4px;
+        height: 5px;
         border-radius: 0;
         background: #868b93;
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
@@ -640,7 +640,7 @@ class UnifiDeviceCard extends HTMLElement {
         left: 35%;
         right: 35%;
         bottom: 0;
-        height: 5px;
+        height: 6px;
         background: #d0d1d4;
         border-radius: 1px 1px 0 0;
         z-index: 6;
@@ -648,8 +648,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .rj45-floor {
         position: absolute;
-        left: 2px;
-        right: 2px;
+        left: 3px;
+        right: 3px;
         bottom: 0;
         height: 2px;
         background: #0e1014;
@@ -664,8 +664,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .sfp-top-led {
-        width: 12px;
-        height: 4px;
+        width: 16px;
+        height: 5px;
         border-radius: 0;
         background: #8a8e95;
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.25);
@@ -692,13 +692,13 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port-sfp {
         position: relative;
-        width: 26px;
-        height: 28px;
+        width: 36px;
+        height: 38px;
       }
 
       .port.is-wan .port-sfp {
-        width: 28px;
-        height: 30px;
+        width: 38px;
+        height: 40px;
       }
 
       .sfp-frame {
@@ -711,27 +711,27 @@ class UnifiDeviceCard extends HTMLElement {
 
       .sfp-rail {
         position: absolute;
-        left: 2px;
-        right: 2px;
+        left: 3px;
+        right: 3px;
         height: 1px;
         background: rgba(230,235,240,.28);
         z-index: 3;
       }
 
       .sfp-rail.top {
-        top: 4px;
+        top: 5px;
       }
 
       .sfp-rail.bottom {
-        bottom: 4px;
+        bottom: 5px;
       }
 
       .sfp-slot {
         position: absolute;
-        left: 2px;
-        right: 2px;
-        top: 4px;
-        bottom: 4px;
+        left: 3px;
+        right: 3px;
+        top: 5px;
+        bottom: 5px;
         background: linear-gradient(180deg, #171b22 0%, #060709 100%);
         border: 1px solid rgba(220,225,230,.10);
         z-index: 1;
@@ -739,27 +739,27 @@ class UnifiDeviceCard extends HTMLElement {
 
       .sfp-inner {
         position: absolute;
-        left: 4px;
-        right: 4px;
-        top: 7px;
-        bottom: 7px;
+        left: 6px;
+        right: 6px;
+        top: 9px;
+        bottom: 9px;
         background: rgba(130,140,155,.16);
         z-index: 2;
       }
 
       .sfp-latch {
         position: absolute;
-        left: 7px;
-        right: 7px;
-        bottom: 1px;
-        height: 3px;
+        left: 10px;
+        right: 10px;
+        bottom: 2px;
+        height: 4px;
         background: rgba(210,214,220,.48);
         z-index: 4;
       }
 
       .port.special {
-        min-width: 28px;
-        max-width: 32px;
+        min-width: 38px;
+        max-width: 42px;
       }
 
       .port-num {
@@ -814,276 +814,4 @@ class UnifiDeviceCard extends HTMLElement {
       .detail-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--primary-text-color, var(--udc-text));
-      }
-
-      .detail-value.online { color: var(--udc-green); }
-      .detail-value.offline { color: var(--udc-muted); }
-
-      .actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 8px;
-      }
-
-      .action-btn {
-        font: inherit;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 6px 14px;
-        border-radius: var(--udc-rsm);
-        border: none;
-        cursor: pointer;
-        transition: opacity .15s, filter .15s;
-      }
-
-      .action-btn:hover { opacity: .85; }
-      .action-btn:active { filter: brightness(.9); }
-
-      .action-btn.primary {
-        background: #0090d9;
-        color: #fff;
-      }
-
-      .action-btn.secondary {
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
-        color: var(--primary-text-color, var(--udc-text));
-      }
-
-      .muted {
-        color: var(--secondary-text-color, var(--udc-muted));
-        font-size: 0.82rem;
-      }
-
-      .empty-state,
-      .loading-state {
-        padding: 24px 18px;
-        color: var(--secondary-text-color, var(--udc-muted));
-        font-size: 0.85rem;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid var(--udc-border);
-        border-top-color: #0090d9;
-        border-radius: 50%;
-        animation: spin .7s linear infinite;
-        flex-shrink: 0;
-      }
-
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>`;
-  }
-
-  _renderPanelAndDetail() {
-    const ctx = this._ctx;
-    const { specials, numbered } = this._buildSlotData(ctx);
-
-    const allSlots = [...specials, ...numbered];
-    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
-    const connected = this._connectedCount(allSlots);
-    const theme = ctx?.layout?.theme || "dark";
-
-    const specialPortsInUse = new Set(
-      specials
-        .map((slot) => slot?.port)
-        .filter((port) => Number.isInteger(port))
-    );
-
-    const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
-    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
-
-    const specialRow = specials.length
-      ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
-      : "";
-
-    const layoutRows = effectiveRows
-      .map((rowPorts) => {
-        const items = rowPorts
-          .map((portNumber) => visibleNumbered.find((p) => p.port === portNumber))
-          .filter(Boolean)
-          .map((slot) => this._renderPortButton(slot, selected?.key))
-          .join("");
-
-        return items ? `<div class="port-row">${items}</div>` : "";
-      })
-      .filter(Boolean);
-
-    let detail = `<div class="muted">${this._t("no_ports")}</div>`;
-
-    if (selected) {
-      const linkUp = isPortConnected(this._hass, selected);
-      const linkText = getPortLinkText(this._hass, selected);
-      const speedText = getPortSpeedText(this._hass, selected);
-      const poeStatus = getPoeStatus(this._hass, selected);
-      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
-      const poeOn = poeStatus.active;
-      const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
-      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
-      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
-
-      const portTitle = selected.port_label
-        || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
-
-      detail = `
-        <div class="detail-title">${portTitle}</div>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <div class="detail-label">${this._t("link_status")}</div>
-            <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
-            </div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText || "—"}</div>
-          </div>
-          ${hasPoe ? `
-          <div class="detail-item">
-            <div class="detail-label">${this._t("poe")}</div>
-            <div class="detail-value ${poeOn ? "online" : "offline"}">
-              ${poeOn ? this._t("state_on") : this._t("state_off")}
-            </div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower || "—"}</div>
-          </div>` : ""}
-          ${rxVal != null ? `
-          <div class="detail-item">
-            <div class="detail-label">RX</div>
-            <div class="detail-value">${rxVal}</div>
-          </div>` : ""}
-          ${txVal != null ? `
-          <div class="detail-item">
-            <div class="detail-label">TX</div>
-            <div class="detail-value">${txVal}</div>
-          </div>` : ""}
-        </div>
-        <div class="actions">
-          ${selected.port_switch_entity ? (() => {
-            const enabled = isOn(this._hass, selected.port_switch_entity);
-            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-              ${enabled ? this._t("port_disable") : this._t("port_enable")}
-            </button>`;
-          })() : ""}
-          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
-          </button>` : ""}
-          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-            ↺ ${this._t("power_cycle")}
-          </button>` : ""}
-        </div>`;
-    }
-
-    const headerTitle = this._title();
-    const headerMetrics = this._headerMetrics();
-
-    this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
-        <div class="header">
-          <div class="header-info">
-            ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
-            <div class="subtitle">${this._subtitle()}</div>
-            ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
-              <div class="meta-row">
-                <div class="meta-label">${item.label}:</div>
-                <div class="meta-value">${item.value}</div>
-              </div>`).join("")}</div>` : ""}
-          </div>
-          <div class="header-actions">
-            ${ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
-            <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
-          </div>
-        </div>
-
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}">
-          <div class="panel-label">${this._t("front_panel")}</div>
-          ${specialRow}
-          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`}
-        </div>
-
-        <div class="section">${detail}</div>
-      </ha-card>`;
-
-    this.shadowRoot.querySelectorAll(".port")
-      .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
-
-    this.shadowRoot.querySelector("[data-action='toggle-port']")
-      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
-
-    this.shadowRoot.querySelector("[data-action='toggle-poe']")
-      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
-
-    this.shadowRoot.querySelector("[data-action='power-cycle']")
-      ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
-
-    this.shadowRoot.querySelector("[data-action='reboot-device']")
-      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
-  }
-
-  _render() {
-    const title = this._title();
-
-    if (!this._config?.device_id) {
-      this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
-          <div class="header">
-            <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
-            </div>
-          </div>
-          <div class="empty-state">${this._t("select_device")}</div>
-        </ha-card>`;
-      return;
-    }
-
-    if (this._loading) {
-      this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
-          <div class="header">
-            <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
-            </div>
-          </div>
-          <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
-        </ha-card>`;
-      return;
-    }
-
-    if (!this._ctx) {
-      this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
-          <div class="header">
-            <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
-            </div>
-          </div>
-          <div class="empty-state">${this._t("no_data")}</div>
-        </ha-card>`;
-      return;
-    }
-
-    this._renderPanelAndDetail();
-  }
-}
-
-customElements.define("unifi-device-card", UnifiDeviceCard);
-
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "unifi-device-card",
-  name: "UniFi Device Card",
-  description: "Lovelace card for UniFi switches and gateways.",
-});
+        color: var(--primary-text-color,
