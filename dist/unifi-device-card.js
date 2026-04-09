@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d9b7bf6 */
+/* UniFi Device Card 0.0.0-dev.ec45bb0 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2488,7 +2488,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d9b7bf6";
+var VERSION = "0.0.0-dev.ec45bb0";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2660,9 +2660,22 @@ var UnifiDeviceCard = class extends HTMLElement {
     const key = String(slot?.key || "").toLowerCase();
     return slot?.kind === "special" && (label.includes("sfp") || key.includes("sfp") || key.includes("uplink"));
   }
+  _isWanLike(slot) {
+    const key = String(slot?.key || "").toLowerCase();
+    return key === "wan" || key === "wan2";
+  }
+  _renderContacts() {
+    return `
+      <div class="rj45-contacts">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+    `;
+  }
   _renderPortButton(slot, selectedKey) {
     const isSpecial = slot.kind === "special";
     const isSfp = this._isSfpLike(slot);
+    const isWan = this._isWanLike(slot);
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
@@ -2676,6 +2689,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       "port",
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
+      isWan ? "is-wan" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : ""
     ].filter(Boolean).join(" ");
@@ -2696,7 +2710,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       ` : `
         <div class="port-rj45">
           <div class="rj45-shell-top"></div>
-          <div class="rj45-contacts"></div>
+          ${this._renderContacts()}
           <div class="rj45-cavity"></div>
           <div class="rj45-led left ${poeLed}"></div>
           <div class="rj45-led right ${linkLed}"></div>
@@ -2864,50 +2878,43 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .special-row {
         display: flex;
-        gap: 3px;
+        gap: 4px;
         flex-wrap: wrap;
         margin-bottom: 3px;
       }
 
       .port-row {
         display: grid;
-        gap: 5px;
+        gap: 6px;
       }
 
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
-        grid-template-columns: repeat(8, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(8, minmax(0, 14px));
       }
 
       .frontpanel.dual-row .port-row {
-        grid-template-columns: repeat(8, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(8, minmax(0, 14px));
       }
 
       .frontpanel.gateway-rack .port-row {
-        grid-template-columns: repeat(8, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(8, minmax(0, 14px));
       }
 
       .frontpanel.gateway-compact .port-row {
-        grid-template-columns: repeat(5, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(5, minmax(0, 14px));
       }
 
       .frontpanel.six-grid .port-row {
-        grid-template-columns: repeat(6, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(6, minmax(0, 14px));
       }
 
       .frontpanel.quad-row .port-row {
-        grid-template-columns: repeat(12, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(12, minmax(0, 14px));
       }
 
       .frontpanel.ultra-row .port-row {
-        grid-template-columns: repeat(7, minmax(0, 0.82fr));
-        justify-content: start;
+        grid-template-columns: repeat(7, minmax(0, 14px));
       }
 
       .port {
@@ -2916,7 +2923,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 0 1px 1px;
+        padding: 0 0 1px;
         border-radius: 2px;
         transition: outline .1s ease;
         position: relative;
@@ -2948,8 +2955,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .port-rj45 {
         position: relative;
-        width: 100%;
-        height: 22px;
+        width: 14px;
+        height: 24px;
         background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
         border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
@@ -2957,6 +2964,11 @@ var UnifiDeviceCard = class extends HTMLElement {
           inset 0 1px 0 rgba(255,255,255,.05),
           inset 0 -1px 0 rgba(0,0,0,.45);
         overflow: hidden;
+      }
+
+      .port.is-wan .port-rj45 {
+        width: 16px;
+        height: 26px;
       }
 
       .rj45-shell-top {
@@ -2972,22 +2984,26 @@ var UnifiDeviceCard = class extends HTMLElement {
       .rj45-contacts {
         position: absolute;
         top: 3px;
-        left: 13%;
-        right: 13%;
+        left: 2px;
+        right: 2px;
         height: 2px;
-        background: repeating-linear-gradient(
-          to right,
-          #caa252 0 2px,
-          transparent 2px 4px
-        );
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 1px;
         z-index: 2;
+      }
+
+      .rj45-contacts span {
+        display: block;
+        background: #caa252;
+        min-width: 0;
       }
 
       .rj45-cavity {
         position: absolute;
-        top: 5px;
-        left: 6%;
-        right: 6%;
+        top: 6px;
+        left: 1px;
+        right: 1px;
         bottom: 2px;
         background: linear-gradient(180deg, #14181d 0%, #060708 100%);
         z-index: 1;
@@ -3006,13 +3022,13 @@ var UnifiDeviceCard = class extends HTMLElement {
       .rj45-led.left {
         left: 0;
         right: 50%;
-        margin-right: 3px;
+        margin-right: 2px;
       }
 
       .rj45-led.right {
         right: 0;
         left: 50%;
-        margin-left: 3px;
+        margin-left: 2px;
       }
 
       .rj45-led.orange {
@@ -3047,8 +3063,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .rj45-floor {
         position: absolute;
-        left: 6%;
-        right: 6%;
+        left: 1px;
+        right: 1px;
         bottom: 0;
         height: 2px;
         background: #0e1014;
@@ -3091,8 +3107,13 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .port-sfp {
         position: relative;
-        width: 100%;
-        height: 24px;
+        width: 14px;
+        height: 26px;
+      }
+
+      .port.is-wan .port-sfp {
+        width: 16px;
+        height: 28px;
       }
 
       .sfp-frame {
@@ -3105,8 +3126,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-rail {
         position: absolute;
-        left: 5%;
-        right: 5%;
+        left: 1px;
+        right: 1px;
         height: 1px;
         background: rgba(230,235,240,.28);
         z-index: 3;
@@ -3122,8 +3143,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-slot {
         position: absolute;
-        left: 6%;
-        right: 6%;
+        left: 1px;
+        right: 1px;
         top: 4px;
         bottom: 4px;
         background: linear-gradient(180deg, #171b22 0%, #060709 100%);
@@ -3133,8 +3154,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-inner {
         position: absolute;
-        left: 14%;
-        right: 14%;
+        left: 2px;
+        right: 2px;
         top: 7px;
         bottom: 7px;
         background: rgba(130,140,155,.16);
@@ -3143,8 +3164,8 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-latch {
         position: absolute;
-        left: 34%;
-        right: 34%;
+        left: 4px;
+        right: 4px;
         bottom: 1px;
         height: 3px;
         background: rgba(210,214,220,.48);
@@ -3152,8 +3173,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .port.special {
-        min-width: 30px;
-        max-width: 42px;
+        min-width: 16px;
+        max-width: 20px;
       }
 
       .port-num {
