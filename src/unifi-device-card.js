@@ -231,12 +231,83 @@ class UnifiDeviceCard extends HTMLElement {
     const key = String(slot?.key || "").toLowerCase();
     return (
       slot?.kind === "special" &&
-      (
-        label.includes("sfp") ||
-        key.includes("sfp") ||
-        key.includes("uplink")
-      )
+      (label.includes("sfp") || key.includes("sfp") || key.includes("uplink"))
     );
+  }
+
+  _isWanLike(slot) {
+    const key = String(slot?.key || "").toLowerCase();
+    return key === "wan" || key === "wan2";
+  }
+
+  _renderContacts() {
+    return `
+      <div class="rj45-contacts">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+    `;
+  }
+
+  _renderPortButton(slot, selectedKey) {
+    const isSpecial = slot.kind === "special";
+    const isSfp = this._isSfpLike(slot);
+    const isWan = this._isWanLike(slot);
+    const linkUp = isPortConnected(this._hass, slot);
+    const poeStatus = getPoeStatus(this._hass, slot);
+    const poeOn = poeStatus.active;
+
+    const tooltip = [
+      slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
+      this._translateState(getPortLinkText(this._hass, slot)),
+      linkUp ? getPortSpeedText(this._hass, slot) : null,
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
+    ].filter((v) => v && v !== "—").join(" · ");
+
+    const classes = [
+      "port",
+      isSpecial ? "special" : "",
+      isSfp ? "is-sfp" : "is-rj45",
+      isWan ? "is-wan" : "",
+      linkUp ? "up" : "down",
+      selectedKey === slot.key ? "selected" : "",
+    ].filter(Boolean).join(" ");
+
+    const poeLed = this._poeLedClass(slot);
+    const linkLed = this._linkLedClass(slot);
+
+    const housing = isSfp
+      ? `
+        <div class="port-sfp-wrap">
+          <div class="sfp-top-led ${linkLed}"></div>
+          <div class="port-sfp">
+            <div class="sfp-frame"></div>
+            <div class="sfp-rail top"></div>
+            <div class="sfp-rail bottom"></div>
+            <div class="sfp-slot"></div>
+            <div class="sfp-inner"></div>
+            <div class="sfp-latch"></div>
+          </div>
+        </div>
+      `
+      : `
+        <div class="port-rj45">
+          <div class="rj45-shell-top"></div>
+          ${this._renderContacts()}
+          <div class="rj45-cavity"></div>
+          <div class="rj45-led left ${poeLed}"></div>
+          <div class="rj45-led right ${linkLed}"></div>
+          <div class="rj45-notch"></div>
+          <div class="rj45-floor"></div>
+        </div>
+      `;
+
+    return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
+      <div class="port-housing">
+        ${housing}
+      </div>
+      <div class="port-num">${slot.label}</div>
+    </button>`;
   }
 
   _styles() {
@@ -247,12 +318,11 @@ class UnifiDeviceCard extends HTMLElement {
         --udc-surf2: #252d3d;
         --udc-border: rgba(255,255,255,0.07);
         --udc-accent: #0090d9;
-        --udc-green: #22c55e;
-        --udc-orange: #f59e0b;
-        --udc-red: #ef4444;
+        --udc-green: #31d35f;
+        --udc-orange: #f0b312;
         --udc-text: #e2e8f0;
-        --udc-muted: #4e5d73;
-        --udc-dim: #8896a8;
+        --udc-muted: #6f7d90;
+        --udc-dim: #9aa7b9;
         --udc-r: 14px;
         --udc-rsm: 8px;
       }
@@ -320,8 +390,9 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .meta-label {
-        color: var(--udc-muted);
+        color: var(--primary-text-color, var(--udc-text));
         white-space: nowrap;
+        font-weight: 500;
       }
 
       .meta-value {
@@ -373,13 +444,13 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel {
         padding: 12px 14px 10px;
         display: grid;
-        gap: 5px;
+        gap: 3px;
         border-bottom: 1px solid var(--udc-border);
       }
 
-      .frontpanel.theme-white { background: #d8dde6; }
-      .frontpanel.theme-silver { background: #2a2e35; }
-      .frontpanel.theme-dark { background: var(--udc-surface); }
+      .frontpanel.theme-white { background: #d6d6d9; }
+      .frontpanel.theme-silver { background: #c4c5c8; }
+      .frontpanel.theme-dark { background: #d0d1d4; }
 
       .panel-label {
         font-size: 0.63rem;
@@ -387,51 +458,49 @@ class UnifiDeviceCard extends HTMLElement {
         letter-spacing: .1em;
         text-transform: uppercase;
         margin-bottom: 2px;
+        color: #7c818b;
       }
-
-      .theme-white .panel-label { color: #8a96a8; }
-      .theme-silver .panel-label { color: #5a6070; }
-      .theme-dark .panel-label { color: var(--udc-muted); }
 
       .special-row {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 6px;
+        margin-bottom: 3px;
       }
 
       .port-row {
         display: grid;
-        gap: 6px;
+        row-gap: 4px;
+        column-gap: 8px;
       }
 
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
-        grid-template-columns: repeat(8, minmax(0,1fr));
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.dual-row .port-row {
-        grid-template-columns: repeat(8, minmax(0,1fr));
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.gateway-rack .port-row {
-        grid-template-columns: repeat(8, minmax(0,1fr));
+        grid-template-columns: repeat(8, 36px);
       }
 
       .frontpanel.gateway-compact .port-row {
-        grid-template-columns: repeat(5, minmax(0,1fr));
+        grid-template-columns: repeat(5, 36px);
       }
 
       .frontpanel.six-grid .port-row {
-        grid-template-columns: repeat(6, minmax(0,1fr));
+        grid-template-columns: repeat(6, 36px);
       }
 
       .frontpanel.quad-row .port-row {
-        grid-template-columns: repeat(12, minmax(0,1fr));
+        grid-template-columns: repeat(12, 36px);
       }
 
       .frontpanel.ultra-row .port-row {
-        grid-template-columns: repeat(7, minmax(0,1fr));
+        grid-template-columns: repeat(7, 36px);
       }
 
       .port {
@@ -440,9 +509,9 @@ class UnifiDeviceCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 3px 2px 3px;
-        border-radius: 4px;
-        transition: outline .1s ease, transform .08s ease;
+        padding: 0 0 1px;
+        border-radius: 2px;
+        transition: outline .1s ease;
         position: relative;
         min-width: 0;
         border: none;
@@ -463,42 +532,6 @@ class UnifiDeviceCard extends HTMLElement {
         outline-offset: 1px;
       }
 
-      .port:active {
-        transform: translateY(1px);
-      }
-
-      .port-leds {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        gap: 7px;
-        margin-bottom: 2px;
-        min-height: 6px;
-      }
-
-      .port-led {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: rgba(120,130,150,.45);
-        box-shadow: none;
-      }
-
-      .port-led.orange {
-        background: var(--udc-orange);
-        box-shadow: 0 0 4px rgba(245,158,11,.9);
-      }
-
-      .port-led.green {
-        background: var(--udc-green);
-        box-shadow: 0 0 4px rgba(34,197,94,.9);
-      }
-
-      .port-led.off {
-        background: rgba(120,130,150,.45);
-        box-shadow: none;
-      }
-
       .port-housing {
         width: 100%;
         display: flex;
@@ -506,159 +539,246 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: flex-start;
       }
 
-      .port-rj45,
-      .port-sfp {
-        position: relative;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
       .port-rj45 {
-        height: 21px;
-        border-radius: 2px 2px 3px 3px;
-        overflow: hidden;
-      }
-
-      .port-rj45::before {
-        content: "";
-        position: absolute;
-        top: 2px;
-        left: 13%;
-        right: 13%;
-        height: 3px;
-        border-radius: 1px;
-        background: repeating-linear-gradient(
-          to right,
-          #c9a55a 0 2px,
-          transparent 2px 4px
-        );
-        opacity: .95;
-      }
-
-      .port-rj45::after {
-        content: "";
-        position: absolute;
-        left: 25%;
-        right: 25%;
-        bottom: 0;
-        height: 6px;
-        border-radius: 2px 2px 0 0;
-        background: rgba(0,0,0,.34);
-      }
-
-      .port-rj45 .inner-cut {
-        position: absolute;
-        inset: 4px 3px 2px 3px;
+        position: relative;
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
+        border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
-        background: rgba(0,0,0,.28);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-      }
-
-      .port-rj45 .inner-cut::after {
-        content: "";
-        position: absolute;
-        left: 30%;
-        right: 30%;
-        bottom: 0;
-        height: 5px;
-        border-radius: 2px 2px 0 0;
-        background: rgba(0,0,0,.28);
-      }
-
-      .port-sfp {
-        height: 24px;
-        border-radius: 2px;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.05),
+          inset 0 -1px 0 rgba(0,0,0,.45);
         overflow: hidden;
       }
 
-      .port-sfp::before {
-        content: "";
-        position: absolute;
-        inset: 2px;
-        border-radius: 1px;
-        background: linear-gradient(180deg, rgba(10,12,18,.95) 0%, rgba(28,34,45,.95) 100%);
+      .port.is-wan .port-rj45 {
+        width: 38px;
+        height: 38px;
       }
 
-      .port-sfp::after {
-        content: "";
+      .rj45-shell-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 100%);
+        pointer-events: none;
+      }
+
+      .rj45-contacts {
         position: absolute;
         top: 4px;
-        left: 8%;
-        right: 8%;
-        height: 2px;
-        border-radius: 1px;
-        background: rgba(180,190,205,.6);
+        left: 4px;
+        right: 4px;
+        height: 3px;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 1px;
+        z-index: 2;
       }
 
-      .port-sfp .sfp-slot {
+      .rj45-contacts span {
+        display: block;
+        background: #caa252;
+        min-width: 0;
+      }
+
+      .rj45-cavity {
         position: absolute;
-        left: 10%;
-        right: 10%;
-        top: 7px;
-        bottom: 4px;
+        top: 8px;
+        left: 3px;
+        right: 3px;
+        bottom: 2px;
+        background: linear-gradient(180deg, #14181d 0%, #060708 100%);
+        z-index: 1;
+      }
+
+      .rj45-led {
+        position: absolute;
+        bottom: 1px;
+        height: 5px;
+        border-radius: 0;
+        background: #868b93;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
+        z-index: 5;
+      }
+
+      .rj45-led.left {
+        left: 0;
+        right: 50%;
+        margin-right: 3px;
+      }
+
+      .rj45-led.right {
+        right: 0;
+        left: 50%;
+        margin-left: 3px;
+      }
+
+      .rj45-led.orange {
+        background: #efb21a;
+        box-shadow:
+          0 0 4px rgba(239,178,26,.75),
+          inset 0 -1px 0 rgba(0,0,0,.18);
+      }
+
+      .rj45-led.green {
+        background: #33d35d;
+        box-shadow:
+          0 0 4px rgba(51,211,93,.75),
+          inset 0 -1px 0 rgba(0,0,0,.18);
+      }
+
+      .rj45-led.off {
+        background: #868b93;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
+      }
+
+      .rj45-notch {
+        position: absolute;
+        left: 35%;
+        right: 35%;
+        bottom: 0;
+        height: 6px;
+        background: #d0d1d4;
+        border-radius: 1px 1px 0 0;
+        z-index: 6;
+      }
+
+      .rj45-floor {
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        bottom: 0;
+        height: 2px;
+        background: #0e1014;
+        z-index: 2;
+      }
+
+      .port-sfp-wrap {
+        width: 100%;
+        display: grid;
+        justify-items: center;
+        gap: 1px;
+      }
+
+      .sfp-top-led {
+        width: 16px;
+        height: 5px;
+        border-radius: 0;
+        background: #8a8e95;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.25);
+      }
+
+      .sfp-top-led.orange {
+        background: #efb21a;
+        box-shadow:
+          0 0 4px rgba(239,178,26,.75),
+          inset 0 -1px 0 rgba(0,0,0,.18);
+      }
+
+      .sfp-top-led.green {
+        background: #33d35d;
+        box-shadow:
+          0 0 4px rgba(51,211,93,.75),
+          inset 0 -1px 0 rgba(0,0,0,.18);
+      }
+
+      .sfp-top-led.off {
+        background: #868b93;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
+      }
+
+      .port-sfp {
+        position: relative;
+        width: 36px;
+        height: 38px;
+      }
+
+      .port.is-wan .port-sfp {
+        width: 38px;
+        height: 40px;
+      }
+
+      .sfp-frame {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, #7d828a 0%, #62676f 100%);
+        border: 1px solid #6d7279;
         border-radius: 1px;
-        background: linear-gradient(180deg, rgba(55,65,80,.75) 0%, rgba(15,20,28,.95) 100%);
-        box-shadow: inset 0 0 0 1px rgba(190,200,220,.12);
+      }
+
+      .sfp-rail {
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        height: 1px;
+        background: rgba(230,235,240,.28);
+        z-index: 3;
+      }
+
+      .sfp-rail.top {
+        top: 5px;
+      }
+
+      .sfp-rail.bottom {
+        bottom: 5px;
+      }
+
+      .sfp-slot {
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        top: 5px;
+        bottom: 5px;
+        background: linear-gradient(180deg, #171b22 0%, #060709 100%);
+        border: 1px solid rgba(220,225,230,.10);
+        z-index: 1;
+      }
+
+      .sfp-inner {
+        position: absolute;
+        left: 6px;
+        right: 6px;
+        top: 9px;
+        bottom: 9px;
+        background: rgba(130,140,155,.16);
+        z-index: 2;
+      }
+
+      .sfp-latch {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 2px;
+        height: 4px;
+        background: rgba(210,214,220,.48);
+        z-index: 4;
+      }
+
+      .port.special {
+        min-width: 38px;
+        max-width: 42px;
       }
 
       .port-num {
-        font-size: 8px;
+        font-size: 7px;
         font-weight: 800;
         line-height: 1;
-        margin-top: 3px;
+        margin-top: 1px;
         letter-spacing: 0;
         user-select: none;
+        color: #646a76;
       }
 
-      .theme-white .port-rj45 {
-        background: linear-gradient(180deg, #4b525d 0%, #22272f 100%);
-        border: 1px solid rgba(55,65,81,.28);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      .port.up .port-num {
+        color: #414957;
       }
 
-      .theme-white .port-sfp {
-        background: linear-gradient(180deg, #b2bac6 0%, #8f99a7 100%);
-        border: 1px solid rgba(55,65,81,.28);
-      }
-
-      .theme-white .port-num { color: #7b8797; }
-      .theme-white .port.up .port-num { color: #445066; }
-
-      .theme-silver .port-rj45 {
-        background: linear-gradient(180deg, #262d39 0%, #0f1319 100%);
-        border: 1px solid rgba(255,255,255,.08);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-      }
-
-      .theme-silver .port-sfp {
-        background: linear-gradient(180deg, #4c5566 0%, #2f3744 100%);
-        border: 1px solid rgba(255,255,255,.10);
-      }
-
-      .theme-silver .port-num { color: #707a8e; }
-      .theme-silver .port.up .port-num { color: #9ba6b8; }
-
-      .theme-dark .port-rj45 {
-        background: linear-gradient(180deg, #262d39 0%, #0d1117 100%);
-        border: 1px solid rgba(255,255,255,.07);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-      }
-
-      .theme-dark .port-sfp {
-        background: linear-gradient(180deg, #4d5565 0%, #2a313d 100%);
-        border: 1px solid rgba(255,255,255,.10);
-      }
-
-      .theme-dark .port-num { color: var(--udc-muted); }
-      .theme-dark .port.up .port-num { color: var(--udc-dim); }
-
-      .port.special {
-        min-width: 44px;
-        max-width: 68px;
-      }
-
-      .port.special .port-num {
-        font-size: 7px;
+      .port.is-sfp .port-num {
+        font-size: 6px;
       }
 
       .section {
@@ -723,7 +843,7 @@ class UnifiDeviceCard extends HTMLElement {
       .action-btn:active { filter: brightness(.9); }
 
       .action-btn.primary {
-        background: var(--udc-accent);
+        background: #0090d9;
         color: #fff;
       }
 
@@ -752,7 +872,7 @@ class UnifiDeviceCard extends HTMLElement {
         width: 16px;
         height: 16px;
         border: 2px solid var(--udc-border);
-        border-top-color: var(--udc-accent);
+        border-top-color: #0090d9;
         border-radius: 50%;
         animation: spin .7s linear infinite;
         flex-shrink: 0;
@@ -762,46 +882,6 @@ class UnifiDeviceCard extends HTMLElement {
         to { transform: rotate(360deg); }
       }
     </style>`;
-  }
-
-  _renderPortButton(slot, selectedKey) {
-    const isSpecial = slot.kind === "special";
-    const isSfp = this._isSfpLike(slot);
-    const linkUp = isPortConnected(this._hass, slot);
-    const poeStatus = getPoeStatus(this._hass, slot);
-    const poeOn = poeStatus.active;
-
-    const tooltip = [
-      slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      this._translateState(getPortLinkText(this._hass, slot)),
-      linkUp ? getPortSpeedText(this._hass, slot) : null,
-      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
-    ].filter((v) => v && v !== "—").join(" · ");
-
-    const classes = [
-      "port",
-      isSpecial ? "special" : "",
-      linkUp ? "up" : "down",
-      selectedKey === slot.key ? "selected" : "",
-    ].filter(Boolean).join(" ");
-
-    const poeLed = this._poeLedClass(slot);
-    const linkLed = this._linkLedClass(slot);
-
-    const housing = isSfp
-      ? `<div class="port-sfp"><div class="sfp-slot"></div></div>`
-      : `<div class="port-rj45"><div class="inner-cut"></div></div>`;
-
-    return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
-      <div class="port-leds">
-        <div class="port-led ${poeLed}" title="PoE"></div>
-        <div class="port-led ${linkLed}" title="Link"></div>
-      </div>
-      <div class="port-housing">
-        ${housing}
-      </div>
-      <div class="port-num">${slot.label}</div>
-    </button>`;
   }
 
   _renderPanelAndDetail() {
