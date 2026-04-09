@@ -2,7 +2,21 @@
 
 ## [v0.3.8] - 2026-04-09
 
+### ✨ Improvements
+- Added optional display-name toggle in the editor
+- Display name is enabled by default and can be hidden via checkbox
+- Display name now updates correctly when switching devices in the editor as long as it was not manually overridden
+- Added optional header telemetry rows for CPU utilization, CPU temperature, and memory utilization
+- Header telemetry rows are only shown when matching sensor entities exist and provide valid values
+- Added reboot button in the card header next to the online port status
+- Improved editor loading by de-duplicating in-flight device/entity/config-entry requests
+- Improved front-panel rendering so ports look more like real RJ45 network ports instead of USB-style slots
+- Improved SFP/SFP+ port appearance so uplink ports are visually distinguishable from RJ45 ports
+
 ### 🐛 Bug Fixes
+- Prevented header telemetry rows from rendering empty placeholder values when sensors are missing
+- Fixed device name handling so the initially selected device name does not remain permanently when changing to another device
+- Reduced delays when UniFi devices are loaded in the editor
 - Fix US-8-60W PoE Port detection
 
 ## [v0.3.7] - 2026-04-08
