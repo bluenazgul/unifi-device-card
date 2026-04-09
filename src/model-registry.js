@@ -65,7 +65,7 @@ export const MODEL_REGISTRY = {
   US8P60: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
     portCount: 8, displayModel: "US 8 ", theme: "silver",
-    poePortRange: [5-8],
+    poePortRange: [5, 8],
     specialSlots: [],
   },
 
@@ -574,6 +574,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("LITE8"))              return "USL8LPB";
     if (candidate.includes("LITE") && candidate.includes("8")) return "USL8LPB";
 
+    if (candidate.includes("USC8"))               return "USC8";
     if (candidate.includes("US8P60"))             return "US8P60";
     if (candidate.includes("US860W"))             return "US8P60";
     if (candidate.includes("US8P150"))            return "US8P150";
@@ -641,7 +642,7 @@ export function inferPortCountFromModel(device) {
 
   if (text.includes("USL16LPB") || text.includes("USL16LP") || text.includes("USWLITE16POE") || text.includes("LITE16")) return 16;
   if (text.includes("USL8LPB")  || text.includes("USL8LP")  || text.includes("USWLITE8POE")  || text.includes("LITE8"))  return 8;
-  if (text.includes("US8P60")   || text.includes("US860W"))                          return 8;
+  if (text.includes("US8P60")   || text.includes("US860W")  || text.includes("USC8")) return 8;
   if (text.includes("US8P150"))                                                       return 10;
   if (text.includes("USMINI")   || text.includes("FLEXMINI"))                        return 5;
   if (text.includes("USF5P")    || text.includes("USWFLEX"))                         return 5;
