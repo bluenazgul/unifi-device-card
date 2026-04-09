@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4008f48 */
+/* UniFi Device Card 0.0.0-dev.95c86e4 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1604,6 +1604,9 @@ var TRANSLATIONS = {
     no_ports: "No ports detected.",
     // Front panel
     front_panel: "Front Panel",
+    cpu_utilization: "CPU utilization",
+    cpu_temperature: "CPU temperature",
+    memory_utilization: "Memory utilization",
     // Port detail
     link_status: "Link Status",
     speed: "Speed",
@@ -1619,6 +1622,7 @@ var TRANSLATIONS = {
     poe_off: "PoE off",
     poe_on: "PoE on",
     power_cycle: "Power Cycle",
+    reboot: "Reboot",
     // Hints
     speed_disabled: "Speed entity disabled \u2014 enable it in HA to show link speed.",
     // Editor
@@ -1626,8 +1630,11 @@ var TRANSLATIONS = {
     editor_device_label: "UniFi Device",
     editor_device_loading: "Loading devices from Home Assistant\u2026",
     editor_device_select: "Select device\u2026",
-    editor_name_label: "Display name",
-    editor_name_hint: "Optional \u2014 defaults to device name",
+    editor_name_toggle_label: "Display name",
+    editor_name_toggle_text: "Show display name in the card header",
+    editor_name_toggle_hint: "Enabled by default. When disabled, only the model/firmware line is shown.",
+    editor_name_label: "Display name text",
+    editor_name_hint: "Optional \u2014 updates automatically when switching devices unless you changed it manually",
     editor_no_devices: "No UniFi switches or gateways found in Home Assistant.",
     editor_hint: "Only devices from the UniFi Network Integration are shown.",
     editor_error: "Failed to load UniFi devices.",
@@ -1699,6 +1706,7 @@ var TRANSLATIONS = {
     poe_off: "PoE Aus",
     poe_on: "PoE Ein",
     power_cycle: "Power Cycle",
+    reboot: "Neustart",
     // Hints
     speed_disabled: "Speed-Entity deaktiviert \u2014 in HA aktivieren f\xFCr Geschwindigkeitsanzeige.",
     // Editor
@@ -1706,8 +1714,11 @@ var TRANSLATIONS = {
     editor_device_label: "UniFi Ger\xE4t",
     editor_device_loading: "Lade Ger\xE4te aus Home Assistant\u2026",
     editor_device_select: "Ger\xE4t ausw\xE4hlen\u2026",
-    editor_name_label: "Anzeigename",
-    editor_name_hint: "Optional \u2014 wird sonst vom Ger\xE4t \xFCbernommen",
+    editor_name_toggle_label: "Anzeigename",
+    editor_name_toggle_text: "Anzeigenamen im Kartenkopf anzeigen",
+    editor_name_toggle_hint: "Standardm\xE4\xDFig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
+    editor_name_label: "Text f\xFCr den Anzeigenamen",
+    editor_name_hint: "Optional \u2014 wird beim Ger\xE4tewechsel automatisch aktualisiert, solange du ihn nicht manuell ge\xE4ndert hast",
     editor_no_devices: "Keine UniFi Switches oder Gateways in Home Assistant gefunden.",
     editor_hint: "Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.",
     editor_error: "UniFi-Ger\xE4te konnten nicht geladen werden.",
@@ -1764,6 +1775,9 @@ var TRANSLATIONS = {
     no_ports: "Geen poorten gedetecteerd.",
     // Front panel
     front_panel: "Frontpaneel",
+    cpu_utilization: "CPU-gebruik",
+    cpu_temperature: "CPU-temperatuur",
+    memory_utilization: "Geheugengebruik",
     // Port detail
     link_status: "Linkstatus",
     speed: "Snelheid",
@@ -1779,6 +1793,7 @@ var TRANSLATIONS = {
     poe_off: "PoE uit",
     poe_on: "PoE aan",
     power_cycle: "Power Cycle",
+    reboot: "Herstarten",
     // Hints
     speed_disabled: "Snelheidsentiteit uitgeschakeld \u2014 schakel in HA in om linksnelheid te tonen.",
     // Editor
@@ -1786,8 +1801,11 @@ var TRANSLATIONS = {
     editor_device_label: "UniFi-apparaat",
     editor_device_loading: "Apparaten laden uit Home Assistant\u2026",
     editor_device_select: "Apparaat selecteren\u2026",
-    editor_name_label: "Weergavenaam",
-    editor_name_hint: "Optioneel \u2014 standaard de apparaatnaam",
+    editor_name_toggle_label: "Weergavenaam",
+    editor_name_toggle_text: "Weergavenaam tonen in de kaartkop",
+    editor_name_toggle_hint: "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
+    editor_name_label: "Tekst voor de weergavenaam",
+    editor_name_hint: "Optioneel \u2014 wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
     editor_no_devices: "Geen UniFi-switches of -gateways gevonden in Home Assistant.",
     editor_hint: "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error: "UniFi-apparaten konden niet worden geladen.",
@@ -2409,7 +2427,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4008f48";
+var VERSION = "0.0.0-dev.95c86e4";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
