@@ -168,11 +168,35 @@ class UnifiDeviceCard extends HTMLElement {
     await this._hass.callService("button", "press", { entity_id: entityId });
   }
 
+  _title() {
+    if (this._config?.show_name === false) return "";
+    if (this._config?.name) return this._config.name;
+    if (this._ctx?.name) return this._ctx.name;
+    return "UniFi Device Card";
+  }
+
   _subtitle() {
     if (!this._config?.device_id || !this._ctx) return `Version ${VERSION}`;
     const fw = this._ctx?.firmware;
     const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
     return fw ? `${model} · FW ${fw}` : model;
+  }
+
+  _headerMetrics() {
+    if (!this._ctx || !this._hass) return [];
+
+    const metrics = [
+      { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },
+      { key: "cpu_temperature", entity: this._ctx.cpu_temperature_entity },
+      { key: "memory_utilization", entity: this._ctx.memory_utilization_entity },
+    ];
+
+    return metrics
+      .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
+      .map((item) => ({
+        label: this._t(item.key),
+        value: formatState(this._hass, item.entity),
+      }));
   }
 
   _connectedCount(allSlots) {
@@ -214,7 +238,7 @@ class UnifiDeviceCard extends HTMLElement {
         border-bottom: 1px solid var(--udc-border);
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         gap: 10px;
       }
 
@@ -222,6 +246,14 @@ class UnifiDeviceCard extends HTMLElement {
         display: grid;
         gap: 2px;
         min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
       }
 
       .title {
@@ -238,6 +270,33 @@ class UnifiDeviceCard extends HTMLElement {
         color: var(--udc-muted);
       }
 
+      .meta-list {
+        display: grid;
+        gap: 2px;
+        margin-top: 4px;
+      }
+
+      .meta-row {
+        display: flex;
+        gap: 6px;
+        align-items: baseline;
+        font-size: 0.73rem;
+        min-width: 0;
+      }
+
+      .meta-label {
+        color: var(--udc-muted);
+        white-space: nowrap;
+      }
+
+      .meta-value {
+        color: var(--primary-text-color, var(--udc-text));
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .chip {
         display: flex;
         align-items: center;
@@ -251,6 +310,15 @@ class UnifiDeviceCard extends HTMLElement {
         white-space: nowrap;
         color: var(--udc-dim);
         flex-shrink: 0;
+      }
+
+      button.chip {
+        cursor: pointer;
+        font: inherit;
+      }
+
+      button.chip:hover {
+        filter: brightness(1.08);
       }
 
       .chip .dot {
@@ -292,14 +360,14 @@ class UnifiDeviceCard extends HTMLElement {
 
       .special-row {
         display: flex;
-        gap: 5px;
+        gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
       }
 
       .port-row {
         display: grid;
-        gap: 5px;
+        gap: 6px;
       }
 
       .frontpanel.single-row .port-row,
@@ -338,8 +406,8 @@ class UnifiDeviceCard extends HTMLElement {
         flex-direction: column;
         align-items: center;
         padding: 4px 2px 3px;
-        border-radius: 4px;
-        transition: outline .1s ease;
+        border-radius: 6px;
+        transition: outline .1s ease, transform .08s ease;
         position: relative;
         min-width: 0;
         border: none;
@@ -353,13 +421,15 @@ class UnifiDeviceCard extends HTMLElement {
       .port.selected {
         outline: 2px solid var(--udc-accent);
         outline-offset: 1px;
-        border-radius: 5px;
       }
 
       .port:hover {
         outline: 1px solid rgba(0,144,217,.5);
         outline-offset: 1px;
-        border-radius: 5px;
+      }
+
+      .port:active {
+        transform: translateY(1px);
       }
 
       .port-leds {
@@ -371,79 +441,165 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port-led {
-        width: 4px;
-        height: 4px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         transition: background .2s;
         flex-shrink: 0;
       }
 
-      .port-socket {
+      .port-housing {
         width: 100%;
-        height: 13px;
-        border-radius: 2px 2px 0 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+      }
+
+      .port-socket {
         position: relative;
-        flex-shrink: 0;
+        width: 100%;
+        height: 17px;
+        border-radius: 2px 2px 3px 3px;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .port-socket::before {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 14%;
+        right: 14%;
+        height: 3px;
+        border-radius: 1px;
+        background:
+          repeating-linear-gradient(
+            to right,
+            #caa85e 0 2px,
+            transparent 2px 4px
+          );
+        opacity: .9;
       }
 
       .port-socket::after {
         content: "";
         position: absolute;
+        left: 26%;
+        right: 26%;
         bottom: 0;
-        left: 12%;
-        right: 12%;
-        height: 4px;
-        border-radius: 1px 1px 0 0;
+        height: 5px;
+        border-radius: 2px 2px 0 0;
+        background: rgba(0,0,0,.28);
+      }
+
+      .port.special .port-socket {
+        height: 13px;
+        border-radius: 2px;
+      }
+
+      .port.special .port-socket::before {
+        top: 3px;
+        left: 10%;
+        right: 10%;
+        height: 1px;
+        background: rgba(180, 190, 205, .75);
+      }
+
+      .port.special .port-socket::after {
+        left: 8%;
+        right: 8%;
+        bottom: 2px;
+        height: 5px;
+        border-radius: 1px;
+        background: rgba(0,0,0,.22);
       }
 
       .port-num {
         font-size: 8px;
         font-weight: 800;
         line-height: 1;
-        margin-top: 2px;
+        margin-top: 3px;
         letter-spacing: 0;
         user-select: none;
       }
 
-      .theme-white .port-socket         { background: #b0b8c4; }
-      .theme-white .port-socket::after  { background: #8a8060; }
-      .theme-white .port-num            { color: #8a96a8; }
-      .theme-white .port.up .port-socket { background: #9aa8b8; }
-      .theme-white .port.up .port-num   { color: #4a5568; }
-      .theme-white .port-led            { background: #c8d0d8; }
-
-      .theme-silver .port-socket        { background: #3a4050; }
-      .theme-silver .port-socket::after { background: #5a6070; }
-      .theme-silver .port-num           { color: #5a6070; }
-      .theme-silver .port.up .port-socket { background: #2a3040; }
-      .theme-silver .port.up .port-num  { color: #8a96a8; }
-      .theme-silver .port-led           { background: #3a4050; }
-
-      .theme-dark .port-socket          { background: var(--udc-surf2); }
-      .theme-dark .port-socket::after   { background: var(--udc-muted); }
-      .theme-dark .port-num             { color: var(--udc-muted); }
-      .theme-dark .port.up .port-socket { background: #1a2030; }
-      .theme-dark .port.up .port-num    { color: var(--udc-dim); }
-      .theme-dark .port-led             { background: var(--udc-surf2); }
-
-      .port.up   .port-led-link { background: var(--udc-green); box-shadow: 0 0 4px var(--udc-green); }
-      .port.down .port-led-link { background: var(--udc-muted); }
-      .port.poe-on .port-led-link { background: var(--udc-orange); box-shadow: 0 0 4px var(--udc-orange); }
-
-      .port.speed-25g  .port-socket::after { background: #a855f7; }
-      .port.speed-10g  .port-socket::after { background: var(--udc-accent); }
-      .port.speed-1g   .port-socket::after { background: var(--udc-green); }
-      .port.speed-100m .port-socket::after { background: var(--udc-orange); }
-      .port.speed-10m  .port-socket::after { background: var(--udc-muted); }
-
-      .port.special {
-        min-width: 38px;
-        max-width: 56px;
+      .theme-white .port-socket {
+        background:
+          linear-gradient(180deg, #a9b3bf 0%, #8f9aa8 100%);
+        border: 1px solid rgba(55,65,81,.28);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.35),
+          inset 0 -1px 0 rgba(0,0,0,.12);
       }
 
-      .port.special .port-socket {
-        height: 16px;
-        border-radius: 3px 3px 0 0;
+      .theme-white .port.special .port-socket {
+        background:
+          linear-gradient(180deg, #9aa4b2 0%, #808c9b 100%);
+      }
+
+      .theme-white .port-num { color: #7b8797; }
+      .theme-white .port.up .port-num { color: #445066; }
+      .theme-white .port-led { background: #c8d0d8; }
+
+      .theme-silver .port-socket {
+        background:
+          linear-gradient(180deg, #444c5c 0%, #2e3544 100%);
+        border: 1px solid rgba(255,255,255,.08);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.08),
+          inset 0 -1px 0 rgba(0,0,0,.28);
+      }
+
+      .theme-silver .port.special .port-socket {
+        background:
+          linear-gradient(180deg, #3e4657 0%, #262d3a 100%);
+      }
+
+      .theme-silver .port-num { color: #707a8e; }
+      .theme-silver .port.up .port-num { color: #9ba6b8; }
+      .theme-silver .port-led { background: #3a4050; }
+
+      .theme-dark .port-socket {
+        background:
+          linear-gradient(180deg, #313949 0%, #1d2430 100%);
+        border: 1px solid rgba(255,255,255,.06);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.05),
+          inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .theme-dark .port.special .port-socket {
+        background:
+          linear-gradient(180deg, #2c3442 0%, #181f2a 100%);
+      }
+
+      .theme-dark .port-num { color: var(--udc-muted); }
+      .theme-dark .port.up .port-num { color: var(--udc-dim); }
+      .theme-dark .port-led { background: var(--udc-surf2); }
+
+      .port.up .port-led-link {
+        background: var(--udc-green);
+        box-shadow: 0 0 4px var(--udc-green);
+      }
+
+      .port.down .port-led-link {
+        background: var(--udc-muted);
+      }
+
+      .port.poe-on .port-led-link {
+        background: var(--udc-orange);
+        box-shadow: 0 0 4px var(--udc-orange);
+      }
+
+      .port.speed-25g .port-socket { box-shadow: inset 0 0 0 1px rgba(168,85,247,.45), inset 0 1px 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(0,0,0,.35); }
+      .port.speed-10g .port-socket { box-shadow: inset 0 0 0 1px rgba(0,144,217,.45), inset 0 1px 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(0,0,0,.35); }
+      .port.speed-1g .port-socket  { box-shadow: inset 0 0 0 1px rgba(34,197,94,.40), inset 0 1px 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(0,0,0,.35); }
+      .port.speed-100m .port-socket { box-shadow: inset 0 0 0 1px rgba(245,158,11,.45), inset 0 1px 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(0,0,0,.35); }
+      .port.speed-10m .port-socket { box-shadow: inset 0 0 0 1px rgba(120,130,150,.45), inset 0 1px 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(0,0,0,.35); }
+
+      .port.special {
+        min-width: 42px;
+        max-width: 64px;
       }
 
       .port.special .port-num {
@@ -591,12 +747,14 @@ class UnifiDeviceCard extends HTMLElement {
       <div class="port-leds">
         <div class="port-led port-led-link"></div>
       </div>
-      <div class="port-socket"></div>
+      <div class="port-housing">
+        <div class="port-socket"></div>
+      </div>
       <div class="port-num">${slot.label}</div>
     </button>`;
   }
 
-  _renderPanelAndDetail(title) {
+  _renderPanelAndDetail() {
     const ctx = this._ctx;
     const { specials, numbered } = this._buildSlotData(ctx);
 
@@ -698,14 +856,25 @@ class UnifiDeviceCard extends HTMLElement {
         </div>`;
     }
 
+    const headerTitle = this._title();
+    const headerMetrics = this._headerMetrics();
+
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
         <div class="header">
           <div class="header-info">
-            <div class="title">${title}</div>
+            ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
             <div class="subtitle">${this._subtitle()}</div>
+            ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
+              <div class="meta-row">
+                <div class="meta-label">${item.label}:</div>
+                <div class="meta-value">${item.value}</div>
+              </div>`).join("")}</div>` : ""}
           </div>
-          <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
+          <div class="header-actions">
+            ${ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
+            <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
+          </div>
         </div>
 
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}">
@@ -728,17 +897,20 @@ class UnifiDeviceCard extends HTMLElement {
 
     this.shadowRoot.querySelector("[data-action='power-cycle']")
       ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
+
+    this.shadowRoot.querySelector("[data-action='reboot-device']")
+      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
   }
 
   _render() {
-    const title = this._config?.name || "UniFi Device Card";
+    const title = this._title();
 
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
-              <div class="title">${title}</div>
+              ${title ? `<div class="title">${title}</div>` : ""}
               <div class="subtitle">${this._subtitle()}</div>
             </div>
           </div>
@@ -752,7 +924,7 @@ class UnifiDeviceCard extends HTMLElement {
         <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
-              <div class="title">${title}</div>
+              ${title ? `<div class="title">${title}</div>` : ""}
               <div class="subtitle">${this._subtitle()}</div>
             </div>
           </div>
@@ -766,7 +938,7 @@ class UnifiDeviceCard extends HTMLElement {
         <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
-              <div class="title">${title}</div>
+              ${title ? `<div class="title">${title}</div>` : ""}
               <div class="subtitle">${this._subtitle()}</div>
             </div>
           </div>
@@ -775,7 +947,7 @@ class UnifiDeviceCard extends HTMLElement {
       return;
     }
 
-    this._renderPanelAndDetail(title);
+    this._renderPanelAndDetail();
   }
 }
 

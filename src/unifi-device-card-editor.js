@@ -191,7 +191,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     } catch (err) {
       console.error("[unifi-device-card] failed to load entity warning", err);
       if (token !== this._entityHintToken) return;
-      // alten Wert behalten
     }
 
     this._entityHintLoading = false;
@@ -216,7 +215,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     } catch (err) {
       console.error("[unifi-device-card] failed to load device context for editor", err);
       if (token !== this._deviceCtxToken) return;
-      // alten Context behalten
     }
 
     this._deviceCtxLoading = false;
@@ -231,6 +229,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
+    if (next.show_name !== false) delete next.show_name;
 
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
@@ -242,6 +241,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _onDeviceChange(ev) {
     const deviceId = ev.target.value || "";
     const nextDevice = this._devices.find((d) => d.id === deviceId) || null;
+    const prevDevice = this._devices.find((d) => d.id === this._config?.device_id) || null;
+    const currentName = this._config?.name || "";
+    const currentMatchesPrevious = !currentName || currentName === (prevDevice?.name || "");
 
     const nextConfig = {
       device_id: deviceId || undefined,
@@ -251,8 +253,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     if (!deviceId) {
       nextConfig.name = undefined;
-    } else if (!this._config?.name && nextDevice?.name) {
-      nextConfig.name = nextDevice.name;
+    } else if (currentMatchesPrevious) {
+      nextConfig.name = nextDevice?.name || undefined;
     }
 
     this._emitConfig(nextConfig);
@@ -260,6 +262,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onNameInput(ev) {
     this._emitConfig({ name: ev.target.value || undefined });
+  }
+
+  _onShowNameChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_name: checked ? undefined : false });
   }
 
   _onBackgroundInput(ev) {
@@ -457,7 +464,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       }
 
       select,
-      input {
+      input[type="text"] {
         box-sizing: border-box;
         width: 100%;
         padding: 10px 12px;
@@ -466,6 +473,19 @@ class UnifiDeviceCardEditor extends HTMLElement {
         background: var(--card-background-color);
         color: var(--primary-text-color);
         font: inherit;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+      }
+
+      .checkbox-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin: 0;
       }
 
       .hint {
@@ -523,6 +543,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const deviceValue = this._config?.device_id || "";
     const nameValue = this._config?.name || "";
+    const showName = this._config?.show_name !== false;
     const backgroundValue = this._config?.background_color || "";
 
     this.shadowRoot.innerHTML = `
@@ -551,8 +572,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
 
         <div class="field">
+          <label>${this._t("editor_name_toggle_label")}</label>
+          <label class="checkbox-row">
+            <input id="show_name" type="checkbox" ${showName ? "checked" : ""}>
+            <span>${this._t("editor_name_toggle_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_name_toggle_hint")}</div>
+        </div>
+
+        <div class="field">
           <label>${this._t("editor_name_label")}</label>
-          <input id="name" type="text" value="${nameValue}">
+          <input id="name" type="text" value="${nameValue}" ${showName ? "" : "disabled"}>
           <div class="hint">${this._t("editor_name_hint")}</div>
         </div>
 
@@ -570,6 +600,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("device_id")
       ?.addEventListener("change", (ev) => this._onDeviceChange(ev));
+
+    this.shadowRoot.getElementById("show_name")
+      ?.addEventListener("change", (ev) => this._onShowNameChange(ev));
 
     this.shadowRoot.getElementById("name")
       ?.addEventListener("input", (ev) => this._onNameInput(ev));
