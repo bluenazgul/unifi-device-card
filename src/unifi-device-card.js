@@ -814,4 +814,276 @@ class UnifiDeviceCard extends HTMLElement {
       .detail-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--primary-text-color,
+        color: var(--primary-text-color, var(--udc-text));
+      }
+
+      .detail-value.online { color: var(--udc-green); }
+      .detail-value.offline { color: var(--udc-muted); }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      .action-btn {
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: var(--udc-rsm);
+        border: none;
+        cursor: pointer;
+        transition: opacity .15s, filter .15s;
+      }
+
+      .action-btn:hover { opacity: .85; }
+      .action-btn:active { filter: brightness(.9); }
+
+      .action-btn.primary {
+        background: #0090d9;
+        color: #fff;
+      }
+
+      .action-btn.secondary {
+        background: var(--udc-surf2);
+        border: 1px solid var(--udc-border);
+        color: var(--primary-text-color, var(--udc-text));
+      }
+
+      .muted {
+        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.82rem;
+      }
+
+      .empty-state,
+      .loading-state {
+        padding: 24px 18px;
+        color: var(--secondary-text-color, var(--udc-muted));
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--udc-border);
+        border-top-color: #0090d9;
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+        flex-shrink: 0;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>`;
+  }
+
+  _renderPanelAndDetail() {
+    const ctx = this._ctx;
+    const { specials, numbered } = this._buildSlotData(ctx);
+
+    const allSlots = [...specials, ...numbered];
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const connected = this._connectedCount(allSlots);
+    const theme = ctx?.layout?.theme || "dark";
+
+    const specialPortsInUse = new Set(
+      specials
+        .map((slot) => slot?.port)
+        .filter((port) => Number.isInteger(port))
+    );
+
+    const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
+    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
+
+    const specialRow = specials.length
+      ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
+      : "";
+
+    const layoutRows = effectiveRows
+      .map((rowPorts) => {
+        const items = rowPorts
+          .map((portNumber) => visibleNumbered.find((p) => p.port === portNumber))
+          .filter(Boolean)
+          .map((slot) => this._renderPortButton(slot, selected?.key))
+          .join("");
+
+        return items ? `<div class="port-row">${items}</div>` : "";
+      })
+      .filter(Boolean);
+
+    let detail = `<div class="muted">${this._t("no_ports")}</div>`;
+
+    if (selected) {
+      const linkUp = isPortConnected(this._hass, selected);
+      const linkText = getPortLinkText(this._hass, selected);
+      const speedText = getPortSpeedText(this._hass, selected);
+      const poeStatus = getPoeStatus(this._hass, selected);
+      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
+      const poeOn = poeStatus.active;
+      const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
+      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
+      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
+
+      const portTitle = selected.port_label
+        || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
+
+      detail = `
+        <div class="detail-title">${portTitle}</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">${this._t("link_status")}</div>
+            <div class="detail-value ${linkUp ? "online" : "offline"}">
+              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">${this._t("speed")}</div>
+            <div class="detail-value">${speedText || "—"}</div>
+          </div>
+          ${hasPoe ? `
+          <div class="detail-item">
+            <div class="detail-label">${this._t("poe")}</div>
+            <div class="detail-value ${poeOn ? "online" : "offline"}">
+              ${poeOn ? this._t("state_on") : this._t("state_off")}
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">${this._t("poe_power")}</div>
+            <div class="detail-value">${poePower || "—"}</div>
+          </div>` : ""}
+          ${rxVal != null ? `
+          <div class="detail-item">
+            <div class="detail-label">RX</div>
+            <div class="detail-value">${rxVal}</div>
+          </div>` : ""}
+          ${txVal != null ? `
+          <div class="detail-item">
+            <div class="detail-label">TX</div>
+            <div class="detail-value">${txVal}</div>
+          </div>` : ""}
+        </div>
+        <div class="actions">
+          ${selected.port_switch_entity ? (() => {
+            const enabled = isOn(this._hass, selected.port_switch_entity);
+            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
+              ${enabled ? this._t("port_disable") : this._t("port_enable")}
+            </button>`;
+          })() : ""}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+            ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
+          </button>` : ""}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
+            ↺ ${this._t("power_cycle")}
+          </button>` : ""}
+        </div>`;
+    }
+
+    const headerTitle = this._title();
+    const headerMetrics = this._headerMetrics();
+
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
+            <div class="subtitle">${this._subtitle()}</div>
+            ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
+              <div class="meta-row">
+                <div class="meta-label">${item.label}:</div>
+                <div class="meta-value">${item.value}</div>
+              </div>`).join("")}</div>` : ""}
+          </div>
+          <div class="header-actions">
+            ${ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
+            <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
+          </div>
+        </div>
+
+        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}">
+          <div class="panel-label">${this._t("front_panel")}</div>
+          ${specialRow}
+          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`}
+        </div>
+
+        <div class="section">${detail}</div>
+      </ha-card>`;
+
+    this.shadowRoot.querySelectorAll(".port")
+      .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+
+    this.shadowRoot.querySelector("[data-action='toggle-port']")
+      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")
+      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+
+    this.shadowRoot.querySelector("[data-action='power-cycle']")
+      ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
+
+    this.shadowRoot.querySelector("[data-action='reboot-device']")
+      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+  }
+
+  _render() {
+    const title = this._title();
+
+    if (!this._config?.device_id) {
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+          <div class="header">
+            <div class="header-info">
+              ${title ? `<div class="title">${title}</div>` : ""}
+              <div class="subtitle">${this._subtitle()}</div>
+            </div>
+          </div>
+          <div class="empty-state">${this._t("select_device")}</div>
+        </ha-card>`;
+      return;
+    }
+
+    if (this._loading) {
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+          <div class="header">
+            <div class="header-info">
+              ${title ? `<div class="title">${title}</div>` : ""}
+              <div class="subtitle">${this._subtitle()}</div>
+            </div>
+          </div>
+          <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
+        </ha-card>`;
+      return;
+    }
+
+    if (!this._ctx) {
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+          <div class="header">
+            <div class="header-info">
+              ${title ? `<div class="title">${title}</div>` : ""}
+              <div class="subtitle">${this._subtitle()}</div>
+            </div>
+          </div>
+          <div class="empty-state">${this._t("no_data")}</div>
+        </ha-card>`;
+      return;
+    }
+
+    this._renderPanelAndDetail();
+  }
+}
+
+customElements.define("unifi-device-card", UnifiDeviceCard);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: "unifi-device-card",
+  name: "UniFi Device Card",
+  description: "Lovelace card for UniFi switches and gateways.",
+});
