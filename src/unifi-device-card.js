@@ -463,14 +463,15 @@ class UnifiDeviceCard extends HTMLElement {
 
       .special-row {
         display: flex;
-        gap: 4px;
+        gap: 8px;
         flex-wrap: wrap;
         margin-bottom: 3px;
       }
 
       .port-row {
         display: grid;
-        gap: 4px;
+        row-gap: 4px;
+        column-gap: 8px;
       }
 
       .frontpanel.single-row .port-row,
