@@ -1,10 +1,11 @@
 # UniFi Device Card
 
 
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/29216dc3ed95c7a143f5230742f15ecb4f57626b/screenshots/Screenshot%20USW-Lite-16-PoE.png" />
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20Editor.png" />
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20UCG-U.png" />
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20US8-60W.png" />
-<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20USW-Lite-16-PoE.png" />
+
 
 A Home Assistant Lovelace custom card for UniFi switches and gateways — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
 
