@@ -1,174 +1,229 @@
-import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
-import { getTranslations } from "./translations.js";
 import {
-  getAllData,
-  getDeviceType,
-  getDeviceTelemetry,
-  getDeviceRebootEntity,
-  getDeviceWarningInfo,
-  getGatewayPortChoices,
+  getDeviceContext,
+  getRelevantEntityWarningsForDevice,
+  getUnifiDevices,
 } from "./helpers.js";
+import { t } from "./translations.js";
 
-class UnifiDeviceCardEditor extends LitElement {
-  static properties = {
-    hass: { attribute: false },
-    _config: { state: true },
-    _devices: { state: true },
-    _loading: { state: true },
-    _error: { state: true },
-    _warning: { state: true },
-  };
+function slotPortType(slot) {
+  const key = String(slot.key || "").toLowerCase();
+  if (key === "wan" || key === "wan2") return "wan";
+  if (key.includes("sfp_wan") || key.includes("wan_sfp")) return "sfp_wan";
+  if (key.includes("sfp")) return "sfp";
+  return "lan";
+}
 
-  static styles = css`
-    :host {
-      display: block;
-      color: var(--primary-text-color);
-    }
+function slotDropdownLabel(slot, tFn) {
+  const type = slotPortType(slot);
+  const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
 
-    .wrap {
-      display: grid;
-      gap: 16px;
-    }
+  switch (type) {
+    case "wan":
+      return `${slot.label}${portNum}`;
+    case "sfp_wan":
+      return `${slot.label}${portNum} — ${tFn("editor_wan_port_sfpwan")}`;
+    case "sfp":
+      return `${slot.label}${portNum} — ${tFn("editor_wan_port_sfp")}`;
+    default:
+      return `${slot.label}${portNum} — ${tFn("editor_wan_port_lan")}`;
+  }
+}
 
-    .section-title {
-      font-size: 1rem;
-      font-weight: 700;
-      margin: 0 0 4px;
-    }
+function buildGatewayRoleOptions(layout, tFn, { includeNone = false } = {}) {
+  const options = [{ value: "auto", label: tFn("editor_wan_port_auto") }];
 
-    .field {
-      display: grid;
-      gap: 8px;
-    }
+  if (includeNone) {
+    options.push({ value: "none", label: tFn("editor_wan2_port_none") });
+  }
 
-    label {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--primary-text-color);
-    }
+  if (!layout) return options;
 
-    select,
-    input[type="text"] {
-      box-sizing: border-box;
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--divider-color);
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      font: inherit;
-      outline: none;
-    }
+  for (const slot of layout.specialSlots || []) {
+    options.push({
+      value: slot.key,
+      label: slotDropdownLabel(slot, tFn),
+      type: slotPortType(slot),
+      port: slot.port ?? null,
+    });
+  }
 
-    select:focus,
-    input[type="text"]:focus {
-      border-color: var(--primary-color);
-    }
+  const allPortNums = (layout.rows || []).flat();
+  for (const portNum of allPortNums) {
+    options.push({
+      value: `port_${portNum}`,
+      label: `Port ${portNum} — ${tFn("editor_wan_port_lan")}`,
+      type: "lan",
+      port: portNum,
+    });
+  }
 
-    input[type="text"]:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
+  const seen = new Set();
+  return options.filter((option) => {
+    const key = `${option.value}|${option.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 500;
-      user-select: none;
-    }
+function resolveSelectionForConflict(value, roleKey, layout) {
+  const normalized = String(value || "auto");
+  if (normalized === "none") return "none";
+  if (normalized !== "auto") return normalized;
 
-    .checkbox-row input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-      accent-color: var(--primary-color);
-    }
+  const defaultSlot = (layout?.specialSlots || []).find((slot) => slot.key === roleKey);
+  if (!defaultSlot) return roleKey === "wan2" ? "none" : "auto";
+  return defaultSlot.port != null ? `port_${defaultSlot.port}` : defaultSlot.key;
+}
 
-    .hint {
-      font-size: 0.83rem;
-      line-height: 1.4;
-      color: var(--secondary-text-color);
-    }
+function roleSelectionsConflict(a, aRole, b, bRole, layout) {
+  const resolvedA = resolveSelectionForConflict(a, aRole, layout);
+  const resolvedB = resolveSelectionForConflict(b, bRole, layout);
+  if (resolvedA === "none" || resolvedB === "none") return false;
+  return resolvedA === resolvedB;
+}
 
-    .error {
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: color-mix(in srgb, var(--error-color) 14%, transparent);
-      border: 1px solid color-mix(in srgb, var(--error-color) 34%, transparent);
-      color: var(--primary-text-color);
-      font-size: 0.9rem;
-    }
-
-    .warn {
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: color-mix(in srgb, var(--warning-color, #ffa600) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--warning-color, #ffa600) 30%, transparent);
-      color: var(--primary-text-color);
-      display: grid;
-      gap: 8px;
-    }
-
-    .warn-title {
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-
-    .warn-body,
-    .warn-summary,
-    .warn-path,
-    .warn-list {
-      font-size: 0.88rem;
-      line-height: 1.45;
-    }
-
-    .warn-list {
-      margin: 0;
-      padding-left: 18px;
-    }
-
-    .warn-path code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.84rem;
-      word-break: break-word;
-    }
-
-    .loading {
-      font-size: 0.92rem;
-      color: var(--secondary-text-color);
-    }
-  `;
-
+class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
+    this.attachShadow({ mode: "open" });
     this._config = {};
     this._devices = [];
     this._loading = false;
+    this._loaded = false;
     this._error = "";
-    this._warning = null;
+    this._hass = null;
+    this._loadToken = 0;
+    this._entityHint = null;
+    this._entityHintLoading = false;
+    this._entityHintToken = 0;
+    this._rendered = false;
+    this._deviceCtx = null;
+    this._deviceCtxLoading = false;
+    this._deviceCtxToken = 0;
+    this._lastHintDeviceId = null;
+    this._lastCtxDeviceId = null;
   }
 
   setConfig(config) {
-    this._config = { ...config };
-  }
+    const prevDeviceId = this._config?.device_id || "";
+    this._config = config || {};
 
-  get _strings() {
-    return getTranslations(this.hass?.language || "en");
-  }
-
-  _t(key, vars = {}) {
-    let text = this._strings?.[key] ?? getTranslations("en")[key] ?? key;
-    for (const [k, v] of Object.entries(vars)) {
-      text = text.replaceAll(`{${k}}`, String(v));
+    const nextDeviceId = this._config?.device_id || "";
+    if (this._hass && nextDeviceId) {
+      if (nextDeviceId !== prevDeviceId || !this._entityHint) {
+        this._loadEntityHint(nextDeviceId);
+      }
+      if (nextDeviceId !== prevDeviceId || !this._deviceCtx) {
+        this._loadDeviceCtx(nextDeviceId);
+      }
+    } else {
+      this._entityHint = null;
+      this._deviceCtx = null;
+      this._lastHintDeviceId = null;
+      this._lastCtxDeviceId = null;
     }
-    return text;
+
+    if (this._rendered) {
+      this._patchFields();
+      this._patchWarning();
+    } else {
+      this._render();
+    }
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (!this._loaded && !this._loading) {
+      this._loadDevices();
+    }
+
+    const deviceId = this._config?.device_id || "";
+    if (deviceId) {
+      if (deviceId !== this._lastHintDeviceId || !this._entityHint) {
+        this._loadEntityHint(deviceId);
+      }
+      if (deviceId !== this._lastCtxDeviceId || !this._deviceCtx) {
+        this._loadDeviceCtx(deviceId);
+      }
+    }
+  }
+
+  _t(key) {
+    return t(this._hass, key);
+  }
+
+  async _loadDevices() {
+    if (!this._hass) return;
+    this._loading = true;
+    this._error = "";
+    this._render();
+
+    const token = ++this._loadToken;
+    try {
+      const devices = await getUnifiDevices(this._hass);
+      if (token !== this._loadToken) return;
+      this._devices = devices;
+      this._loaded = true;
+    } catch (err) {
+      console.error("[unifi-device-card] failed to load devices", err);
+      if (token !== this._loadToken) return;
+      this._devices = this._devices || [];
+      this._error = this._t("editor_error");
+    }
+
+    this._loading = false;
+    this._render();
+  }
+
+  async _loadEntityHint(deviceId) {
+    if (!this._hass || !deviceId) return;
+
+    this._entityHintLoading = true;
+    this._lastHintDeviceId = deviceId;
+    this._patchWarning();
+
+    const token = ++this._entityHintToken;
+    try {
+      const result = await getRelevantEntityWarningsForDevice(this._hass, deviceId);
+      if (token !== this._entityHintToken) return;
+      this._entityHint = result;
+    } catch (err) {
+      console.error("[unifi-device-card] failed to load entity warning", err);
+      if (token !== this._entityHintToken) return;
+    }
+
+    this._entityHintLoading = false;
+    this._patchWarning();
+  }
+
+  async _loadDeviceCtx(deviceId) {
+    if (!this._hass || !deviceId) return;
+
+    this._deviceCtxLoading = true;
+    this._lastCtxDeviceId = deviceId;
+    this._patchFields();
+
+    const token = ++this._deviceCtxToken;
+    try {
+      const result = await getDeviceContext(this._hass, deviceId);
+      if (token !== this._deviceCtxToken) return;
+
+      if (result) {
+        this._deviceCtx = result;
+      }
+    } catch (err) {
+      console.error("[unifi-device-card] failed to load device context for editor", err);
+      if (token !== this._deviceCtxToken) return;
+    }
+
+    this._deviceCtxLoading = false;
+    this._patchFields();
   }
 
   _emitConfig(partial) {
     const next = { ...this._config, ...partial };
 
-    if (!next.device_id) delete next.device_id;
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
@@ -181,83 +236,6 @@ class UnifiDeviceCardEditor extends LitElement {
       bubbles: true,
       composed: true,
     }));
-  }
-
-  async firstUpdated() {
-    await this._loadDevices();
-  }
-
-  async updated(changed) {
-    if (changed.has("hass") && this.hass && !this._devices.length && !this._loading) {
-      await this._loadDevices();
-    }
-
-    if (changed.has("_config") && this.hass && this._config?.device_id) {
-      await this._loadWarning();
-    }
-  }
-
-  async _loadDevices() {
-    if (!this.hass) return;
-
-    this._loading = true;
-    this._error = "";
-
-    try {
-      const data = await getAllData(this.hass);
-      const devices = (data?.devices || [])
-        .filter((device) => {
-          const type = getDeviceType(device);
-          return type === "switch" || type === "gateway";
-        })
-        .map((device) => {
-          const entities = data?.entitiesByDevice?.get(device.id) || [];
-          const type = getDeviceType(device);
-          const telemetry = getDeviceTelemetry(entities);
-          const rebootEntity = getDeviceRebootEntity(entities);
-
-          return {
-            id: device.id,
-            name: device.name_by_user || device.name || device.model || device.id,
-            model: device.model || "",
-            manufacturer: device.manufacturer || "",
-            sw_version: device.sw_version || "",
-            type,
-            hasTelemetry:
-              !!telemetry.cpu_utilization_entity ||
-              !!telemetry.cpu_temperature_entity ||
-              !!telemetry.memory_utilization_entity,
-            hasReboot: !!rebootEntity,
-          };
-        })
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-
-      this._devices = devices;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[unifi-device-card] editor device load failed", err);
-      this._error = this._t("editor_error");
-      this._devices = [];
-    } finally {
-      this._loading = false;
-    }
-
-    await this._loadWarning();
-  }
-
-  async _loadWarning() {
-    if (!this.hass || !this._config?.device_id) {
-      this._warning = null;
-      return;
-    }
-
-    try {
-      this._warning = await getDeviceWarningInfo(this.hass, this._config.device_id);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn("[unifi-device-card] warning info failed", err);
-      this._warning = null;
-    }
   }
 
   _onDeviceChange(ev) {
@@ -296,174 +274,359 @@ class UnifiDeviceCardEditor extends LitElement {
   }
 
   _onWanPortChange(ev) {
-    const value = ev.target.value || "auto";
-    this._emitConfig({ wan_port: value === "auto" ? undefined : value });
+    const nextValue = ev.target.value || "auto";
+    const currentWan2 = this._config?.wan2_port || "auto";
+    const layout = this._deviceCtx?.layout;
+
+    let nextWan2 = currentWan2;
+    if (roleSelectionsConflict(nextValue, "wan", currentWan2, "wan2", layout)) {
+      nextWan2 = "none";
+    }
+
+    this._emitConfig({
+      wan_port: nextValue === "auto" ? undefined : nextValue,
+      wan2_port: nextWan2 === "auto" ? undefined : nextWan2,
+    });
   }
 
   _onWan2PortChange(ev) {
-    const value = ev.target.value || "auto";
-    this._emitConfig({ wan2_port: value === "auto" ? undefined : value });
+    const nextValue = ev.target.value || "auto";
+    const currentWan = this._config?.wan_port || "auto";
+    const layout = this._deviceCtx?.layout;
+
+    let safeValue = nextValue;
+    if (roleSelectionsConflict(currentWan, "wan", nextValue, "wan2", layout)) {
+      safeValue = "none";
+    }
+
+    this._emitConfig({
+      wan2_port: safeValue === "auto" ? undefined : safeValue,
+    });
   }
 
-  _renderDeviceOptions() {
-    if (this._loading) {
-      return html`<option value="">${this._t("editor_device_loading")}</option>`;
-    }
+  _warningItems() {
+    const hint = this._entityHint;
+    if (!hint) return [];
 
-    if (!this._devices.length) {
-      return html`<option value="">${this._t("editor_no_devices")}</option>`;
-    }
-
-    const current = this._config?.device_id || "";
-
-    return [
-      html`<option value="">${this._t("editor_device_select")}</option>`,
-      ...this._devices.map((device) => {
-        const typeLabel = this._t(device.type === "gateway" ? "type_gateway" : "type_switch");
-        const secondary = [device.model, typeLabel].filter(Boolean).join(" · ");
-        return html`
-          <option value=${device.id} ?selected=${current === device.id}>
-            ${secondary ? `${device.name} — ${secondary}` : device.name}
-          </option>
-        `;
-      }),
+    const order = [
+      "port_switch",
+      "poe_switch",
+      "poe_power",
+      "link_speed",
+      "rx_tx",
+      "power_cycle",
+      "link",
     ];
+
+    return order
+      .map((key) => ({
+        key,
+        count: (hint.disabled?.[key]?.length || 0) + (hint.hidden?.[key]?.length || 0),
+      }))
+      .filter((item) => item.count > 0);
   }
 
-  _renderGatewaySelectors() {
-    if (!this.hass || !this._config?.device_id) return null;
+  _warningHTML() {
+    if (this._entityHintLoading && !this._entityHint) {
+      return `<div class="warn loading">${this._t("warning_checking")}</div>`;
+    }
 
-    const selected = this._devices.find((d) => d.id === this._config.device_id);
-    if (!selected || selected.type !== "gateway") return null;
+    if (!this._entityHint) return "";
 
-    const choices = getGatewayPortChoices(this.hass, this._config.device_id);
-    const wanValue = this._config?.wan_port || "auto";
-    const wan2Value = this._config?.wan2_port || "auto";
+    const disabled = this._entityHint?.disabledCount || 0;
+    const hidden = this._entityHint?.hiddenCount || 0;
+    const items = this._warningItems();
 
-    return html`
+    const summary = this._t("warning_status")
+      .replace("{disabled}", String(disabled))
+      .replace("{hidden}", String(hidden));
+
+    const list = items.length
+      ? `<ul>${items
+          .map(
+            (item) =>
+              `<li><strong>${item.count}</strong> ${this._t(`warning_entity_${item.key}`)}</li>`
+          )
+          .join("")}</ul>`
+      : "";
+
+    return `
+      <div class="warn">
+        <div class="warn-title">${this._t("warning_title")}</div>
+        <div class="warn-body">${this._t("warning_body")}</div>
+        <div class="warn-status">${summary}</div>
+        ${list}
+        <div class="warn-path">
+          <strong>${this._t("warning_check_in")}</strong><br>
+          ${this._t("warning_ha_path")}
+        </div>
+      </div>
+    `;
+  }
+
+  _gatewayControlsHTML() {
+    const deviceId = this._config?.device_id || "";
+    const selectedDevice = this._devices.find((d) => d.id === deviceId) || null;
+    const isGateway = this._deviceCtx?.type === "gateway" || selectedDevice?.type === "gateway";
+
+    if (!isGateway) return "";
+
+    const layout = this._deviceCtx?.layout;
+    if (!layout) {
+      return `
+        <div class="field">
+          <label>${this._t("editor_wan_port_label")}</label>
+          <select id="wan_port" disabled>
+            <option value="auto">${this._t("editor_device_loading")}</option>
+          </select>
+          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_wan2_port_label")}</label>
+          <select id="wan2_port" disabled>
+            <option value="auto">${this._t("editor_device_loading")}</option>
+          </select>
+          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        </div>
+      `;
+    }
+
+    const wanOptions = buildGatewayRoleOptions(layout, (k) => this._t(k));
+    const wan2Options = buildGatewayRoleOptions(layout, (k) => this._t(k), { includeNone: true });
+
+    const selectedWan = this._config?.wan_port || "auto";
+    let selectedWan2 = this._config?.wan2_port || "auto";
+
+    if (roleSelectionsConflict(selectedWan, "wan", selectedWan2, "wan2", layout)) {
+      selectedWan2 = "none";
+    }
+
+    return `
       <div class="field">
-        <label for="wan_port">${this._t("editor_wan_port_label")}</label>
+        <label>${this._t("editor_wan_port_label")}</label>
         <select id="wan_port">
-          <option value="auto" ?selected=${wanValue === "auto"}>${this._t("editor_wan_port_auto")}</option>
-          ${choices.map((choice) => html`
-            <option value=${choice.value} ?selected=${wanValue === choice.value}>${choice.label}</option>
-          `)}
+          ${wanOptions
+            .map(
+              (opt) =>
+                `<option value="${opt.value}" ${opt.value === selectedWan ? "selected" : ""}>${opt.label}</option>`
+            )
+            .join("")}
         </select>
         <div class="hint">${this._t("editor_wan_port_hint")}</div>
       </div>
 
       <div class="field">
-        <label for="wan2_port">${this._t("editor_wan2_port_label")}</label>
+        <label>${this._t("editor_wan2_port_label")}</label>
         <select id="wan2_port">
-          <option value="auto" ?selected=${wan2Value === "auto"}>${this._t("editor_wan_port_auto")}</option>
-          <option value="none" ?selected=${wan2Value === "none"}>${this._t("editor_wan2_port_none")}</option>
-          ${choices.map((choice) => html`
-            <option value=${choice.value} ?selected=${wan2Value === choice.value}>${choice.label}</option>
-          `)}
+          ${wan2Options
+            .map((opt) => {
+              const disabled =
+                opt.value !== "auto" &&
+                opt.value !== "none" &&
+                roleSelectionsConflict(selectedWan, "wan", opt.value, "wan2", layout);
+
+              return `<option value="${opt.value}" ${opt.value === selectedWan2 ? "selected" : ""} ${
+                disabled ? "disabled" : ""
+              }>${opt.label}</option>`;
+            })
+            .join("")}
         </select>
         <div class="hint">${this._t("editor_wan2_port_hint")}</div>
       </div>
     `;
   }
 
-  _renderWarning() {
-    const w = this._warning;
-    if (!w) return null;
-    if (!w.disabledCount && !w.hiddenCount) return null;
+  _styles() {
+    return `<style>
+      :host {
+        display: block;
+      }
 
-    const items = [];
+      .wrap {
+        display: grid;
+        gap: 14px;
+      }
 
-    for (const [key, count] of Object.entries(w.groups || {})) {
-      if (!count) continue;
-      items.push(html`<li>${count} ${this._t(key)}</li>`);
-    }
+      .section-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin: 2px 0 0;
+      }
 
-    return html`
-      <div class="warn">
-        <div class="warn-title">${this._t("warning_title")}</div>
-        <div class="warn-body">${this._t("warning_body")}</div>
-        <div class="warn-summary">
-          ${this._t("warning_status", {
-            disabled: w.disabledCount || 0,
-            hidden: w.hiddenCount || 0,
-          })}
-        </div>
-        ${items.length ? html`<ul class="warn-list">${items}</ul>` : null}
-        <div class="warn-path">
-          ${this._t("warning_check_in")}<br />
-          <code>${this._t("warning_ha_path")}</code>
-        </div>
-      </div>
-    `;
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      select,
+      input[type="text"] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        font: inherit;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+      }
+
+      .checkbox-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+      }
+
+      .hint {
+        color: var(--secondary-text-color);
+        font-size: 0.82rem;
+      }
+
+      .warn {
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: var(--primary-text-color);
+      }
+
+      .warn.loading {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.35);
+      }
+
+      .warn-title {
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+
+      .warn-body,
+      .warn-status,
+      .warn-path {
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .warn ul {
+        margin: 10px 0 10px 18px;
+        padding: 0;
+      }
+
+      .warn li {
+        margin: 4px 0;
+      }
+
+      .empty,
+      .error {
+        font-size: 0.92rem;
+      }
+
+      .error {
+        color: var(--error-color);
+      }
+    </style>`;
   }
 
-  render() {
+  _render() {
+    this._rendered = true;
+
     const deviceValue = this._config?.device_id || "";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const backgroundValue = this._config?.background_color || "";
 
-    return html`
+    this.shadowRoot.innerHTML = `
+      ${this._styles()}
       <div class="wrap">
         <div class="section-title">${this._t("editor_device_title")}</div>
 
         <div class="field">
-          <label for="device_id">${this._t("editor_device_label")}</label>
-          <select id="device_id" @change=${this._onDeviceChange}>
-            ${this._renderDeviceOptions()}
+          <label>${this._t("editor_device_label")}</label>
+          <select id="device_id">
+            <option value="">${this._t("editor_device_select")}</option>
+            ${this._devices
+              .map(
+                (device) =>
+                  `<option value="${device.id}" ${device.id === deviceValue ? "selected" : ""}>${device.label}</option>`
+              )
+              .join("")}
           </select>
-          <div class="hint">${this._t("editor_hint")}</div>
+          <div class="hint">${
+            this._loading
+              ? this._t("editor_device_loading")
+              : this._devices.length
+              ? this._t("editor_hint")
+              : this._error || this._t("editor_no_devices")
+          }</div>
         </div>
-
-        ${this._error ? html`<div class="error">${this._error}</div>` : null}
 
         <div class="field">
           <label>${this._t("editor_name_toggle_label")}</label>
           <label class="checkbox-row">
-            <input
-              id="show_name"
-              type="checkbox"
-              ?checked=${showName}
-              @change=${this._onShowNameChange}
-            />
+            <input id="show_name" type="checkbox" ${showName ? "checked" : ""}>
             <span>${this._t("editor_name_toggle_text")}</span>
           </label>
           <div class="hint">${this._t("editor_name_toggle_hint")}</div>
         </div>
 
         <div class="field">
-          <label for="name">${this._t("editor_name_label")}</label>
-          <input
-            id="name"
-            type="text"
-            .value=${nameValue}
-            ?disabled=${!showName}
-            @input=${this._onNameInput}
-          />
+          <label>${this._t("editor_name_label")}</label>
+          <input id="name" type="text" value="${nameValue}" ${showName ? "" : "disabled"}>
           <div class="hint">${this._t("editor_name_hint")}</div>
         </div>
 
-        ${this._renderGatewaySelectors()}
+        ${this._gatewayControlsHTML()}
 
         <div class="field">
-          <label for="background_color">${this._t("editor_bg_label")}</label>
-          <input
-            id="background_color"
-            type="text"
-            .value=${backgroundValue}
-            @input=${this._onBackgroundInput}
-            placeholder="var(--card-background-color)"
-          />
+          <label>${this._t("editor_bg_label")}</label>
+          <input id="background_color" type="text" value="${backgroundValue}">
           <div class="hint">${this._t("editor_bg_hint")}</div>
         </div>
 
-        ${deviceValue && !this._warning
-          ? html`<div class="loading">${this._t("warning_checking")}</div>`
-          : null}
-
-        ${this._renderWarning()}
+        <div id="warning_slot">${this._warningHTML()}</div>
       </div>
     `;
+
+    this.shadowRoot.getElementById("device_id")
+      ?.addEventListener("change", (ev) => this._onDeviceChange(ev));
+
+    this.shadowRoot.getElementById("show_name")
+      ?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+
+    this.shadowRoot.getElementById("name")
+      ?.addEventListener("input", (ev) => this._onNameInput(ev));
+
+    this.shadowRoot.getElementById("background_color")
+      ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
+
+    this.shadowRoot.getElementById("wan_port")
+      ?.addEventListener("change", (ev) => this._onWanPortChange(ev));
+
+    this.shadowRoot.getElementById("wan2_port")
+      ?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
+  }
+
+  _patchWarning() {
+    if (!this._rendered || !this.shadowRoot) return;
+    const slot = this.shadowRoot.getElementById("warning_slot");
+    if (!slot) return;
+    slot.innerHTML = this._warningHTML();
+  }
+
+  _patchFields() {
+    if (!this._rendered || !this.shadowRoot) return;
+    this._render();
   }
 }
 
