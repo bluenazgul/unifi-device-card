@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.3.8] - 2026-04-09
+
+### 🐛 Bug Fixes
+- Fix US-8-60W PoE Port detection
+
 ## [v0.3.7] - 2026-04-08
 
 ### ✨ Features
