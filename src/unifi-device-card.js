@@ -266,8 +266,11 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="sfp-top-led ${linkLed}"></div>
           <div class="port-sfp">
             <div class="sfp-frame"></div>
+            <div class="sfp-rail top"></div>
+            <div class="sfp-rail bottom"></div>
             <div class="sfp-slot"></div>
             <div class="sfp-inner"></div>
+            <div class="sfp-latch"></div>
           </div>
         </div>
       `
@@ -522,9 +525,9 @@ class UnifiDeviceCard extends HTMLElement {
       .port-rj45 {
         position: relative;
         width: 100%;
-        height: 18px;
-        background: linear-gradient(180deg, #2d3036 0%, #0b0c0e 100%);
-        border: 1px solid #676b73;
+        height: 19px;
+        background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
+        border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
         box-shadow:
           inset 0 1px 0 rgba(255,255,255,.05),
@@ -545,32 +548,30 @@ class UnifiDeviceCard extends HTMLElement {
       .rj45-contacts {
         position: absolute;
         top: 3px;
-        left: 14%;
-        right: 14%;
+        left: 13%;
+        right: 13%;
         height: 2px;
-        background:
-          repeating-linear-gradient(
-            to right,
-            #c89f4c 0 2px,
-            transparent 2px 4px
-          );
+        background: repeating-linear-gradient(
+          to right,
+          #caa252 0 2px,
+          transparent 2px 4px
+        );
         z-index: 2;
       }
 
       .rj45-cavity {
         position: absolute;
         top: 5px;
-        left: 7%;
-        right: 7%;
+        left: 6%;
+        right: 6%;
         bottom: 2px;
-        background: linear-gradient(180deg, #15181d 0%, #060708 100%);
+        background: linear-gradient(180deg, #14181d 0%, #060708 100%);
         z-index: 1;
       }
 
       .rj45-led {
         position: absolute;
         bottom: 1px;
-        width: 9px;
         height: 3px;
         border-radius: 0;
         background: #868b93;
@@ -579,11 +580,15 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .rj45-led.left {
-        left: calc(50% - 12px);
+        left: 0;
+        right: 50%;
+        margin-right: 3px;
       }
 
       .rj45-led.right {
-        right: calc(50% - 12px);
+        right: 0;
+        left: 50%;
+        margin-left: 3px;
       }
 
       .rj45-led.orange {
@@ -607,8 +612,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .rj45-notch {
         position: absolute;
-        left: 34%;
-        right: 34%;
+        left: 35%;
+        right: 35%;
         bottom: 0;
         height: 4px;
         background: #d0d1d4;
@@ -618,8 +623,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .rj45-floor {
         position: absolute;
-        left: 7%;
-        right: 7%;
+        left: 6%;
+        right: 6%;
         bottom: 0;
         height: 2px;
         background: #0e1014;
@@ -634,7 +639,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .sfp-top-led {
-        width: 8px;
+        width: 10px;
         height: 4px;
         border-radius: 0;
         background: #8a8e95;
@@ -663,34 +668,63 @@ class UnifiDeviceCard extends HTMLElement {
       .port-sfp {
         position: relative;
         width: 100%;
-        height: 20px;
+        height: 21px;
       }
 
       .sfp-frame {
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, #7a7f87 0%, #5f646c 100%);
-        border: 1px solid #6e737b;
+        background: linear-gradient(180deg, #7d828a 0%, #62676f 100%);
+        border: 1px solid #6d7279;
         border-radius: 1px;
+      }
+
+      .sfp-rail {
+        position: absolute;
+        left: 5%;
+        right: 5%;
+        height: 1px;
+        background: rgba(230,235,240,.28);
+        z-index: 3;
+      }
+
+      .sfp-rail.top {
+        top: 4px;
+      }
+
+      .sfp-rail.bottom {
+        bottom: 4px;
       }
 
       .sfp-slot {
         position: absolute;
-        left: 7%;
-        right: 7%;
+        left: 6%;
+        right: 6%;
         top: 4px;
         bottom: 4px;
-        background: linear-gradient(180deg, #161a20 0%, #07080b 100%);
-        border: 1px solid rgba(220,225,230,.12);
+        background: linear-gradient(180deg, #171b22 0%, #060709 100%);
+        border: 1px solid rgba(220,225,230,.10);
+        z-index: 1;
       }
 
       .sfp-inner {
         position: absolute;
-        left: 13%;
-        right: 13%;
+        left: 14%;
+        right: 14%;
         top: 7px;
         bottom: 7px;
-        background: rgba(120,130,145,.16);
+        background: rgba(130,140,155,.16);
+        z-index: 2;
+      }
+
+      .sfp-latch {
+        position: absolute;
+        left: 34%;
+        right: 34%;
+        bottom: 1px;
+        height: 3px;
+        background: rgba(210,214,220,.48);
+        z-index: 4;
       }
 
       .port.special {
