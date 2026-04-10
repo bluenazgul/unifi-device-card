@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### ✨ Improvements
+- Added model detection and dedicated gateway layout support for Dream Router 7 (`UDR7`)
+
 ## [v0.4.1] - 2026-04-09
 
 ### ✨ Improvements

@@ -76,6 +76,7 @@ const GATEWAY_MODEL_PREFIXES = [
   "UCG",
   "UXG",
   "UGW",
+  "UDR7",
   "UDRULT",
   "UDMPRO",
   "UDMPROSE",
@@ -107,6 +108,7 @@ export function getDeviceType(device, entities = []) {
     if (
       [
         "UCGULTRA",
+        "UDR7",
         "UDRULT",
         "UCGMAX",
         "UCGFIBER",
