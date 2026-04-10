@@ -164,6 +164,19 @@ export function getDeviceType(device, entities = []) {
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
   if (modelStartsWith(device, AP_MODEL_PREFIXES)) return "access_point";
 
+  const hasAccessPointSignals = entities.some((entity) => {
+    const id = lower(entity?.entity_id);
+    if (!id) return false;
+    return (
+      id.endsWith("_clients") ||
+      id.includes("_clients_") ||
+      id.endsWith("_uptime") ||
+      id.includes("_is_online") ||
+      id.includes("_connected")
+    );
+  });
+  if (hasAccessPointSignals && hasUbiquitiManufacturer(device)) return "access_point";
+
   const hasPorts = entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id));
   if (hasPorts) return "switch";
 
@@ -331,7 +344,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
 
   if (resolveModelKey(device)) return true;
 
-  if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES])) {
+  if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES, ...AP_MODEL_PREFIXES])) {
     return true;
   }
 
@@ -339,6 +352,10 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id)) &&
     hasUbiquitiManufacturer(device)
   ) {
+    return true;
+  }
+
+  if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) === "access_point") {
     return true;
   }
 
@@ -382,26 +399,31 @@ function findDeviceEntityByPatterns(entities, patterns = []) {
 
 export function getDeviceTelemetry(entities) {
   return {
-    cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization"]),
-    cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature"]),
-    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization"]),
+    cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]),
+    cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]),
+    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]),
   };
 }
 
 export function getDeviceOnlineEntity(entities) {
   for (const entity of entities || []) {
     const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (id.endsWith("_state")) {
+    if (!id.startsWith("binary_sensor.")) continue;
+    if (
+      id.endsWith("_is_online") ||
+      id.endsWith("_status") ||
+      id.includes("_connected") ||
+      id.includes("is_online")
+    ) {
       return entity.entity_id;
     }
   }
 
   for (const entity of entities || []) {
     const id = lower(entity.entity_id);
-    if (!id.startsWith("binary_sensor.")) continue;
+    if (!id.startsWith("sensor.")) continue;
     if (
-      id.endsWith("_is_online") ||
+      id.endsWith("_state") ||
       id.endsWith("_status") ||
       id.includes("_connected") ||
       id.includes("is_online")
@@ -420,11 +442,11 @@ export function getAccessPointStatEntities(entities) {
     const id = lower(entity.entity_id);
     if (!id.startsWith("sensor.")) continue;
 
-    if (!uptimeEntity && id.endsWith("_uptime")) {
+    if (!uptimeEntity && (id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"))) {
       uptimeEntity = entity.entity_id;
     }
 
-    if (!clientsEntity && id.endsWith("_clients")) {
+    if (!clientsEntity && (id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"))) {
       clientsEntity = entity.entity_id;
     }
   }
