@@ -100,6 +100,44 @@ function isDefinitelyAP(device) {
   return modelStartsWith(device, AP_MODEL_PREFIXES);
 }
 
+function isVirtualControllerDevice(device) {
+  const model = lower(device?.model);
+  const name = lower(device?.name_by_user || device?.name);
+  const combined = `${model} ${name}`;
+
+  return (
+    combined.includes("network application") ||
+    combined.includes("unifi os") ||
+    combined.includes("controller")
+  );
+}
+
+function hasInfrastructureEntitySignals(entities = []) {
+  const hasPortEntities = entities.some((e) => /_port_\d+(?:_|$)/i.test(e?.entity_id || ""));
+  if (hasPortEntities) return true;
+
+  const hasRebootControl = entities.some((e) => {
+    const id = lower(e?.entity_id);
+    if (!id.startsWith("button.")) return false;
+    return id.includes("reboot") || id.includes("restart") || id.includes("power_cycle");
+  });
+  if (hasRebootControl) return true;
+
+  return entities.some((e) => {
+    const id = lower(e?.entity_id);
+    if (!id.startsWith("sensor.") && !id.startsWith("binary_sensor.")) return false;
+    return (
+      id.includes("cpu") ||
+      id.includes("memory") ||
+      id.includes("temperature") ||
+      id.endsWith("_uptime") ||
+      id.includes("_uptime_") ||
+      id.endsWith("_clients") ||
+      id.includes("_clients_")
+    );
+  });
+}
+
 export function getDeviceType(device, entities = []) {
   if (isDefinitelyAP(device)) return "access_point";
 
@@ -335,11 +373,14 @@ export async function getAllData(hass) {
 }
 
 function isUnifiDevice(device, unifiEntryIds, entities) {
+  if (isVirtualControllerDevice(device)) return false;
+  const hasInfraSignals = hasInfrastructureEntitySignals(entities);
+
   if (
     Array.isArray(device?.config_entries) &&
     device.config_entries.some((id) => unifiEntryIds.has(id))
   ) {
-    return true;
+    return hasInfraSignals || !!resolveModelKey(device);
   }
 
   if (resolveModelKey(device)) return true;
@@ -355,7 +396,11 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     return true;
   }
 
-  if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) === "access_point") {
+  if (
+    hasUbiquitiManufacturer(device) &&
+    getDeviceType(device, entities) === "access_point" &&
+    hasInfraSignals
+  ) {
     return true;
   }
 

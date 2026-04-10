@@ -89,6 +89,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Background color (optional)",
     editor_bg_hint:  "Default: var(--card-background-color)",
+    editor_bg_opacity_label: "Background transparency",
+    editor_bg_opacity_hint:  "0% = fully transparent, 100% = fully opaque",
 
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities…",
@@ -191,6 +193,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Hintergrundfarbe (optional)",
     editor_bg_hint:  "Standard: var(--card-background-color)",
+    editor_bg_opacity_label: "Hintergrund-Transparenz",
+    editor_bg_opacity_hint:  "0% = vollständig transparent, 100% = vollständig deckend",
 
     // Entity warning — loading hint
     warning_checking: "Ausgewähltes Gerät auf deaktivierte oder versteckte UniFi-Entities prüfen…",
@@ -296,6 +300,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint:  "Standaard: var(--card-background-color)",
+    editor_bg_opacity_label: "Achtergrondtransparantie",
+    editor_bg_opacity_hint:  "0% = volledig transparant, 100% = volledig ondoorzichtig",
 
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten…",
@@ -390,6 +396,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint:  "Défaut : var(--card-background-color)",
+    editor_bg_opacity_label: "Transparence de fond",
+    editor_bg_opacity_hint:  "0 % = entièrement transparent, 100 % = entièrement opaque",
 
     // Entity warning
     warning_checking: "Vérification des entités UniFi désactivées ou masquées pour l'appareil sélectionné…",
