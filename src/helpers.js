@@ -169,6 +169,7 @@ export function getDeviceType(device, entities = []) {
         "US16P150",
         "USMINI",
         "USF5P",
+        "USWFLEX25G5",
         "USL8LP",
         "USL8LPB",
         "USL16LP",
