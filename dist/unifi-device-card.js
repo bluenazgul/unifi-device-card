@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.50fff75 */
+/* UniFi Device Card 0.0.0-dev.0f79cb2 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -155,6 +155,19 @@ var MODEL_REGISTRY = {
     theme: "white",
     poePortRange: [1, 4],
     specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }]
+  },
+  // USW Flex 2.5G 8 PoE  — 9× RJ45, 1× SFP uplink
+  USWFLEX25G8POE: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 9)],
+    portCount: 10,
+    displayModel: "USW Flex 2.5G 8 PoE",
+    theme: "white",
+    poePortRange: [1, 9],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP 1", port: 10 }
+    ]
   },
   // USW Lite 8 PoE  — 8× 1G RJ45, Ports 1-4 PoE+
   USL8LP: {
@@ -493,11 +506,14 @@ var MODEL_REGISTRY = {
   UDR7: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
+    rows: [[1, 2, 3]],
     portCount: 5,
     displayModel: "Dream Router 7",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+    specialSlots: [
+      { key: "wan", label: "WAN", port: 4 },
+      { key: "sfp_1", label: "SFP+ WAN", port: 5 }
+    ]
   },
   UCGMAX: {
     kind: "gateway",
@@ -702,6 +718,9 @@ function resolveModelKey(device) {
     if (candidate.includes("USMINI")) return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
+    if (candidate === "USWFLEX25G8POE") return "USWFLEX25G8POE";
+    if (candidate.includes("FLEX25G8POE")) return "USWFLEX25G8POE";
+    if (candidate.includes("USWFLEX25G8")) return "USWFLEX25G8POE";
     if (candidate === "USF5P") return "USF5P";
     if (candidate.includes("USWFLEX")) return "USF5P";
     if (candidate === "USWULTRA210W") return "USWULTRA210W";
@@ -752,6 +771,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("US8P60") || text.includes("US860W") || text.includes("USC8")) return 8;
   if (text.includes("US8P150")) return 10;
   if (text.includes("USMINI") || text.includes("FLEXMINI")) return 5;
+  if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P") || text.includes("USWFLEX")) return 5;
   if (text.includes("US16P150") || text.includes("US16P")) return 18;
   if (text.includes("USL16P")) return 18;
@@ -2791,7 +2811,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.50fff75";
+var VERSION = "0.0.0-dev.0f79cb2";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");

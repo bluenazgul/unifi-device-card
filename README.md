@@ -59,6 +59,7 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | UniFi Switch 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
 | USW Flex Mini (`USMINI`) | 5 | White |
 | USW Flex (`USF5P`) | 4 + Uplink | White |
+| USW Flex 2.5G 8 PoE (`USWFLEX25G8POE`) | 8 + 2 SFP+ | White |
 | USW Lite 8 PoE (`USL8LP`, `USL8LPB`) | 8 | White |
 | USW Lite 16 PoE (`USL16LP`, `USL16LPB`) | 16 | White |
 | USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
@@ -78,7 +79,7 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | USW Ultra (`USWULTRA`) | 8 | White |
 | USW Ultra 60W (`USWULTRA60W`) | 8 | White |
 | USW Ultra 210W (`USWULTRA210W`) | 8 | White |
-| Dream Router 7 (`UDR7`) | 4 + WAN | White |
+| Dream Router 7 (`UDR7`) | 3 + WAN (RJ45) + SFP+ WAN | White |
 | Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
 | Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
 | Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |

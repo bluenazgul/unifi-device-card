@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.4.6] - 2026-04-10
+
+### ✨ Improvements
+- Added dedicated model support for USW Flex 2.5G 8 PoE (`USWFLEX25G8POE`) with 9 RJ45 ports, 1 SFP uplink slot, and PoE range handling (ports 1-9)
+- Updated Dream Router 7 (`UDR7`) layout to 5 total ports (3 LAN + RJ45 WAN + SFP+ WAN) with RJ45 port 4 as default WAN
+
+### 🐛 Bug Fixes
+- Corrected fallback port-count inference for `USWFLEX25G8POE` (10 ports total) and `UDR7` (5 ports total)
+
 ## [v0.4.5] - 2026-04-10
 
 ### ✨ Improvements
