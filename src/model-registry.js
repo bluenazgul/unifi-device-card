@@ -167,6 +167,13 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }],
   },
 
+  // USW Flex Mini 2.5G  — 4× 2.5G RJ45 LAN (1-4), Port 5 uplink / PoE-in
+  USWFLEX25G5: {
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 4)],
+    portCount: 5, displayModel: "USW Flex Mini 2.5G", theme: "white",
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }],
+  },
+
   // USW Flex 2.5G 8 PoE  — 9× RJ45, 1× SFP uplink
   USWFLEX25G8POE: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 9)],
@@ -693,6 +700,10 @@ export function resolveModelKey(device) {
     if (candidate.includes("USMINI"))             return "USMINI";
     if (candidate.includes("FLEXMINI"))           return "USMINI";
     if (candidate.includes("USWFLEXMINI"))        return "USMINI";
+    if (candidate === "USWFLEX25G5")              return "USWFLEX25G5";
+    if (candidate.includes("USWFLEX25G5"))        return "USWFLEX25G5";
+    if (candidate.includes("FLEX25G5"))           return "USWFLEX25G5";
+    if (candidate.includes("SWITCHFLEXMINI25G"))  return "USWFLEX25G5";
     if (candidate === "USWFLEX25G8POE")           return "USWFLEX25G8POE";
     if (candidate.includes("FLEX25G8POE"))        return "USWFLEX25G8POE";
     if (candidate.includes("USWFLEX25G8"))        return "USWFLEX25G8POE";
@@ -756,6 +767,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("US8P60")   || text.includes("US860W")  || text.includes("USC8")) return 8;
   if (text.includes("US8P150"))                                                       return 10;
   if (text.includes("USMINI")   || text.includes("FLEXMINI"))                        return 5;
+  if (text.includes("USWFLEX25G5") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P")    || text.includes("USWFLEX"))                         return 5;
 
