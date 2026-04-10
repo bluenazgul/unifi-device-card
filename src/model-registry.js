@@ -53,7 +53,7 @@ export const MODEL_REGISTRY = {
   // SWITCHES — Generation 1 (US-*)
   // ══════════════════════════════════════════════════════════════════════════
 
-  // US 8 12W  — 8× 1G RJ45, PoE POE-Passthrough 12W (Port 8)
+  // US 8 12W  — 8× 1G RJ45, PoE-Passthrough 12W (Port 8)
   USC8: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
     portCount: 8, displayModel: "USC 8", theme: "silver",
@@ -64,7 +64,7 @@ export const MODEL_REGISTRY = {
   // US 8 60W  — 8× 1G RJ45, PoE on ports 5-8
   US8P60: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
-    portCount: 8, displayModel: "US 8 ", theme: "silver",
+    portCount: 8, displayModel: "US 8", theme: "silver",
     poePortRange: [5, 8],
     specialSlots: [],
   },

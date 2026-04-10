@@ -8,6 +8,6 @@ A Lovelace dashboard card for UniFi switches and gateways.
 - Automatic device and port discovery via the UniFi Network Integration
 - Built-in UI editor — no YAML required
 
-Supports: USW Lite 8/16 PoE, USW Flex Mini, US 8 60W, USW 24/48 PoE, UCG Ultra/Max, UDM Pro, UDM SE and any unknown model auto-detected by port count.
+Supports: USC8/US8P60/US8P150/US16P150, USW Flex/Flex Mini/Lite/Ultra families, USW 16/24/48 and Pro variants, USW Enterprise models, USW Aggregation + Pro Aggregation, Cloud Gateway Ultra/Max/Fiber, UDM Pro/SE, UXG-Pro/UXG-Lite, USG/USG Pro 4, and unknown models auto-detected by port count.
 
 Repository type in HACS: **Dashboard**
