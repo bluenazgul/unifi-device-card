@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.117c1a5 */
+/* UniFi Device Card 0.0.0-dev.cb29d1e */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1098,8 +1098,7 @@ function getDeviceOnlineEntity(entities) {
 function getAccessPointStatEntities(entities) {
   let uptimeEntity = null;
   let clientsEntity = null;
-  let linkLanEntity = null;
-  let linkMeshEntity = null;
+  let apStatusEntity = null;
   let ledSwitchEntity = null;
   let ledColorEntity = null;
   for (const entity of entities || []) {
@@ -1115,11 +1114,8 @@ function getAccessPointStatEntities(entities) {
     if (!clientsEntity && (id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"))) {
       clientsEntity = entity.entity_id;
     }
-    if (!linkLanEntity && (id.includes("link_lan") || id.includes("lan_link"))) {
-      linkLanEntity = entity.entity_id;
-    }
-    if (!linkMeshEntity && (id.includes("link_mesh") || id.includes("mesh_link"))) {
-      linkMeshEntity = entity.entity_id;
+    if (!apStatusEntity && (id.endsWith("_state") || id.includes("_state_"))) {
+      apStatusEntity = entity.entity_id;
     }
     if (!ledColorEntity && (id.includes("led_color") || id.includes("led_colour") || id.includes("indicator_color") || id.includes("indicator_colour"))) {
       ledColorEntity = entity.entity_id;
@@ -1128,8 +1124,7 @@ function getAccessPointStatEntities(entities) {
   return {
     uptime_entity: uptimeEntity,
     clients_entity: clientsEntity,
-    link_lan_entity: linkLanEntity,
-    link_mesh_entity: linkMeshEntity,
+    ap_status_entity: apStatusEntity,
     led_switch_entity: ledSwitchEntity,
     led_color_entity: ledColorEntity
   };
@@ -1840,6 +1835,7 @@ var TRANSLATIONS = {
     memory_utilization: "Memory utilization",
     // Port detail
     link_status: "Link Status",
+    ap_status: "AP Status",
     link_lan: "Link LAN",
     link_mesh: "Link Mesh",
     uptime: "Uptime",
@@ -1895,6 +1891,16 @@ var TRANSLATIONS = {
     state_true: "Connected",
     state_false: "No link",
     state_active: "Active",
+    state_pending: "Pending",
+    state_firmware_mismatch: "Firmware mismatch",
+    state_upgrading: "Upgrading",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat missed",
+    state_adopting: "Adopting",
+    state_deleting: "Deleting",
+    state_inform_error: "Inform error",
+    state_adoption_failed: "Adoption failed",
+    state_isolated: "Isolated",
     // Port label prefix (used in detail panel title)
     port_label: "Port",
     // Background color field (editor)
@@ -1933,6 +1939,7 @@ var TRANSLATIONS = {
     front_panel: "Front Panel",
     // Port detail
     link_status: "Link Status",
+    ap_status: "AP Status",
     link_lan: "Link LAN",
     link_mesh: "Link Mesh",
     uptime: "Uptime",
@@ -1988,6 +1995,16 @@ var TRANSLATIONS = {
     state_true: "Verbunden",
     state_false: "Kein Link",
     state_active: "Aktiv",
+    state_pending: "Ausstehend",
+    state_firmware_mismatch: "Firmware-Konflikt",
+    state_upgrading: "Aktualisierung",
+    state_provisioning: "Provisionierung",
+    state_heartbeat_missed: "Heartbeat verloren",
+    state_adopting: "Wird adoptiert",
+    state_deleting: "Wird gel\xF6scht",
+    state_inform_error: "Inform-Fehler",
+    state_adoption_failed: "Adoption fehlgeschlagen",
+    state_isolated: "Isoliert",
     // Port label prefix
     port_label: "Port",
     // Background color field (editor)
@@ -2029,6 +2046,7 @@ var TRANSLATIONS = {
     memory_utilization: "Geheugengebruik",
     // Port detail
     link_status: "Linkstatus",
+    ap_status: "AP-status",
     link_lan: "Link LAN",
     link_mesh: "Link Mesh",
     uptime: "Uptime",
@@ -2084,6 +2102,16 @@ var TRANSLATIONS = {
     state_true: "Verbonden",
     state_false: "Geen link",
     state_active: "Actief",
+    state_pending: "In behandeling",
+    state_firmware_mismatch: "Firmware komt niet overeen",
+    state_upgrading: "Bijwerken",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat gemist",
+    state_adopting: "Adopteren",
+    state_deleting: "Verwijderen",
+    state_inform_error: "Inform-fout",
+    state_adoption_failed: "Adoptie mislukt",
+    state_isolated: "Ge\xEFsoleerd",
     // Port label prefix
     port_label: "Poort",
     // Background color field (editor)
@@ -2119,6 +2147,7 @@ var TRANSLATIONS = {
     front_panel: "Panneau avant",
     // Port detail
     link_status: "\xC9tat du lien",
+    ap_status: "Statut AP",
     link_lan: "Lien LAN",
     link_mesh: "Lien Mesh",
     uptime: "Disponibilit\xE9",
@@ -2171,6 +2200,16 @@ var TRANSLATIONS = {
     state_true: "Connect\xE9",
     state_false: "Pas de lien",
     state_active: "Actif",
+    state_pending: "En attente",
+    state_firmware_mismatch: "Incompatibilit\xE9 firmware",
+    state_upgrading: "Mise \xE0 niveau",
+    state_provisioning: "Provisionnement",
+    state_heartbeat_missed: "Heartbeat manqu\xE9",
+    state_adopting: "Adoption en cours",
+    state_deleting: "Suppression en cours",
+    state_inform_error: "Erreur inform",
+    state_adoption_failed: "\xC9chec de l\u2019adoption",
+    state_isolated: "Isol\xE9",
     // Port label prefix
     port_label: "Port",
     // Background color field (editor)
@@ -2752,7 +2791,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.117c1a5";
+var VERSION = "0.0.0-dev.cb29d1e";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2827,19 +2866,59 @@ var UnifiDeviceCard = class extends HTMLElement {
     const intValue = Math.round(raw);
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
-  _apLinkState(entityId) {
+  _humanizeDurationSeconds(totalSeconds) {
+    const seconds = Math.max(0, Math.round(totalSeconds));
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor(seconds % 86400 / 3600);
+    const minutes = Math.floor(seconds % 3600 / 60);
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours || days) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+    return parts.join(" ");
+  }
+  _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "\u2014";
     const obj = stateObj(this._hass, entityId);
     if (!obj?.state) return "\u2014";
-    return this._translateState(obj.state);
+    return String(obj.state);
+  }
+  _apStatusState(entityId) {
+    const raw = this._apStatusRaw(entityId);
+    return raw === "\u2014" ? raw : this._translateState(raw);
+  }
+  _apUptimeState(entityId) {
+    if (!entityId || !this._hass) return "\u2014";
+    const obj = stateObj(this._hass, entityId);
+    if (!obj) return "\u2014";
+    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
+    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
+    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
+    if (["s", "sec", "second", "seconds"].includes(unit)) {
+      return this._humanizeDurationSeconds(raw);
+    }
+    if (["min", "mins", "minute", "minutes"].includes(unit)) {
+      return this._humanizeDurationSeconds(raw * 60);
+    }
+    if (["h", "hr", "hour", "hours"].includes(unit)) {
+      return this._humanizeDurationSeconds(raw * 3600);
+    }
+    return formatState(this._hass, entityId);
   }
   _apLedColorValue() {
     const colorEntity = this._ctx?.led_color_entity;
-    if (!colorEntity || !this._hass) return null;
-    const raw = String(stateObj(this._hass, colorEntity)?.state || "").trim();
-    if (!raw || raw === "unknown" || raw === "unavailable") return null;
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
-    if (/^rgb\(/i.test(raw)) return raw;
+    const colorStateObj = colorEntity ? stateObj(this._hass, colorEntity) : null;
+    const raw = String(colorStateObj?.state || "").trim();
+    if (raw && raw !== "unknown" && raw !== "unavailable") {
+      if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+      if (/^rgb\(/i.test(raw)) return raw;
+    }
+    const ledObj = this._ctx?.led_switch_entity ? stateObj(this._hass, this._ctx.led_switch_entity) : null;
+    const rgbAttr = ledObj?.attributes?.rgb_color || colorStateObj?.attributes?.rgb_color;
+    if (Array.isArray(rgbAttr) && rgbAttr.length === 3) {
+      const [r, g, b] = rgbAttr.map((n) => Math.max(0, Math.min(255, Number(n) || 0)));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
     const named = raw.toLowerCase();
     const map = {
       blue: "#0000ff",
@@ -2849,6 +2928,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       orange: "#efb21a",
       amber: "#efb21a",
       yellow: "#efb21a",
+      warm_white: "#f5deb3",
+      cool_white: "#dbeafe",
       purple: "#8b5cf6",
       pink: "#ec4899"
     };
@@ -3180,6 +3261,14 @@ var UnifiDeviceCard = class extends HTMLElement {
         background: var(--udc-green);
         box-shadow: 0 0 5px var(--udc-green);
         animation: blink 2.5s ease-in-out infinite;
+      }
+
+      .chip .led-indicator {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--led-indicator, #868b93);
+        box-shadow: 0 0 6px color-mix(in srgb, var(--led-indicator, #868b93) 70%, transparent);
       }
 
       @keyframes blink {
@@ -3623,6 +3712,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .detail-value.online { color: var(--udc-green); }
       .detail-value.offline { color: var(--udc-muted); }
+      .detail-value.pending { color: #efb21a; }
 
       .actions {
         display: flex;
@@ -3689,12 +3779,11 @@ var UnifiDeviceCard = class extends HTMLElement {
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
       const online = this._isDeviceOnline();
-      const onlineText = online ? this._t("state_on") : this._t("state_off");
-      const onlineClass = online ? "online" : "offline";
-      const uptime = this._wholeNumberState(this._ctx?.uptime_entity);
+      const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
+      const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
+      const apStatusClass = apStatusRaw === "connected" ? "online" : apStatusRaw === "disconnected" ? "offline" : "pending";
+      const uptime = this._apUptimeState(this._ctx?.uptime_entity);
       const clients = this._wholeNumberState(this._ctx?.clients_entity);
-      const linkLan = this._apLinkState(this._ctx?.link_lan_entity);
-      const linkMesh = this._apLinkState(this._ctx?.link_mesh_entity);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
@@ -3712,7 +3801,7 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>
             <div class="header-actions">
               ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
-              ${ledEntity ? `<button class="chip" data-action="toggle-led">\u{1F4A1} ${ledEnabled ? this._t("led_off") : this._t("led_on")}</button>` : ""}
+              ${ledEntity ? `<button class="chip" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
 
@@ -3725,19 +3814,11 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
 
           <div class="section">
-            <div class="detail-title">${this._t("link_status")}</div>
+            <div class="detail-title">${this._t("ap_status")}</div>
             <div class="detail-grid">
               <div class="detail-item">
-                <div class="detail-label">${this._t("link_lan")}</div>
-                <div class="detail-value">${linkLan}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("link_mesh")}</div>
-                <div class="detail-value">${linkMesh}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("link_status")}</div>
-                <div class="detail-value ${onlineClass}">${onlineText}</div>
+                <div class="detail-label">${this._t("ap_status")}</div>
+                <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">${this._t("uptime")}</div>

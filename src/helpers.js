@@ -482,8 +482,7 @@ export function getDeviceOnlineEntity(entities) {
 export function getAccessPointStatEntities(entities) {
   let uptimeEntity = null;
   let clientsEntity = null;
-  let linkLanEntity = null;
-  let linkMeshEntity = null;
+  let apStatusEntity = null;
   let ledSwitchEntity = null;
   let ledColorEntity = null;
 
@@ -509,12 +508,8 @@ export function getAccessPointStatEntities(entities) {
       clientsEntity = entity.entity_id;
     }
 
-    if (!linkLanEntity && (id.includes("link_lan") || id.includes("lan_link"))) {
-      linkLanEntity = entity.entity_id;
-    }
-
-    if (!linkMeshEntity && (id.includes("link_mesh") || id.includes("mesh_link"))) {
-      linkMeshEntity = entity.entity_id;
+    if (!apStatusEntity && (id.endsWith("_state") || id.includes("_state_"))) {
+      apStatusEntity = entity.entity_id;
     }
 
     if (
@@ -531,8 +526,7 @@ export function getAccessPointStatEntities(entities) {
   return {
     uptime_entity: uptimeEntity,
     clients_entity: clientsEntity,
-    link_lan_entity: linkLanEntity,
-    link_mesh_entity: linkMeshEntity,
+    ap_status_entity: apStatusEntity,
     led_switch_entity: ledSwitchEntity,
     led_color_entity: ledColorEntity,
   };

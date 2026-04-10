@@ -107,21 +107,68 @@ class UnifiDeviceCard extends HTMLElement {
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
 
-  _apLinkState(entityId) {
+  _humanizeDurationSeconds(totalSeconds) {
+    const seconds = Math.max(0, Math.round(totalSeconds));
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours || days) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+    return parts.join(" ");
+  }
+
+  _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "—";
     const obj = stateObj(this._hass, entityId);
     if (!obj?.state) return "—";
-    return this._translateState(obj.state);
+    return String(obj.state);
+  }
+
+  _apStatusState(entityId) {
+    const raw = this._apStatusRaw(entityId);
+    return raw === "—" ? raw : this._translateState(raw);
+  }
+
+  _apUptimeState(entityId) {
+    if (!entityId || !this._hass) return "—";
+    const obj = stateObj(this._hass, entityId);
+    if (!obj) return "—";
+
+    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
+    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
+
+    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
+    if (["s", "sec", "second", "seconds"].includes(unit)) {
+      return this._humanizeDurationSeconds(raw);
+    }
+    if (["min", "mins", "minute", "minutes"].includes(unit)) {
+      return this._humanizeDurationSeconds(raw * 60);
+    }
+    if (["h", "hr", "hour", "hours"].includes(unit)) {
+      return this._humanizeDurationSeconds(raw * 3600);
+    }
+
+    return formatState(this._hass, entityId);
   }
 
   _apLedColorValue() {
     const colorEntity = this._ctx?.led_color_entity;
-    if (!colorEntity || !this._hass) return null;
-    const raw = String(stateObj(this._hass, colorEntity)?.state || "").trim();
-    if (!raw || raw === "unknown" || raw === "unavailable") return null;
+    const colorStateObj = colorEntity ? stateObj(this._hass, colorEntity) : null;
+    const raw = String(colorStateObj?.state || "").trim();
+    if (raw && raw !== "unknown" && raw !== "unavailable") {
+      if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+      if (/^rgb\(/i.test(raw)) return raw;
+    }
 
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
-    if (/^rgb\(/i.test(raw)) return raw;
+    const ledObj = this._ctx?.led_switch_entity ? stateObj(this._hass, this._ctx.led_switch_entity) : null;
+    const rgbAttr = ledObj?.attributes?.rgb_color || colorStateObj?.attributes?.rgb_color;
+    if (Array.isArray(rgbAttr) && rgbAttr.length === 3) {
+      const [r, g, b] = rgbAttr.map((n) => Math.max(0, Math.min(255, Number(n) || 0)));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
 
     const named = raw.toLowerCase();
     const map = {
@@ -132,6 +179,8 @@ class UnifiDeviceCard extends HTMLElement {
       orange: "#efb21a",
       amber: "#efb21a",
       yellow: "#efb21a",
+      warm_white: "#f5deb3",
+      cool_white: "#dbeafe",
       purple: "#8b5cf6",
       pink: "#ec4899",
     };
@@ -515,6 +564,14 @@ class UnifiDeviceCard extends HTMLElement {
         background: var(--udc-green);
         box-shadow: 0 0 5px var(--udc-green);
         animation: blink 2.5s ease-in-out infinite;
+      }
+
+      .chip .led-indicator {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--led-indicator, #868b93);
+        box-shadow: 0 0 6px color-mix(in srgb, var(--led-indicator, #868b93) 70%, transparent);
       }
 
       @keyframes blink {
@@ -958,6 +1015,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .detail-value.online { color: var(--udc-green); }
       .detail-value.offline { color: var(--udc-muted); }
+      .detail-value.pending { color: #efb21a; }
 
       .actions {
         display: flex;
@@ -1025,12 +1083,11 @@ class UnifiDeviceCard extends HTMLElement {
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
       const online = this._isDeviceOnline();
-      const onlineText = online ? this._t("state_on") : this._t("state_off");
-      const onlineClass = online ? "online" : "offline";
-      const uptime = this._wholeNumberState(this._ctx?.uptime_entity);
+      const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
+      const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
+      const apStatusClass = apStatusRaw === "connected" ? "online" : (apStatusRaw === "disconnected" ? "offline" : "pending");
+      const uptime = this._apUptimeState(this._ctx?.uptime_entity);
       const clients = this._wholeNumberState(this._ctx?.clients_entity);
-      const linkLan = this._apLinkState(this._ctx?.link_lan_entity);
-      const linkMesh = this._apLinkState(this._ctx?.link_mesh_entity);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
 
       const headerTitle = this._title();
@@ -1050,7 +1107,7 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
             <div class="header-actions">
               ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
-              ${ledEntity ? `<button class="chip" data-action="toggle-led">💡 ${ledEnabled ? this._t("led_off") : this._t("led_on")}</button>` : ""}
+              ${ledEntity ? `<button class="chip" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
 
@@ -1063,19 +1120,11 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
 
           <div class="section">
-            <div class="detail-title">${this._t("link_status")}</div>
+            <div class="detail-title">${this._t("ap_status")}</div>
             <div class="detail-grid">
               <div class="detail-item">
-                <div class="detail-label">${this._t("link_lan")}</div>
-                <div class="detail-value">${linkLan}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("link_mesh")}</div>
-                <div class="detail-value">${linkMesh}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("link_status")}</div>
-                <div class="detail-value ${onlineClass}">${onlineText}</div>
+                <div class="detail-label">${this._t("ap_status")}</div>
+                <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">${this._t("uptime")}</div>
