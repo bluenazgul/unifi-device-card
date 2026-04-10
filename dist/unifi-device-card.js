@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e311c06 */
+/* UniFi Device Card 0.0.0-dev.cb90359 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2827,7 +2827,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e311c06";
+var VERSION = "0.0.0-dev.cb90359";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
