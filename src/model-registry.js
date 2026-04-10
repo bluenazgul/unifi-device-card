@@ -16,6 +16,18 @@ function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function apModel(displayModel) {
+  return {
+    kind: "access_point",
+    frontStyle: "ap-disc",
+    rows: [],
+    portCount: 0,
+    displayModel,
+    theme: "white",
+    specialSlots: [],
+  };
+}
+
 const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 
 function isAccessPointLikeModel(device) {
@@ -60,6 +72,39 @@ function defaultSwitchLayout(portCount) {
 // portCount: total physical ports including special slots.
 // ─────────────────────────────────────────────────────────────────────────────
 export const MODEL_REGISTRY = {
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ACCESS POINTS
+  // ══════════════════════════════════════════════════════════════════════════
+  UAP: apModel("UAP"),
+  UAPLR: apModel("UAP-LR"),
+  UAPPRO: apModel("UAP-Pro"),
+  UAPAC: apModel("UAP AC"),
+  UAPACLITE: apModel("UAP AC Lite"),
+  UAPACLR: apModel("UAP AC LR"),
+  UAPACPRO: apModel("UAP AC Pro"),
+  UAPACIW: apModel("UAP AC In-Wall"),
+  UAPACM: apModel("UAP AC Mesh"),
+  UAPACMPRO: apModel("UAP AC Mesh Pro"),
+  UAPNANOHD: apModel("UAP nanoHD"),
+  UAPHD: apModel("UAP HD"),
+  UAPXG: apModel("UAP XG"),
+  UAPSHD: apModel("UAP SHD"),
+  UAPFLEXHD: apModel("UAP FlexHD"),
+  UAPBEACONHD: apModel("UAP BeaconHD"),
+  U6LITE: apModel("U6 Lite"),
+  U6LR: apModel("U6 LR"),
+  U6PRO: apModel("U6 Pro"),
+  U6PLUS: apModel("U6+"),
+  U6MESH: apModel("U6 Mesh"),
+  U6IW: apModel("U6 In-Wall"),
+  U6ENTERPRISE: apModel("U6 Enterprise"),
+  U7PRO: apModel("U7 Pro"),
+  U7PROMAX: apModel("U7 Pro Max"),
+  U7PROWALL: apModel("U7 Pro Wall"),
+  U7OUTDOOR: apModel("U7 Outdoor"),
+  E7: apModel("E7"),
+  UWBXG: apModel("UWB-XG"),
 
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
@@ -529,6 +574,36 @@ export function resolveModelKey(device) {
     if (candidate.includes("UDMPROSE"))           return "UDMPROSE";
     if (candidate.includes("UDMSE"))              return "UDMPROSE";
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
+    if (candidate === "UAP")                      return "UAP";
+    if (candidate.includes("UAPLR"))              return "UAPLR";
+    if (candidate.includes("UAPPRO"))             return "UAPPRO";
+    if (candidate.includes("UAPACMESH"))          return "UAPACM";
+    if (candidate.includes("UAPACMPRO"))          return "UAPACMPRO";
+    if (candidate.includes("UAPACM"))             return "UAPACM";
+    if (candidate.includes("UAPACLR"))            return "UAPACLR";
+    if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
+    if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
+    if (candidate.includes("UAPACIW"))            return "UAPACIW";
+    if (candidate.includes("UAPAC"))              return "UAPAC";
+    if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";
+    if (candidate.includes("UAPFLEXHD"))          return "UAPFLEXHD";
+    if (candidate.includes("UAPBEACONHD"))        return "UAPBEACONHD";
+    if (candidate.includes("UAPSHD"))             return "UAPSHD";
+    if (candidate.includes("UAPXG"))              return "UAPXG";
+    if (candidate.includes("UAPHD"))              return "UAPHD";
+    if (candidate.includes("U6ENTERPRISE"))       return "U6ENTERPRISE";
+    if (candidate.includes("U6MESH"))             return "U6MESH";
+    if (candidate.includes("U6PLUS"))             return "U6PLUS";
+    if (candidate.includes("U6PRO"))              return "U6PRO";
+    if (candidate.includes("U6LR"))               return "U6LR";
+    if (candidate.includes("U6LITE"))             return "U6LITE";
+    if (candidate.includes("U6IW"))               return "U6IW";
+    if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
+    if (candidate.includes("U7PROMAX"))           return "U7PROMAX";
+    if (candidate.includes("U7PRO"))              return "U7PRO";
+    if (candidate.includes("U7OUTDOOR"))          return "U7OUTDOOR";
+    if (candidate.includes("UWBXG"))              return "UWBXG";
+    if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
     if (candidate.includes("UDR7"))               return "UDR7";
