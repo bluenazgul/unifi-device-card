@@ -48,19 +48,40 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 
 | Model | Ports | Panel |
 |---|---|---|
-| USW Flex Mini | 5 | White |
-| USW Lite 8 PoE | 8 | White |
-| USW Lite 16 PoE | 16 | White |
-| USW Ultra family | Varies | White |
-| US 8 60W | 8 | Silver |
-| US 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
-| USW 24 PoE | 24 | Silver |
+| UniFi Switch Compact 8 (`USC8`) | 8 | Silver |
+| UniFi Switch 8 60W (`US8P60`) | 8 | Silver |
+| UniFi Switch 8 150W (`US8P150`) | 8 + 2 SFP | Silver |
+| UniFi Switch 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
+| USW Flex Mini (`USMINI`) | 5 | White |
+| USW Flex (`USF5P`) | 4 + Uplink | White |
+| USW Lite 8 PoE (`USL8LP`, `USL8LPB`) | 8 | White |
+| USW Lite 16 PoE (`USL16LP`, `USL16LPB`) | 16 | White |
+| USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
+| USW 24 (`USL24`) | 24 + 2 SFP | Silver |
+| USW 24 PoE (`USL24P`, `USW24P`) | 24 + 2 SFP | Silver |
+| USW 48 (`USL48`) | 48 + 4 SFP | Silver |
+| USW 48 PoE (`USL48P`, `USW48P`) | 48 + 4 SFP | Silver |
+| USW Pro 24 PoE (`US24PRO`) | 24 + 2 SFP+ | Silver |
 | USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
-| USW 48 PoE | 48 | Silver |
-| Cloud Gateway Ultra | 4 + WAN | White |
-| Cloud Gateway Max | 5 + WAN | White |
-| UDM Pro | 8 + WAN/SFP | Silver |
-| UDM SE | 8 + WAN/SFP | Silver |
+| USW Pro 48 PoE (`US48PRO`) | 48 + 4 SFP+ | Silver |
+| USW Pro 48 (`US48PRO2`) | 48 + 4 SFP+ | Silver |
+| USW Enterprise 8 PoE (`US68P`) | 8 + 2 SFP+ | Silver |
+| USW Enterprise 24 PoE (`US624P`) | 24 + 2 SFP+ | Silver |
+| USW Enterprise 48 PoE (`US648P`) | 48 + 4 SFP+ | Silver |
+| USW Aggregation (`USL8A`) | 8 SFP+ | Silver |
+| USW Pro Aggregation (`USAGGPRO`) | 28 SFP+ + 4 SFP28 | Silver |
+| USW Ultra (`USWULTRA`) | 8 | White |
+| USW Ultra 60W (`USWULTRA60W`) | 8 | White |
+| USW Ultra 210W (`USWULTRA210W`) | 8 | White |
+| Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
+| Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
+| Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |
+| UDM Pro (`UDMPRO`) | 8 + WAN/SFP+ | Silver |
+| UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
+| UXG-Pro (`UXGPRO`) | 2 + WAN + SFP+ | Silver |
+| UXG-Lite (`UXGL`) | 1 + WAN | White |
+| UniFi Security Gateway (`UGW3`) | 2 + WAN | White |
+| USG Pro 4 (`UGW4`) | 2 + WAN + 2 SFP | Silver |
 
 Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
 

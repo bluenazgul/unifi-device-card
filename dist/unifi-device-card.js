@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.457dc24 */
+/* UniFi Device Card 0.0.0-dev.ac15b35 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -32,7 +32,7 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
   // ══════════════════════════════════════════════════════════════════════════
-  // US 8 12W  — 8× 1G RJ45, PoE POE-Passthrough 12W (Port 8)
+  // US 8 12W  — 8× 1G RJ45, PoE-Passthrough 12W (Port 8)
   USC8: {
     kind: "switch",
     frontStyle: "single-row",
@@ -49,7 +49,7 @@ var MODEL_REGISTRY = {
     frontStyle: "single-row",
     rows: [range(1, 8)],
     portCount: 8,
-    displayModel: "US 8 ",
+    displayModel: "US 8",
     theme: "silver",
     poePortRange: [5, 8],
     specialSlots: []
@@ -2488,7 +2488,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.457dc24";
+var VERSION = "0.0.0-dev.ac15b35";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
