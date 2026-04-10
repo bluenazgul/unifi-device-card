@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.4.7] - 2026-04-10
+
+### ✨ Improvements
+- Added dedicated model support for USW Flex 2.5G 5 (`USWFLEX25G5`) in the card layouts and device detection
+
 ## [v0.4.6] - 2026-04-10
 
 ### ✨ Improvements
