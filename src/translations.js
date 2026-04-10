@@ -25,6 +25,7 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    ap_status:          "AP Status",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
     uptime:             "Uptime",
@@ -86,6 +87,16 @@ const TRANSLATIONS = {
     state_true:         "Connected",
     state_false:        "No link",
     state_active:       "Active",
+    state_pending:      "Pending",
+    state_firmware_mismatch: "Firmware mismatch",
+    state_upgrading:    "Upgrading",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat missed",
+    state_adopting:     "Adopting",
+    state_deleting:     "Deleting",
+    state_inform_error: "Inform error",
+    state_adoption_failed: "Adoption failed",
+    state_isolated:     "Isolated",
 
     // Port label prefix (used in detail panel title)
     port_label:         "Port",
@@ -133,6 +144,7 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    ap_status:          "AP Status",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
     uptime:             "Uptime",
@@ -194,6 +206,16 @@ const TRANSLATIONS = {
     state_true:         "Verbunden",
     state_false:        "Kein Link",
     state_active:       "Aktiv",
+    state_pending:      "Ausstehend",
+    state_firmware_mismatch: "Firmware-Konflikt",
+    state_upgrading:    "Aktualisierung",
+    state_provisioning: "Provisionierung",
+    state_heartbeat_missed: "Heartbeat verloren",
+    state_adopting:     "Wird adoptiert",
+    state_deleting:     "Wird gelöscht",
+    state_inform_error: "Inform-Fehler",
+    state_adoption_failed: "Adoption fehlgeschlagen",
+    state_isolated:     "Isoliert",
 
     // Port label prefix
     port_label:         "Port",
@@ -244,6 +266,7 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Linkstatus",
+    ap_status:          "AP-status",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
     uptime:             "Uptime",
@@ -305,6 +328,16 @@ const TRANSLATIONS = {
     state_true:         "Verbonden",
     state_false:        "Geen link",
     state_active:       "Actief",
+    state_pending:      "In behandeling",
+    state_firmware_mismatch: "Firmware komt niet overeen",
+    state_upgrading:    "Bijwerken",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat gemist",
+    state_adopting:     "Adopteren",
+    state_deleting:     "Verwijderen",
+    state_inform_error: "Inform-fout",
+    state_adoption_failed: "Adoptie mislukt",
+    state_isolated:     "Geïsoleerd",
 
     // Port label prefix
     port_label:         "Poort",
@@ -348,6 +381,7 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "État du lien",
+    ap_status:          "Statut AP",
     link_lan:           "Lien LAN",
     link_mesh:          "Lien Mesh",
     uptime:             "Disponibilité",
@@ -406,6 +440,16 @@ const TRANSLATIONS = {
     state_true:         "Connecté",
     state_false:        "Pas de lien",
     state_active:       "Actif",
+    state_pending:      "En attente",
+    state_firmware_mismatch: "Incompatibilité firmware",
+    state_upgrading:    "Mise à niveau",
+    state_provisioning: "Provisionnement",
+    state_heartbeat_missed: "Heartbeat manqué",
+    state_adopting:     "Adoption en cours",
+    state_deleting:     "Suppression en cours",
+    state_inform_error: "Erreur inform",
+    state_adoption_failed: "Échec de l’adoption",
+    state_isolated:     "Isolé",
 
     // Port label prefix
     port_label:         "Port",
