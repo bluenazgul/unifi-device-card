@@ -10,6 +10,12 @@ Preserve existing behavior where practical and avoid unnecessary breaking change
 - If repository rules and the current task appear to conflict, prefer the explicit user request.
 - Do not assume permission for destructive, generated, or asset-related changes.
 
+## Branch policy
+- Use `develop` as the Codex working branch by default.
+- Do not open, target, or base Codex changes on `main` unless explicitly requested by the user.
+- Treat `main` as the stable branch for releases.
+- Assume ongoing development happens on `develop`.
+
 ## Working style
 - Inspect the existing repository structure and conventions before making changes.
 - Prefer small, targeted changes over broad refactors.
