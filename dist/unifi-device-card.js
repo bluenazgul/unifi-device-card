@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.54bef17 */
+/* UniFi Device Card 0.0.0-dev.e28c3cd */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1098,8 +1098,16 @@ function getDeviceOnlineEntity(entities) {
 function getAccessPointStatEntities(entities) {
   let uptimeEntity = null;
   let clientsEntity = null;
+  let linkLanEntity = null;
+  let linkMeshEntity = null;
+  let ledSwitchEntity = null;
+  let ledColorEntity = null;
   for (const entity of entities || []) {
     const id = lower(entity.entity_id);
+    const tk = lower(entity.translation_key || "");
+    if (!ledSwitchEntity && id.startsWith("light.") && (id.includes("led") || id.includes("indicator") || tk.includes("led") || tk.includes("indicator"))) {
+      ledSwitchEntity = entity.entity_id;
+    }
     if (!id.startsWith("sensor.")) continue;
     if (!uptimeEntity && (id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"))) {
       uptimeEntity = entity.entity_id;
@@ -1107,10 +1115,23 @@ function getAccessPointStatEntities(entities) {
     if (!clientsEntity && (id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"))) {
       clientsEntity = entity.entity_id;
     }
+    if (!linkLanEntity && (id.includes("link_lan") || id.includes("lan_link"))) {
+      linkLanEntity = entity.entity_id;
+    }
+    if (!linkMeshEntity && (id.includes("link_mesh") || id.includes("mesh_link"))) {
+      linkMeshEntity = entity.entity_id;
+    }
+    if (!ledColorEntity && (id.includes("led_color") || id.includes("led_colour") || id.includes("indicator_color") || id.includes("indicator_colour"))) {
+      ledColorEntity = entity.entity_id;
+    }
   }
   return {
     uptime_entity: uptimeEntity,
-    clients_entity: clientsEntity
+    clients_entity: clientsEntity,
+    link_lan_entity: linkLanEntity,
+    link_mesh_entity: linkMeshEntity,
+    led_switch_entity: ledSwitchEntity,
+    led_color_entity: ledColorEntity
   };
 }
 function getDeviceRebootEntity(entities) {
@@ -1819,6 +1840,8 @@ var TRANSLATIONS = {
     memory_utilization: "Memory utilization",
     // Port detail
     link_status: "Link Status",
+    link_lan: "Link LAN",
+    link_mesh: "Link Mesh",
     uptime: "Uptime",
     clients: "Clients",
     speed: "Speed",
@@ -1835,6 +1858,8 @@ var TRANSLATIONS = {
     poe_on: "PoE on",
     power_cycle: "Power Cycle",
     reboot: "Reboot",
+    led_on: "LED On",
+    led_off: "LED Off",
     // Hints
     speed_disabled: "Speed entity disabled \u2014 enable it in HA to show link speed.",
     // Editor
@@ -1908,6 +1933,8 @@ var TRANSLATIONS = {
     front_panel: "Front Panel",
     // Port detail
     link_status: "Link Status",
+    link_lan: "Link LAN",
+    link_mesh: "Link Mesh",
     uptime: "Uptime",
     clients: "Clients",
     speed: "Geschwindigkeit",
@@ -1924,6 +1951,8 @@ var TRANSLATIONS = {
     poe_on: "PoE Ein",
     power_cycle: "Power Cycle",
     reboot: "Neustart",
+    led_on: "LED Ein",
+    led_off: "LED Aus",
     // Hints
     speed_disabled: "Speed-Entity deaktiviert \u2014 in HA aktivieren f\xFCr Geschwindigkeitsanzeige.",
     // Editor
@@ -2000,6 +2029,8 @@ var TRANSLATIONS = {
     memory_utilization: "Geheugengebruik",
     // Port detail
     link_status: "Linkstatus",
+    link_lan: "Link LAN",
+    link_mesh: "Link Mesh",
     uptime: "Uptime",
     clients: "Clients",
     speed: "Snelheid",
@@ -2016,6 +2047,8 @@ var TRANSLATIONS = {
     poe_on: "PoE aan",
     power_cycle: "Power Cycle",
     reboot: "Herstarten",
+    led_on: "LED aan",
+    led_off: "LED uit",
     // Hints
     speed_disabled: "Snelheidsentiteit uitgeschakeld \u2014 schakel in HA in om linksnelheid te tonen.",
     // Editor
@@ -2086,6 +2119,8 @@ var TRANSLATIONS = {
     front_panel: "Panneau avant",
     // Port detail
     link_status: "\xC9tat du lien",
+    link_lan: "Lien LAN",
+    link_mesh: "Lien Mesh",
     uptime: "Disponibilit\xE9",
     clients: "Clients",
     speed: "Vitesse",
@@ -2101,6 +2136,9 @@ var TRANSLATIONS = {
     poe_off: "PoE d\xE9sactiv\xE9",
     poe_on: "PoE activ\xE9",
     power_cycle: "Red\xE9marrage PoE",
+    reboot: "Red\xE9marrer",
+    led_on: "LED activ\xE9e",
+    led_off: "LED d\xE9sactiv\xE9e",
     // Hints
     speed_disabled: "Entit\xE9 de vitesse d\xE9sactiv\xE9e \u2014 activez-la dans HA pour afficher la vitesse.",
     // Editor
@@ -2714,7 +2752,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.54bef17";
+var VERSION = "0.0.0-dev.e28c3cd";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2772,6 +2810,55 @@ var UnifiDeviceCard = class extends HTMLElement {
     const opacity = Number.isFinite(opacityRaw) ? Math.min(100, Math.max(0, opacityRaw)) : 100;
     if (opacity >= 100) return color;
     return `color-mix(in srgb, ${color} ${opacity}%, transparent)`;
+  }
+  _cardChromeBgStyle() {
+    if (this._ctx?.type === "switch" || this._ctx?.type === "gateway") {
+      return this._cardBgStyle();
+    }
+    return this._cardBgStyle();
+  }
+  _wholeNumberState(entityId) {
+    if (!entityId || !this._hass) return "\u2014";
+    const obj = stateObj(this._hass, entityId);
+    if (!obj) return "\u2014";
+    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
+    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
+    const unit = obj.attributes?.unit_of_measurement;
+    const intValue = Math.round(raw);
+    return unit ? `${intValue} ${unit}` : String(intValue);
+  }
+  _apLinkState(entityId) {
+    if (!entityId || !this._hass) return "\u2014";
+    const obj = stateObj(this._hass, entityId);
+    if (!obj?.state) return "\u2014";
+    return this._translateState(obj.state);
+  }
+  _apLedColorValue() {
+    const colorEntity = this._ctx?.led_color_entity;
+    if (!colorEntity || !this._hass) return null;
+    const raw = String(stateObj(this._hass, colorEntity)?.state || "").trim();
+    if (!raw || raw === "unknown" || raw === "unavailable") return null;
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+    if (/^rgb\(/i.test(raw)) return raw;
+    const named = raw.toLowerCase();
+    const map = {
+      blue: "#0000ff",
+      white: "#ffffff",
+      red: "#ff3b30",
+      green: "#33d35d",
+      orange: "#efb21a",
+      amber: "#efb21a",
+      yellow: "#efb21a",
+      purple: "#8b5cf6",
+      pink: "#ec4899"
+    };
+    return map[named] || null;
+  }
+  _apLedState() {
+    const ledEntity = this._ctx?.led_switch_entity;
+    const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
+    const ringColor = ledEnabled ? this._apLedColorValue() || "#0000ff" : "#868b93";
+    return { ledEntity, ledEnabled, ringColor };
   }
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
@@ -2998,7 +3085,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .header {
         padding: 16px 18px 13px;
-        background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
+        background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         border-bottom: 1px solid var(--udc-border);
         display: flex;
         justify-content: space-between;
@@ -3065,13 +3152,13 @@ var UnifiDeviceCard = class extends HTMLElement {
       .chip {
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
         background: var(--udc-surf2);
         border: 1px solid var(--udc-border);
         border-radius: 20px;
-        padding: 3px 10px;
-        font-size: 0.71rem;
-        font-weight: 700;
+        padding: 2px 8px;
+        font-size: 0.68rem;
+        font-weight: 600;
         white-space: nowrap;
         color: var(--udc-dim);
         flex-shrink: 0;
@@ -3087,8 +3174,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .chip .dot {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: var(--udc-green);
         box-shadow: 0 0 5px var(--udc-green);
@@ -3189,7 +3276,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         width: 92px;
         height: 92px;
         border-radius: 50%;
-        border: 4px solid #a5adb8;
+        border: 4px solid var(--ap-ring-color, #a5adb8);
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -3197,10 +3284,15 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: rgb(0, 0, 255);
+        border-color: var(--ap-ring-color, rgb(0, 0, 255));
         box-shadow:
-          0 0 12px rgba(0,0,255,.55),
-          0 0 24px rgba(0,0,255,.32);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 32%, transparent);
+      }
+
+      .ap-ring.off {
+        border-color: #868b93;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
       }
 
       .ap-logo {
@@ -3493,6 +3585,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .section {
         padding: 12px 14px 14px;
+        background: var(--udc-chrome-bg, transparent);
       }
 
       .detail-title {
@@ -3598,12 +3691,15 @@ var UnifiDeviceCard = class extends HTMLElement {
       const online = this._isDeviceOnline();
       const onlineText = online ? this._t("state_on") : this._t("state_off");
       const onlineClass = online ? "online" : "offline";
-      const uptime = this._ctx?.uptime_entity ? formatState(this._hass, this._ctx.uptime_entity) : "\u2014";
-      const clients = this._ctx?.clients_entity ? formatState(this._hass, this._ctx.clients_entity) : "\u2014";
+      const uptime = this._wholeNumberState(this._ctx?.uptime_entity);
+      const clients = this._wholeNumberState(this._ctx?.clients_entity);
+      const linkLan = this._apLinkState(this._ctx?.link_lan_entity);
+      const linkMesh = this._apLinkState(this._ctx?.link_mesh_entity);
+      const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}">
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
@@ -3616,12 +3712,13 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>
             <div class="header-actions">
               ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
+              ${ledEntity ? `<button class="chip" data-action="toggle-led">\u{1F4A1} ${ledEnabled ? this._t("led_off") : this._t("led_on")}</button>` : ""}
             </div>
           </div>
 
           <div class="frontpanel ap-disc">
             <div class="ap-device">
-              <div class="ap-ring ${online ? "online" : ""}">
+              <div class="ap-ring ${ledEnabled ? "online" : "off"}">
                 <div class="ap-logo">u</div>
               </div>
             </div>
@@ -3630,6 +3727,14 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="section">
             <div class="detail-title">${this._t("link_status")}</div>
             <div class="detail-grid">
+              <div class="detail-item">
+                <div class="detail-label">${this._t("link_lan")}</div>
+                <div class="detail-value">${linkLan}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">${this._t("link_mesh")}</div>
+                <div class="detail-value">${linkMesh}</div>
+              </div>
               <div class="detail-item">
                 <div class="detail-label">${this._t("link_status")}</div>
                 <div class="detail-value ${onlineClass}">${onlineText}</div>
@@ -3646,6 +3751,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
         </ha-card>`;
       this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+      this.shadowRoot.querySelector("[data-action='toggle-led']")?.addEventListener("click", () => this._toggleEntity(ledEntity));
       return;
     }
     const ctx = this._ctx;
@@ -3729,7 +3835,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const headerTitle = this._title();
     const headerMetrics = this._headerMetrics();
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}">
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}

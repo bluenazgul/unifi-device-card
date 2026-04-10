@@ -482,9 +482,23 @@ export function getDeviceOnlineEntity(entities) {
 export function getAccessPointStatEntities(entities) {
   let uptimeEntity = null;
   let clientsEntity = null;
+  let linkLanEntity = null;
+  let linkMeshEntity = null;
+  let ledSwitchEntity = null;
+  let ledColorEntity = null;
 
   for (const entity of entities || []) {
     const id = lower(entity.entity_id);
+    const tk = lower(entity.translation_key || "");
+
+    if (
+      !ledSwitchEntity &&
+      id.startsWith("light.") &&
+      (id.includes("led") || id.includes("indicator") || tk.includes("led") || tk.includes("indicator"))
+    ) {
+      ledSwitchEntity = entity.entity_id;
+    }
+
     if (!id.startsWith("sensor.")) continue;
 
     if (!uptimeEntity && (id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"))) {
@@ -494,11 +508,33 @@ export function getAccessPointStatEntities(entities) {
     if (!clientsEntity && (id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"))) {
       clientsEntity = entity.entity_id;
     }
+
+    if (!linkLanEntity && (id.includes("link_lan") || id.includes("lan_link"))) {
+      linkLanEntity = entity.entity_id;
+    }
+
+    if (!linkMeshEntity && (id.includes("link_mesh") || id.includes("mesh_link"))) {
+      linkMeshEntity = entity.entity_id;
+    }
+
+    if (
+      !ledColorEntity &&
+      (id.includes("led_color") ||
+        id.includes("led_colour") ||
+        id.includes("indicator_color") ||
+        id.includes("indicator_colour"))
+    ) {
+      ledColorEntity = entity.entity_id;
+    }
   }
 
   return {
     uptime_entity: uptimeEntity,
     clients_entity: clientsEntity,
+    link_lan_entity: linkLanEntity,
+    link_mesh_entity: linkMeshEntity,
+    led_switch_entity: ledSwitchEntity,
+    led_color_entity: ledColorEntity,
   };
 }
 
