@@ -25,6 +25,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    uptime:             "Uptime",
+    clients:            "Clients",
     speed:              "Speed",
     poe:                "PoE",
     poe_power:          "PoE Power",
@@ -54,7 +56,7 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Enabled by default. When disabled, only the model/firmware line is shown.",
     editor_name_label:        "Display name text",
     editor_name_hint:         "Optional — updates automatically when switching devices unless you changed it manually",
-    editor_no_devices:     "No UniFi switches or gateways found in Home Assistant.",
+    editor_no_devices:     "No UniFi switches, gateways, or access points found in Home Assistant.",
     editor_hint:           "Only devices from the UniFi Network Integration are shown.",
     editor_error:          "Failed to load UniFi devices.",
 
@@ -110,6 +112,7 @@ const TRANSLATIONS = {
     // Device type labels (used in device selector)
     type_switch:  "Switch",
     type_gateway: "Gateway",
+    type_access_point: "Access Point",
   },
 
   de: {
@@ -124,6 +127,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    uptime:             "Uptime",
+    clients:            "Clients",
     speed:              "Geschwindigkeit",
     poe:                "PoE",
     poe_power:          "PoE Leistung",
@@ -153,7 +158,7 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Standardmäßig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
     editor_name_label:        "Text für den Anzeigenamen",
     editor_name_hint:         "Optional — wird beim Gerätewechsel automatisch aktualisiert, solange du ihn nicht manuell geändert hast",
-    editor_no_devices:     "Keine UniFi Switches oder Gateways in Home Assistant gefunden.",
+    editor_no_devices:     "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
     editor_hint:           "Nur Geräte aus der UniFi Network Integration werden angezeigt.",
     editor_error:          "UniFi-Geräte konnten nicht geladen werden.",
 
@@ -209,6 +214,7 @@ const TRANSLATIONS = {
     // Device type labels
     type_switch:  "Switch",
     type_gateway: "Gateway",
+    type_access_point: "Access Point",
   },
 
   nl: {
@@ -226,6 +232,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Linkstatus",
+    uptime:             "Uptime",
+    clients:            "Clients",
     speed:              "Snelheid",
     poe:                "PoE",
     poe_power:          "PoE-vermogen",
@@ -255,7 +263,7 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
     editor_name_label:        "Tekst voor de weergavenaam",
     editor_name_hint:         "Optioneel — wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
-    editor_no_devices:     "Geen UniFi-switches of -gateways gevonden in Home Assistant.",
+    editor_no_devices:     "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
     editor_hint:           "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error:          "UniFi-apparaten konden niet worden geladen.",
 
@@ -307,6 +315,7 @@ const TRANSLATIONS = {
 
     type_switch:  "Switch",
     type_gateway: "Gateway",
+    type_access_point: "Access Point",
   },
 
   fr: {
@@ -321,6 +330,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "État du lien",
+    uptime:             "Disponibilité",
+    clients:            "Clients",
     speed:              "Vitesse",
     poe:                "PoE",
     poe_power:          "Puissance PoE",
@@ -346,7 +357,7 @@ const TRANSLATIONS = {
     editor_device_select:  "Sélectionner un appareil…",
     editor_name_label:     "Nom d'affichage",
     editor_name_hint:      "Optionnel — par défaut le nom de l'appareil",
-    editor_no_devices:     "Aucun switch ou gateway UniFi trouvé dans Home Assistant.",
+    editor_no_devices:     "Aucun switch, gateway ou point d’accès UniFi trouvé dans Home Assistant.",
     editor_hint:           "Seuls les appareils de l'intégration UniFi Network sont affichés.",
     editor_error:          "Impossible de charger les appareils UniFi.",
 
@@ -398,6 +409,7 @@ const TRANSLATIONS = {
 
     type_switch:  "Switch",
     type_gateway: "Passerelle",
+    type_access_point: "Point d’accès",
   },
 };
 

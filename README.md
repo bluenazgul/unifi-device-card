@@ -7,7 +7,7 @@
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20US8-60W.png" />
 
 
-A Home Assistant Lovelace custom card for UniFi switches and gateways — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
+A Home Assistant Lovelace custom card for UniFi switches, gateways, and access points — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
 
 No direct API access, no extra configuration. Just add the card and pick your device.
 
@@ -22,7 +22,10 @@ This dashboard is based on my idea, but was created with the help of ChatGPT and
 - USW Lite 8 PoE
 - USW Lite 16 PoE
 - USW Flex
-- USW Ultra family
+- AC Mesh
+- AC Pro
+- U6+
+- U6 Mesh
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
@@ -37,10 +40,12 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
+- **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
 - **Built-in UI editor** — full card configuration without YAML
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
 - **Smarter link detection** — falls back to speed, PoE power, and RX/TX traffic when direct port link entities are missing
 - **Optional card background color** — use the default Home Assistant card background or override it with your own color
+- **AP-native card background behavior** — AP cards can stay transparent like native Home Assistant cards unless a custom background color is configured
 
 ---
 
@@ -83,12 +88,17 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | UXG-Lite (`UXGL`) | 1 + WAN | White |
 | UniFi Security Gateway (`UGW3`) | 2 + WAN | White |
 | USG Pro 4 (`UGW4`) | 2 + WAN + 2 SFP | Silver |
+| UAP AC Pro (`UAPACPRO`) | AP panel | White |
+| UAP AC Mesh (`UAPACM`) | AP panel | White |
+| U6+ (`U6PLUS`) | AP panel | White |
+| U6 Mesh (`U6MESH`) | AP panel | White |
+| Weitere AP-Familien (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) | AP panel | White |
 
 Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
 
 ### Notes
 
-- **Access Points are not supported** and are filtered automatically
+- Access points are supported via a dedicated AP panel (status/uptime/clients/reboot)
 - Some models are still **layout-inferred** if no dedicated registry entry exists
 - WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
 - **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x

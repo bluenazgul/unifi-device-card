@@ -206,15 +206,14 @@ class UnifiDeviceCard extends HTMLElement {
   _isDeviceOnline() {
     const onlineEntity = this._ctx?.online_entity;
     if (!onlineEntity) return false;
-    const raw = String(formatState(this._hass, onlineEntity) || "").toLowerCase();
+    const raw = String(formatState(this._hass, onlineEntity) || "").toLowerCase().trim();
     if (!raw || raw === "—") return false;
-    return (
-      raw.includes("online") ||
-      raw.includes("connected") ||
-      raw.includes("up") ||
-      raw === "on" ||
-      raw === "true"
-    );
+
+    const onlineTokens = ["online", "connected", "verbunden", "available", "bereit", "up", "on", "true", "1"];
+    const offlineTokens = ["offline", "disconnected", "getrennt", "not connected", "unavailable", "down", "off", "false", "0"];
+
+    if (offlineTokens.some((token) => raw === token || raw.includes(token))) return false;
+    return onlineTokens.some((token) => raw === token || raw.includes(token));
   }
 
   _speedValueMbit(port) {
@@ -349,6 +348,10 @@ class UnifiDeviceCard extends HTMLElement {
         box-shadow: var(--ha-card-box-shadow, none);
         overflow: hidden;
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+
+      ha-card.ap-card {
+        background: var(--udc-card-bg, transparent) !important;
       }
 
       .header {
@@ -961,7 +964,7 @@ class UnifiDeviceCard extends HTMLElement {
       const headerMetrics = this._headerMetrics();
 
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card class="ap-card" ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
@@ -993,11 +996,11 @@ class UnifiDeviceCard extends HTMLElement {
                 <div class="detail-value ${onlineClass}">${onlineText}</div>
               </div>
               <div class="detail-item">
-                <div class="detail-label">Uptime</div>
+                <div class="detail-label">${this._t("uptime")}</div>
                 <div class="detail-value">${uptime}</div>
               </div>
               <div class="detail-item">
-                <div class="detail-label">Clients</div>
+                <div class="detail-label">${this._t("clients")}</div>
                 <div class="detail-value">${clients}</div>
               </div>
             </div>
