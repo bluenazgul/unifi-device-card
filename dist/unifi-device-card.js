@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.3ad638b */
+/* UniFi Device Card 0.0.0-dev.8d3dcd5 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2791,7 +2791,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.3ad638b";
+var VERSION = "0.0.0-dev.8d3dcd5";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2891,6 +2891,20 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (!entityId || !this._hass) return "\u2014";
     const obj = stateObj(this._hass, entityId);
     if (!obj) return "\u2014";
+    const rawState = String(obj.state ?? "").trim();
+    const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
+    if (deviceClass === "timestamp") {
+      const parsed = new Date(rawState);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString(this._hass?.locale?.language || void 0, {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
+    }
     const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
     if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
     const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
@@ -3339,7 +3353,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .frontpanel.ap-disc {
-        background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
+        background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
         place-items: center;
         min-height: 305px;
