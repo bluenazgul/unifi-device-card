@@ -203,6 +203,20 @@ class UnifiDeviceCard extends HTMLElement {
     return allSlots.filter((s) => isPortConnected(this._hass, s)).length;
   }
 
+  _isDeviceOnline() {
+    const onlineEntity = this._ctx?.online_entity;
+    if (!onlineEntity) return false;
+    const raw = String(formatState(this._hass, onlineEntity) || "").toLowerCase();
+    if (!raw || raw === "—") return false;
+    return (
+      raw.includes("online") ||
+      raw.includes("connected") ||
+      raw.includes("up") ||
+      raw === "on" ||
+      raw === "true"
+    );
+  }
+
   _speedValueMbit(port) {
     const text = String(getPortSpeedText(this._hass, port) || "");
     const m = text.match(/([0-9]+(?:[.,][0-9]+)?)/);
@@ -501,6 +515,57 @@ class UnifiDeviceCard extends HTMLElement {
 
       .frontpanel.ultra-row .port-row {
         grid-template-columns: repeat(7, 36px);
+      }
+
+      .frontpanel.ap-disc {
+        background: radial-gradient(circle at 32% 32%, #fbfbfc 0%, #e2e3e7 52%, #d2d3d7 100%);
+        display: grid;
+        place-items: center;
+        min-height: 305px;
+        border-bottom: 1px solid var(--udc-border);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ap-device {
+        width: 225px;
+        height: 225px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 28%, #fcfcfd 0%, #e8e9ed 54%, #d7d8dd 100%);
+        box-shadow:
+          inset -8px -10px 16px rgba(0,0,0,.08),
+          inset 9px 12px 17px rgba(255,255,255,.7),
+          0 12px 22px rgba(0,0,0,.18);
+        display: grid;
+        place-items: center;
+      }
+
+      .ap-ring {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 4px solid #a5adb8;
+        box-shadow: 0 0 11px rgba(165,173,184,.35);
+        display: grid;
+        place-items: center;
+        transition: border-color .18s ease, box-shadow .18s ease;
+      }
+
+      .ap-ring.online {
+        border-color: rgb(0, 0, 255);
+        box-shadow:
+          0 0 12px rgba(0,0,255,.55),
+          0 0 24px rgba(0,0,255,.32);
+      }
+
+      .ap-logo {
+        color: rgba(128,134,144,.55);
+        font-size: 42px;
+        font-weight: 700;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        line-height: 1;
+        transform: translateY(-1px);
+        user-select: none;
       }
 
       .port {
@@ -885,6 +950,66 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "access_point") {
+      const online = this._isDeviceOnline();
+      const onlineText = online ? this._t("state_on") : this._t("state_off");
+      const onlineClass = online ? "online" : "offline";
+      const uptime = this._ctx?.uptime_entity ? formatState(this._hass, this._ctx.uptime_entity) : "—";
+      const clients = this._ctx?.clients_entity ? formatState(this._hass, this._ctx.clients_entity) : "—";
+
+      const headerTitle = this._title();
+      const headerMetrics = this._headerMetrics();
+
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+          <div class="header">
+            <div class="header-info">
+              ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
+              <div class="subtitle">${this._subtitle()}</div>
+              ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
+                <div class="meta-row">
+                  <div class="meta-label">${item.label}:</div>
+                  <div class="meta-value">${item.value}</div>
+                </div>`).join("")}</div>` : ""}
+            </div>
+            <div class="header-actions">
+              ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
+            </div>
+          </div>
+
+          <div class="frontpanel ap-disc">
+            <div class="ap-device">
+              <div class="ap-ring ${online ? "online" : ""}">
+                <div class="ap-logo">u</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="detail-title">${this._t("link_status")}</div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <div class="detail-label">${this._t("link_status")}</div>
+                <div class="detail-value ${onlineClass}">${onlineText}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Uptime</div>
+                <div class="detail-value">${uptime}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Clients</div>
+                <div class="detail-value">${clients}</div>
+              </div>
+            </div>
+          </div>
+        </ha-card>`;
+
+      this.shadowRoot.querySelector("[data-action='reboot-device']")
+        ?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+
+      return;
+    }
+
     const ctx = this._ctx;
     const { specials, numbered } = this._buildSlotData(ctx);
 

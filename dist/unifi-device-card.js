@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f571b9a */
+/* UniFi Device Card 0.0.0-dev.627bc1f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -12,6 +12,13 @@ function evenRange(start, end) {
 }
 function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+function isAccessPointLikeModel(device) {
+  const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
+  return AP_MODEL_PREFIXES.some(
+    (pfx) => candidates.some((candidate) => candidate.startsWith(pfx))
+  );
 }
 function defaultSwitchLayout(portCount) {
   if (portCount <= 8) {
@@ -693,6 +700,18 @@ function getDeviceLayout(device, discoveredPorts = []) {
   if (modelKey && MODEL_REGISTRY[modelKey]) {
     return { modelKey, ...MODEL_REGISTRY[modelKey] };
   }
+  if (isAccessPointLikeModel(device)) {
+    return {
+      modelKey: null,
+      kind: "access_point",
+      frontStyle: "ap-disc",
+      rows: [],
+      portCount: 0,
+      displayModel: device?.model || "UniFi Access Point",
+      theme: "white",
+      specialSlots: []
+    };
+  }
   const inferredPortCount = inferPortCountFromModel(device) || (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
   if (inferredPortCount > 0) {
     return {
@@ -755,7 +774,7 @@ var GATEWAY_MODEL_PREFIXES = [
   "UDMPRO",
   "UDMPROSE"
 ];
-var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+var AP_MODEL_PREFIXES2 = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -764,7 +783,7 @@ function modelStartsWith(device, prefixes) {
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
 }
 function isDefinitelyAP(device) {
-  return modelStartsWith(device, AP_MODEL_PREFIXES);
+  return modelStartsWith(device, AP_MODEL_PREFIXES2);
 }
 function getDeviceType(device, entities = []) {
   if (isDefinitelyAP(device)) return "access_point";
@@ -821,6 +840,7 @@ function getDeviceType(device, entities = []) {
   }
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
+  if (modelStartsWith(device, AP_MODEL_PREFIXES2)) return "access_point";
   const hasPorts = entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id));
   if (hasPorts) return "switch";
   if (hasUbiquitiManufacturer(device)) {
@@ -832,6 +852,10 @@ function getDeviceType(device, entities = []) {
     if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usc8") || name.includes("switch")) {
       return "switch";
     }
+    if (model.includes("uap") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || model.includes("enterprise") || name.includes("access point") || name.includes("ap ")) {
+      return "access_point";
+    }
+    if (!hasPorts) return "access_point";
   }
   return "unknown";
 }
@@ -924,7 +948,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
 function buildDeviceLabel(device, type) {
   const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
   const model = normalize(device.model);
-  const typeLabel = type === "gateway" ? "Gateway" : "Switch";
+  const typeLabel = type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : "Switch";
   if (model && lower(model) !== lower(name)) return `${name} \xB7 ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
 }
@@ -949,6 +973,41 @@ function getDeviceTelemetry(entities) {
     memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization"])
   };
 }
+function getDeviceOnlineEntity(entities) {
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+    if (id.endsWith("_state")) {
+      return entity.entity_id;
+    }
+  }
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("binary_sensor.")) continue;
+    if (id.endsWith("_is_online") || id.endsWith("_status") || id.includes("_connected") || id.includes("is_online")) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
+function getAccessPointStatEntities(entities) {
+  let uptimeEntity = null;
+  let clientsEntity = null;
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+    if (!uptimeEntity && id.endsWith("_uptime")) {
+      uptimeEntity = entity.entity_id;
+    }
+    if (!clientsEntity && id.endsWith("_clients")) {
+      clientsEntity = entity.entity_id;
+    }
+  }
+  return {
+    uptime_entity: uptimeEntity,
+    clients_entity: clientsEntity
+  };
+}
 function getDeviceRebootEntity(entities) {
   for (const entity of entities || []) {
     const id = lower(entity.entity_id);
@@ -968,7 +1027,7 @@ async function getUnifiDevices(hass) {
     const entities = entitiesByDevice.get(device.id) || [];
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
     const type = getDeviceType(device, entities);
-    if (type !== "switch" && type !== "gateway") continue;
+    if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
     results.push({
       id: device.id,
       name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
@@ -1533,7 +1592,7 @@ async function getDeviceContext(hass, deviceId) {
   let entities = entitiesByDevice.get(deviceId) || [];
   if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
   const type = getDeviceType(device, entities);
-  if (type !== "switch" && type !== "gateway") return null;
+  if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
   const needsUID = entities.filter(
     (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && !/_port_\d+/i.test(e.entity_id) && !/\bport\s+\d+\b/i.test(e.original_name || "")
   );
@@ -1561,6 +1620,7 @@ async function getDeviceContext(hass, deviceId) {
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetry = getDeviceTelemetry(entities);
+  const apStats = getAccessPointStatEntities(entities);
   return {
     device,
     entities,
@@ -1571,6 +1631,8 @@ async function getDeviceContext(hass, deviceId) {
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device),
+    online_entity: getDeviceOnlineEntity(entities),
+    ...apStats,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
     numberedPorts
@@ -2502,7 +2564,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.f571b9a";
+var VERSION = "0.0.0-dev.627bc1f";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2649,6 +2711,13 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _connectedCount(allSlots) {
     return allSlots.filter((s) => isPortConnected(this._hass, s)).length;
+  }
+  _isDeviceOnline() {
+    const onlineEntity = this._ctx?.online_entity;
+    if (!onlineEntity) return false;
+    const raw = String(formatState(this._hass, onlineEntity) || "").toLowerCase();
+    if (!raw || raw === "\u2014") return false;
+    return raw.includes("online") || raw.includes("connected") || raw.includes("up") || raw === "on" || raw === "true";
   }
   _speedValueMbit(port) {
     const text = String(getPortSpeedText(this._hass, port) || "");
@@ -2930,6 +2999,57 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .frontpanel.ultra-row .port-row {
         grid-template-columns: repeat(7, 36px);
+      }
+
+      .frontpanel.ap-disc {
+        background: radial-gradient(circle at 32% 32%, #fbfbfc 0%, #e2e3e7 52%, #d2d3d7 100%);
+        display: grid;
+        place-items: center;
+        min-height: 305px;
+        border-bottom: 1px solid var(--udc-border);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ap-device {
+        width: 225px;
+        height: 225px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 28%, #fcfcfd 0%, #e8e9ed 54%, #d7d8dd 100%);
+        box-shadow:
+          inset -8px -10px 16px rgba(0,0,0,.08),
+          inset 9px 12px 17px rgba(255,255,255,.7),
+          0 12px 22px rgba(0,0,0,.18);
+        display: grid;
+        place-items: center;
+      }
+
+      .ap-ring {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 4px solid #a5adb8;
+        box-shadow: 0 0 11px rgba(165,173,184,.35);
+        display: grid;
+        place-items: center;
+        transition: border-color .18s ease, box-shadow .18s ease;
+      }
+
+      .ap-ring.online {
+        border-color: rgb(0, 0, 255);
+        box-shadow:
+          0 0 12px rgba(0,0,255,.55),
+          0 0 24px rgba(0,0,255,.32);
+      }
+
+      .ap-logo {
+        color: rgba(128,134,144,.55);
+        font-size: 42px;
+        font-weight: 700;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        line-height: 1;
+        transform: translateY(-1px);
+        user-select: none;
       }
 
       .port {
@@ -3313,6 +3433,60 @@ var UnifiDeviceCard = class extends HTMLElement {
     </style>`;
   }
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "access_point") {
+      const online = this._isDeviceOnline();
+      const onlineText = online ? this._t("state_on") : this._t("state_off");
+      const onlineClass = online ? "online" : "offline";
+      const uptime = this._ctx?.uptime_entity ? formatState(this._hass, this._ctx.uptime_entity) : "\u2014";
+      const clients = this._ctx?.clients_entity ? formatState(this._hass, this._ctx.clients_entity) : "\u2014";
+      const headerTitle2 = this._title();
+      const headerMetrics2 = this._headerMetrics();
+      this.shadowRoot.innerHTML = `${this._styles()}
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+          <div class="header">
+            <div class="header-info">
+              ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
+              <div class="subtitle">${this._subtitle()}</div>
+              ${headerMetrics2.length ? `<div class="meta-list">${headerMetrics2.map((item) => `
+                <div class="meta-row">
+                  <div class="meta-label">${item.label}:</div>
+                  <div class="meta-value">${item.value}</div>
+                </div>`).join("")}</div>` : ""}
+            </div>
+            <div class="header-actions">
+              ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
+            </div>
+          </div>
+
+          <div class="frontpanel ap-disc">
+            <div class="ap-device">
+              <div class="ap-ring ${online ? "online" : ""}">
+                <div class="ap-logo">u</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="detail-title">${this._t("link_status")}</div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <div class="detail-label">${this._t("link_status")}</div>
+                <div class="detail-value ${onlineClass}">${onlineText}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Uptime</div>
+                <div class="detail-value">${uptime}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Clients</div>
+                <div class="detail-value">${clients}</div>
+              </div>
+            </div>
+          </div>
+        </ha-card>`;
+      this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+      return;
+    }
     const ctx = this._ctx;
     const { specials, numbered } = this._buildSlotData(ctx);
     const allSlots = [...specials, ...numbered];
