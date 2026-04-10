@@ -16,6 +16,30 @@ function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function apModel(displayModel) {
+  return {
+    kind: "access_point",
+    frontStyle: "ap-disc",
+    rows: [],
+    portCount: 0,
+    displayModel,
+    theme: "white",
+    specialSlots: [],
+  };
+}
+
+const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+
+function isAccessPointLikeModel(device) {
+  const candidates = [device?.model, device?.hw_version]
+    .filter(Boolean)
+    .map(normalizeModelKey);
+
+  return AP_MODEL_PREFIXES.some((pfx) =>
+    candidates.some((candidate) => candidate.startsWith(pfx))
+  );
+}
+
 function defaultSwitchLayout(portCount) {
   if (portCount <= 8) {
     return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
@@ -50,10 +74,43 @@ function defaultSwitchLayout(portCount) {
 export const MODEL_REGISTRY = {
 
   // ══════════════════════════════════════════════════════════════════════════
+  // ACCESS POINTS
+  // ══════════════════════════════════════════════════════════════════════════
+  UAP: apModel("UAP"),
+  UAPLR: apModel("UAP-LR"),
+  UAPPRO: apModel("UAP-Pro"),
+  UAPAC: apModel("UAP AC"),
+  UAPACLITE: apModel("UAP AC Lite"),
+  UAPACLR: apModel("UAP AC LR"),
+  UAPACPRO: apModel("UAP AC Pro"),
+  UAPACIW: apModel("UAP AC In-Wall"),
+  UAPACM: apModel("UAP AC Mesh"),
+  UAPACMPRO: apModel("UAP AC Mesh Pro"),
+  UAPNANOHD: apModel("UAP nanoHD"),
+  UAPHD: apModel("UAP HD"),
+  UAPXG: apModel("UAP XG"),
+  UAPSHD: apModel("UAP SHD"),
+  UAPFLEXHD: apModel("UAP FlexHD"),
+  UAPBEACONHD: apModel("UAP BeaconHD"),
+  U6LITE: apModel("U6 Lite"),
+  U6LR: apModel("U6 LR"),
+  U6PRO: apModel("U6 Pro"),
+  U6PLUS: apModel("U6+"),
+  U6MESH: apModel("U6 Mesh"),
+  U6IW: apModel("U6 In-Wall"),
+  U6ENTERPRISE: apModel("U6 Enterprise"),
+  U7PRO: apModel("U7 Pro"),
+  U7PROMAX: apModel("U7 Pro Max"),
+  U7PROWALL: apModel("U7 Pro Wall"),
+  U7OUTDOOR: apModel("U7 Outdoor"),
+  E7: apModel("E7"),
+  UWBXG: apModel("UWB-XG"),
+
+  // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
   // ══════════════════════════════════════════════════════════════════════════
 
-  // US 8 12W  — 8× 1G RJ45, PoE POE-Passthrough 12W (Port 8)
+  // US 8 12W  — 8× 1G RJ45, PoE-Passthrough 12W (Port 8)
   USC8: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
     portCount: 8, displayModel: "USC 8", theme: "silver",
@@ -64,7 +121,7 @@ export const MODEL_REGISTRY = {
   // US 8 60W  — 8× 1G RJ45, PoE on ports 5-8
   US8P60: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
-    portCount: 8, displayModel: "US 8 ", theme: "silver",
+    portCount: 8, displayModel: "US 8", theme: "silver",
     poePortRange: [5, 8],
     specialSlots: [],
   },
@@ -380,6 +437,11 @@ export const MODEL_REGISTRY = {
     portCount: 5, displayModel: "Cloud Gateway Ultra", theme: "white",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
+  UDR7: {
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
+    portCount: 5, displayModel: "Dream Router 7", theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
+  },
   UCGMAX: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 5, displayModel: "Cloud Gateway Max", theme: "white",
@@ -512,8 +574,40 @@ export function resolveModelKey(device) {
     if (candidate.includes("UDMPROSE"))           return "UDMPROSE";
     if (candidate.includes("UDMSE"))              return "UDMPROSE";
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
+    if (candidate === "UAP")                      return "UAP";
+    if (candidate.includes("UAPLR"))              return "UAPLR";
+    if (candidate.includes("UAPPRO"))             return "UAPPRO";
+    if (candidate.includes("UAPACMESH"))          return "UAPACM";
+    if (candidate.includes("UAPACMPRO"))          return "UAPACMPRO";
+    if (candidate.includes("UAPACM"))             return "UAPACM";
+    if (candidate.includes("UAPACLR"))            return "UAPACLR";
+    if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
+    if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
+    if (candidate.includes("UAPACIW"))            return "UAPACIW";
+    if (candidate.includes("UAPAC"))              return "UAPAC";
+    if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";
+    if (candidate.includes("UAPFLEXHD"))          return "UAPFLEXHD";
+    if (candidate.includes("UAPBEACONHD"))        return "UAPBEACONHD";
+    if (candidate.includes("UAPSHD"))             return "UAPSHD";
+    if (candidate.includes("UAPXG"))              return "UAPXG";
+    if (candidate.includes("UAPHD"))              return "UAPHD";
+    if (candidate.includes("U6ENTERPRISE"))       return "U6ENTERPRISE";
+    if (candidate.includes("U6MESH"))             return "U6MESH";
+    if (candidate.includes("U6PLUS"))             return "U6PLUS";
+    if (candidate.includes("U6PRO"))              return "U6PRO";
+    if (candidate.includes("U6LR"))               return "U6LR";
+    if (candidate.includes("U6LITE"))             return "U6LITE";
+    if (candidate.includes("U6IW"))               return "U6IW";
+    if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
+    if (candidate.includes("U7PROMAX"))           return "U7PROMAX";
+    if (candidate.includes("U7PRO"))              return "U7PRO";
+    if (candidate.includes("U7OUTDOOR"))          return "U7OUTDOOR";
+    if (candidate.includes("UWBXG"))              return "UWBXG";
+    if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
+    if (candidate.includes("UDR7"))               return "UDR7";
+    if (candidate.includes("DREAMROUTER7"))       return "UDR7";
     if (candidate.includes("UDRULT"))             return "UDRULT";
     if (candidate.includes("UCGULTRA"))           return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
@@ -630,6 +724,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UDMPROSE") || text.includes("UDMSE"))                           return 11;
   if (text.includes("UDMPRO"))                                                        return 11;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER"))               return 7;
+  if (text.includes("UDR7") || text.includes("DREAMROUTER7"))                         return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX")   || text.includes("CLOUDGATEWAYMAX"))                 return 5;
   if (text.includes("UXGPRO"))                                                        return 4;
@@ -673,6 +768,19 @@ export function getDeviceLayout(device, discoveredPorts = []) {
   const modelKey = resolveModelKey(device);
   if (modelKey && MODEL_REGISTRY[modelKey]) {
     return { modelKey, ...MODEL_REGISTRY[modelKey] };
+  }
+
+  if (isAccessPointLikeModel(device)) {
+    return {
+      modelKey: null,
+      kind: "access_point",
+      frontStyle: "ap-disc",
+      rows: [],
+      portCount: 0,
+      displayModel: device?.model || "UniFi Access Point",
+      theme: "white",
+      specialSlots: [],
+    };
   }
 
   const inferredPortCount =

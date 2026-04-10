@@ -7,7 +7,7 @@
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20US8-60W.png" />
 
 
-A Home Assistant Lovelace custom card for UniFi switches and gateways — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
+A Home Assistant Lovelace custom card for UniFi switches, gateways, and access points — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
 
 No direct API access, no extra configuration. Just add the card and pick your device.
 
@@ -22,7 +22,10 @@ This dashboard is based on my idea, but was created with the help of ChatGPT and
 - USW Lite 8 PoE
 - USW Lite 16 PoE
 - USW Flex
-- USW Ultra family
+- AC Mesh
+- AC Pro
+- U6+
+- U6 Mesh
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
@@ -37,10 +40,12 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
+- **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
 - **Built-in UI editor** — full card configuration without YAML
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
 - **Smarter link detection** — falls back to speed, PoE power, and RX/TX traffic when direct port link entities are missing
 - **Optional card background color** — use the default Home Assistant card background or override it with your own color
+- **AP-native card background behavior** — AP cards can stay transparent like native Home Assistant cards unless a custom background color is configured
 
 ---
 
@@ -48,25 +53,52 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 
 | Model | Ports | Panel |
 |---|---|---|
-| USW Flex Mini | 5 | White |
-| USW Lite 8 PoE | 8 | White |
-| USW Lite 16 PoE | 16 | White |
-| USW Ultra family | Varies | White |
-| US 8 60W | 8 | Silver |
-| US 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
-| USW 24 PoE | 24 | Silver |
+| UniFi Switch Compact 8 (`USC8`) | 8 | Silver |
+| UniFi Switch 8 60W (`US8P60`) | 8 | Silver |
+| UniFi Switch 8 150W (`US8P150`) | 8 + 2 SFP | Silver |
+| UniFi Switch 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
+| USW Flex Mini (`USMINI`) | 5 | White |
+| USW Flex (`USF5P`) | 4 + Uplink | White |
+| USW Lite 8 PoE (`USL8LP`, `USL8LPB`) | 8 | White |
+| USW Lite 16 PoE (`USL16LP`, `USL16LPB`) | 16 | White |
+| USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
+| USW 24 (`USL24`) | 24 + 2 SFP | Silver |
+| USW 24 PoE (`USL24P`, `USW24P`) | 24 + 2 SFP | Silver |
+| USW 48 (`USL48`) | 48 + 4 SFP | Silver |
+| USW 48 PoE (`USL48P`, `USW48P`) | 48 + 4 SFP | Silver |
+| USW Pro 24 PoE (`US24PRO`) | 24 + 2 SFP+ | Silver |
 | USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
-| USW 48 PoE | 48 | Silver |
-| Cloud Gateway Ultra | 4 + WAN | White |
-| Cloud Gateway Max | 5 + WAN | White |
-| UDM Pro | 8 + WAN/SFP | Silver |
-| UDM SE | 8 + WAN/SFP | Silver |
+| USW Pro 48 PoE (`US48PRO`) | 48 + 4 SFP+ | Silver |
+| USW Pro 48 (`US48PRO2`) | 48 + 4 SFP+ | Silver |
+| USW Enterprise 8 PoE (`US68P`) | 8 + 2 SFP+ | Silver |
+| USW Enterprise 24 PoE (`US624P`) | 24 + 2 SFP+ | Silver |
+| USW Enterprise 48 PoE (`US648P`) | 48 + 4 SFP+ | Silver |
+| USW Aggregation (`USL8A`) | 8 SFP+ | Silver |
+| USW Pro Aggregation (`USAGGPRO`) | 28 SFP+ + 4 SFP28 | Silver |
+| USW Ultra (`USWULTRA`) | 8 | White |
+| USW Ultra 60W (`USWULTRA60W`) | 8 | White |
+| USW Ultra 210W (`USWULTRA210W`) | 8 | White |
+| Dream Router 7 (`UDR7`) | 4 + WAN | White |
+| Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
+| Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
+| Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |
+| UDM Pro (`UDMPRO`) | 8 + WAN/SFP+ | Silver |
+| UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
+| UXG-Pro (`UXGPRO`) | 2 + WAN + SFP+ | Silver |
+| UXG-Lite (`UXGL`) | 1 + WAN | White |
+| UniFi Security Gateway (`UGW3`) | 2 + WAN | White |
+| USG Pro 4 (`UGW4`) | 2 + WAN + 2 SFP | Silver |
+| UAP AC Pro (`UAPACPRO`) | AP panel | White |
+| UAP AC Mesh (`UAPACM`) | AP panel | White |
+| U6+ (`U6PLUS`) | AP panel | White |
+| U6 Mesh (`U6MESH`) | AP panel | White |
+| Weitere AP-Familien (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) | AP panel | White |
 
 Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
 
 ### Notes
 
-- **Access Points are not supported** and are filtered automatically
+- Access points are supported via a dedicated AP panel (status/uptime/clients/reboot)
 - Some models are still **layout-inferred** if no dedicated registry entry exists
 - WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
 - **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x

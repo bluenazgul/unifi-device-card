@@ -25,6 +25,11 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    ap_status:          "AP Status",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
+    uptime:             "Uptime",
+    clients:            "Clients",
     speed:              "Speed",
     poe:                "PoE",
     poe_power:          "PoE Power",
@@ -40,6 +45,8 @@ const TRANSLATIONS = {
     poe_on:             "PoE on",
     power_cycle:        "Power Cycle",
     reboot:             "Reboot",
+    led_on:             "LED On",
+    led_off:            "LED Off",
 
     // Hints
     speed_disabled:     "Speed entity disabled — enable it in HA to show link speed.",
@@ -54,7 +61,7 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Enabled by default. When disabled, only the model/firmware line is shown.",
     editor_name_label:        "Display name text",
     editor_name_hint:         "Optional — updates automatically when switching devices unless you changed it manually",
-    editor_no_devices:     "No UniFi switches or gateways found in Home Assistant.",
+    editor_no_devices:     "No UniFi switches, gateways, or access points found in Home Assistant.",
     editor_hint:           "Only devices from the UniFi Network Integration are shown.",
     editor_error:          "Failed to load UniFi devices.",
 
@@ -80,6 +87,16 @@ const TRANSLATIONS = {
     state_true:         "Connected",
     state_false:        "No link",
     state_active:       "Active",
+    state_pending:      "Pending",
+    state_firmware_mismatch: "Firmware mismatch",
+    state_upgrading:    "Upgrading",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat missed",
+    state_adopting:     "Adopting",
+    state_deleting:     "Deleting",
+    state_inform_error: "Inform error",
+    state_adoption_failed: "Adoption failed",
+    state_isolated:     "Isolated",
 
     // Port label prefix (used in detail panel title)
     port_label:         "Port",
@@ -87,6 +104,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Background color (optional)",
     editor_bg_hint:  "Default: var(--card-background-color)",
+    editor_bg_opacity_label: "Background transparency",
+    editor_bg_opacity_hint:  "0% = fully transparent, 100% = fully opaque",
 
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities…",
@@ -110,6 +129,7 @@ const TRANSLATIONS = {
     // Device type labels (used in device selector)
     type_switch:  "Switch",
     type_gateway: "Gateway",
+    type_access_point: "Access Point",
   },
 
   de: {
@@ -124,6 +144,11 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    ap_status:          "AP Status",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
+    uptime:             "Uptime",
+    clients:            "Clients",
     speed:              "Geschwindigkeit",
     poe:                "PoE",
     poe_power:          "PoE Leistung",
@@ -139,6 +164,8 @@ const TRANSLATIONS = {
     poe_on:             "PoE Ein",
     power_cycle:        "Power Cycle",
     reboot:             "Neustart",
+    led_on:             "LED Ein",
+    led_off:            "LED Aus",
 
     // Hints
     speed_disabled:     "Speed-Entity deaktiviert — in HA aktivieren für Geschwindigkeitsanzeige.",
@@ -153,7 +180,7 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Standardmäßig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
     editor_name_label:        "Text für den Anzeigenamen",
     editor_name_hint:         "Optional — wird beim Gerätewechsel automatisch aktualisiert, solange du ihn nicht manuell geändert hast",
-    editor_no_devices:     "Keine UniFi Switches oder Gateways in Home Assistant gefunden.",
+    editor_no_devices:     "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
     editor_hint:           "Nur Geräte aus der UniFi Network Integration werden angezeigt.",
     editor_error:          "UniFi-Geräte konnten nicht geladen werden.",
 
@@ -179,6 +206,16 @@ const TRANSLATIONS = {
     state_true:         "Verbunden",
     state_false:        "Kein Link",
     state_active:       "Aktiv",
+    state_pending:      "Ausstehend",
+    state_firmware_mismatch: "Firmware-Konflikt",
+    state_upgrading:    "Aktualisierung",
+    state_provisioning: "Provisionierung",
+    state_heartbeat_missed: "Heartbeat verloren",
+    state_adopting:     "Wird adoptiert",
+    state_deleting:     "Wird gelöscht",
+    state_inform_error: "Inform-Fehler",
+    state_adoption_failed: "Adoption fehlgeschlagen",
+    state_isolated:     "Isoliert",
 
     // Port label prefix
     port_label:         "Port",
@@ -186,6 +223,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Hintergrundfarbe (optional)",
     editor_bg_hint:  "Standard: var(--card-background-color)",
+    editor_bg_opacity_label: "Hintergrund-Transparenz",
+    editor_bg_opacity_hint:  "0% = vollständig transparent, 100% = vollständig deckend",
 
     // Entity warning — loading hint
     warning_checking: "Ausgewähltes Gerät auf deaktivierte oder versteckte UniFi-Entities prüfen…",
@@ -209,6 +248,7 @@ const TRANSLATIONS = {
     // Device type labels
     type_switch:  "Switch",
     type_gateway: "Gateway",
+    type_access_point: "Access Point",
   },
 
   nl: {
@@ -226,6 +266,11 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Linkstatus",
+    ap_status:          "AP-status",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
+    uptime:             "Uptime",
+    clients:            "Clients",
     speed:              "Snelheid",
     poe:                "PoE",
     poe_power:          "PoE-vermogen",
@@ -241,6 +286,8 @@ const TRANSLATIONS = {
     poe_on:             "PoE aan",
     power_cycle:        "Power Cycle",
     reboot:             "Herstarten",
+    led_on:             "LED aan",
+    led_off:            "LED uit",
 
     // Hints
     speed_disabled:     "Snelheidsentiteit uitgeschakeld — schakel in HA in om linksnelheid te tonen.",
@@ -255,7 +302,7 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
     editor_name_label:        "Tekst voor de weergavenaam",
     editor_name_hint:         "Optioneel — wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
-    editor_no_devices:     "Geen UniFi-switches of -gateways gevonden in Home Assistant.",
+    editor_no_devices:     "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
     editor_hint:           "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error:          "UniFi-apparaten konden niet worden geladen.",
 
@@ -281,6 +328,16 @@ const TRANSLATIONS = {
     state_true:         "Verbonden",
     state_false:        "Geen link",
     state_active:       "Actief",
+    state_pending:      "In behandeling",
+    state_firmware_mismatch: "Firmware komt niet overeen",
+    state_upgrading:    "Bijwerken",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat gemist",
+    state_adopting:     "Adopteren",
+    state_deleting:     "Verwijderen",
+    state_inform_error: "Inform-fout",
+    state_adoption_failed: "Adoptie mislukt",
+    state_isolated:     "Geïsoleerd",
 
     // Port label prefix
     port_label:         "Poort",
@@ -288,6 +345,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint:  "Standaard: var(--card-background-color)",
+    editor_bg_opacity_label: "Achtergrondtransparantie",
+    editor_bg_opacity_hint:  "0% = volledig transparant, 100% = volledig ondoorzichtig",
 
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten…",
@@ -307,6 +366,7 @@ const TRANSLATIONS = {
 
     type_switch:  "Switch",
     type_gateway: "Gateway",
+    type_access_point: "Access Point",
   },
 
   fr: {
@@ -321,6 +381,11 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "État du lien",
+    ap_status:          "Statut AP",
+    link_lan:           "Lien LAN",
+    link_mesh:          "Lien Mesh",
+    uptime:             "Disponibilité",
+    clients:            "Clients",
     speed:              "Vitesse",
     poe:                "PoE",
     poe_power:          "Puissance PoE",
@@ -335,6 +400,9 @@ const TRANSLATIONS = {
     poe_off:            "PoE désactivé",
     poe_on:             "PoE activé",
     power_cycle:        "Redémarrage PoE",
+    reboot:             "Redémarrer",
+    led_on:             "LED activée",
+    led_off:            "LED désactivée",
 
     // Hints
     speed_disabled:     "Entité de vitesse désactivée — activez-la dans HA pour afficher la vitesse.",
@@ -346,7 +414,7 @@ const TRANSLATIONS = {
     editor_device_select:  "Sélectionner un appareil…",
     editor_name_label:     "Nom d'affichage",
     editor_name_hint:      "Optionnel — par défaut le nom de l'appareil",
-    editor_no_devices:     "Aucun switch ou gateway UniFi trouvé dans Home Assistant.",
+    editor_no_devices:     "Aucun switch, gateway ou point d’accès UniFi trouvé dans Home Assistant.",
     editor_hint:           "Seuls les appareils de l'intégration UniFi Network sont affichés.",
     editor_error:          "Impossible de charger les appareils UniFi.",
 
@@ -372,6 +440,16 @@ const TRANSLATIONS = {
     state_true:         "Connecté",
     state_false:        "Pas de lien",
     state_active:       "Actif",
+    state_pending:      "En attente",
+    state_firmware_mismatch: "Incompatibilité firmware",
+    state_upgrading:    "Mise à niveau",
+    state_provisioning: "Provisionnement",
+    state_heartbeat_missed: "Heartbeat manqué",
+    state_adopting:     "Adoption en cours",
+    state_deleting:     "Suppression en cours",
+    state_inform_error: "Erreur inform",
+    state_adoption_failed: "Échec de l’adoption",
+    state_isolated:     "Isolé",
 
     // Port label prefix
     port_label:         "Port",
@@ -379,6 +457,8 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint:  "Défaut : var(--card-background-color)",
+    editor_bg_opacity_label: "Transparence de fond",
+    editor_bg_opacity_hint:  "0 % = entièrement transparent, 100 % = entièrement opaque",
 
     // Entity warning
     warning_checking: "Vérification des entités UniFi désactivées ou masquées pour l'appareil sélectionné…",
@@ -398,6 +478,7 @@ const TRANSLATIONS = {
 
     type_switch:  "Switch",
     type_gateway: "Passerelle",
+    type_access_point: "Point d’accès",
   },
 };
 

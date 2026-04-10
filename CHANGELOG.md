@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.4.5] - 2026-04-10
+
+### ✨ Improvements
+- Added model detection and dedicated gateway layout support for Dream Router 7 (`UDR7`)
+- Added broad UniFi Access Point model mapping and assignment (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) in model registry/device resolution
+- Only one single AP Style used for all kind of APs
+- Improved AP detection heuristics in helper logic to better classify APs even with varying model/entity naming
+- Added AP-specific card UI behavior updates (localized uptime/clients labels, transparent HA-like AP card background behavior)
+- Updated editor/device support wording to include Access Points
+
+### 🐛 Bug Fixes
+- Improved AP online-state and AP telemetry/entity pattern matching for mixed naming schemes from Home Assistant/UniFi integration
+
 ## [v0.4.1] - 2026-04-09
 
 ### ✨ Improvements

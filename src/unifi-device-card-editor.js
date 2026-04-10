@@ -83,6 +83,12 @@ function roleSelectionsConflict(a, aRole, b, bRole, layout) {
   return resolvedA === resolvedB;
 }
 
+function clampOpacity(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num)) return 100;
+  return Math.min(100, Math.max(0, num));
+}
+
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -226,6 +232,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
+    next.background_opacity = clampOpacity(next.background_opacity);
+    if (next.background_opacity === 100) delete next.background_opacity;
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
@@ -271,6 +279,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onBackgroundInput(ev) {
     this._emitConfig({ background_color: ev.target.value || undefined });
+  }
+
+  _onBackgroundOpacityInput(ev) {
+    this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
   }
 
   _onWanPortChange(ev) {
@@ -545,6 +557,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const backgroundValue = this._config?.background_color || "";
+    const backgroundOpacity = clampOpacity(this._config?.background_opacity);
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -594,6 +607,19 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_bg_hint")}</div>
         </div>
 
+        <div class="field">
+          <label>${this._t("editor_bg_opacity_label")}: ${backgroundOpacity}%</label>
+          <input
+            id="background_opacity"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value="${backgroundOpacity}"
+          >
+          <div class="hint">${this._t("editor_bg_opacity_hint")}</div>
+        </div>
+
         <div id="warning_slot">${this._warningHTML()}</div>
       </div>
     `;
@@ -609,6 +635,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("background_color")
       ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
+    this.shadowRoot.getElementById("background_opacity")
+      ?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
 
     this.shadowRoot.getElementById("wan_port")
       ?.addEventListener("change", (ev) => this._onWanPortChange(ev));
