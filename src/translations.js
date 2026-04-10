@@ -25,6 +25,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
     uptime:             "Uptime",
     clients:            "Clients",
     speed:              "Speed",
@@ -42,6 +44,8 @@ const TRANSLATIONS = {
     poe_on:             "PoE on",
     power_cycle:        "Power Cycle",
     reboot:             "Reboot",
+    led_on:             "LED On",
+    led_off:            "LED Off",
 
     // Hints
     speed_disabled:     "Speed entity disabled — enable it in HA to show link speed.",
@@ -129,6 +133,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Link Status",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
     uptime:             "Uptime",
     clients:            "Clients",
     speed:              "Geschwindigkeit",
@@ -146,6 +152,8 @@ const TRANSLATIONS = {
     poe_on:             "PoE Ein",
     power_cycle:        "Power Cycle",
     reboot:             "Neustart",
+    led_on:             "LED Ein",
+    led_off:            "LED Aus",
 
     // Hints
     speed_disabled:     "Speed-Entity deaktiviert — in HA aktivieren für Geschwindigkeitsanzeige.",
@@ -236,6 +244,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "Linkstatus",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
     uptime:             "Uptime",
     clients:            "Clients",
     speed:              "Snelheid",
@@ -253,6 +263,8 @@ const TRANSLATIONS = {
     poe_on:             "PoE aan",
     power_cycle:        "Power Cycle",
     reboot:             "Herstarten",
+    led_on:             "LED aan",
+    led_off:            "LED uit",
 
     // Hints
     speed_disabled:     "Snelheidsentiteit uitgeschakeld — schakel in HA in om linksnelheid te tonen.",
@@ -336,6 +348,8 @@ const TRANSLATIONS = {
 
     // Port detail
     link_status:        "État du lien",
+    link_lan:           "Lien LAN",
+    link_mesh:          "Lien Mesh",
     uptime:             "Disponibilité",
     clients:            "Clients",
     speed:              "Vitesse",
@@ -352,6 +366,9 @@ const TRANSLATIONS = {
     poe_off:            "PoE désactivé",
     poe_on:             "PoE activé",
     power_cycle:        "Redémarrage PoE",
+    reboot:             "Redémarrer",
+    led_on:             "LED activée",
+    led_off:            "LED désactivée",
 
     // Hints
     speed_disabled:     "Entité de vitesse désactivée — activez-la dans HA pour afficher la vitesse.",
