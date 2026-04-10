@@ -16,6 +16,18 @@ function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+
+function isAccessPointLikeModel(device) {
+  const candidates = [device?.model, device?.hw_version]
+    .filter(Boolean)
+    .map(normalizeModelKey);
+
+  return AP_MODEL_PREFIXES.some((pfx) =>
+    candidates.some((candidate) => candidate.startsWith(pfx))
+  );
+}
+
 function defaultSwitchLayout(portCount) {
   if (portCount <= 8) {
     return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
@@ -681,6 +693,19 @@ export function getDeviceLayout(device, discoveredPorts = []) {
   const modelKey = resolveModelKey(device);
   if (modelKey && MODEL_REGISTRY[modelKey]) {
     return { modelKey, ...MODEL_REGISTRY[modelKey] };
+  }
+
+  if (isAccessPointLikeModel(device)) {
+    return {
+      modelKey: null,
+      kind: "access_point",
+      frontStyle: "ap-disc",
+      rows: [],
+      portCount: 0,
+      displayModel: device?.model || "UniFi Access Point",
+      theme: "white",
+      specialSlots: [],
+    };
   }
 
   const inferredPortCount =

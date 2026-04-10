@@ -82,7 +82,7 @@ const GATEWAY_MODEL_PREFIXES = [
   "UDMPROSE",
 ];
 
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -162,6 +162,7 @@ export function getDeviceType(device, entities = []) {
 
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
+  if (modelStartsWith(device, AP_MODEL_PREFIXES)) return "access_point";
 
   const hasPorts = entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id));
   if (hasPorts) return "switch";
@@ -189,6 +190,27 @@ export function getDeviceType(device, entities = []) {
     ) {
       return "switch";
     }
+
+    if (
+      model.includes("uap") ||
+      model.includes("u6") ||
+      model.includes("u7") ||
+      model.includes("ap") ||
+      model.includes("in-wall") ||
+      model.includes("iw") ||
+      model.includes("mesh") ||
+      model.includes("nanohd") ||
+      model.includes("enterprise") ||
+      name.includes("access point") ||
+      name.includes("ap ")
+    ) {
+      return "access_point";
+    }
+
+    // UniFi Network registry mostly contains APs, switches and gateways.
+    // If it is not clearly switch/gateway and has no switch-like port entities,
+    // treat it as AP for broad model compatibility.
+    if (!hasPorts) return "access_point";
   }
 
   return "unknown";
@@ -331,7 +353,8 @@ function buildDeviceLabel(device, type) {
     "Unknown device";
 
   const model = normalize(device.model);
-  const typeLabel = type === "gateway" ? "Gateway" : "Switch";
+  const typeLabel =
+    type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : "Switch";
 
   if (model && lower(model) !== lower(name)) return `${name} · ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
@@ -362,6 +385,53 @@ export function getDeviceTelemetry(entities) {
     cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization"]),
     cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature"]),
     memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization"]),
+  };
+}
+
+export function getDeviceOnlineEntity(entities) {
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+    if (id.endsWith("_state")) {
+      return entity.entity_id;
+    }
+  }
+
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("binary_sensor.")) continue;
+    if (
+      id.endsWith("_is_online") ||
+      id.endsWith("_status") ||
+      id.includes("_connected") ||
+      id.includes("is_online")
+    ) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
+
+export function getAccessPointStatEntities(entities) {
+  let uptimeEntity = null;
+  let clientsEntity = null;
+
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+
+    if (!uptimeEntity && id.endsWith("_uptime")) {
+      uptimeEntity = entity.entity_id;
+    }
+
+    if (!clientsEntity && id.endsWith("_clients")) {
+      clientsEntity = entity.entity_id;
+    }
+  }
+
+  return {
+    uptime_entity: uptimeEntity,
+    clients_entity: clientsEntity,
   };
 }
 
@@ -396,7 +466,7 @@ export async function getUnifiDevices(hass) {
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
 
     const type = getDeviceType(device, entities);
-    if (type !== "switch" && type !== "gateway") continue;
+    if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
 
     results.push({
       id: device.id,
@@ -1278,7 +1348,7 @@ export async function getDeviceContext(hass, deviceId) {
   if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
 
   const type = getDeviceType(device, entities);
-  if (type !== "switch" && type !== "gateway") return null;
+  if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
 
   const needsUID = entities.filter(
     (e) =>
@@ -1319,6 +1389,7 @@ export async function getDeviceContext(hass, deviceId) {
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetry = getDeviceTelemetry(entities);
+  const apStats = getAccessPointStatEntities(entities);
 
   return {
     device,
@@ -1330,6 +1401,8 @@ export async function getDeviceContext(hass, deviceId) {
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device),
+    online_entity: getDeviceOnlineEntity(entities),
+    ...apStats,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
     numberedPorts,
