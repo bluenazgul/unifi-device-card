@@ -78,7 +78,12 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _cardBgStyle() {
-    return this._config?.background_color || "";
+    const color = this._config?.background_color || "var(--card-background-color)";
+    const opacityRaw = Number.parseInt(this._config?.background_opacity, 10);
+    const opacity = Number.isFinite(opacityRaw) ? Math.min(100, Math.max(0, opacityRaw)) : 100;
+
+    if (opacity >= 100) return color;
+    return `color-mix(in srgb, ${color} ${opacity}%, transparent)`;
   }
 
   _buildSlotData(ctx) {
@@ -351,7 +356,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       ha-card.ap-card {
-        background: var(--udc-card-bg, transparent) !important;
+        background: var(--udc-card-bg, var(--card-background-color)) !important;
       }
 
       .header {
@@ -521,7 +526,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .frontpanel.ap-disc {
-        background: radial-gradient(circle at 32% 32%, #fbfbfc 0%, #e2e3e7 52%, #d2d3d7 100%);
+        background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
         display: grid;
         place-items: center;
         min-height: 305px;
@@ -534,7 +539,7 @@ class UnifiDeviceCard extends HTMLElement {
         width: 225px;
         height: 225px;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 28%, #fcfcfd 0%, #e8e9ed 54%, #d7d8dd 100%);
+        background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -562,7 +567,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-logo {
-        color: rgba(128,134,144,.55);
+        color: rgba(82, 89, 102, .55);
         font-size: 42px;
         font-weight: 700;
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -964,7 +969,7 @@ class UnifiDeviceCard extends HTMLElement {
       const headerMetrics = this._headerMetrics();
 
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
@@ -1117,7 +1122,7 @@ class UnifiDeviceCard extends HTMLElement {
     const headerMetrics = this._headerMetrics();
 
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
@@ -1164,7 +1169,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${title}</div>` : ""}
@@ -1178,7 +1183,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${title}</div>` : ""}
@@ -1192,7 +1197,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${title}</div>` : ""}

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e47da39 */
+/* UniFi Device Card 0.0.0-dev.f53b048 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -858,6 +858,27 @@ function modelStartsWith(device, prefixes) {
 function isDefinitelyAP(device) {
   return modelStartsWith(device, AP_MODEL_PREFIXES2);
 }
+function isVirtualControllerDevice(device) {
+  const model = lower(device?.model);
+  const name = lower(device?.name_by_user || device?.name);
+  const combined = `${model} ${name}`;
+  return combined.includes("network application") || combined.includes("unifi os") || combined.includes("controller");
+}
+function hasInfrastructureEntitySignals(entities = []) {
+  const hasPortEntities = entities.some((e) => /_port_\d+(?:_|$)/i.test(e?.entity_id || ""));
+  if (hasPortEntities) return true;
+  const hasRebootControl = entities.some((e) => {
+    const id = lower(e?.entity_id);
+    if (!id.startsWith("button.")) return false;
+    return id.includes("reboot") || id.includes("restart") || id.includes("power_cycle");
+  });
+  if (hasRebootControl) return true;
+  return entities.some((e) => {
+    const id = lower(e?.entity_id);
+    if (!id.startsWith("sensor.") && !id.startsWith("binary_sensor.")) return false;
+    return id.includes("cpu") || id.includes("memory") || id.includes("temperature") || id.endsWith("_uptime") || id.includes("_uptime_") || id.endsWith("_clients") || id.includes("_clients_");
+  });
+}
 function getDeviceType(device, entities = []) {
   if (isDefinitelyAP(device)) return "access_point";
   const modelKey = resolveModelKey(device);
@@ -1012,8 +1033,10 @@ async function getAllData(hass) {
   }
 }
 function isUnifiDevice(device, unifiEntryIds, entities) {
+  if (isVirtualControllerDevice(device)) return false;
+  const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) {
-    return true;
+    return hasInfraSignals || !!resolveModelKey(device);
   }
   if (resolveModelKey(device)) return true;
   if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES, ...AP_MODEL_PREFIXES2])) {
@@ -1022,7 +1045,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id)) && hasUbiquitiManufacturer(device)) {
     return true;
   }
-  if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) === "access_point") {
+  if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) === "access_point" && hasInfraSignals) {
     return true;
   }
   return false;
@@ -1852,6 +1875,8 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Background color (optional)",
     editor_bg_hint: "Default: var(--card-background-color)",
+    editor_bg_opacity_label: "Background transparency",
+    editor_bg_opacity_hint: "0% = fully transparent, 100% = fully opaque",
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities\u2026",
     // Entity warning — content
@@ -1939,6 +1964,8 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Hintergrundfarbe (optional)",
     editor_bg_hint: "Standard: var(--card-background-color)",
+    editor_bg_opacity_label: "Hintergrund-Transparenz",
+    editor_bg_opacity_hint: "0% = vollst\xE4ndig transparent, 100% = vollst\xE4ndig deckend",
     // Entity warning — loading hint
     warning_checking: "Ausgew\xE4hltes Ger\xE4t auf deaktivierte oder versteckte UniFi-Entities pr\xFCfen\u2026",
     // Entity warning — content
@@ -2029,6 +2056,8 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint: "Standaard: var(--card-background-color)",
+    editor_bg_opacity_label: "Achtergrondtransparantie",
+    editor_bg_opacity_hint: "0% = volledig transparant, 100% = volledig ondoorzichtig",
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
     warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
@@ -2109,6 +2138,8 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint: "D\xE9faut : var(--card-background-color)",
+    editor_bg_opacity_label: "Transparence de fond",
+    editor_bg_opacity_hint: "0 % = enti\xE8rement transparent, 100 % = enti\xE8rement opaque",
     // Entity warning
     warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
     warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
@@ -2205,6 +2236,11 @@ function roleSelectionsConflict(a, aRole, b, bRole, layout) {
   const resolvedB = resolveSelectionForConflict(b, bRole, layout);
   if (resolvedA === "none" || resolvedB === "none") return false;
   return resolvedA === resolvedB;
+}
+function clampOpacity(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num)) return 100;
+  return Math.min(100, Math.max(0, num));
 }
 var UnifiDeviceCardEditor = class extends HTMLElement {
   constructor() {
@@ -2329,6 +2365,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const next = { ...this._config, ...partial };
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
+    next.background_opacity = clampOpacity(next.background_opacity);
+    if (next.background_opacity === 100) delete next.background_opacity;
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
@@ -2366,6 +2404,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _onBackgroundInput(ev) {
     this._emitConfig({ background_color: ev.target.value || void 0 });
+  }
+  _onBackgroundOpacityInput(ev) {
+    this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
   }
   _onWanPortChange(ev) {
     const nextValue = ev.target.value || "auto";
@@ -2595,6 +2636,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const backgroundValue = this._config?.background_color || "";
+    const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
@@ -2634,6 +2676,19 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${this._t("editor_bg_hint")}</div>
         </div>
 
+        <div class="field">
+          <label>${this._t("editor_bg_opacity_label")}: ${backgroundOpacity}%</label>
+          <input
+            id="background_opacity"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value="${backgroundOpacity}"
+          >
+          <div class="hint">${this._t("editor_bg_opacity_hint")}</div>
+        </div>
+
         <div id="warning_slot">${this._warningHTML()}</div>
       </div>
     `;
@@ -2641,6 +2696,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("show_name")?.addEventListener("change", (ev) => this._onShowNameChange(ev));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("background_color")?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
+    this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
   }
@@ -2658,7 +2714,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e47da39";
+var VERSION = "0.0.0-dev.f53b048";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -2711,7 +2767,11 @@ var UnifiDeviceCard = class extends HTMLElement {
     return translated === key ? raw : translated;
   }
   _cardBgStyle() {
-    return this._config?.background_color || "";
+    const color = this._config?.background_color || "var(--card-background-color)";
+    const opacityRaw = Number.parseInt(this._config?.background_opacity, 10);
+    const opacity = Number.isFinite(opacityRaw) ? Math.min(100, Math.max(0, opacityRaw)) : 100;
+    if (opacity >= 100) return color;
+    return `color-mix(in srgb, ${color} ${opacity}%, transparent)`;
   }
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
@@ -2933,7 +2993,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       ha-card.ap-card {
-        background: var(--udc-card-bg, transparent) !important;
+        background: var(--udc-card-bg, var(--card-background-color)) !important;
       }
 
       .header {
@@ -3103,7 +3163,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .frontpanel.ap-disc {
-        background: radial-gradient(circle at 32% 32%, #fbfbfc 0%, #e2e3e7 52%, #d2d3d7 100%);
+        background: linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%);
         display: grid;
         place-items: center;
         min-height: 305px;
@@ -3116,7 +3176,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         width: 225px;
         height: 225px;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 28%, #fcfcfd 0%, #e8e9ed 54%, #d7d8dd 100%);
+        background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -3144,7 +3204,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-logo {
-        color: rgba(128,134,144,.55);
+        color: rgba(82, 89, 102, .55);
         font-size: 42px;
         font-weight: 700;
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -3543,7 +3603,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
@@ -3669,7 +3729,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const headerTitle = this._title();
     const headerMetrics = this._headerMetrics();
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
@@ -3704,7 +3764,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const title = this._title();
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${title}</div>` : ""}
@@ -3717,7 +3777,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${title}</div>` : ""}
@@ -3730,7 +3790,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${title}</div>` : ""}
