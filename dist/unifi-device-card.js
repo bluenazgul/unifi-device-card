@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4b900f1 */
+/* UniFi Device Card 0.0.0-dev.954f713 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -440,6 +440,15 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
   },
+  UDR7: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 5,
+    displayModel: "Dream Router 7",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+  },
   UCGMAX: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
@@ -547,6 +556,8 @@ function resolveModelKey(device) {
     if (candidate.includes("UDMPRO")) return "UDMPRO";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
+    if (candidate.includes("UDR7")) return "UDR7";
+    if (candidate.includes("DREAMROUTER7")) return "UDR7";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -647,6 +658,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
+  if (text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
   if (text.includes("UXGPRO")) return 4;
@@ -738,6 +750,7 @@ var GATEWAY_MODEL_PREFIXES = [
   "UCG",
   "UXG",
   "UGW",
+  "UDR7",
   "UDRULT",
   "UDMPRO",
   "UDMPROSE"
@@ -759,6 +772,7 @@ function getDeviceType(device, entities = []) {
   if (modelKey) {
     if ([
       "UCGULTRA",
+      "UDR7",
       "UDRULT",
       "UCGMAX",
       "UCGFIBER",
@@ -2488,7 +2502,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4b900f1";
+var VERSION = "0.0.0-dev.954f713";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");

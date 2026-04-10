@@ -73,6 +73,7 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | USW Ultra (`USWULTRA`) | 8 | White |
 | USW Ultra 60W (`USWULTRA60W`) | 8 | White |
 | USW Ultra 210W (`USWULTRA210W`) | 8 | White |
+| Dream Router 7 (`UDR7`) | 4 + WAN | White |
 | Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
 | Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
 | Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |
