@@ -343,6 +343,8 @@ class UnifiDeviceCard extends HTMLElement {
       discovered
     );
 
+    this._applyManualPortSensorOverrides(numberedRaw, specialsRaw);
+
     if (ctx?.type === "gateway") {
       return applyGatewayPortOverrides(
         this._config,
@@ -353,6 +355,100 @@ class UnifiDeviceCard extends HTMLElement {
     }
 
     return { specials: specialsRaw, numbered: numberedRaw };
+  }
+
+  _manualPortSpeedOverrides() {
+    const out = new Map();
+    const entries = Object.entries(this._config || {});
+
+    for (const [key, value] of entries) {
+      const match = String(key || "").match(/^port_(\d+)$/i);
+      if (!match) continue;
+
+      const port = Number.parseInt(match[1], 10);
+      const entityId = String(value || "").trim();
+      if (!Number.isInteger(port) || port < 1 || !entityId) continue;
+
+      out.set(port, entityId);
+    }
+
+    return out;
+  }
+
+  _applyManualPortSensorOverrides(numbered, specials) {
+    const overrides = this._manualPortSpeedOverrides();
+    if (!overrides.size) return;
+
+    const allSlots = [...(Array.isArray(numbered) ? numbered : []), ...(Array.isArray(specials) ? specials : [])];
+    const overrideEntities = new Set(overrides.values());
+
+    for (const slot of allSlots) {
+      if (!slot || !overrideEntities.has(slot.speed_entity)) continue;
+      slot.speed_entity = null;
+    }
+
+    for (const [port, entityId] of overrides.entries()) {
+      const slot = allSlots.find((entry) => entry?.port === port);
+      if (!slot) continue;
+
+      slot.speed_entity = entityId;
+      if (!Array.isArray(slot.raw_entities)) slot.raw_entities = [];
+      if (!slot.raw_entities.includes(entityId)) slot.raw_entities.push(entityId);
+
+      const derivedRx = this._deriveTelemetrySibling(entityId, "rx");
+      if (derivedRx) {
+        slot.rx_entity = derivedRx;
+        if (!slot.raw_entities.includes(derivedRx)) slot.raw_entities.push(derivedRx);
+      }
+
+      const derivedTx = this._deriveTelemetrySibling(entityId, "tx");
+      if (derivedTx) {
+        slot.tx_entity = derivedTx;
+        if (!slot.raw_entities.includes(derivedTx)) slot.raw_entities.push(derivedTx);
+      }
+
+      const derivedPoePower = this._deriveTelemetrySibling(entityId, "poe_power");
+      if (derivedPoePower) {
+        slot.poe_power_entity = derivedPoePower;
+        if (!slot.raw_entities.includes(derivedPoePower)) slot.raw_entities.push(derivedPoePower);
+      }
+
+      const derivedPoeSwitch = this._deriveTelemetrySibling(entityId, "poe_switch");
+      if (derivedPoeSwitch) {
+        slot.poe_switch_entity = derivedPoeSwitch;
+        if (!slot.raw_entities.includes(derivedPoeSwitch)) slot.raw_entities.push(derivedPoeSwitch);
+      }
+    }
+  }
+
+  _deriveTelemetrySibling(speedEntityId, metric) {
+    const source = String(speedEntityId || "").trim();
+    if (!source.startsWith("sensor.") || !source.endsWith("_link_speed")) return null;
+
+    const base = source.replace(/^sensor\./i, "").replace(/_link_speed$/i, "");
+    if (!base) return null;
+
+    const candidates = metric === "rx"
+      ? [`sensor.${base}_rx`]
+      : metric === "tx"
+        ? [`sensor.${base}_tx`]
+        : metric === "poe_power"
+          ? [
+              `sensor.${base}_poe_power`,
+              `sensor.${base}_poe_consumption`,
+              `sensor.${base}_power_draw`,
+            ]
+          : metric === "poe_switch"
+            ? [
+                `switch.${base}_poe`,
+                `switch.${base}_poe_enabled`,
+                `switch.${base}_poe_port_control`,
+                `switch.${base}_port_poe`,
+              ]
+            : [];
+
+    if (!candidates.length) return null;
+    return candidates.find((candidate) => !!this._hass?.states?.[candidate]) || null;
   }
 
   _normalizePortList(value) {
