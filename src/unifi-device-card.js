@@ -661,7 +661,7 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel.theme-white { background: #d6d6d9; }
       .frontpanel.theme-silver { background: #c4c5c8; }
       .frontpanel.theme-dark { background: #d0d1d4; }
-      .frontpanel.no-panel-bg { background: transparent; }
+      .frontpanel.no-panel-bg { background: var(--udc-chrome-bg, transparent); }
 
       .panel-label {
         font-size: 0.63rem;

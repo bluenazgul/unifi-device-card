@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d229a88 */
+/* UniFi Device Card 0.0.0-dev.9aa0ec4 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2957,7 +2957,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d229a88";
+var VERSION = "0.0.0-dev.9aa0ec4";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3509,7 +3509,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       .frontpanel.theme-white { background: #d6d6d9; }
       .frontpanel.theme-silver { background: #c4c5c8; }
       .frontpanel.theme-dark { background: #d0d1d4; }
-      .frontpanel.no-panel-bg { background: transparent; }
+      .frontpanel.no-panel-bg { background: var(--udc-chrome-bg, transparent); }
 
       .panel-label {
         font-size: 0.63rem;
