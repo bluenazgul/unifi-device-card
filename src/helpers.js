@@ -1522,8 +1522,13 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
 
   const discoveredPortsRaw = discoverPorts(entities);
   let layout = getDeviceLayout(device, discoveredPortsRaw);
-  if (cardConfig?.ports_per_row) {
-    layout = applyPortsPerRowOverride(layout, cardConfig.ports_per_row);
+  const configuredPortsPerRow = Number.parseInt(cardConfig?.ports_per_row, 10);
+  const hasConfiguredPortsPerRow = Number.isFinite(configuredPortsPerRow) && configuredPortsPerRow > 0;
+
+  if (hasConfiguredPortsPerRow) {
+    layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
+  } else if (type === "switch") {
+    layout = applyPortsPerRowOverride(layout, 8);
   }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);

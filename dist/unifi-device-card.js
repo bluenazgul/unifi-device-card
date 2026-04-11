@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b6b5e92 */
+/* UniFi Device Card 0.0.0-dev.04ba186 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1826,8 +1826,12 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   }
   const discoveredPortsRaw = discoverPorts(entities);
   let layout = getDeviceLayout(device, discoveredPortsRaw);
-  if (cardConfig?.ports_per_row) {
-    layout = applyPortsPerRowOverride(layout, cardConfig.ports_per_row);
+  const configuredPortsPerRow = Number.parseInt(cardConfig?.ports_per_row, 10);
+  const hasConfiguredPortsPerRow = Number.isFinite(configuredPortsPerRow) && configuredPortsPerRow > 0;
+  if (hasConfiguredPortsPerRow) {
+    layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
+  } else if (type === "switch") {
+    layout = applyPortsPerRowOverride(layout, 8);
   }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
@@ -3047,7 +3051,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b6b5e92";
+var VERSION = "0.0.0-dev.04ba186";
+var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3066,6 +3071,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loadedDeviceId = null;
     this._resizeObserver = null;
     this._lastMeasuredWidth = 0;
+    this._cardSize = 8;
   }
   connectedCallback() {
     if (this._resizeObserver) return;
@@ -3104,7 +3110,34 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._render();
   }
   getCardSize() {
-    return 8;
+    return this._cardSize || this._estimateCardSize();
+  }
+  _estimateCardSize() {
+    if (!this._config?.device_id) return 4;
+    if (!this._ctx) return 5;
+    if (this._ctx?.type === "access_point") return 8;
+    const { specials, numbered } = this._buildSlotData(this._ctx);
+    const specialPortsInUse = new Set(
+      specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
+    );
+    const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
+    const panelRows = this._buildEffectiveRows(this._ctx, visibleNumbered).length + (specials.length ? 1 : 0);
+    const selected = [...specials, ...visibleNumbered].find((slot) => slot.key === this._selectedKey) || specials[0] || visibleNumbered[0] || null;
+    const hasPoe = !!(selected?.poe_switch_entity || selected?.poe_power_entity || selected?.power_cycle_entity);
+    const hasTraffic = !!(selected?.rx_entity || selected?.tx_entity);
+    return Math.max(6, Math.min(20, 5 + panelRows + (hasPoe ? 1 : 0) + (hasTraffic ? 1 : 0)));
+  }
+  _updateCardSize() {
+    const cardEl = this.shadowRoot?.querySelector("ha-card");
+    if (!cardEl) return;
+    const measured = Math.max(1, Math.ceil(cardEl.getBoundingClientRect().height / 50));
+    const nextSize = Number.isFinite(measured) ? measured : this._estimateCardSize();
+    if (nextSize === this._cardSize) return;
+    this._cardSize = nextSize;
+    this.dispatchEvent(new Event("iron-resize", { bubbles: true, composed: true }));
+  }
+  _finalizeRender() {
+    requestAnimationFrame(() => this._updateCardSize());
   }
   _t(key) {
     return t(this._hass, key);
@@ -4306,6 +4339,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
           <div class="empty-state">${this._t("select_device")}</div>
         </ha-card>`;
+      this._finalizeRender();
       return;
     }
     if (this._loading) {
@@ -4319,6 +4353,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
           <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
         </ha-card>`;
+      this._finalizeRender();
       return;
     }
     if (!this._ctx) {
@@ -4332,9 +4367,11 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
           <div class="empty-state">${this._t("no_data")}</div>
         </ha-card>`;
+      this._finalizeRender();
       return;
     }
     this._renderPanelAndDetail();
+    this._finalizeRender();
   }
 };
 customElements.define("unifi-device-card", UnifiDeviceCard);
@@ -4342,5 +4379,11 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-device-card",
   name: "UniFi Device Card",
-  description: "Lovelace card for UniFi Devices."
+  description: `Lovelace card for UniFi devices (v${VERSION}).`,
+  preview: true,
+  documentationURL: "https://github.com/bluenazgul/unifi-device-card"
 });
+if (!window[DEV_LOG_FLAG]) {
+  window[DEV_LOG_FLAG] = true;
+  console.info(`[UNIFI-DEVICE-CARD] Version ${VERSION}`);
+}

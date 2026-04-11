@@ -2,7 +2,14 @@ import { execSync } from "node:child_process";
 import esbuild from "esbuild";
 
 function getVersion() {
+  const packageVersion = String(process.env.npm_package_version || "0.0.0").trim();
+
   try {
+    const explicitVersion = String(process.env.VERSION || "").trim();
+    if (explicitVersion) {
+      return explicitVersion.replace(/^v/, "");
+    }
+
     const eventName = process.env.GITHUB_EVENT_NAME || "";
     const refName = process.env.GITHUB_REF_NAME || "";
 
@@ -14,10 +21,10 @@ function getVersion() {
       .toString()
       .trim();
 
-    return `0.0.0-dev.${commit}`;
+    return `${packageVersion}-dev.${commit}`;
   } catch (err) {
     console.warn("[build] Failed to determine git version:", err);
-    return "0.0.0-dev";
+    return `${packageVersion}-dev`;
   }
 }
 
