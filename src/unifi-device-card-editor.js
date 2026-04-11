@@ -89,6 +89,24 @@ function clampOpacity(value) {
   return Math.min(100, Math.max(0, num));
 }
 
+function normalizePortsPerRow(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num) || num < 1) return undefined;
+  return Math.min(24, num);
+}
+
+function clampPortSize(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num)) return 36;
+  return Math.min(52, Math.max(24, num));
+}
+
+function clampApScale(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num)) return 100;
+  return Math.min(140, Math.max(60, num));
+}
+
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -117,7 +135,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const nextDeviceId = this._config?.device_id || "";
     if (this._hass && nextDeviceId) {
-      if (nextDeviceId !== prevDeviceId || !this._entityHint) {
+      if (nextDeviceId !== prevDeviceId) {
         this._loadEntityHint(nextDeviceId);
       }
       if (nextDeviceId !== prevDeviceId || !this._deviceCtx) {
@@ -146,7 +164,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const deviceId = this._config?.device_id || "";
     if (deviceId) {
-      if (deviceId !== this._lastHintDeviceId || !this._entityHint) {
+      if (deviceId !== this._lastHintDeviceId) {
         this._loadEntityHint(deviceId);
       }
       if (deviceId !== this._lastCtxDeviceId || !this._deviceCtx) {
@@ -212,7 +230,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const token = ++this._deviceCtxToken;
     try {
-      const result = await getDeviceContext(this._hass, deviceId);
+      const result = await getDeviceContext(this._hass, deviceId, this._config);
       if (token !== this._deviceCtxToken) return;
 
       if (result) {
@@ -238,6 +256,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
     if (next.show_name !== false) delete next.show_name;
+    if (next.show_panel !== false) delete next.show_panel;
+    next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
+    if (!next.ports_per_row) delete next.ports_per_row;
+    next.port_size = clampPortSize(next.port_size);
+    if (next.port_size === 36) delete next.port_size;
+    next.ap_scale = clampApScale(next.ap_scale);
+    if (next.ap_scale === 100) delete next.ap_scale;
 
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
@@ -283,6 +308,23 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onBackgroundOpacityInput(ev) {
     this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
+  }
+
+  _onShowPanelChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_panel: checked ? undefined : false });
+  }
+
+  _onPortsPerRowChange(ev) {
+    this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
+  }
+
+  _onPortSizeInput(ev) {
+    this._emitConfig({ port_size: clampPortSize(ev.target.value) });
+  }
+
+  _onApScaleInput(ev) {
+    this._emitConfig({ ap_scale: clampApScale(ev.target.value) });
   }
 
   _onWanPortChange(ev) {
@@ -556,8 +598,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const deviceValue = this._config?.device_id || "";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
+    const showPanel = this._config?.show_panel !== false;
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
+    const portsPerRow = this._config?.ports_per_row || "";
+    const portSize = clampPortSize(this._config?.port_size);
+    const apScale = clampApScale(this._config?.ap_scale);
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -599,6 +645,33 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_name_hint")}</div>
         </div>
 
+        <div class="field">
+          <label>${this._t("editor_panel_toggle_label")}</label>
+          <label class="checkbox-row">
+            <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
+            <span>${this._t("editor_panel_toggle_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_ports_per_row_label")}</label>
+          <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
+          <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
+          <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
+          <div class="hint">${this._t("editor_port_size_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
+          <input id="ap_scale" type="range" min="60" max="140" step="1" value="${apScale}">
+          <div class="hint">${this._t("editor_ap_scale_hint")}</div>
+        </div>
+
         ${this._gatewayControlsHTML()}
 
         <div class="field">
@@ -629,9 +702,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("show_name")
       ?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    this.shadowRoot.getElementById("show_panel")
+      ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
 
     this.shadowRoot.getElementById("name")
       ?.addEventListener("input", (ev) => this._onNameInput(ev));
+    this.shadowRoot.getElementById("ports_per_row")
+      ?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
+    this.shadowRoot.getElementById("port_size")
+      ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
+    this.shadowRoot.getElementById("ap_scale")
+      ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
 
     this.shadowRoot.getElementById("background_color")
       ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
