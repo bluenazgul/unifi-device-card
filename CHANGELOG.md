@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.5.0] - 2026-04-11
+## [v0.5.1] - 2026-04-11
 
 ### ⚠️ Breaking / behavior change
 - Updated 16-port and 24-port default front-panel row layouts to contiguous ordering (16p: `1-8 / 9-16`, 24p: `1-8 / 9-16 / 17-24`). Existing cards keep working, but visual port placement changed compared to previous odd/even and 4×6 layouts.
