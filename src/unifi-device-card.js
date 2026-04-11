@@ -38,6 +38,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loadedDeviceId = null;
     this._resizeObserver = null;
     this._lastMeasuredWidth = 0;
+    this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
   }
 
@@ -119,7 +120,16 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _finalizeRender() {
-    requestAnimationFrame(() => this._updateCardSize());
+    requestAnimationFrame(() => {
+      this._updateCardSize();
+
+      const panelWidth = this._measuredFrontPanelContentWidth();
+      if (panelWidth <= 0) return;
+      if (Math.abs(panelWidth - this._lastMeasuredPanelWidth) < 1) return;
+
+      this._lastMeasuredPanelWidth = panelWidth;
+      this._render();
+    });
   }
 
   _t(key) {
@@ -181,14 +191,30 @@ class UnifiDeviceCard extends HTMLElement {
     return this.parentElement?.getBoundingClientRect?.().width || 0;
   }
 
-  _maxFittableColumns() {
-    const hostWidth = this._measuredCardWidth();
-    if (!hostWidth) return Infinity;
+  _measuredFrontPanelContentWidth() {
+    const frontPanel = this.shadowRoot?.querySelector(".frontpanel");
+    if (!frontPanel) return 0;
 
+    const panelWidth = frontPanel.getBoundingClientRect?.().width || frontPanel.clientWidth || 0;
+    if (panelWidth <= 0) return 0;
+
+    const computed = getComputedStyle(frontPanel);
+    const paddingLeft = Number.parseFloat(computed.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(computed.paddingRight) || 0;
+    return Math.max(0, panelWidth - paddingLeft - paddingRight);
+  }
+
+  _maxFittableColumns() {
     const portSize = this._portSize();
+    const panelContentWidth = this._measuredFrontPanelContentWidth();
+    const hostWidth = this._measuredCardWidth();
+    if (!panelContentWidth && !hostWidth) return Infinity;
+
     const horizontalPadding = 40;
     const gap = 6;
-    const available = Math.max(180, hostWidth - horizontalPadding);
+    const available = panelContentWidth > 0
+      ? panelContentWidth
+      : Math.max(180, hostWidth - horizontalPadding);
     return Math.max(1, Math.floor((available + gap) / (portSize + gap)));
   }
 
@@ -332,15 +358,21 @@ class UnifiDeviceCard extends HTMLElement {
   _buildEffectiveRows(ctx, numbered) {
     const baseRows = (ctx?.layout?.rows || []).map((row) => [...row]);
     const knownPorts = new Set(baseRows.flat());
+    const orderedPorts = numbered
+      .map((slot) => slot?.port)
+      .filter((port) => Number.isInteger(port))
+      .sort((a, b) => a - b);
 
     const extraPorts = numbered
       .map((slot) => slot?.port)
       .filter((port) => Number.isInteger(port) && !knownPorts.has(port))
       .sort((a, b) => a - b);
 
-    if (!extraPorts.length) return baseRows;
+    if (!extraPorts.length && !baseRows.length && !orderedPorts.length) return [];
+
+    const fitCols = this._maxFittableColumns();
+
     if (!baseRows.length) {
-      const fitCols = this._maxFittableColumns();
       if (!Number.isFinite(fitCols) || extraPorts.length <= fitCols) return [extraPorts];
       const packed = [];
       for (let i = 0; i < extraPorts.length; i += fitCols) {
@@ -350,16 +382,9 @@ class UnifiDeviceCard extends HTMLElement {
     }
 
     const rows = baseRows.map((row) => [...row]);
-    rows[rows.length - 1].push(...extraPorts);
-
-    const fitCols = this._maxFittableColumns();
+    if (extraPorts.length) rows[rows.length - 1].push(...extraPorts);
     const widestRow = rows.reduce((max, row) => Math.max(max, row.length), 0);
     if (!Number.isFinite(fitCols) || widestRow <= fitCols) return rows;
-
-    const orderedPorts = numbered
-      .map((slot) => slot?.port)
-      .filter((port) => Number.isInteger(port))
-      .sort((a, b) => a - b);
 
     const packedRows = [];
     for (let i = 0; i < orderedPorts.length; i += fitCols) {
