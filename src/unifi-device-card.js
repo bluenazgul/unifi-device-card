@@ -16,6 +16,7 @@ import { t } from "./translations.js";
 import "./unifi-device-card-editor.js";
 
 const VERSION = __VERSION__;
+const DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 
 class UnifiDeviceCard extends HTMLElement {
   static getConfigElement() {
@@ -1499,3 +1500,8 @@ window.customCards.push({
   preview: true,
   documentationURL: "https://github.com/bacco007/unifi-device-card",
 });
+
+if (!window[DEV_LOG_FLAG]) {
+  window[DEV_LOG_FLAG] = true;
+  console.info(`[UNIFI-DEVICE-CARD] Version ${VERSION}`);
+}

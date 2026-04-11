@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.64b3977 */
+/* UniFi Device Card 0.0.0-dev.498e628 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3051,7 +3051,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.64b3977";
+var VERSION = "0.0.0-dev.498e628";
+var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -4382,3 +4383,7 @@ window.customCards.push({
   preview: true,
   documentationURL: "https://github.com/bacco007/unifi-device-card"
 });
+if (!window[DEV_LOG_FLAG]) {
+  window[DEV_LOG_FLAG] = true;
+  console.info(`[UNIFI-DEVICE-CARD] Version ${VERSION}`);
+}
