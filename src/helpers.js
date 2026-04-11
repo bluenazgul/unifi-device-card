@@ -1,4 +1,8 @@
-import { getDeviceLayout, resolveModelKey } from "./model-registry.js";
+import {
+  applyPortsPerRowOverride,
+  getDeviceLayout,
+  resolveModelKey,
+} from "./model-registry.js";
 
 // ─────────────────────────────────────────────────
 // String utilities
@@ -1435,7 +1439,7 @@ function filterPortsByLayout(discoveredPorts, layout) {
   return discoveredPorts.filter((port) => allowed.has(port.port));
 }
 
-export async function getDeviceContext(hass, deviceId) {
+export async function getDeviceContext(hass, deviceId, cardConfig = null) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
@@ -1483,7 +1487,10 @@ export async function getDeviceContext(hass, deviceId) {
   }
 
   const discoveredPortsRaw = discoverPorts(entities);
-  const layout = getDeviceLayout(device, discoveredPortsRaw);
+  let layout = getDeviceLayout(device, discoveredPortsRaw);
+  if (cardConfig?.ports_per_row) {
+    layout = applyPortsPerRowOverride(layout, cardConfig.ports_per_row);
+  }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetry = getDeviceTelemetry(entities);

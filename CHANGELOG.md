@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+### ⚠️ Breaking / behavior change
+- Updated 16-port and 24-port default front-panel row layouts to contiguous ordering (16p: `1-8 / 9-16`, 24p: `1-8 / 9-16 / 17-24`). Existing cards keep working, but visual port placement changed compared to previous odd/even and 4×6 layouts.
+
+### ✨ Improvements
+- Added editor controls for front panel visibility and ports-per-row override, so these values are written to card YAML config.
+- Updated fallback and known 24-port switch layouts to use the 3×8 front-panel arrangement.
+- Added editor sliders for `port_size` (switch/gateway) and `ap_scale` (AP mode), both persisted to YAML config.
+- Unified special and numbered switch/gateway port visual size so both use the same base port size.
+- Reduced AP panel top/bottom spacing and kept AP visual centered with scalable AP size.
+
+### 🐛 Bug Fixes
+- Fixed editor warning-message flicker by avoiding repeated warning checks on every Home Assistant state refresh when the selected device did not change.
+- Ensured `ports_per_row` layout overrides are applied consistently in both card rendering and editor context loading.
+- Added model alias detection for `USWED35` so it resolves to `USW Flex Mini 2.5G` (`USWFLEX25G5`) instead of a generic switch.
+- Improved front-panel sizing behavior so default port size no longer forces overly wide layouts on narrow cards (auto-fit applies when `port_size` is not explicitly set; explicit slider/YAML values keep their exact size).
+- Added row-cap fallback on narrow cards: when configured columns do not fit, rows are repacked to the maximum visible column count so ports stay fully visible without horizontal scrolling.
+- Fixed `show_panel: false` rendering for switch/gateway so frontpanel background becomes transparent instead of staying in device color.
+- Editor now shows the AP scale slider only for AP devices, and the port size slider only for switch/gateway devices.
+- AP panel height now scales with the configured AP size so changing `ap_scale` adjusts both device size and AP section height.
+
 ## [v0.4.7] - 2026-04-10
 
 ### ✨ Improvements
