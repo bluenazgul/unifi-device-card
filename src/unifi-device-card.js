@@ -539,6 +539,12 @@ class UnifiDeviceCard extends HTMLElement {
         --udc-ap-scale: 1;
       }
 
+      ha-card {
+        background: var(--udc-card-bg, var(--ha-card-background, var(--card-background-color)));
+        border-radius: var(--ha-card-border-radius, 12px);
+        overflow: hidden;
+      }
+
       .header {
         padding: 16px 18px 13px;
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
