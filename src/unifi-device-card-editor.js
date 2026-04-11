@@ -500,6 +500,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     if (!isGateway) return "";
 
+    if (!showControls) return "";
+
     const layout = this._deviceCtx?.layout;
     if (!layout) {
       return `
@@ -530,8 +532,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (roleSelectionsConflict(selectedWan, "wan", selectedWan2, "wan2", layout)) {
       selectedWan2 = "none";
     }
-
-    if (!showControls) return "";
 
     return `
       <div class="field">
@@ -819,16 +819,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
-        </div>
-
-        <div class="field">
-          <label>${this._t("editor_custom_special_ports_label")}</label>
-          <select id="custom_special_ports" multiple size="${Math.min(10, Math.max(4, customSpecialPortOptions.length || 4))}">
-            ${customSpecialPortOptions
-              .map((port) => `<option value="${port}" ${selectedCustomSpecialPorts.includes(port) ? "selected" : ""}>Port ${port}</option>`)
-              .join("")}
-          </select>
-          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -845,8 +835,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_ap_scale_hint")}</div>
         </div>` : ""}
 
-        ${this._gatewayControlsHTML(editSpecialPorts)}
-
         ${isSwitchOrGateway ? `
         <div class="field">
           <label class="checkbox-row">
@@ -857,6 +845,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
 
         ${editSpecialPorts ? `
+        ${this._gatewayControlsHTML(true)}
+
         <div class="field">
           <label>${this._t("editor_custom_special_ports_label")}</label>
           <div id="special_ports_list" class="port-toggle-list">
@@ -865,7 +855,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
               .join("")}
           </div>
           <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
-        </div>` : ""}` : ""}
+        </div>` : ""}
+        ` : ""}
 
         <div class="field">
           <label>${this._t("editor_bg_label")}</label>
