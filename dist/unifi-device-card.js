@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.4.91-dev */
+/* UniFi Device Card 0.0.0-dev.6e9c391 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3038,6 +3038,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const selectableSpecialPorts = Array.from(
       /* @__PURE__ */ new Set([...collectLayoutPorts(this._deviceCtx?.layout), ...discoveredPorts])
     ).sort((a, b) => a - b);
+    const customSpecialPortOptions = selectableSpecialPorts;
     const defaultSpecialPorts = collectDefaultSpecialPorts(this._deviceCtx?.layout);
     const selectedSpecialPorts = editSpecialPorts ? (() => {
       const configured = normalizeSpecialPortNumbers(this._config?.special_ports);
@@ -3183,7 +3184,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.4.91-dev";
+var VERSION = "0.0.0-dev.6e9c391";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
