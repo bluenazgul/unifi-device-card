@@ -45,15 +45,39 @@ function defaultSwitchLayout(portCount) {
     return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
   }
   if (portCount === 16) {
-    return { kind: "switch", frontStyle: "dual-row", rows: [oddRange(1, 16), evenRange(1, 16)], portCount, specialSlots: [] };
+    return { kind: "switch", frontStyle: "dual-row", rows: [range(1, 8), range(9, 16)], portCount, specialSlots: [] };
   }
   if (portCount === 24) {
-    return { kind: "switch", frontStyle: "six-grid", rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)], portCount, specialSlots: [] };
+    return { kind: "switch", frontStyle: "eight-grid", rows: [range(1, 8), range(9, 16), range(17, 24)], portCount, specialSlots: [] };
   }
   if (portCount === 48) {
     return { kind: "switch", frontStyle: "quad-row", rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)], portCount, specialSlots: [] };
   }
   return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
+}
+
+export function applyPortsPerRowOverride(layout, portsPerRow) {
+  if (!portsPerRow || portsPerRow < 1 || layout.kind !== "switch") return layout;
+
+  const portCount = layout.portCount;
+  const newRows = [];
+  for (let i = 0; i < portCount; i += portsPerRow) {
+    newRows.push(range(i + 1, Math.min(i + portsPerRow, portCount)));
+  }
+
+  const frontStyleMap = {
+    4: "grid-4",
+    6: "six-grid",
+    7: "ultra-row",
+    8: "eight-grid",
+    12: "quad-row",
+  };
+
+  return {
+    ...layout,
+    rows: newRows,
+    frontStyle: frontStyleMap[portsPerRow] || `grid-${portsPerRow}`,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,9 +123,13 @@ export const MODEL_REGISTRY = {
   U6MESH: apModel("U6 Mesh"),
   U6IW: apModel("U6 In-Wall"),
   U6ENTERPRISE: apModel("U6 Enterprise"),
+  U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall"),
+  U7IW: apModel("U7 In-Wall"),
+  U7LR: apModel("U7 LR"),
+  U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   E7: apModel("E7"),
   UWBXG: apModel("UWB-XG"),
@@ -200,13 +228,13 @@ export const MODEL_REGISTRY = {
 
   // USW Lite 16 PoE  — 16× 1G RJ45, Ports 1-8 PoE+
   USL16LP: {
-    kind: "switch", frontStyle: "dual-row", rows: [oddRange(1, 16), evenRange(1, 16)],
+    kind: "switch", frontStyle: "dual-row", rows: [range(1, 8), range(9, 16)],
     portCount: 16, displayModel: "USW Lite 16 PoE", theme: "white",
     poePortRange: [1, 8],
     specialSlots: [],
   },
   USL16LPB: {
-    kind: "switch", frontStyle: "dual-row", rows: [oddRange(1, 16), evenRange(1, 16)],
+    kind: "switch", frontStyle: "dual-row", rows: [range(1, 8), range(9, 16)],
     portCount: 16, displayModel: "USW Lite 16 PoE", theme: "white",
     poePortRange: [1, 8],
     specialSlots: [],
@@ -225,8 +253,8 @@ export const MODEL_REGISTRY = {
 
   // USW 24 Gen2  — 24× 1G RJ45, 2× SFP
   USL24: {
-    kind: "switch", frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    kind: "switch", frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
     portCount: 26, displayModel: "USW 24", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP 1", port: 25 },
@@ -236,8 +264,8 @@ export const MODEL_REGISTRY = {
 
   // USW 24 PoE Gen2  — 24× 1G RJ45, Ports 1-16 PoE+, 2× SFP
   USL24P: {
-    kind: "switch", frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    kind: "switch", frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
     portCount: 26, displayModel: "USW 24 PoE", theme: "silver",
     poePortRange: [1, 16],
     specialSlots: [
@@ -247,8 +275,8 @@ export const MODEL_REGISTRY = {
   },
 
   USW24P: {
-    kind: "switch", frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    kind: "switch", frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
     portCount: 26, displayModel: "USW 24 PoE", theme: "silver",
     poePortRange: [1, 16],
     specialSlots: [
@@ -302,8 +330,8 @@ export const MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
 
   US24PRO: {
-    kind: "switch", frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    kind: "switch", frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
     portCount: 26, displayModel: "USW Pro 24 PoE", theme: "silver",
     poePortRange: [1, 16],
     specialSlots: [
@@ -313,8 +341,8 @@ export const MODEL_REGISTRY = {
   },
 
   US24PRO2: {
-    kind: "switch", frontStyle: "six-grid",
-    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    kind: "switch", frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
     portCount: 26, displayModel: "USW Pro 24", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
@@ -618,6 +646,13 @@ export function resolveModelKey(device) {
     if (candidate.includes("U6LR"))               return "U6LR";
     if (candidate.includes("U6LITE"))             return "U6LITE";
     if (candidate.includes("U6IW"))               return "U6IW";
+    if (candidate.includes("U6EXTENDER"))         return "U6EXTENDER";
+    if (candidate.includes("U6EXT"))              return "U6EXTENDER";
+    if (candidate.includes("U7IW"))               return "U7IW";
+    if (candidate.includes("U7INWALL"))           return "U7IW";
+    if (candidate.includes("U7LR"))               return "U7LR";
+    if (candidate.includes("U7LITE"))             return "U7LITE";
+    if (candidate.includes("U7ULTRA"))            return "U7LITE";
     if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
     if (candidate.includes("U7PROMAX"))           return "U7PROMAX";
     if (candidate.includes("U7PRO"))              return "U7PRO";
@@ -702,6 +737,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWFLEXMINI"))        return "USMINI";
     if (candidate === "USWFLEX25G5")              return "USWFLEX25G5";
     if (candidate.includes("USWFLEX25G5"))        return "USWFLEX25G5";
+    if (candidate.includes("USWED35"))            return "USWFLEX25G5";
     if (candidate.includes("FLEX25G5"))           return "USWFLEX25G5";
     if (candidate.includes("SWITCHFLEXMINI25G"))  return "USWFLEX25G5";
     if (candidate === "USWFLEX25G8POE")           return "USWFLEX25G8POE";
@@ -767,7 +803,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("US8P60")   || text.includes("US860W")  || text.includes("USC8")) return 8;
   if (text.includes("US8P150"))                                                       return 10;
   if (text.includes("USMINI")   || text.includes("FLEXMINI"))                        return 5;
-  if (text.includes("USWFLEX25G5") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
+  if (text.includes("USWFLEX25G5") || text.includes("USWED35") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P")    || text.includes("USWFLEX"))                         return 5;
 

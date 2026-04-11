@@ -2,6 +2,7 @@
 import {
   getDeviceContext,
   getRelevantEntityWarningsForDevice,
+  mergePortsWithLayout,
   getUnifiDevices,
 } from "./helpers.js";
 import { t } from "./translations.js";
@@ -90,6 +91,54 @@ function clampOpacity(value) {
   return Math.min(100, Math.max(0, num));
 }
 
+function normalizePortsPerRow(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num) || num < 1) return undefined;
+  return Math.min(24, num);
+}
+
+function clampPortSize(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num)) return 36;
+  return Math.min(52, Math.max(24, num));
+}
+
+function clampApScale(value) {
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num)) return 100;
+  return Math.min(140, Math.max(60, num));
+}
+
+function normalizeSpecialPortNumbers(value) {
+  if (!Array.isArray(value)) return [];
+
+  const normalized = value
+    .map((entry) => Number.parseInt(entry, 10))
+    .filter((num) => Number.isInteger(num) && num > 0);
+
+  return Array.from(new Set(normalized)).sort((a, b) => a - b);
+}
+
+function collectLayoutPorts(layout) {
+  if (!layout) return [];
+  const numbered = (layout.rows || []).flat().filter((port) => Number.isInteger(port) && port > 0);
+  const specials = (layout.specialSlots || [])
+    .map((slot) => slot?.port)
+    .filter((port) => Number.isInteger(port) && port > 0);
+  return Array.from(new Set([...numbered, ...specials])).sort((a, b) => a - b);
+}
+
+function collectDefaultSpecialPorts(layout) {
+  if (!layout) return [];
+  return Array.from(
+    new Set(
+      (layout.specialSlots || [])
+        .map((slot) => slot?.port)
+        .filter((port) => Number.isInteger(port) && port > 0)
+    )
+  ).sort((a, b) => a - b);
+}
+
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -118,7 +167,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const nextDeviceId = this._config?.device_id || "";
     if (this._hass && nextDeviceId) {
-      if (nextDeviceId !== prevDeviceId || !this._entityHint) {
+      if (nextDeviceId !== prevDeviceId) {
         this._loadEntityHint(nextDeviceId);
       }
       if (nextDeviceId !== prevDeviceId || !this._deviceCtx) {
@@ -147,7 +196,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const deviceId = this._config?.device_id || "";
     if (deviceId) {
-      if (deviceId !== this._lastHintDeviceId || !this._entityHint) {
+      if (deviceId !== this._lastHintDeviceId) {
         this._loadEntityHint(deviceId);
       }
       if (deviceId !== this._lastCtxDeviceId || !this._deviceCtx) {
@@ -213,7 +262,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const token = ++this._deviceCtxToken;
     try {
-      const result = await getDeviceContext(this._hass, deviceId);
+      const result = await getDeviceContext(this._hass, deviceId, this._config);
       if (token !== this._deviceCtxToken) return;
 
       if (result) {
@@ -238,7 +287,24 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
+    const hasManualWanSelection = !!next.wan_port || !!next.wan2_port;
+    if (hasManualWanSelection) next.edit_special_ports = true;
+    next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
+    if (!next.custom_special_ports.length) delete next.custom_special_ports;
+    next.special_ports = normalizeSpecialPortNumbers(next.special_ports);
+    if (!next.special_ports.length && next.edit_special_ports === true) {
+      next.special_ports = collectDefaultSpecialPorts(this._deviceCtx?.layout);
+    }
+    if (!next.special_ports.length) delete next.special_ports;
+    if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.show_name !== false) delete next.show_name;
+    if (next.show_panel !== false) delete next.show_panel;
+    next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
+    if (!next.ports_per_row) delete next.ports_per_row;
+    next.port_size = clampPortSize(next.port_size);
+    if (next.port_size === 36) delete next.port_size;
+    next.ap_scale = clampApScale(next.ap_scale);
+    if (next.ap_scale === 100) delete next.ap_scale;
 
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
@@ -258,6 +324,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
       device_id: deviceId || undefined,
       wan_port: undefined,
       wan2_port: undefined,
+      custom_special_ports: undefined,
+      special_ports: undefined,
+      edit_special_ports: undefined,
     };
 
     if (!deviceId) {
@@ -286,6 +355,23 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
   }
 
+  _onShowPanelChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_panel: checked ? undefined : false });
+  }
+
+  _onPortsPerRowChange(ev) {
+    this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
+  }
+
+  _onPortSizeInput(ev) {
+    this._emitConfig({ port_size: clampPortSize(ev.target.value) });
+  }
+
+  _onApScaleInput(ev) {
+    this._emitConfig({ ap_scale: clampApScale(ev.target.value) });
+  }
+
   _onWanPortChange(ev) {
     const nextValue = ev.target.value || "auto";
     const currentWan2 = this._config?.wan2_port || "auto";
@@ -299,6 +385,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._emitConfig({
       wan_port: nextValue === "auto" ? undefined : nextValue,
       wan2_port: nextWan2 === "auto" ? undefined : nextWan2,
+      edit_special_ports: true,
     });
   }
 
@@ -314,6 +401,36 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this._emitConfig({
       wan2_port: safeValue === "auto" ? undefined : safeValue,
+      edit_special_ports: true,
+    });
+  }
+
+  _onEditSpecialPortsChange(ev) {
+    const enabled = !!ev.target.checked;
+    const defaults = collectDefaultSpecialPorts(this._deviceCtx?.layout);
+    const current = normalizeSpecialPortNumbers(this._config?.special_ports);
+
+    this._emitConfig({
+      edit_special_ports: enabled ? true : undefined,
+      special_ports: enabled ? (current.length ? current : defaults) : undefined,
+      custom_special_ports: undefined,
+    });
+  }
+
+  _onSpecialPortToggle(ev) {
+    const button = ev.target?.closest?.("[data-port]");
+    if (!button) return;
+
+    const port = Number.parseInt(button.dataset.port, 10);
+    if (!Number.isInteger(port) || port < 1) return;
+
+    const current = normalizeSpecialPortNumbers(this._config?.special_ports);
+    const next = current.includes(port)
+      ? current.filter((p) => p !== port)
+      : [...current, port];
+
+    this._emitConfig({
+      special_ports: normalizeSpecialPortNumbers(next),
     });
   }
 
@@ -377,12 +494,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
     `;
   }
 
-  _gatewayControlsHTML() {
+  _gatewayControlsHTML(showControls = true) {
     const deviceId = this._config?.device_id || "";
     const selectedDevice = this._devices.find((d) => d.id === deviceId) || null;
     const isGateway = this._deviceCtx?.type === "gateway" || selectedDevice?.type === "gateway";
 
     if (!isGateway) return "";
+
+    if (!showControls) return "";
 
     const layout = this._deviceCtx?.layout;
     if (!layout) {
@@ -506,6 +625,27 @@ class UnifiDeviceCardEditor extends HTMLElement {
         font-size: 0.82rem;
       }
 
+      .port-toggle-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .port-toggle {
+        border: 1px solid var(--divider-color);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font: inherit;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        cursor: pointer;
+      }
+
+      .port-toggle.selected {
+        border-color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 18%, var(--card-background-color));
+      }
+
       .warn {
         border-radius: 12px;
         padding: 12px 14px;
@@ -551,14 +691,80 @@ class UnifiDeviceCardEditor extends HTMLElement {
     </style>`;
   }
 
+  _captureFocusState() {
+    if (!this.shadowRoot) return null;
+    const active = this.shadowRoot.activeElement;
+    if (!active || !active.id) return null;
+
+    const supportsSelection =
+      typeof active.selectionStart === "number" &&
+      typeof active.selectionEnd === "number";
+
+    return {
+      id: active.id,
+      selectionStart: supportsSelection ? active.selectionStart : null,
+      selectionEnd: supportsSelection ? active.selectionEnd : null,
+      selectionDirection: supportsSelection ? active.selectionDirection : null,
+    };
+  }
+
+  _restoreFocusState(focusState) {
+    if (!focusState || !this.shadowRoot) return;
+
+    const nextEl = this.shadowRoot.getElementById(focusState.id);
+    if (!nextEl || typeof nextEl.focus !== "function") return;
+
+    nextEl.focus({ preventScroll: true });
+
+    if (
+      typeof nextEl.setSelectionRange === "function" &&
+      focusState.selectionStart != null &&
+      focusState.selectionEnd != null
+    ) {
+      nextEl.setSelectionRange(
+        focusState.selectionStart,
+        focusState.selectionEnd,
+        focusState.selectionDirection || "none"
+      );
+    }
+  }
+
   _render() {
     this._rendered = true;
+    const focusState = this._captureFocusState();
 
     const deviceValue = this._config?.device_id || "";
+    const selectedDevice = this._devices.find((d) => d.id === deviceValue) || null;
+    const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
+    const isApDevice = selectedType === "access_point";
+    const isSwitchOrGateway = selectedType === "switch" || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
+    const showPanel = this._config?.show_panel !== false;
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
+    const portsPerRow = this._config?.ports_per_row || "";
+    const portSize = clampPortSize(this._config?.port_size);
+    const apScale = clampApScale(this._config?.ap_scale);
+    const editSpecialPorts =
+      this._config?.edit_special_ports === true ||
+      !!this._config?.wan_port ||
+      !!this._config?.wan2_port;
+    const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
+    const discoveredPorts = availablePortSlots
+      .map((slot) => slot?.port)
+      .filter((port) => Number.isInteger(port) && port > 0);
+    const selectableSpecialPorts = Array.from(
+      new Set([...collectLayoutPorts(this._deviceCtx?.layout), ...discoveredPorts])
+    ).sort((a, b) => a - b);
+    const customSpecialPortOptions = selectableSpecialPorts;
+    const defaultSpecialPorts = collectDefaultSpecialPorts(this._deviceCtx?.layout);
+    const selectedSpecialPorts = editSpecialPorts
+      ? (() => {
+          const configured = normalizeSpecialPortNumbers(this._config?.special_ports);
+          return configured.length ? configured : defaultSpecialPorts;
+        })()
+      : [];
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -600,7 +806,58 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_name_hint")}</div>
         </div>
 
-        ${this._gatewayControlsHTML()}
+        ${isSwitchOrGateway ? `
+        <div class="field">
+          <label>${this._t("editor_panel_toggle_label")}</label>
+          <label class="checkbox-row">
+            <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
+            <span>${this._t("editor_panel_toggle_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_ports_per_row_label")}</label>
+          <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
+          <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+        </div>` : ""}
+
+        ${isSwitchOrGateway ? `
+        <div class="field">
+          <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
+          <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
+          <div class="hint">${this._t("editor_port_size_hint")}</div>
+        </div>` : ""}
+
+        ${isApDevice ? `
+        <div class="field">
+          <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
+          <input id="ap_scale" type="range" min="60" max="140" step="1" value="${apScale}">
+          <div class="hint">${this._t("editor_ap_scale_hint")}</div>
+        </div>` : ""}
+
+        ${isSwitchOrGateway ? `
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="edit_special_ports" type="checkbox" ${editSpecialPorts ? "checked" : ""}>
+            <span>${this._t("editor_edit_special_ports_toggle")}</span>
+          </label>
+          <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
+        </div>
+
+        ${editSpecialPorts ? `
+        ${this._gatewayControlsHTML(true)}
+
+        <div class="field">
+          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <div id="special_ports_list" class="port-toggle-list">
+            ${selectableSpecialPorts
+              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${port}">Port ${port}</button>`)
+              .join("")}
+          </div>
+          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
+        </div>` : ""}
+        ` : ""}
 
         <div class="field">
           <label>${this._t("editor_bg_label")}</label>
@@ -630,9 +887,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("show_name")
       ?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    this.shadowRoot.getElementById("show_panel")
+      ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
 
     this.shadowRoot.getElementById("name")
       ?.addEventListener("input", (ev) => this._onNameInput(ev));
+    this.shadowRoot.getElementById("ports_per_row")
+      ?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
+    this.shadowRoot.getElementById("port_size")
+      ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
+    this.shadowRoot.getElementById("ap_scale")
+      ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
 
     this.shadowRoot.getElementById("background_color")
       ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
@@ -644,6 +909,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("wan2_port")
       ?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
+    this.shadowRoot.getElementById("edit_special_ports")
+      ?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
+    this.shadowRoot.getElementById("special_ports_list")
+      ?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
+
+    this._restoreFocusState(focusState);
   }
 
   _patchWarning() {

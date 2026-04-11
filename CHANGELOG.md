@@ -1,5 +1,36 @@
 # Changelog
 
+## [v0.5.0] - 2026-04-11
+
+### ⚠️ Breaking / behavior change
+- Updated 16-port and 24-port default front-panel row layouts to contiguous ordering (16p: `1-8 / 9-16`, 24p: `1-8 / 9-16 / 17-24`). Existing cards keep working, but visual port placement changed compared to previous odd/even and 4×6 layouts.
+
+### ✨ Improvements
+- Added editor controls for front panel visibility and ports-per-row override, so these values are written to card YAML config.
+- Updated fallback and known 24-port switch layouts to use the 3×8 front-panel arrangement.
+- Added editor sliders for `port_size` (switch/gateway) and `ap_scale` (AP mode), both persisted to YAML config.
+- Unified special and numbered switch/gateway port visual size so both use the same base port size.
+- Reduced AP panel top/bottom spacing and kept AP visual centered with scalable AP size.
+- `show_panel: false` now renders switch/gateway frontpanel backgrounds transparent instead of retaining the device color.
+- Editor now shows the AP scale slider only for AP devices, and the port size slider only for switch/gateway devices.
+- AP panel height now scales with the configured AP size so changing `ap_scale` adjusts both device size and AP section height.
+- Added `edit_special_ports` + `special_ports` configuration support for switch/gateway cards, including YAML persistence and editor controls.
+- Moved WAN/WAN2 selector visibility under “Edit special ports” to keep the editor cleaner (WAN roles are treated as part of special-port editing).
+- Replaced multi-select special-port editing with click-to-toggle port chips (no CMD/CTRL modifier needed).
+
+### 🐛 Bug Fixes
+- Fixed editor warning-message flicker by avoiding repeated warning checks on every Home Assistant state refresh when the selected device did not change.
+- Ensured `ports_per_row` layout overrides are applied consistently in both card rendering and editor context loading.
+- Added model alias detection for `USWED35` so it resolves to `USW Flex Mini 2.5G` (`USWFLEX25G5`) instead of a generic switch.
+- Improved front-panel sizing behavior so default port size no longer forces overly wide layouts on narrow cards (auto-fit applies when `port_size` is not explicitly set; explicit slider/YAML values keep their exact size).
+- Added row-cap fallback on narrow cards: when configured columns do not fit, rows are repacked to the maximum visible column count so ports stay fully visible without horizontal scrolling.
+- Added additional AP model/alias detection for `U6 Extender` (`U6EXTENDER`), `U7 In-Wall` (`U7IW`), `U7 LR` (`U7LR`), and `U7 Lite` (`U7LITE`) to improve reliable AP recognition in Home Assistant naming variants.
+- Fixed UniFi device-list filtering so APs (including `U6 Pro`) are no longer dropped when they are linked to the UniFi config entry but expose only weak/partial entity signals.
+- Fixed editor focus handling so text fields and sliders keep focus while typing/dragging instead of losing focus after each config change.
+- Fixed special-port editing so existing special ports are preselected when edit mode is enabled and can be deselected to render as normal ports again.
+- Ensured all ports remain visible exactly once when switching ports between special and numbered areas (no duplicates, no disappearing ports).
+- Ensured setting `wan_port`/`wan2_port` in YAML automatically enables and persists `edit_special_ports`.
+
 ## [v0.4.7] - 2026-04-10
 
 ### ✨ Improvements
