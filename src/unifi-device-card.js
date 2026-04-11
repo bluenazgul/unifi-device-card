@@ -115,19 +115,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _effectivePortSize() {
     const configured = this._portSize();
-    if (this._config?.port_size != null) {
-      return configured;
-    }
-
-    const cols = this._maxPortColumns();
-    const hostWidth = this.getBoundingClientRect?.().width || 0;
-    if (!hostWidth || !cols) return configured;
-
-    const horizontalPadding = 40;
-    const gap = 6;
-    const available = Math.max(180, hostWidth - horizontalPadding);
-    const fitted = Math.floor((available - gap * (cols - 1)) / cols);
-    return Math.max(24, Math.min(configured, fitted));
+    return configured;
   }
 
   _maxFittableColumns() {
