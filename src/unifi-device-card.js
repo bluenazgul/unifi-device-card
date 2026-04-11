@@ -355,6 +355,49 @@ class UnifiDeviceCard extends HTMLElement {
     return { specials: specialsRaw, numbered: numberedRaw };
   }
 
+  _configuredCustomSpecialPorts() {
+    const configured = this._config?.custom_special_ports;
+    if (!Array.isArray(configured)) return [];
+
+    const numeric = configured
+      .map((entry) => Number.parseInt(entry, 10))
+      .filter((num) => Number.isInteger(num) && num > 0);
+
+    return Array.from(new Set(numeric)).sort((a, b) => a - b);
+  }
+
+  _applyCustomSpecialPorts(specials, numbered) {
+    const selectedPorts = this._configuredCustomSpecialPorts();
+    if (!selectedPorts.length) return specials;
+
+    const specialsByPort = new Map(
+      specials
+        .filter((slot) => Number.isInteger(slot?.port))
+        .map((slot) => [slot.port, slot])
+    );
+    const numberedByPort = new Map(
+      numbered
+        .filter((slot) => Number.isInteger(slot?.port))
+        .map((slot) => [slot.port, slot])
+    );
+
+    const merged = [...specials];
+
+    for (const port of selectedPorts) {
+      if (specialsByPort.has(port)) continue;
+      const numberedSlot = numberedByPort.get(port);
+      if (!numberedSlot) continue;
+
+      merged.push({
+        ...numberedSlot,
+        kind: "special",
+        label: numberedSlot.label || String(port),
+      });
+    }
+
+    return merged;
+  }
+
   _buildEffectiveRows(ctx, numbered) {
     const baseRows = (ctx?.layout?.rows || []).map((row) => [...row]);
     const knownPorts = new Set(baseRows.flat());
@@ -1314,15 +1357,16 @@ class UnifiDeviceCard extends HTMLElement {
 
     const ctx = this._ctx;
     const { specials, numbered } = this._buildSlotData(ctx);
+    const allSpecials = this._applyCustomSpecialPorts(specials, numbered);
 
-    const allSlots = [...specials, ...numbered];
+    const allSlots = [...allSpecials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
     const showPanel = this._config?.show_panel !== false;
 
     const specialPortsInUse = new Set(
-      specials
+      allSpecials
         .map((slot) => slot?.port)
         .filter((port) => Number.isInteger(port))
     );
@@ -1330,8 +1374,8 @@ class UnifiDeviceCard extends HTMLElement {
     const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
 
-    const specialRow = specials.length
-      ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
+    const specialRow = allSpecials.length
+      ? `<div class="special-row">${allSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
       : "";
 
     const layoutRows = effectiveRows

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.4.89-dev */
+/* UniFi Device Card 0.0.0-dev.e47e79e */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1993,6 +1993,8 @@ var TRANSLATIONS = {
     editor_panel_toggle_hint: "Enabled by default. Disable to hide the visual front panel.",
     editor_ports_per_row_label: "Ports per row (optional)",
     editor_ports_per_row_hint: "Leave empty for automatic layout. Set a number (for example 4, 6, 8, 12).",
+    editor_custom_special_ports_label: "Special ports (top row)",
+    editor_custom_special_ports_hint: "Multi-select ports to show in the upper special row. Selected ports are removed from the normal grid.",
     editor_port_size_label: "Port size",
     editor_port_size_hint: "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label: "AP size",
@@ -2106,6 +2108,8 @@ var TRANSLATIONS = {
     editor_panel_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
     editor_ports_per_row_hint: "Leer lassen f\xFCr automatisches Layout. Zahl setzen (z. B. 4, 6, 8, 12).",
+    editor_custom_special_ports_label: "Spezial-Ports (obere Reihe)",
+    editor_custom_special_ports_hint: "Mehrfachauswahl f\xFCr Ports in der oberen Spezial-Reihe. Gew\xE4hlte Ports werden aus dem normalen Grid entfernt.",
     editor_port_size_label: "Portgr\xF6\xDFe",
     editor_port_size_hint: "Skaliert die Frontpanel-Portgr\xF6\xDFe f\xFCr Switches und Gateways.",
     editor_ap_scale_label: "AP-Gr\xF6\xDFe",
@@ -2222,6 +2226,8 @@ var TRANSLATIONS = {
     editor_panel_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
     editor_ports_per_row_hint: "Leeg laten voor automatische layout. Stel een getal in (bijv. 4, 6, 8, 12).",
+    editor_custom_special_ports_label: "Speciale poorten (bovenste rij)",
+    editor_custom_special_ports_hint: "Selecteer meerdere poorten voor de speciale bovenste rij. Geselecteerde poorten worden uit het normale raster verwijderd.",
     editor_port_size_label: "Poortgrootte",
     editor_port_size_hint: "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
     editor_ap_scale_label: "AP-grootte",
@@ -2329,6 +2335,8 @@ var TRANSLATIONS = {
     editor_panel_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer la vue visuelle des ports.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
     editor_ports_per_row_hint: "Laissez vide pour la mise en page automatique. D\xE9finissez un nombre (ex. 4, 6, 8, 12).",
+    editor_custom_special_ports_label: "Ports sp\xE9ciaux (ligne du haut)",
+    editor_custom_special_ports_hint: "S\xE9lection multiple de ports pour la ligne sp\xE9ciale sup\xE9rieure. Les ports s\xE9lectionn\xE9s sont retir\xE9s de la grille normale.",
     editor_port_size_label: "Taille des ports",
     editor_port_size_hint: "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
     editor_ap_scale_label: "Taille AP",
@@ -2490,6 +2498,11 @@ function clampApScale(value) {
   if (!Number.isFinite(num)) return 100;
   return Math.min(140, Math.max(60, num));
 }
+function normalizeSpecialPortNumbers(value) {
+  if (!Array.isArray(value)) return [];
+  const normalized = value.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
+  return Array.from(new Set(normalized)).sort((a, b) => a - b);
+}
 var UnifiDeviceCardEditor = class extends HTMLElement {
   constructor() {
     super();
@@ -2618,6 +2631,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
+    next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
+    if (!next.custom_special_ports.length) delete next.custom_special_ports;
     if (next.show_name !== false) delete next.show_name;
     if (next.show_panel !== false) delete next.show_panel;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -2641,7 +2656,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const nextConfig = {
       device_id: deviceId || void 0,
       wan_port: void 0,
-      wan2_port: void 0
+      wan2_port: void 0,
+      custom_special_ports: void 0
     };
     if (!deviceId) {
       nextConfig.name = void 0;
@@ -2699,6 +2715,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     this._emitConfig({
       wan2_port: safeValue === "auto" ? void 0 : safeValue
+    });
+  }
+  _onCustomSpecialPortsChange(ev) {
+    const selected = Array.from(ev.target.selectedOptions || []).map((option) => Number.parseInt(option.value, 10)).filter((num) => Number.isInteger(num) && num > 0);
+    this._emitConfig({
+      custom_special_ports: normalizeSpecialPortNumbers(selected)
     });
   }
   _warningItems() {
@@ -2939,6 +2961,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
+    const selectedCustomSpecialPorts = normalizeSpecialPortNumbers(this._config?.custom_special_ports);
+    const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
+    const customSpecialPortOptions = availablePortSlots.map((slot) => slot?.port).filter((port) => Number.isInteger(port)).sort((a, b) => a - b);
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
@@ -2984,6 +3009,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <select id="custom_special_ports" multiple size="${Math.min(10, Math.max(4, customSpecialPortOptions.length || 4))}">
+            ${customSpecialPortOptions.map((port) => `<option value="${port}" ${selectedCustomSpecialPorts.includes(port) ? "selected" : ""}>Port ${port}</option>`).join("")}
+          </select>
+          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -3035,6 +3068,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
+    this.shadowRoot.getElementById("custom_special_ports")?.addEventListener("change", (ev) => this._onCustomSpecialPortsChange(ev));
     this._restoreFocusState(focusState);
   }
   _patchWarning() {
@@ -3051,7 +3085,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.4.89-dev";
+var VERSION = "0.0.0-dev.e47e79e";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -3332,6 +3366,34 @@ var UnifiDeviceCard = class extends HTMLElement {
       );
     }
     return { specials: specialsRaw, numbered: numberedRaw };
+  }
+  _configuredCustomSpecialPorts() {
+    const configured = this._config?.custom_special_ports;
+    if (!Array.isArray(configured)) return [];
+    const numeric = configured.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
+    return Array.from(new Set(numeric)).sort((a, b) => a - b);
+  }
+  _applyCustomSpecialPorts(specials, numbered) {
+    const selectedPorts = this._configuredCustomSpecialPorts();
+    if (!selectedPorts.length) return specials;
+    const specialsByPort = new Map(
+      specials.filter((slot) => Number.isInteger(slot?.port)).map((slot) => [slot.port, slot])
+    );
+    const numberedByPort = new Map(
+      numbered.filter((slot) => Number.isInteger(slot?.port)).map((slot) => [slot.port, slot])
+    );
+    const merged = [...specials];
+    for (const port of selectedPorts) {
+      if (specialsByPort.has(port)) continue;
+      const numberedSlot = numberedByPort.get(port);
+      if (!numberedSlot) continue;
+      merged.push({
+        ...numberedSlot,
+        kind: "special",
+        label: numberedSlot.label || String(port)
+      });
+    }
+    return merged;
   }
   _buildEffectiveRows(ctx, numbered) {
     const baseRows = (ctx?.layout?.rows || []).map((row) => [...row]);
@@ -4232,17 +4294,18 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     const ctx = this._ctx;
     const { specials, numbered } = this._buildSlotData(ctx);
-    const allSlots = [...specials, ...numbered];
+    const allSpecials = this._applyCustomSpecialPorts(specials, numbered);
+    const allSlots = [...allSpecials, ...numbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
     const showPanel = this._config?.show_panel !== false;
     const specialPortsInUse = new Set(
-      specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
+      allSpecials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
     );
     const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
-    const specialRow = specials.length ? `<div class="special-row">${specials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
+    const specialRow = allSpecials.length ? `<div class="special-row">${allSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
     const layoutRows = effectiveRows.map((rowPorts) => {
       const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key)).join("");
       const cols = Math.max(1, rowPorts.length);

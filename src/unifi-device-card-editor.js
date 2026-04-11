@@ -1,6 +1,7 @@
 import {
   getDeviceContext,
   getRelevantEntityWarningsForDevice,
+  mergePortsWithLayout,
   getUnifiDevices,
 } from "./helpers.js";
 import { t } from "./translations.js";
@@ -105,6 +106,16 @@ function clampApScale(value) {
   const num = Number.parseInt(value, 10);
   if (!Number.isFinite(num)) return 100;
   return Math.min(140, Math.max(60, num));
+}
+
+function normalizeSpecialPortNumbers(value) {
+  if (!Array.isArray(value)) return [];
+
+  const normalized = value
+    .map((entry) => Number.parseInt(entry, 10))
+    .filter((num) => Number.isInteger(num) && num > 0);
+
+  return Array.from(new Set(normalized)).sort((a, b) => a - b);
 }
 
 class UnifiDeviceCardEditor extends HTMLElement {
@@ -255,6 +266,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
     if (!next.wan2_port || next.wan2_port === "auto") delete next.wan2_port;
     if (next.wan2_port === "none") next.wan2_port = "none";
+    next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
+    if (!next.custom_special_ports.length) delete next.custom_special_ports;
     if (next.show_name !== false) delete next.show_name;
     if (next.show_panel !== false) delete next.show_panel;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -282,6 +295,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       device_id: deviceId || undefined,
       wan_port: undefined,
       wan2_port: undefined,
+      custom_special_ports: undefined,
     };
 
     if (!deviceId) {
@@ -355,6 +369,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this._emitConfig({
       wan2_port: safeValue === "auto" ? undefined : safeValue,
+    });
+  }
+
+  _onCustomSpecialPortsChange(ev) {
+    const selected = Array.from(ev.target.selectedOptions || [])
+      .map((option) => Number.parseInt(option.value, 10))
+      .filter((num) => Number.isInteger(num) && num > 0);
+
+    this._emitConfig({
+      custom_special_ports: normalizeSpecialPortNumbers(selected),
     });
   }
 
@@ -647,6 +671,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
+    const selectedCustomSpecialPorts = normalizeSpecialPortNumbers(this._config?.custom_special_ports);
+    const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
+    const customSpecialPortOptions = availablePortSlots
+      .map((slot) => slot?.port)
+      .filter((port) => Number.isInteger(port))
+      .sort((a, b) => a - b);
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -702,6 +732,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <select id="custom_special_ports" multiple size="${Math.min(10, Math.max(4, customSpecialPortOptions.length || 4))}">
+            ${customSpecialPortOptions
+              .map((port) => `<option value="${port}" ${selectedCustomSpecialPorts.includes(port) ? "selected" : ""}>Port ${port}</option>`)
+              .join("")}
+          </select>
+          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -770,6 +810,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("wan2_port")
       ?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
+    this.shadowRoot.getElementById("custom_special_ports")
+      ?.addEventListener("change", (ev) => this._onCustomSpecialPortsChange(ev));
 
     this._restoreFocusState(focusState);
   }
