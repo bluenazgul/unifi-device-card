@@ -818,6 +818,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+        </div>
+
+        <div class="field">
+          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <select id="custom_special_ports" multiple size="${Math.min(10, Math.max(4, customSpecialPortOptions.length || 4))}">
+            ${customSpecialPortOptions
+              .map((port) => `<option value="${port}" ${selectedCustomSpecialPorts.includes(port) ? "selected" : ""}>Port ${port}</option>`)
+              .join("")}
+          </select>
+          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
