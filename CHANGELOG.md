@@ -14,6 +14,9 @@
 - `show_panel: false` now renders switch/gateway frontpanel backgrounds transparent instead of retaining the device color.
 - Editor now shows the AP scale slider only for AP devices, and the port size slider only for switch/gateway devices.
 - AP panel height now scales with the configured AP size so changing `ap_scale` adjusts both device size and AP section height.
+- Added `edit_special_ports` + `special_ports` configuration support for switch/gateway cards, including YAML persistence and editor controls.
+- Moved WAN/WAN2 selector visibility under “Edit special ports” to keep the editor cleaner (WAN roles are treated as part of special-port editing).
+- Replaced multi-select special-port editing with click-to-toggle port chips (no CMD/CTRL modifier needed).
 
 ### 🐛 Bug Fixes
 - Fixed editor warning-message flicker by avoiding repeated warning checks on every Home Assistant state refresh when the selected device did not change.
@@ -24,6 +27,9 @@
 - Added additional AP model/alias detection for `U6 Extender` (`U6EXTENDER`), `U7 In-Wall` (`U7IW`), `U7 LR` (`U7LR`), and `U7 Lite` (`U7LITE`) to improve reliable AP recognition in Home Assistant naming variants.
 - Fixed UniFi device-list filtering so APs (including `U6 Pro`) are no longer dropped when they are linked to the UniFi config entry but expose only weak/partial entity signals.
 - Fixed editor focus handling so text fields and sliders keep focus while typing/dragging instead of losing focus after each config change.
+- Fixed special-port editing so existing special ports are preselected when edit mode is enabled and can be deselected to render as normal ports again.
+- Ensured all ports remain visible exactly once when switching ports between special and numbered areas (no duplicates, no disappearing ports).
+- Ensured setting `wan_port`/`wan2_port` in YAML automatically enables and persists `edit_special_ports`.
 
 ## [v0.4.7] - 2026-04-10
 
