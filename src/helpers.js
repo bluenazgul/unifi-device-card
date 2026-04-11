@@ -86,7 +86,7 @@ const GATEWAY_MODEL_PREFIXES = [
   "UDMPROSE",
 ];
 
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9f1dcd5 */
+/* UniFi Device Card 0.0.0-dev.bec7750 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -908,7 +908,7 @@ var GATEWAY_MODEL_PREFIXES = [
   "UDMPRO",
   "UDMPROSE"
 ];
-var AP_MODEL_PREFIXES2 = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+var AP_MODEL_PREFIXES2 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -3051,7 +3051,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9f1dcd5";
+var VERSION = "0.0.0-dev.bec7750";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
