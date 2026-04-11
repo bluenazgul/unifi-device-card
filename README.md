@@ -94,6 +94,10 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | UAP AC Mesh (`UAPACM`) | AP panel | White |
 | U6+ (`U6PLUS`) | AP panel | White |
 | U6 Mesh (`U6MESH`) | AP panel | White |
+| U6 Extender (`U6EXTENDER`) | AP panel | White |
+| U7 In-Wall (`U7IW`) | AP panel | White |
+| U7 LR (`U7LR`) | AP panel | White |
+| U7 Lite (`U7LITE`) | AP panel | White |
 | Weitere AP-Familien (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) | AP panel | White |
 
 Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
