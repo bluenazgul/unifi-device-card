@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6dcb6c8 */
+/* UniFi Device Card 0.0.0-dev.f1704d1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1047,6 +1047,21 @@ async function safeCallWS(hass, msg, fallback = []) {
 var REGISTRY_CACHE_TTL = 2500;
 var _registryCache = /* @__PURE__ */ new WeakMap();
 var _registryInflight = /* @__PURE__ */ new WeakMap();
+var DEVICE_CONTEXT_CACHE_TTL = 1500;
+var _deviceContextCache = /* @__PURE__ */ new WeakMap();
+var _deviceContextInflight = /* @__PURE__ */ new WeakMap();
+function normalizePortsPerRowForCache(cardConfig) {
+  const raw = Number.parseInt(cardConfig?.ports_per_row, 10);
+  if (!Number.isFinite(raw) || raw < 1) return "";
+  return String(Math.floor(raw));
+}
+function getDeviceContextCacheKey(deviceId, cardConfig) {
+  return `${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
+}
+function getContextCacheStore(map, hass) {
+  if (!map.has(hass)) map.set(hass, /* @__PURE__ */ new Map());
+  return map.get(hass);
+}
 function flattenEntitiesByDevice(map) {
   if (!map || typeof map.values !== "function") return [];
   return Array.from(map.values()).flat();
@@ -1778,7 +1793,7 @@ function filterPortsByLayout(discoveredPorts, layout) {
   if (!allowed.size) return discoveredPorts;
   return discoveredPorts.filter((port) => allowed.has(port.port));
 }
-async function getDeviceContext(hass, deviceId, cardConfig = null) {
+async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const device = devices.find((d) => d.id === deviceId);
@@ -1834,6 +1849,31 @@ async function getDeviceContext(hass, deviceId, cardConfig = null) {
     ...telemetry,
     numberedPorts
   };
+}
+async function getDeviceContext(hass, deviceId, cardConfig = null) {
+  if (!hass || !deviceId) return null;
+  const cacheKey = getDeviceContextCacheKey(deviceId, cardConfig);
+  const now = Date.now();
+  const cacheStore = getContextCacheStore(_deviceContextCache, hass);
+  const cached = cacheStore.get(cacheKey);
+  if (cached && now - cached.ts < DEVICE_CONTEXT_CACHE_TTL) {
+    return cached.data;
+  }
+  const inflightStore = getContextCacheStore(_deviceContextInflight, hass);
+  if (inflightStore.has(cacheKey)) {
+    return inflightStore.get(cacheKey);
+  }
+  const promise = buildDeviceContext(hass, deviceId, cardConfig);
+  inflightStore.set(cacheKey, promise);
+  try {
+    const data = await promise;
+    if (data) {
+      cacheStore.set(cacheKey, { ts: Date.now(), data });
+    }
+    return data;
+  } finally {
+    inflightStore.delete(cacheKey);
+  }
 }
 function stateObj(hass, entityId) {
   if (!entityId || !hass?.states) return null;
@@ -3007,7 +3047,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6dcb6c8";
+var VERSION = "0.0.0-dev.f1704d1";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");

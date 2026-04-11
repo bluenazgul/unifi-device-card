@@ -316,6 +316,24 @@ async function safeCallWS(hass, msg, fallback = []) {
 const REGISTRY_CACHE_TTL = 2500;
 const _registryCache = new WeakMap();
 const _registryInflight = new WeakMap();
+const DEVICE_CONTEXT_CACHE_TTL = 1500;
+const _deviceContextCache = new WeakMap();
+const _deviceContextInflight = new WeakMap();
+
+function normalizePortsPerRowForCache(cardConfig) {
+  const raw = Number.parseInt(cardConfig?.ports_per_row, 10);
+  if (!Number.isFinite(raw) || raw < 1) return "";
+  return String(Math.floor(raw));
+}
+
+function getDeviceContextCacheKey(deviceId, cardConfig) {
+  return `${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
+}
+
+function getContextCacheStore(map, hass) {
+  if (!map.has(hass)) map.set(hass, new Map());
+  return map.get(hass);
+}
 
 function flattenEntitiesByDevice(map) {
   if (!map || typeof map.values !== "function") return [];
@@ -1455,7 +1473,7 @@ function filterPortsByLayout(discoveredPorts, layout) {
   return discoveredPorts.filter((port) => allowed.has(port.port));
 }
 
-export async function getDeviceContext(hass, deviceId, cardConfig = null) {
+async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
@@ -1528,6 +1546,37 @@ export async function getDeviceContext(hass, deviceId, cardConfig = null) {
     ...telemetry,
     numberedPorts,
   };
+}
+
+export async function getDeviceContext(hass, deviceId, cardConfig = null) {
+  if (!hass || !deviceId) return null;
+
+  const cacheKey = getDeviceContextCacheKey(deviceId, cardConfig);
+  const now = Date.now();
+
+  const cacheStore = getContextCacheStore(_deviceContextCache, hass);
+  const cached = cacheStore.get(cacheKey);
+  if (cached && now - cached.ts < DEVICE_CONTEXT_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const inflightStore = getContextCacheStore(_deviceContextInflight, hass);
+  if (inflightStore.has(cacheKey)) {
+    return inflightStore.get(cacheKey);
+  }
+
+  const promise = buildDeviceContext(hass, deviceId, cardConfig);
+  inflightStore.set(cacheKey, promise);
+
+  try {
+    const data = await promise;
+    if (data) {
+      cacheStore.set(cacheKey, { ts: Date.now(), data });
+    }
+    return data;
+  } finally {
+    inflightStore.delete(cacheKey);
+  }
 }
 
 // ─────────────────────────────────────────────────
