@@ -150,7 +150,31 @@ type: custom:unifi-device-card
 device_id: YOUR_DEVICE_ID
 name: My Switch
 background_color: "#1f2937"   # optional
+background_opacity: 85        # optional (0-100)
+show_name: true               # optional (default: true)
+show_panel: true              # optional (default: true)
+ports_per_row: 8              # optional (switches only)
+port_size: 36                 # optional (switch/gateway front panel scale in px)
+ap_scale: 100                 # optional (AP size in %, 60-140)
+wan_port: auto                # optional (gateway only)
+wan2_port: none               # optional (gateway only)
 ```
+
+### Configuration options
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `device_id` | string | — | Home Assistant device registry ID of the UniFi device. |
+| `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
+| `show_name` | boolean | `true` | Show/hide the header title line. |
+| `background_color` | string | `var(--card-background-color)` | Any valid CSS color/token. |
+| `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
+| `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
+| `ports_per_row` | number | auto | Optional row width override for switch layouts. |
+| `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
+| `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |
+| `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
+| `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
 
 ## Troubleshooting
 
