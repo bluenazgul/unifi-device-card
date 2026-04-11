@@ -35,6 +35,24 @@ class UnifiDeviceCard extends HTMLElement {
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
+    this._resizeObserver = null;
+    this._lastMeasuredWidth = 0;
+  }
+
+  connectedCallback() {
+    if (this._resizeObserver) return;
+    this._resizeObserver = new ResizeObserver(() => {
+      const nextWidth = this._measuredCardWidth();
+      if (Math.abs(nextWidth - this._lastMeasuredWidth) < 1) return;
+      this._lastMeasuredWidth = nextWidth;
+      this._render();
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  disconnectedCallback() {
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
   }
 
   setConfig(config) {
@@ -118,8 +136,16 @@ class UnifiDeviceCard extends HTMLElement {
     return configured;
   }
 
+  _measuredCardWidth() {
+    const hostWidth = this.getBoundingClientRect?.().width || this.offsetWidth || 0;
+    if (hostWidth > 0) return hostWidth;
+    const cardWidth = this.shadowRoot?.querySelector("ha-card")?.getBoundingClientRect?.().width || 0;
+    if (cardWidth > 0) return cardWidth;
+    return this.parentElement?.getBoundingClientRect?.().width || 0;
+  }
+
   _maxFittableColumns() {
-    const hostWidth = this.getBoundingClientRect?.().width || 0;
+    const hostWidth = this._measuredCardWidth();
     if (!hostWidth) return Infinity;
 
     const portSize = this._portSize();
