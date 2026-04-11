@@ -1,3 +1,4 @@
+//unifi-device-card-editor.js
 import {
   getDeviceContext,
   getRelevantEntityWarningsForDevice,

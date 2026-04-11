@@ -249,6 +249,7 @@ export function getDeviceType(device, entities = []) {
 
     if (
       model.includes("uap") ||
+      model.includes("uac") ||
       model.includes("u6") ||
       model.includes("u7") ||
       model.includes("ap") ||
