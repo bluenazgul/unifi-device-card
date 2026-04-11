@@ -82,7 +82,7 @@ const GATEWAY_MODEL_PREFIXES = [
   "UDMPROSE",
 ];
 
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+const AP_MODEL_PREFIXES = ["UAP", "UAC" "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -245,6 +245,7 @@ export function getDeviceType(device, entities = []) {
 
     if (
       model.includes("uap") ||
+      model.includes("uac") ||
       model.includes("u6") ||
       model.includes("u7") ||
       model.includes("ap") ||
