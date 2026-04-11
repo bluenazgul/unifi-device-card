@@ -38,6 +38,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loadedDeviceId = null;
     this._resizeObserver = null;
     this._lastMeasuredWidth = 0;
+    this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
   }
 
@@ -119,7 +120,16 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _finalizeRender() {
-    requestAnimationFrame(() => this._updateCardSize());
+    requestAnimationFrame(() => {
+      this._updateCardSize();
+
+      const panelWidth = this._measuredFrontPanelContentWidth();
+      if (panelWidth <= 0) return;
+      if (Math.abs(panelWidth - this._lastMeasuredPanelWidth) < 1) return;
+
+      this._lastMeasuredPanelWidth = panelWidth;
+      this._render();
+    });
   }
 
   _t(key) {

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.4.87-dev */
+/* UniFi Device Card 0.0.0-dev.34bb968 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3051,7 +3051,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.4.87-dev";
+var VERSION = "0.0.0-dev.34bb968";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -3071,6 +3071,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loadedDeviceId = null;
     this._resizeObserver = null;
     this._lastMeasuredWidth = 0;
+    this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
   }
   connectedCallback() {
@@ -3137,7 +3138,14 @@ var UnifiDeviceCard = class extends HTMLElement {
     this.dispatchEvent(new Event("iron-resize", { bubbles: true, composed: true }));
   }
   _finalizeRender() {
-    requestAnimationFrame(() => this._updateCardSize());
+    requestAnimationFrame(() => {
+      this._updateCardSize();
+      const panelWidth = this._measuredFrontPanelContentWidth();
+      if (panelWidth <= 0) return;
+      if (Math.abs(panelWidth - this._lastMeasuredPanelWidth) < 1) return;
+      this._lastMeasuredPanelWidth = panelWidth;
+      this._render();
+    });
   }
   _t(key) {
     return t(this._hass, key);
