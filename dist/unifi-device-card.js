@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.065d51d */
+/* UniFi Device Card 0.0.0-dev.0468a22 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2957,7 +2957,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.065d51d";
+var VERSION = "0.0.0-dev.0468a22";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3385,20 +3385,6 @@ var UnifiDeviceCard = class extends HTMLElement {
         --udc-rsm: 8px;
         --udc-port-size: 36px;
         --udc-ap-scale: 1;
-      }
-
-      ha-card {
-        background: var(--udc-card-bg, var(--card-background-color)) !important;
-        color: var(--primary-text-color, var(--udc-text)) !important;
-        border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--udc-border)) !important;
-        border-radius: var(--ha-card-border-radius, var(--udc-r)) !important;
-        box-shadow: var(--ha-card-box-shadow, none);
-        overflow: hidden;
-        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-      }
-
-      ha-card.ap-card {
-        background: var(--udc-card-bg, var(--card-background-color)) !important;
       }
 
       .header {
