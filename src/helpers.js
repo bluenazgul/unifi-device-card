@@ -482,11 +482,41 @@ function findDeviceEntityByPatterns(entities, patterns = []) {
   return null;
 }
 
+function isPortLevelTelemetrySensor(entityId) {
+  const id = lower(entityId);
+  return (
+    id.includes("_port_") ||
+    id.includes("_wan_") ||
+    id.includes("link_speed") ||
+    id.includes("_rx") ||
+    id.includes("_tx") ||
+    id.includes("throughput")
+  );
+}
+
+function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+    if (isPortLevelTelemetrySensor(id)) continue;
+    if (!includePatterns.some((pattern) => id.includes(pattern))) continue;
+    if (excludePatterns.some((pattern) => id.includes(pattern))) continue;
+    return entity.entity_id;
+  }
+  return null;
+}
+
 export function getDeviceTelemetry(entities) {
   return {
-    cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]),
-    cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]),
-    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]),
+    cpu_utilization_entity:
+      findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
+      findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
+    cpu_temperature_entity:
+      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]) ||
+      findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
+    memory_utilization_entity:
+      findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
+      findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
   };
 }
 
