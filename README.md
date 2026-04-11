@@ -1,10 +1,12 @@
 # UniFi Device Card
 
 
-<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/29216dc3ed95c7a143f5230742f15ecb4f57626b/screenshots/Screenshot%20USW-Lite-16-PoE.png" />
-<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20Editor.png" />
-<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20UCG-U.png" />
-<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/main/screenshots/Screenshot%20US8-60W.png" />
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20Config%201.png" />
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20Config%202.png" />
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenhot%20Config%203.png" />
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20UCG-U-with_Panel.png" />
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20USW-Lite-16-PoE-wihtout_Panel.png" />
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenhot%20AP.png" />
 
 
 A Home Assistant Lovelace custom card for UniFi switches, gateways, and access points — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
