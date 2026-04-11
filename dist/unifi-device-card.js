@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f8c4389 */
+/* UniFi Device Card 0.0.0-dev.98db8e1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2926,6 +2926,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${this._t("editor_name_hint")}</div>
         </div>
 
+        ${isSwitchOrGateway ? `
         <div class="field">
           <label>${this._t("editor_panel_toggle_label")}</label>
           <label class="checkbox-row">
@@ -2939,7 +2940,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
-        </div>
+        </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -3006,7 +3007,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.f8c4389";
+var VERSION = "0.0.0-dev.98db8e1";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3434,6 +3435,12 @@ var UnifiDeviceCard = class extends HTMLElement {
         --udc-rsm: 8px;
         --udc-port-size: 36px;
         --udc-ap-scale: 1;
+      }
+
+      ha-card {
+        background: var(--udc-card-bg, var(--ha-card-background, var(--card-background-color)));
+        border-radius: var(--ha-card-border-radius, 12px);
+        overflow: hidden;
       }
 
       .header {
