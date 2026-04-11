@@ -15,6 +15,9 @@
 ### 🐛 Bug Fixes
 - Fixed editor warning-message flicker by avoiding repeated warning checks on every Home Assistant state refresh when the selected device did not change.
 - Ensured `ports_per_row` layout overrides are applied consistently in both card rendering and editor context loading.
+- Added model alias detection for `USWED35` so it resolves to `USW Flex Mini 2.5G` (`USWFLEX25G5`) instead of a generic switch.
+- Improved front-panel sizing behavior so default port size no longer forces overly wide layouts on narrow cards (auto-fit applies when `port_size` is not explicitly set; explicit slider/YAML values keep their exact size).
+- Added row-cap fallback on narrow cards: when configured columns do not fit, rows are repacked to the maximum visible column count so ports stay fully visible without horizontal scrolling.
 
 ## [v0.4.7] - 2026-04-10
 

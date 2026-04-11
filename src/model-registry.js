@@ -726,6 +726,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWFLEXMINI"))        return "USMINI";
     if (candidate === "USWFLEX25G5")              return "USWFLEX25G5";
     if (candidate.includes("USWFLEX25G5"))        return "USWFLEX25G5";
+    if (candidate.includes("USWED35"))            return "USWFLEX25G5";
     if (candidate.includes("FLEX25G5"))           return "USWFLEX25G5";
     if (candidate.includes("SWITCHFLEXMINI25G"))  return "USWFLEX25G5";
     if (candidate === "USWFLEX25G8POE")           return "USWFLEX25G8POE";
@@ -791,7 +792,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("US8P60")   || text.includes("US860W")  || text.includes("USC8")) return 8;
   if (text.includes("US8P150"))                                                       return 10;
   if (text.includes("USMINI")   || text.includes("FLEXMINI"))                        return 5;
-  if (text.includes("USWFLEX25G5") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
+  if (text.includes("USWFLEX25G5") || text.includes("USWED35") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P")    || text.includes("USWFLEX"))                         return 5;
 
