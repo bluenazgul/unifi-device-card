@@ -355,47 +355,64 @@ class UnifiDeviceCard extends HTMLElement {
     return { specials: specialsRaw, numbered: numberedRaw };
   }
 
-  _configuredCustomSpecialPorts() {
-    const configured = this._config?.custom_special_ports;
-    if (!Array.isArray(configured)) return [];
-
-    const numeric = configured
+  _normalizePortList(value) {
+    if (!Array.isArray(value)) return [];
+    const numeric = value
       .map((entry) => Number.parseInt(entry, 10))
       .filter((num) => Number.isInteger(num) && num > 0);
-
     return Array.from(new Set(numeric)).sort((a, b) => a - b);
   }
 
-  _applyCustomSpecialPorts(specials, numbered) {
-    const selectedPorts = this._configuredCustomSpecialPorts();
-    if (!selectedPorts.length) return specials;
+  _applySpecialPortSelection(specials, numbered) {
+    const specialPortDefaults = specials
+      .map((slot) => slot?.port)
+      .filter((port) => Number.isInteger(port));
+    const hasEditMode = this._config?.edit_special_ports === true;
 
-    const specialsByPort = new Map(
-      specials
-        .filter((slot) => Number.isInteger(slot?.port))
-        .map((slot) => [slot.port, slot])
-    );
+    const selectedPorts = hasEditMode
+      ? (Array.isArray(this._config?.special_ports)
+          ? this._normalizePortList(this._config?.special_ports)
+          : this._normalizePortList(specialPortDefaults))
+      : this._normalizePortList([
+          ...specialPortDefaults,
+          ...this._normalizePortList(this._config?.custom_special_ports),
+        ]);
+
+    const allByPort = new Map();
+    for (const slot of [...specials, ...numbered]) {
+      if (!Number.isInteger(slot?.port) || allByPort.has(slot.port)) continue;
+      allByPort.set(slot.port, slot);
+    }
+
+    const selectedSet = new Set(selectedPorts);
+    const nextSpecials = selectedPorts
+      .map((port) => allByPort.get(port))
+      .filter(Boolean)
+      .map((slot) => ({ ...slot, kind: "special", label: slot.label || String(slot.port) }));
+
     const numberedByPort = new Map(
       numbered
         .filter((slot) => Number.isInteger(slot?.port))
         .map((slot) => [slot.port, slot])
     );
 
-    const merged = [...specials];
+    const nextNumbered = numbered
+      .filter((slot) => !selectedSet.has(slot.port))
+      .map((slot) => ({ ...slot, kind: "numbered", label: slot.label || String(slot.port) }));
 
-    for (const port of selectedPorts) {
-      if (specialsByPort.has(port)) continue;
-      const numberedSlot = numberedByPort.get(port);
-      if (!numberedSlot) continue;
-
-      merged.push({
-        ...numberedSlot,
-        kind: "special",
-        label: numberedSlot.label || String(port),
+    for (const slot of specials) {
+      if (!Number.isInteger(slot?.port) || selectedSet.has(slot.port)) continue;
+      if (numberedByPort.has(slot.port)) continue;
+      nextNumbered.push({
+        ...slot,
+        key: `port-${slot.port}`,
+        kind: "numbered",
+        label: String(slot.port),
       });
     }
 
-    return merged;
+    nextNumbered.sort((a, b) => (a.port || 0) - (b.port || 0));
+    return { specials: nextSpecials, numbered: nextNumbered };
   }
 
   _buildEffectiveRows(ctx, numbered) {
@@ -1356,10 +1373,13 @@ class UnifiDeviceCard extends HTMLElement {
     }
 
     const ctx = this._ctx;
-    const { specials, numbered } = this._buildSlotData(ctx);
-    const allSpecials = this._applyCustomSpecialPorts(specials, numbered);
+    const slotData = this._buildSlotData(ctx);
+    const { specials: allSpecials, numbered: normalizedNumbered } = this._applySpecialPortSelection(
+      slotData.specials,
+      slotData.numbered
+    );
 
-    const allSlots = [...allSpecials, ...numbered];
+    const allSlots = [...allSpecials, ...normalizedNumbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const theme = ctx?.layout?.theme || "dark";
@@ -1371,7 +1391,7 @@ class UnifiDeviceCard extends HTMLElement {
         .filter((port) => Number.isInteger(port))
     );
 
-    const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
+    const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
 
     const specialRow = allSpecials.length

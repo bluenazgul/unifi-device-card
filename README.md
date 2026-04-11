@@ -160,6 +160,8 @@ show_panel: true              # optional (default: true)
 ports_per_row: 8              # optional (switches only)
 port_size: 36                 # optional (switch/gateway front panel scale in px)
 ap_scale: 100                 # optional (AP size in %, 60-140)
+edit_special_ports: false     # optional (switch/gateway only)
+special_ports: [1, 2, 9]      # optional (switch/gateway only)
 wan_port: auto                # optional (gateway only)
 wan2_port: none               # optional (gateway only)
 ```
@@ -177,8 +179,12 @@ wan2_port: none               # optional (gateway only)
 | `ports_per_row` | number | auto | Optional row width override for switch layouts. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |
+| `edit_special_ports` | boolean | `false` | Switch/Gateway only: enables WAN/WAN2 selectors and manual special-port editing in the UI/editor. |
+| `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
 | `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
+
+> If `wan_port` or `wan2_port` is set in YAML, `edit_special_ports` is automatically treated as enabled in the editor and persisted.
 
 ## Troubleshooting
 
