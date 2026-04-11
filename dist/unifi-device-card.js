@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.498e628 */
+/* UniFi Device Card 0.0.0-dev.04ba186 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3051,7 +3051,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.498e628";
+var VERSION = "0.0.0-dev.04ba186";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4381,7 +4381,7 @@ window.customCards.push({
   name: "UniFi Device Card",
   description: `Lovelace card for UniFi devices (v${VERSION}).`,
   preview: true,
-  documentationURL: "https://github.com/bacco007/unifi-device-card"
+  documentationURL: "https://github.com/bluenazgul/unifi-device-card"
 });
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;

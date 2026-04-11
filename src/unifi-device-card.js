@@ -1498,7 +1498,7 @@ window.customCards.push({
   name: "UniFi Device Card",
   description: `Lovelace card for UniFi devices (v${VERSION}).`,
   preview: true,
-  documentationURL: "https://github.com/bacco007/unifi-device-card",
+  documentationURL: "https://github.com/bluenazgul/unifi-device-card",
 });
 
 if (!window[DEV_LOG_FLAG]) {
