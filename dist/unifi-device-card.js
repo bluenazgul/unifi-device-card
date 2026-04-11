@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.4.93-dev */
+/* UniFi Device Card 0.0.0-dev.70dd936 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1014,7 +1014,7 @@ function getDeviceType(device, entities = []) {
     if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usc8") || name.includes("switch")) {
       return "switch";
     }
-    if (model.includes("uap") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || model.includes("enterprise") || name.includes("access point") || name.includes("ap ")) {
+    if (model.includes("uap") || model.includes("uac") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || model.includes("enterprise") || name.includes("access point") || name.includes("ap ")) {
       return "access_point";
     }
     if (!hasPorts) return "access_point";
@@ -3177,7 +3177,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.4.93-dev";
+var VERSION = "0.0.0-dev.70dd936";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
