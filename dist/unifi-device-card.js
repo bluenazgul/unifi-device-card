@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.5af7cd0 */
+/* UniFi Device Card 0.0.0-dev.75276f6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3192,7 +3192,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.5af7cd0";
+var VERSION = "0.0.0-dev.75276f6";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -3722,6 +3722,8 @@ var UnifiDeviceCard = class extends HTMLElement {
         background: var(--udc-card-bg, var(--ha-card-background, var(--card-background-color)));
         border-radius: var(--ha-card-border-radius, 12px);
         overflow: hidden;
+        position: relative;
+        isolation: isolate;
       }
 
       .header {
@@ -3841,6 +3843,9 @@ var UnifiDeviceCard = class extends HTMLElement {
         display: grid;
         gap: 3px;
         border-bottom: 1px solid var(--udc-border);
+        position: relative;
+        z-index: 0;
+        overflow: hidden;
       }
 
       .frontpanel.theme-white { background: #d6d6d9; }
@@ -4023,6 +4028,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           inset 0 1px 0 rgba(255,255,255,.05),
           inset 0 -1px 0 rgba(0,0,0,.45);
         overflow: hidden;
+        z-index: 0;
       }
 
       .rj45-shell-top {
@@ -4066,11 +4072,13 @@ var UnifiDeviceCard = class extends HTMLElement {
       .rj45-led {
         position: absolute;
         bottom: 1px;
-        height: 5px;
+        height: 4px;
         border-radius: 0;
-        background: #868b93;
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
-        z-index: 5;
+        background: linear-gradient(180deg, #9ea3ab 0%, #767c85 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.16),
+          inset 0 -1px 0 rgba(0,0,0,.28);
+        z-index: 1;
       }
 
       .rj45-led.left {
@@ -4086,17 +4094,19 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .rj45-led.orange {
-        background: #efb21a;
+        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
         box-shadow:
-          0 0 4px rgba(239,178,26,.75),
-          inset 0 -1px 0 rgba(0,0,0,.18);
+          0 0 2px rgba(239,178,26,.42),
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
       .rj45-led.green {
-        background: #33d35d;
+        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
         box-shadow:
-          0 0 4px rgba(51,211,93,.75),
-          inset 0 -1px 0 rgba(0,0,0,.18);
+          0 0 2px rgba(51,211,93,.42),
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
       .rj45-led.off {
@@ -4134,24 +4144,28 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .sfp-top-led {
         width: 16px;
-        height: 5px;
+        height: 4px;
         border-radius: 0;
-        background: #8a8e95;
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,.25);
+        background: linear-gradient(180deg, #9ea3ab 0%, #767c85 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.16),
+          inset 0 -1px 0 rgba(0,0,0,.28);
       }
 
       .sfp-top-led.orange {
-        background: #efb21a;
+        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
         box-shadow:
-          0 0 4px rgba(239,178,26,.75),
-          inset 0 -1px 0 rgba(0,0,0,.18);
+          0 0 2px rgba(239,178,26,.42),
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
       .sfp-top-led.green {
-        background: #33d35d;
+        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
         box-shadow:
-          0 0 4px rgba(51,211,93,.75),
-          inset 0 -1px 0 rgba(0,0,0,.18);
+          0 0 2px rgba(51,211,93,.42),
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
       .sfp-top-led.off {
@@ -4163,6 +4177,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         position: relative;
         width: calc(var(--udc-port-size) - 2px);
         height: var(--udc-port-size);
+        z-index: 0;
       }
 
       .sfp-frame {
@@ -4247,6 +4262,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       .section {
         padding: 12px 14px 14px;
         background: var(--udc-chrome-bg, transparent);
+        position: relative;
+        z-index: 1;
       }
 
       .detail-title {
