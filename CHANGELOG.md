@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### ⚠️ Breaking / behavior change
+- Updated 16-port and 24-port default front-panel row layouts to contiguous ordering (16p: `1-8 / 9-16`, 24p: `1-8 / 9-16 / 17-24`). Existing cards keep working, but visual port placement changed compared to previous odd/even and 4×6 layouts.
+
+### ✨ Improvements
+- Added editor controls for front panel visibility and ports-per-row override, so these values are written to card YAML config.
+- Updated fallback and known 24-port switch layouts to use the 3×8 front-panel arrangement.
+- Added editor sliders for `port_size` (switch/gateway) and `ap_scale` (AP mode), both persisted to YAML config.
+- Unified special and numbered switch/gateway port visual size so both use the same base port size.
+- Reduced AP panel top/bottom spacing and kept AP visual centered with scalable AP size.
+
+### 🐛 Bug Fixes
+- Fixed editor warning-message flicker by avoiding repeated warning checks on every Home Assistant state refresh when the selected device did not change.
+- Ensured `ports_per_row` layout overrides are applied consistently in both card rendering and editor context loading.
+
 ## [v0.4.7] - 2026-04-10
 
 ### ✨ Improvements
