@@ -596,6 +596,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._rendered = true;
 
     const deviceValue = this._config?.device_id || "";
+    const selectedDevice = this._devices.find((d) => d.id === deviceValue) || null;
+    const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
+    const isApDevice = selectedType === "access_point";
+    const isSwitchOrGateway = selectedType === "switch" || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
@@ -660,17 +664,19 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
         </div>
 
+        ${isSwitchOrGateway ? `
         <div class="field">
           <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
           <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
           <div class="hint">${this._t("editor_port_size_hint")}</div>
-        </div>
+        </div>` : ""}
 
+        ${isApDevice ? `
         <div class="field">
           <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
           <input id="ap_scale" type="range" min="60" max="140" step="1" value="${apScale}">
           <div class="hint">${this._t("editor_ap_scale_hint")}</div>
-        </div>
+        </div>` : ""}
 
         ${this._gatewayControlsHTML()}
 

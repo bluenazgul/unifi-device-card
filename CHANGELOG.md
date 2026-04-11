@@ -18,6 +18,9 @@
 - Added model alias detection for `USWED35` so it resolves to `USW Flex Mini 2.5G` (`USWFLEX25G5`) instead of a generic switch.
 - Improved front-panel sizing behavior so default port size no longer forces overly wide layouts on narrow cards (auto-fit applies when `port_size` is not explicitly set; explicit slider/YAML values keep their exact size).
 - Added row-cap fallback on narrow cards: when configured columns do not fit, rows are repacked to the maximum visible column count so ports stay fully visible without horizontal scrolling.
+- Fixed `show_panel: false` rendering for switch/gateway so frontpanel background becomes transparent instead of staying in device color.
+- Editor now shows the AP scale slider only for AP devices, and the port size slider only for switch/gateway devices.
+- AP panel height now scales with the configured AP size so changing `ap_scale` adjusts both device size and AP section height.
 
 ## [v0.4.7] - 2026-04-10
 
