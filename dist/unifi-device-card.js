@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.447fa3e */
+/* UniFi Device Card 0.0.0-dev.5d38bd1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3047,7 +3047,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.447fa3e";
+var VERSION = "0.0.0-dev.5d38bd1";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3064,6 +3064,22 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
+    this._resizeObserver = null;
+    this._lastMeasuredWidth = 0;
+  }
+  connectedCallback() {
+    if (this._resizeObserver) return;
+    this._resizeObserver = new ResizeObserver(() => {
+      const nextWidth = this._measuredCardWidth();
+      if (Math.abs(nextWidth - this._lastMeasuredWidth) < 1) return;
+      this._lastMeasuredWidth = nextWidth;
+      this._render();
+    });
+    this._resizeObserver.observe(this);
+  }
+  disconnectedCallback() {
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
   }
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
@@ -3132,8 +3148,15 @@ var UnifiDeviceCard = class extends HTMLElement {
     const configured = this._portSize();
     return configured;
   }
+  _measuredCardWidth() {
+    const hostWidth = this.getBoundingClientRect?.().width || this.offsetWidth || 0;
+    if (hostWidth > 0) return hostWidth;
+    const cardWidth = this.shadowRoot?.querySelector("ha-card")?.getBoundingClientRect?.().width || 0;
+    if (cardWidth > 0) return cardWidth;
+    return this.parentElement?.getBoundingClientRect?.().width || 0;
+  }
   _maxFittableColumns() {
-    const hostWidth = this.getBoundingClientRect?.().width || 0;
+    const hostWidth = this._measuredCardWidth();
     if (!hostWidth) return Infinity;
     const portSize = this._portSize();
     const horizontalPadding = 40;
