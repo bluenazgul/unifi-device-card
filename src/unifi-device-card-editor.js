@@ -138,36 +138,6 @@ function collectDefaultSpecialPorts(layout) {
   ).sort((a, b) => a - b);
 }
 
-function normalizeSpecialPortNumbers(value) {
-  if (!Array.isArray(value)) return [];
-
-  const normalized = value
-    .map((entry) => Number.parseInt(entry, 10))
-    .filter((num) => Number.isInteger(num) && num > 0);
-
-  return Array.from(new Set(normalized)).sort((a, b) => a - b);
-}
-
-function collectLayoutPorts(layout) {
-  if (!layout) return [];
-  const numbered = (layout.rows || []).flat().filter((port) => Number.isInteger(port) && port > 0);
-  const specials = (layout.specialSlots || [])
-    .map((slot) => slot?.port)
-    .filter((port) => Number.isInteger(port) && port > 0);
-  return Array.from(new Set([...numbered, ...specials])).sort((a, b) => a - b);
-}
-
-function collectDefaultSpecialPorts(layout) {
-  if (!layout) return [];
-  return Array.from(
-    new Set(
-      (layout.specialSlots || [])
-        .map((slot) => slot?.port)
-        .filter((port) => Number.isInteger(port) && port > 0)
-    )
-  ).sort((a, b) => a - b);
-}
-
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
