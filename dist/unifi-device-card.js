@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4f20623 */
+/* UniFi Device Card 0.0.0-dev.aea6e4c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3047,7 +3047,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4f20623";
+var VERSION = "0.0.0-dev.aea6e4c";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -4342,5 +4342,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-device-card",
   name: "UniFi Device Card",
-  description: "Lovelace card for UniFi switches and gateways."
+  description: "Lovelace card for UniFi Devices."
 });
