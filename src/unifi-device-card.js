@@ -1455,5 +1455,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-device-card",
   name: "UniFi Device Card",
-  description: "Lovelace card for UniFi switches and gateways.",
+  description: "Lovelace card for UniFi Devices.",
 });
