@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a1ba1a7 */
+/* UniFi Device Card 0.0.0-dev.d4b9ac2 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -87,9 +87,13 @@ var MODEL_REGISTRY = {
   U6MESH: apModel("U6 Mesh"),
   U6IW: apModel("U6 In-Wall"),
   U6ENTERPRISE: apModel("U6 Enterprise"),
+  U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall"),
+  U7IW: apModel("U7 In-Wall"),
+  U7LR: apModel("U7 LR"),
+  U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   E7: apModel("E7"),
   UWBXG: apModel("UWB-XG"),
@@ -668,6 +672,13 @@ function resolveModelKey(device) {
     if (candidate.includes("U6LR")) return "U6LR";
     if (candidate.includes("U6LITE")) return "U6LITE";
     if (candidate.includes("U6IW")) return "U6IW";
+    if (candidate.includes("U6EXTENDER")) return "U6EXTENDER";
+    if (candidate.includes("U6EXT")) return "U6EXTENDER";
+    if (candidate.includes("U7IW")) return "U7IW";
+    if (candidate.includes("U7INWALL")) return "U7IW";
+    if (candidate.includes("U7LR")) return "U7LR";
+    if (candidate.includes("U7LITE")) return "U7LITE";
+    if (candidate.includes("U7ULTRA")) return "U7LITE";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
     if (candidate.includes("U7PROMAX")) return "U7PROMAX";
     if (candidate.includes("U7PRO")) return "U7PRO";
@@ -1087,7 +1098,18 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) {
-    return hasInfraSignals || !!resolveModelKey(device);
+    if (hasInfraSignals || !!resolveModelKey(device)) return true;
+    if (modelStartsWith(device, [
+      ...SWITCH_MODEL_PREFIXES,
+      ...GATEWAY_MODEL_PREFIXES,
+      ...AP_MODEL_PREFIXES2
+    ])) {
+      return true;
+    }
+    if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) !== "unknown") {
+      return true;
+    }
+    return false;
   }
   if (resolveModelKey(device)) return true;
   if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES, ...AP_MODEL_PREFIXES2])) {
@@ -2832,8 +2854,34 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       }
     </style>`;
   }
+  _captureFocusState() {
+    if (!this.shadowRoot) return null;
+    const active = this.shadowRoot.activeElement;
+    if (!active || !active.id) return null;
+    const supportsSelection = typeof active.selectionStart === "number" && typeof active.selectionEnd === "number";
+    return {
+      id: active.id,
+      selectionStart: supportsSelection ? active.selectionStart : null,
+      selectionEnd: supportsSelection ? active.selectionEnd : null,
+      selectionDirection: supportsSelection ? active.selectionDirection : null
+    };
+  }
+  _restoreFocusState(focusState) {
+    if (!focusState || !this.shadowRoot) return;
+    const nextEl = this.shadowRoot.getElementById(focusState.id);
+    if (!nextEl || typeof nextEl.focus !== "function") return;
+    nextEl.focus({ preventScroll: true });
+    if (typeof nextEl.setSelectionRange === "function" && focusState.selectionStart != null && focusState.selectionEnd != null) {
+      nextEl.setSelectionRange(
+        focusState.selectionStart,
+        focusState.selectionEnd,
+        focusState.selectionDirection || "none"
+      );
+    }
+  }
   _render() {
     this._rendered = true;
+    const focusState = this._captureFocusState();
     const deviceValue = this._config?.device_id || "";
     const selectedDevice = this._devices.find((d) => d.id === deviceValue) || null;
     const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
@@ -2942,6 +2990,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
+    this._restoreFocusState(focusState);
   }
   _patchWarning() {
     if (!this._rendered || !this.shadowRoot) return;
@@ -2957,7 +3006,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a1ba1a7";
+var VERSION = "0.0.0-dev.d4b9ac2";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");

@@ -123,9 +123,13 @@ export const MODEL_REGISTRY = {
   U6MESH: apModel("U6 Mesh"),
   U6IW: apModel("U6 In-Wall"),
   U6ENTERPRISE: apModel("U6 Enterprise"),
+  U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall"),
+  U7IW: apModel("U7 In-Wall"),
+  U7LR: apModel("U7 LR"),
+  U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   E7: apModel("E7"),
   UWBXG: apModel("UWB-XG"),
@@ -642,6 +646,13 @@ export function resolveModelKey(device) {
     if (candidate.includes("U6LR"))               return "U6LR";
     if (candidate.includes("U6LITE"))             return "U6LITE";
     if (candidate.includes("U6IW"))               return "U6IW";
+    if (candidate.includes("U6EXTENDER"))         return "U6EXTENDER";
+    if (candidate.includes("U6EXT"))              return "U6EXTENDER";
+    if (candidate.includes("U7IW"))               return "U7IW";
+    if (candidate.includes("U7INWALL"))           return "U7IW";
+    if (candidate.includes("U7LR"))               return "U7LR";
+    if (candidate.includes("U7LITE"))             return "U7LITE";
+    if (candidate.includes("U7ULTRA"))            return "U7LITE";
     if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
     if (candidate.includes("U7PROMAX"))           return "U7PROMAX";
     if (candidate.includes("U7PRO"))              return "U7PRO";

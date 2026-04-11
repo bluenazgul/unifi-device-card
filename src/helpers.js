@@ -385,7 +385,23 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     Array.isArray(device?.config_entries) &&
     device.config_entries.some((id) => unifiEntryIds.has(id))
   ) {
-    return hasInfraSignals || !!resolveModelKey(device);
+    if (hasInfraSignals || !!resolveModelKey(device)) return true;
+
+    if (
+      modelStartsWith(device, [
+        ...SWITCH_MODEL_PREFIXES,
+        ...GATEWAY_MODEL_PREFIXES,
+        ...AP_MODEL_PREFIXES,
+      ])
+    ) {
+      return true;
+    }
+
+    if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) !== "unknown") {
+      return true;
+    }
+
+    return false;
   }
 
   if (resolveModelKey(device)) return true;

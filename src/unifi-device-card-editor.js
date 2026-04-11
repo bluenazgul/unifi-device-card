@@ -592,8 +592,47 @@ class UnifiDeviceCardEditor extends HTMLElement {
     </style>`;
   }
 
+  _captureFocusState() {
+    if (!this.shadowRoot) return null;
+    const active = this.shadowRoot.activeElement;
+    if (!active || !active.id) return null;
+
+    const supportsSelection =
+      typeof active.selectionStart === "number" &&
+      typeof active.selectionEnd === "number";
+
+    return {
+      id: active.id,
+      selectionStart: supportsSelection ? active.selectionStart : null,
+      selectionEnd: supportsSelection ? active.selectionEnd : null,
+      selectionDirection: supportsSelection ? active.selectionDirection : null,
+    };
+  }
+
+  _restoreFocusState(focusState) {
+    if (!focusState || !this.shadowRoot) return;
+
+    const nextEl = this.shadowRoot.getElementById(focusState.id);
+    if (!nextEl || typeof nextEl.focus !== "function") return;
+
+    nextEl.focus({ preventScroll: true });
+
+    if (
+      typeof nextEl.setSelectionRange === "function" &&
+      focusState.selectionStart != null &&
+      focusState.selectionEnd != null
+    ) {
+      nextEl.setSelectionRange(
+        focusState.selectionStart,
+        focusState.selectionEnd,
+        focusState.selectionDirection || "none"
+      );
+    }
+  }
+
   _render() {
     this._rendered = true;
+    const focusState = this._captureFocusState();
 
     const deviceValue = this._config?.device_id || "";
     const selectedDevice = this._devices.find((d) => d.id === deviceValue) || null;
@@ -730,6 +769,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("wan2_port")
       ?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
+
+    this._restoreFocusState(focusState);
   }
 
   _patchWarning() {
