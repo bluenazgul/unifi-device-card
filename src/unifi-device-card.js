@@ -181,14 +181,30 @@ class UnifiDeviceCard extends HTMLElement {
     return this.parentElement?.getBoundingClientRect?.().width || 0;
   }
 
-  _maxFittableColumns() {
-    const hostWidth = this._measuredCardWidth();
-    if (!hostWidth) return Infinity;
+  _measuredFrontPanelContentWidth() {
+    const frontPanel = this.shadowRoot?.querySelector(".frontpanel");
+    if (!frontPanel) return 0;
 
+    const panelWidth = frontPanel.getBoundingClientRect?.().width || frontPanel.clientWidth || 0;
+    if (panelWidth <= 0) return 0;
+
+    const computed = getComputedStyle(frontPanel);
+    const paddingLeft = Number.parseFloat(computed.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(computed.paddingRight) || 0;
+    return Math.max(0, panelWidth - paddingLeft - paddingRight);
+  }
+
+  _maxFittableColumns() {
     const portSize = this._portSize();
+    const panelContentWidth = this._measuredFrontPanelContentWidth();
+    const hostWidth = this._measuredCardWidth();
+    if (!panelContentWidth && !hostWidth) return Infinity;
+
     const horizontalPadding = 40;
     const gap = 6;
-    const available = Math.max(180, hostWidth - horizontalPadding);
+    const available = panelContentWidth > 0
+      ? panelContentWidth
+      : Math.max(180, hostWidth - horizontalPadding);
     return Math.max(1, Math.floor((available + gap) / (portSize + gap)));
   }
 
