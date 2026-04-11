@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.4.92-dev */
+/* UniFi Device Card 0.0.0-dev.84dcd69 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2819,6 +2819,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const selectedDevice = this._devices.find((d) => d.id === deviceId) || null;
     const isGateway = this._deviceCtx?.type === "gateway" || selectedDevice?.type === "gateway";
     if (!isGateway) return "";
+    if (!showControls) return "";
     const layout = this._deviceCtx?.layout;
     if (!layout) {
       return `
@@ -2846,7 +2847,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (roleSelectionsConflict(selectedWan, "wan", selectedWan2, "wan2", layout)) {
       selectedWan2 = "none";
     }
-    if (!showControls) return "";
     return `
       <div class="field">
         <label>${this._t("editor_wan_port_label")}</label>
@@ -3089,14 +3089,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
-        </div>
-
-        <div class="field">
-          <label>${this._t("editor_custom_special_ports_label")}</label>
-          <select id="custom_special_ports" multiple size="${Math.min(10, Math.max(4, customSpecialPortOptions.length || 4))}">
-            ${customSpecialPortOptions.map((port) => `<option value="${port}" ${selectedCustomSpecialPorts.includes(port) ? "selected" : ""}>Port ${port}</option>`).join("")}
-          </select>
-          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -3113,8 +3105,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${this._t("editor_ap_scale_hint")}</div>
         </div>` : ""}
 
-        ${this._gatewayControlsHTML(editSpecialPorts)}
-
         ${isSwitchOrGateway ? `
         <div class="field">
           <label class="checkbox-row">
@@ -3125,13 +3115,16 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
 
         ${editSpecialPorts ? `
+        ${this._gatewayControlsHTML(true)}
+
         <div class="field">
           <label>${this._t("editor_custom_special_ports_label")}</label>
           <div id="special_ports_list" class="port-toggle-list">
             ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${port}">Port ${port}</button>`).join("")}
           </div>
           <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
-        </div>` : ""}` : ""}
+        </div>` : ""}
+        ` : ""}
 
         <div class="field">
           <label>${this._t("editor_bg_label")}</label>
@@ -3184,7 +3177,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.4.92-dev";
+var VERSION = "0.0.0-dev.84dcd69";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
