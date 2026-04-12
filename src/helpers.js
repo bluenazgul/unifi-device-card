@@ -1683,8 +1683,8 @@ export function isPortConnected(hass, port) {
 
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {
-    if (speedMbit > 10) return true;
-    if (speedMbit <= 10) return false;
+    if (speedMbit > 0) return true;
+    if (speedMbit <= 0) return false;
   }
 
   const rx = stateValue(hass, port.rx_entity);

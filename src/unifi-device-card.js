@@ -1039,7 +1039,6 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: center;
         padding: 0 0 1px;
         border-radius: 2px;
-        transition: outline .1s ease;
         position: relative;
         min-width: 0;
         border: none;

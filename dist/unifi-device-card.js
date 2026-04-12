@@ -1944,8 +1944,8 @@ function isPortConnected(hass, port) {
   }
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {
-    if (speedMbit > 10) return true;
-    if (speedMbit <= 10) return false;
+    if (speedMbit > 0) return true;
+    if (speedMbit <= 0) return false;
   }
   const rx = stateValue(hass, port.rx_entity);
   const tx = stateValue(hass, port.tx_entity);
@@ -4064,7 +4064,6 @@ var UnifiDeviceCard = class extends HTMLElement {
         align-items: center;
         padding: 0 0 1px;
         border-radius: 2px;
-        transition: outline .1s ease;
         position: relative;
         min-width: 0;
         border: none;
