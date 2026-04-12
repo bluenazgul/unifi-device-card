@@ -129,6 +129,7 @@ export const MODEL_REGISTRY = {
   U7PROWALL: apModel("U7 Pro Wall"),
   U7IW: apModel("U7 In-Wall"),
   U7LR: apModel("U7 LR"),
+  U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   U7PROXG: apModel("U7 Pro XG"),
@@ -772,6 +773,8 @@ export function resolveModelKey(device) {
     if (candidate.includes("U7IW"))               return "U7IW";
     if (candidate.includes("U7INWALL"))           return "U7IW";
     if (candidate.includes("U7LR"))               return "U7LR";
+    if (candidate.includes("U7MSH"))              return "U7MSH";
+    if (candidate.includes("U7MESH"))             return "U7MSH";
     if (candidate.includes("U7LITE"))             return "U7LITE";
     if (candidate.includes("U7ULTRA"))            return "U7LITE";
     if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
@@ -919,12 +922,14 @@ export function resolveModelKey(device) {
     if (candidate.includes("USW16P"))             return "USL16P";
 
     if (candidate === "USL24P")                   return "USL24P";
+    if (candidate === "USL24PB")                  return "USL24P";
     if (candidate === "USL24")                    return "USL24";
     if (candidate.includes("USW24G2"))            return "USL24";
     if (candidate.includes("USW24POE"))           return "USL24P";
     if (candidate.includes("USW24P"))             return "USL24P";
 
     if (candidate === "USL48P")                   return "USL48P";
+    if (candidate === "USL48PB")                  return "USL48P";
     if (candidate === "USL48")                    return "USL48";
     if (candidate.includes("USW48G2"))            return "USL48";
     if (candidate.includes("USW48POE"))           return "USL48P";
@@ -932,6 +937,8 @@ export function resolveModelKey(device) {
 
     if (candidate.includes("USW24NONPOE"))        return "USL24";
     if (candidate.includes("USW48NONPOE"))        return "USL48";
+    // Note: aiounifi/controller naming can expose marketed USW-24/USW-48
+    // while the internal model keys are USL24/USL48 (non-PoE Gen2).
     if (candidate.includes("USW24"))              return "USL24";
     if (candidate.includes("USW48"))              return "USL48";
     if (candidate.startsWith("US24P"))            return "USL24P";

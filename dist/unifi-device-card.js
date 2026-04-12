@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.7977dd2 */
+/* UniFi Device Card 0.0.0-dev.515d5cd */
 
 // src/model-registry.js
 function range(start, end) {
@@ -93,6 +93,7 @@ var MODEL_REGISTRY = {
   U7PROWALL: apModel("U7 Pro Wall"),
   U7IW: apModel("U7 In-Wall"),
   U7LR: apModel("U7 LR"),
+  U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   U7PROXG: apModel("U7 Pro XG"),
@@ -835,6 +836,8 @@ function resolveModelKey(device) {
     if (candidate.includes("U7IW")) return "U7IW";
     if (candidate.includes("U7INWALL")) return "U7IW";
     if (candidate.includes("U7LR")) return "U7LR";
+    if (candidate.includes("U7MSH")) return "U7MSH";
+    if (candidate.includes("U7MESH")) return "U7MSH";
     if (candidate.includes("U7LITE")) return "U7LITE";
     if (candidate.includes("U7ULTRA")) return "U7LITE";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
@@ -968,11 +971,13 @@ function resolveModelKey(device) {
     if (candidate.includes("USW16POE")) return "USL16P";
     if (candidate.includes("USW16P")) return "USL16P";
     if (candidate === "USL24P") return "USL24P";
+    if (candidate === "USL24PB") return "USL24P";
     if (candidate === "USL24") return "USL24";
     if (candidate.includes("USW24G2")) return "USL24";
     if (candidate.includes("USW24POE")) return "USL24P";
     if (candidate.includes("USW24P")) return "USL24P";
     if (candidate === "USL48P") return "USL48P";
+    if (candidate === "USL48PB") return "USL48P";
     if (candidate === "USL48") return "USL48";
     if (candidate.includes("USW48G2")) return "USL48";
     if (candidate.includes("USW48POE")) return "USL48P";
@@ -1132,6 +1137,9 @@ var AP_MODEL_PREFIXES2 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
+function hasIndexedPortId(entityId) {
+  return /_(?:port|lan|eth|ethernet|sfp)[_-]?\d+(?:_|$)/i.test(String(entityId || ""));
+}
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelStr);
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
@@ -1146,7 +1154,7 @@ function isVirtualControllerDevice(device) {
   return combined.includes("network application") || combined.includes("unifi os") || combined.includes("controller");
 }
 function hasInfrastructureEntitySignals(entities = []) {
-  const hasPortEntities = entities.some((e) => /_port_\d+(?:_|$)/i.test(e?.entity_id || ""));
+  const hasPortEntities = entities.some((e) => hasIndexedPortId(e?.entity_id));
   if (hasPortEntities) return true;
   const hasRebootControl = entities.some((e) => {
     const id = lower(e?.entity_id);
@@ -1236,7 +1244,7 @@ function getDeviceType(device, entities = []) {
     return id.endsWith("_clients") || id.includes("_clients_") || id.endsWith("_uptime") || id.includes("_is_online") || id.includes("_connected");
   });
   if (hasAccessPointSignals && hasUbiquitiManufacturer(device)) return "access_point";
-  const hasPorts = entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id));
+  const hasPorts = entities.some((e) => hasIndexedPortId(e.entity_id));
   if (hasPorts) return "switch";
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
@@ -1363,7 +1371,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES, ...AP_MODEL_PREFIXES2])) {
     return true;
   }
-  if (entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id)) && hasUbiquitiManufacturer(device)) {
+  if (entities.some((e) => hasIndexedPortId(e.entity_id)) && hasUbiquitiManufacturer(device)) {
     return true;
   }
   if (hasUbiquitiManufacturer(device) && getDeviceType(device, entities) === "access_point" && hasInfraSignals) {
@@ -1394,7 +1402,7 @@ function findDeviceEntityByPatterns(entities, patterns = []) {
 }
 function isPortLevelTelemetrySensor(entityId) {
   const id = lower(entityId);
-  return id.includes("_port_") || id.includes("_wan_") || id.includes("link_speed") || id.includes("_rx") || id.includes("_tx") || id.includes("throughput");
+  return hasIndexedPortId(id) || id.includes("_wan_") || id.includes("link_speed") || id.includes("_rx") || id.includes("_tx") || id.includes("throughput");
 }
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
   for (const entity of entities || []) {
@@ -1575,7 +1583,7 @@ function extractPortNumber(entity) {
   const eid = lower(entity.entity_id);
   const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
   if (eidMatch) return parseInt(eidMatch[1], 10);
-  const eidAltMatch = eid.match(/_(?:lan|eth|ethernet|sfp)_(\d+)(?:_|$)/i);
+  const eidAltMatch = eid.match(/_(?:lan|eth|ethernet|sfp)[_-]?(\d+)(?:_|$)/i);
   if (eidAltMatch) return parseInt(eidAltMatch[1], 10);
   const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
   if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
@@ -1586,7 +1594,7 @@ function extractPortNumber(entity) {
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const hasPortLikeId = /_(?:port|lan|eth|ethernet|sfp)_(\d+)(?:_|$)/i.test(id);
+  const hasPortLikeId = /_(?:port|lan|eth|ethernet|sfp)[_-]?(\d+)(?:_|$)/i.test(id);
   const tk = lower(entity.translation_key || "");
   const dc = lower(entity.device_class || "");
   const odc = lower(entity.original_device_class || "");
@@ -2060,7 +2068,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const type = getDeviceType(device, entities);
   if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
   const needsUID = entities.filter(
-    (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && !/_port_\d+/i.test(e.entity_id) && !/\bport\s+\d+\b/i.test(e.original_name || "")
+    (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && !hasIndexedPortId(e.entity_id) && !/\bport\s+\d+\b/i.test(e.original_name || "")
   );
   if (needsUID.length > 0) {
     const details = await Promise.all(
@@ -3666,7 +3674,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.7977dd2";
+var VERSION = "0.0.0-dev.515d5cd";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
