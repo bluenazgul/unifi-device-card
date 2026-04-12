@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.51-dev */
+/* UniFi Device Card 0.0.0-dev.125ade1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3644,7 +3644,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.51-dev";
+var VERSION = "0.0.0-dev.125ade1";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4350,6 +4350,11 @@ var UnifiDeviceCard = class extends HTMLElement {
         filter: brightness(1.08);
       }
 
+      .chip.compact {
+        padding: 1px 7px;
+        font-size: 0.64rem;
+      }
+
       .chip .dot {
         width: 5px;
         height: 5px;
@@ -4952,8 +4957,8 @@ var UnifiDeviceCard = class extends HTMLElement {
                 </div>`).join("")}</div>` : ""}
             </div>
             <div class="header-actions">
-              ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
-              ${ledEntity ? `<button class="chip" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
+              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
+              ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
 
@@ -5086,7 +5091,7 @@ var UnifiDeviceCard = class extends HTMLElement {
               </div>`).join("")}</div>` : ""}
           </div>
           <div class="header-actions">
-            ${ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
             <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
           </div>
         </div>
