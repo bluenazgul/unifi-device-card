@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.5.3] - 2026-04-12
+
+### 🐛 Bug Fixes
+- Included fixes from [PR #70](https://github.com/bluenazgul/unifi-device-card/pull/70): normalized link-speed unit handling for port LED status and improved connected-link detection for low negotiated speeds.
+- Added model alias detection for `UDM67A` so devices exposed as `UDM67A (UDR7)` are resolved to `UDR7` correctly.
+- Added fallback port-count inference for `UDM67A` to keep Dream Router 7 detection at 5 total ports even when only the alias is present.
+
 ## [v0.5.2] - 2026-04-12
 
 ### 📚 Documentation
