@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.5.2] - 2026-04-12
+
+### 📚 Documentation
+- Added README YAML guidance for `port_*: sensor.*_link_speed` fallback remapping when automatic assignment breaks after port renaming.
+- Added a compact troubleshooting checklist for failed manual `port_*` remapping.
+- Clarified troubleshooting validation to use Home Assistant **Developer Tools → States** for device-specific sensor verification.
+- Added README bug-report guidance for new/unsupported devices (device name, model ID, RJ45/SFP port counts, and useful entity examples) to support clean model mapping.
+
 ## [v0.5.1] - 2026-04-11
 
 ### ⚠️ Breaking / behavior change
