@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.2 */
+/* UniFi Device Card 0.5.3-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -689,6 +689,7 @@ function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
     if (candidate.includes("UDR7")) return "UDR7";
     if (candidate.includes("DREAMROUTER7")) return "UDR7";
+    if (candidate.includes("UDM67A")) return "UDR7";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -797,7 +798,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
-  if (text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
+  if (text.includes("UDR7") || text.includes("DREAMROUTER7") || text.includes("UDM67A")) return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
   if (text.includes("UXGPRO")) return 4;
@@ -1901,6 +1902,17 @@ function stateObj(hass, entityId) {
 function stateValue(hass, entityId) {
   return stateObj(hass, entityId)?.state ?? null;
 }
+function parseLinkSpeedMbit(hass, entityId) {
+  const obj = stateObj(hass, entityId);
+  const raw = obj?.state;
+  if (raw == null || raw === "unavailable" || raw === "unknown") return null;
+  const n = parseFloat(String(raw).replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+  const unit = String(obj?.attributes?.unit_of_measurement || "").toLowerCase();
+  if (unit.includes("gb")) return n * 1e3;
+  if (unit.includes("kb")) return n / 1e3;
+  return n;
+}
 function isOn(hass, entityId) {
   const s = stateValue(hass, entityId);
   return s === "on" || s === "true" || s === "connected" || s === "up" || s === "active";
@@ -1931,11 +1943,10 @@ function isPortConnected(hass, port) {
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
     if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
-  const speed = stateValue(hass, port.speed_entity);
-  if (speed && speed !== "unavailable" && speed !== "unknown") {
-    const n = parseFloat(String(speed).replace(",", "."));
-    if (!Number.isNaN(n) && n > 10) return true;
-    if (!Number.isNaN(n) && n <= 10) return false;
+  const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
+  if (speedMbit != null) {
+    if (speedMbit > 0) return true;
+    if (speedMbit <= 0) return false;
   }
   const rx = stateValue(hass, port.rx_entity);
   const tx = stateValue(hass, port.tx_entity);
@@ -3192,7 +3203,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.2";
+var VERSION = "0.5.3-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -3680,11 +3691,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return onlineTokens.some((token) => raw === token || raw.includes(token));
   }
   _speedValueMbit(port) {
-    const text = String(getPortSpeedText(this._hass, port) || "");
-    const m = text.match(/([0-9]+(?:[.,][0-9]+)?)/);
-    if (!m) return null;
-    const n = parseFloat(m[1].replace(",", "."));
-    return Number.isFinite(n) ? n : null;
+    return parseLinkSpeedMbit(this._hass, port?.speed_entity);
   }
   _linkLedClass(port) {
     const connected = isPortConnected(this._hass, port);
@@ -4058,11 +4065,11 @@ var UnifiDeviceCard = class extends HTMLElement {
         align-items: center;
         padding: 0 0 1px;
         border-radius: 2px;
-        transition: outline .1s ease;
         position: relative;
         min-width: 0;
         border: none;
         background: transparent;
+        transition: outline .1s ease, opacity .15s ease, filter .15s ease;
       }
 
       .port:focus {
@@ -4084,6 +4091,23 @@ var UnifiDeviceCard = class extends HTMLElement {
         display: flex;
         justify-content: center;
         align-items: flex-start;
+        transition: opacity .15s ease, filter .15s ease;
+      }
+
+      .port.down .port-housing {
+        opacity: .42;
+        filter: saturate(.45) brightness(.78);
+      }
+
+      .port.up .port-housing {
+        opacity: 1;
+        filter: saturate(1.05) brightness(1.02);
+      }
+
+      .port:hover .port-housing,
+      .port.selected .port-housing {
+        opacity: 1;
+        filter: none;
       }
 
       .port-rj45 {
@@ -4318,10 +4342,22 @@ var UnifiDeviceCard = class extends HTMLElement {
         letter-spacing: 0;
         user-select: none;
         color: #646a76;
+        transition: color .15s ease, opacity .15s ease;
+      }
+
+      .port.down .port-num {
+        color: #4c5260;
+        opacity: .6;
       }
 
       .port.up .port-num {
         color: #414957;
+        opacity: 1;
+      }
+
+      .port:hover .port-num,
+      .port.selected .port-num {
+        opacity: 1;
       }
 
       .port.is-sfp .port-num {
