@@ -80,9 +80,12 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   set hass(hass) {
+    const previousHass = this._hass;
     this._hass = hass;
     this._ensureLoaded();
-    this._render();
+    if (!previousHass || !this._ctx || this._hasRelevantStateChanges(previousHass, hass)) {
+      this._render();
+    }
   }
 
   getCardSize() {
@@ -356,6 +359,19 @@ class UnifiDeviceCard extends HTMLElement {
     }
 
     return { specials: specialsRaw, numbered: numberedRaw };
+  }
+
+  _hasRelevantStateChanges(previousHass, nextHass) {
+    const entities = this._ctx?.entities || [];
+    if (!Array.isArray(entities) || entities.length === 0) return true;
+
+    for (const entity of entities) {
+      const id = entity?.entity_id;
+      if (!id) continue;
+      if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
+    }
+
+    return false;
   }
 
   _manualPortSpeedOverrides() {
@@ -668,9 +684,24 @@ class UnifiDeviceCard extends HTMLElement {
   _isSfpLike(slot) {
     const label = String(slot?.label || "").toLowerCase();
     const key = String(slot?.key || "").toLowerCase();
+    const physicalKey = String(slot?.physical_key || "").toLowerCase();
+    const layoutSlot = Number.isInteger(slot?.port)
+      ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port)
+      : null;
+    const layoutKey = String(layoutSlot?.key || "").toLowerCase();
+    const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
     return (
       slot?.kind === "special" &&
-      (label.includes("sfp") || key.includes("sfp") || key.includes("uplink"))
+      (
+        label.includes("sfp") ||
+        key.includes("sfp") ||
+        physicalKey.includes("sfp") ||
+        key.includes("uplink") ||
+        physicalKey.includes("uplink") ||
+        layoutKey.includes("sfp") ||
+        layoutKey.includes("uplink") ||
+        layoutLabel.includes("sfp")
+      )
     );
   }
 

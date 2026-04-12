@@ -156,6 +156,7 @@ export function getDeviceType(device, entities = []) {
         "UCGFIBER",
         "UDMPRO",
         "UDMPROSE",
+        "UDM67A",
         "UXGPRO",
         "UXGL",
         "UGW3",
@@ -799,6 +800,8 @@ function extractPortNumber(entity) {
   const eid = lower(entity.entity_id);
   const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
   if (eidMatch) return parseInt(eidMatch[1], 10);
+  const eidAltMatch = eid.match(/_(?:lan|eth|ethernet|sfp)_(\d+)(?:_|$)/i);
+  if (eidAltMatch) return parseInt(eidAltMatch[1], 10);
 
   const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
   if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
@@ -812,6 +815,7 @@ function extractPortNumber(entity) {
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
+  const hasPortLikeId = /_(?:port|lan|eth|ethernet|sfp)_(\d+)(?:_|$)/i.test(id);
   const tk = lower(entity.translation_key || "");
   const dc = lower(entity.device_class || "");
   const odc = lower(entity.original_device_class || "");
@@ -823,16 +827,16 @@ function classifyPortEntity(entity, isSpecial = false) {
     return "power_cycle_entity";
   }
 
-  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
+  if (eid.startsWith("switch.") && hasPortLikeId && id.endsWith("_poe")) {
     return "poe_switch_entity";
   }
 
-  if (eid.startsWith("switch.") && (id.includes("_port_") || isSpecial)) {
+  if (eid.startsWith("switch.") && (hasPortLikeId || isSpecial)) {
     return "port_switch_entity";
   }
 
   if (eid.startsWith("binary_sensor.")) {
-    if (id.includes("_port_")) return "link_entity";
+    if (hasPortLikeId) return "link_entity";
     if (
       isSpecial &&
       (
@@ -849,7 +853,7 @@ function classifyPortEntity(entity, isSpecial = false) {
   }
 
   if (eid.startsWith("sensor.")) {
-    if (id.includes("_port_")) {
+    if (hasPortLikeId) {
       if (
         id.endsWith("_rx") ||
         id.includes("_rx_") ||
@@ -998,6 +1002,7 @@ function ensureSpecialPort(map, key, label) {
   if (!map.has(key)) {
     map.set(key, {
       key,
+      physical_key: key,
       port: null,
       label,
       kind: "special",
@@ -1151,7 +1156,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
   const merged = layoutSpecials.map((slot) => {
     if (slot.port != null) {
       const portData = byPort.get(slot.port);
-      if (portData) return { ...portData, key: slot.key, label: slot.label, kind: "special" };
+      if (portData) return { ...portData, key: slot.key, physical_key: slot.key, label: slot.label, kind: "special" };
     }
 
     const keyData = byKey.get(slot.key);
@@ -1159,6 +1164,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
       return {
         ...keyData,
         key: slot.key,
+        physical_key: slot.key,
         label: slot.label,
         kind: "special",
         port: slot.port ?? keyData.port ?? null,
@@ -1167,6 +1173,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
 
     return {
       key: slot.key,
+      physical_key: slot.key,
       port: slot.port ?? null,
       label: slot.label,
       kind: "special",
@@ -1219,6 +1226,7 @@ function emptyNumberedPort(portNumber) {
 function emptySpecialPort(key, label, port = null) {
   return {
     key,
+    physical_key: key,
     port,
     label,
     kind: "special",
@@ -1307,6 +1315,7 @@ function makeSpecialFromPhysical(roleKey, physical) {
   return {
     ...cloneSlot(physical),
     key: roleKey,
+    physical_key: physical?.physical_key || physical?.key || roleKey,
     label: roleKey === "wan2" ? "WAN 2" : "WAN",
     kind: "special",
   };
@@ -1404,6 +1413,7 @@ export function applyGatewayPortOverrides(config, specials, numbered, layout) {
       newSpecials.push({
         ...cloneSlot(specialData),
         key: roleKey,
+        physical_key: specialData?.physical_key || specialData?.key || roleKey,
         label: roleKey === "wan2" ? "WAN 2" : "WAN",
         kind: "special",
       });

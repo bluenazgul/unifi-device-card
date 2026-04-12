@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.5.4] - 2026-04-12
+
+### 🐛 Bug Fixes
+- Fixed UDR7 (`UDM67A (UDR7)`) model recognition so devices containing both `UDM67A` and `UDR7` are still resolved as UDR7 where appropriate.
+- Improved UDR7 / UDM-Pro (`UDMPRO`) disambiguation for `UDM67A`-based identifiers in device detection and layout selection.
+- Fixed UDR7 SFP (port 5) rendering when used as WAN special port so it keeps SFP visualization instead of falling back to RJ45.
+- Preserved physical special-port identity during WAN/WAN2 remapping to avoid wrong connector type display and link-status confusion on remapped special ports.
+- Improved UDMPROSE/UDMSE active-port discovery by accepting additional aiounifi-style port entity patterns (for example `*_lan_*` / `*_eth_*` / `*_sfp_*`) in port extraction and port-entity classification.
+
 ## [v0.5.3] - 2026-04-12
 
 ### 🐛 Bug Fixes
