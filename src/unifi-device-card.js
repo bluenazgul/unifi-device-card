@@ -696,10 +696,7 @@ class UnifiDeviceCard extends HTMLElement {
         label.includes("sfp") ||
         key.includes("sfp") ||
         physicalKey.includes("sfp") ||
-        key.includes("uplink") ||
-        physicalKey.includes("uplink") ||
         layoutKey.includes("sfp") ||
-        layoutKey.includes("uplink") ||
         layoutLabel.includes("sfp")
       )
     );
@@ -895,6 +892,11 @@ class UnifiDeviceCard extends HTMLElement {
 
       button.chip:hover {
         filter: brightness(1.08);
+      }
+
+      .chip.compact {
+        padding: 1px 7px;
+        font-size: 0.64rem;
       }
 
       .chip .dot {
@@ -1502,8 +1504,8 @@ class UnifiDeviceCard extends HTMLElement {
                 </div>`).join("")}</div>` : ""}
             </div>
             <div class="header-actions">
-              ${this._ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
-              ${ledEntity ? `<button class="chip" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
+              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
+              ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
 
@@ -1666,7 +1668,7 @@ class UnifiDeviceCard extends HTMLElement {
               </div>`).join("")}</div>` : ""}
           </div>
           <div class="header-actions">
-            ${ctx?.reboot_entity ? `<button class="chip" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
             <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
           </div>
         </div>

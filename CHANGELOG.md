@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.5.5] - 2026-04-12
+
+### ✨ Improvements
+- Added dedicated model recognition and layouts for additional UniFi switch families: Pro Max 16/24/48 (including PoE variants), Enterprise XG 24, and USW Industrial.
+- Added dedicated gateway recognition/layouts for Dream Machine (`UDM`) and Dream Router (`UDR`) with explicit WAN mapping.
+- Expanded AP model recognition with dedicated aliases for `U7 Pro XG`, `U7 Pro XGS`, and `U6 Mesh Pro`.
+- Extended helper-side type detection lists so newly added model keys are classified consistently as switch/gateway in editor and card context loading.
+- Added static PoE-In uplink mappings in model registry for known PoE-In switches (including Flex/Flex Mini/Flex 2.5G and Ultra families).
+- Corrected Flex-family uplink ports: `USMINI` → port 1, `USWFLEX25G5` → port 5, `USF5P` → port 1, `USWFLEX25G8`/`USWFLEX25G8POE` → port 9.
+- Fixed special-port rendering so generic `uplink` ports are no longer auto-styled as SFP unless the slot/model metadata explicitly indicates SFP.
+
 ## [v0.5.4] - 2026-04-12
 
 ### 🐛 Bug Fixes
