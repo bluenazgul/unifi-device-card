@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.5-dev */
+/* UniFi Device Card 0.0.0-dev.942a96a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3644,7 +3644,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.5-dev";
+var VERSION = "0.0.0-dev.942a96a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4166,7 +4166,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const layoutSlot = Number.isInteger(slot?.port) ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port) : null;
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
-    return slot?.kind === "special" && (label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || key.includes("uplink") || physicalKey.includes("uplink") || layoutKey.includes("sfp") || layoutKey.includes("uplink") || layoutLabel.includes("sfp"));
+    return slot?.kind === "special" && (label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || layoutKey.includes("sfp") || layoutLabel.includes("sfp"));
   }
   _isWanLike(slot) {
     const key = String(slot?.key || "").toLowerCase();
