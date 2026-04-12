@@ -75,6 +75,7 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
 | USW Pro 48 PoE (`US48PRO`) | 48 + 4 SFP+ | Silver |
 | USW Pro 48 (`US48PRO2`) | 48 + 4 SFP+ | Silver |
+| USW Pro Max 16 (`USPM16`) | 16 + 2 SFP+ | Silver |
 | USW Pro Max 16 PoE (`USPM16P`) | 16 + 2 SFP+ | Silver |
 | USW Pro Max 24 (`USPM24`) | 24 + 2 SFP+ | Silver |
 | USW Pro Max 24 PoE (`USPM24P`) | 24 + 2 SFP+ | Silver |

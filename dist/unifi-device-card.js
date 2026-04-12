@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.52-dev */
+/* UniFi Device Card 0.0.0-dev.9fcab02 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -410,6 +410,19 @@ var MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP+ 2", port: 50 },
       { key: "sfp_3", label: "SFP+ 3", port: 51 },
       { key: "sfp_4", label: "SFP+ 4", port: 52 }
+    ]
+  },
+  // USW Pro Max 16  — 16× RJ45, 2× SFP+
+  USPM16: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [range(1, 8), range(9, 16)],
+    portCount: 18,
+    displayModel: "USW Pro Max 16",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 17 },
+      { key: "sfp_2", label: "SFP+ 2", port: 18 }
     ]
   },
   // USW Pro Max 16 PoE  — 16× RJ45, 2× SFP+
@@ -881,6 +894,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USWPRO48POE")) return "US48PRO";
     if (candidate.includes("PRO48POE")) return "US48PRO";
     if (candidate.includes("USWPRO48")) return "US48PRO2";
+    if (candidate.includes("SWITCHPRO48")) return "US48PRO2";
     if (candidate.includes("PRO48")) return "US48PRO2";
     if (candidate === "US24PRO2") return "US24PRO2";
     if (candidate.includes("US24PRO2")) return "US24PRO2";
@@ -893,6 +907,9 @@ function resolveModelKey(device) {
     if (candidate === "USPM16P") return "USPM16P";
     if (candidate.includes("USWPROMAX16POE")) return "USPM16P";
     if (candidate.includes("PROMAX16POE")) return "USPM16P";
+    if (candidate === "USPM16") return "USPM16";
+    if (candidate.includes("USWPROMAX16")) return "USPM16";
+    if (candidate.includes("PROMAX16")) return "USPM16";
     if (candidate === "USPM24P") return "USPM24P";
     if (candidate.includes("USWPROMAX24POE")) return "USPM24P";
     if (candidate.includes("PROMAX24POE")) return "USPM24P";
@@ -954,16 +971,20 @@ function resolveModelKey(device) {
     if (candidate === "USL24") return "USL24";
     if (candidate.includes("USW24G2")) return "USL24";
     if (candidate.includes("USW24POE")) return "USL24P";
+    if (candidate.includes("USW24P")) return "USL24P";
     if (candidate === "USL48P") return "USL48P";
     if (candidate === "USL48") return "USL48";
     if (candidate.includes("USW48G2")) return "USL48";
     if (candidate.includes("USW48POE")) return "USL48P";
+    if (candidate.includes("USW48P")) return "USL48P";
     if (candidate.includes("USW24NONPOE")) return "USL24";
     if (candidate.includes("USW48NONPOE")) return "USL48";
-    if (candidate.includes("USW24")) return "USL24P";
-    if (candidate.includes("USW48")) return "USL48P";
-    if (candidate.startsWith("US24")) return "USL24P";
-    if (candidate.startsWith("US48")) return "USL48P";
+    if (candidate.includes("USW24")) return "USL24";
+    if (candidate.includes("USW48")) return "USL48";
+    if (candidate.startsWith("US24P")) return "USL24P";
+    if (candidate.startsWith("US48P")) return "USL48P";
+    if (candidate.startsWith("US24")) return "USL24";
+    if (candidate.startsWith("US48")) return "USL48";
   }
   return null;
 }
@@ -996,9 +1017,9 @@ function inferPortCountFromModel(device) {
   if (text.includes("USF5P") || text.includes("USWFLEX")) return 5;
   if (text.includes("US16P150") || text.includes("US16P")) return 18;
   if (text.includes("USL16P")) return 18;
-  if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
-  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48")) return 52;
-  if (text.includes("USPM16P") || text.includes("PROMAX16POE")) return 18;
+  if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24") || text.includes("SWITCHPRO24")) return 26;
+  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48") || text.includes("SWITCHPRO48")) return 52;
+  if (text.includes("USPM16P") || text.includes("USPM16") || text.includes("PROMAX16")) return 18;
   if (text.includes("USPM24P") || text.includes("USPM24") || text.includes("PROMAX24")) return 26;
   if (text.includes("USPM48P") || text.includes("USPM48") || text.includes("PROMAX48")) return 52;
   if (text.includes("US648P") || text.includes("ENTERPRISE48POE")) return 52;
@@ -1186,6 +1207,7 @@ function getDeviceType(device, entities = []) {
       "US24PRO2",
       "US48PRO",
       "US48PRO2",
+      "USPM16",
       "USPM16P",
       "USPM24",
       "USPM24P",
@@ -3644,7 +3666,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.52-dev";
+var VERSION = "0.0.0-dev.9fcab02";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {

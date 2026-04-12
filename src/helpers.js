@@ -196,6 +196,7 @@ export function getDeviceType(device, entities = []) {
         "US24PRO2",
         "US48PRO",
         "US48PRO2",
+        "USPM16",
         "USPM16P",
         "USPM24",
         "USPM24P",
