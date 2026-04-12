@@ -663,6 +663,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
     if (candidate.includes("UDR7"))               return "UDR7";
     if (candidate.includes("DREAMROUTER7"))       return "UDR7";
+    if (candidate.includes("UDM67A"))             return "UDR7";
     if (candidate.includes("UDRULT"))             return "UDRULT";
     if (candidate.includes("UCGULTRA"))           return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
@@ -787,7 +788,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UDMPROSE") || text.includes("UDMSE"))                           return 11;
   if (text.includes("UDMPRO"))                                                        return 11;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER"))               return 7;
-  if (text.includes("UDR7") || text.includes("DREAMROUTER7"))                         return 5;
+  if (text.includes("UDR7") || text.includes("DREAMROUTER7") || text.includes("UDM67A")) return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX")   || text.includes("CLOUDGATEWAYMAX"))                 return 5;
   if (text.includes("UXGPRO"))                                                        return 4;

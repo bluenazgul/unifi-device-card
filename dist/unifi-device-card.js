@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.2a0834e */
+/* UniFi Device Card 0.0.0-dev.a27034d */
 
 // src/model-registry.js
 function range(start, end) {
@@ -689,6 +689,7 @@ function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
     if (candidate.includes("UDR7")) return "UDR7";
     if (candidate.includes("DREAMROUTER7")) return "UDR7";
+    if (candidate.includes("UDM67A")) return "UDR7";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -797,7 +798,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
-  if (text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
+  if (text.includes("UDR7") || text.includes("DREAMROUTER7") || text.includes("UDM67A")) return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
   if (text.includes("UXGPRO")) return 4;
@@ -3202,7 +3203,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.2a0834e";
+var VERSION = "0.0.0-dev.a27034d";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
