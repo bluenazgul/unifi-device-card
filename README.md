@@ -68,13 +68,14 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | USW Lite 16 PoE (`USL16LP`, `USL16LPB`) | 16 | White |
 | USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
 | USW 24 (`USL24`) | 24 + 2 SFP | Silver |
-| USW 24 PoE (`USL24P`, `USW24P`) | 24 + 2 SFP | Silver |
+| USW 24 PoE (`USL24P`, `USL24PB`, `USW24P`) | 24 + 2 SFP | Silver |
 | USW 48 (`USL48`) | 48 + 4 SFP | Silver |
 | USW 48 PoE (`USL48P`, `USW48P`) | 48 + 4 SFP | Silver |
 | USW Pro 24 PoE (`US24PRO`) | 24 + 2 SFP+ | Silver |
 | USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
 | USW Pro 48 PoE (`US48PRO`) | 48 + 4 SFP+ | Silver |
 | USW Pro 48 (`US48PRO2`) | 48 + 4 SFP+ | Silver |
+| USW Pro Max 16 (`USPM16`) | 16 + 2 SFP+ | Silver |
 | USW Pro Max 16 PoE (`USPM16P`) | 16 + 2 SFP+ | Silver |
 | USW Pro Max 24 (`USPM24`) | 24 + 2 SFP+ | Silver |
 | USW Pro Max 24 PoE (`USPM24P`) | 24 + 2 SFP+ | Silver |
@@ -108,6 +109,7 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | U6 Mesh (`U6MESH`) | AP panel | White |
 | U6 Extender (`U6EXTENDER`) | AP panel | White |
 | U7 In-Wall (`U7IW`) | AP panel | White |
+| U7 Mesh (`U7MSH`) | AP panel | White |
 | U7 LR (`U7LR`) | AP panel | White |
 | U7 Lite (`U7LITE`) | AP panel | White |
 | U7 Pro XG (`U7PROXG`) | AP panel | White |

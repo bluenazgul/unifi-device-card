@@ -129,6 +129,7 @@ export const MODEL_REGISTRY = {
   U7PROWALL: apModel("U7 Pro Wall"),
   U7IW: apModel("U7 In-Wall"),
   U7LR: apModel("U7 LR"),
+  U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   U7PROXG: apModel("U7 Pro XG"),
@@ -384,6 +385,16 @@ export const MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP+ 2", port: 50 },
       { key: "sfp_3", label: "SFP+ 3", port: 51 },
       { key: "sfp_4", label: "SFP+ 4", port: 52 },
+    ],
+  },
+
+  // USW Pro Max 16  — 16× RJ45, 2× SFP+
+  USPM16: {
+    kind: "switch", frontStyle: "dual-row", rows: [range(1, 8), range(9, 16)],
+    portCount: 18, displayModel: "USW Pro Max 16", theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 17 },
+      { key: "sfp_2", label: "SFP+ 2", port: 18 },
     ],
   },
 
@@ -762,6 +773,8 @@ export function resolveModelKey(device) {
     if (candidate.includes("U7IW"))               return "U7IW";
     if (candidate.includes("U7INWALL"))           return "U7IW";
     if (candidate.includes("U7LR"))               return "U7LR";
+    if (candidate.includes("U7MSH"))              return "U7MSH";
+    if (candidate.includes("U7MESH"))             return "U7MSH";
     if (candidate.includes("U7LITE"))             return "U7LITE";
     if (candidate.includes("U7ULTRA"))            return "U7LITE";
     if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
@@ -824,6 +837,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWPRO48POE"))        return "US48PRO";
     if (candidate.includes("PRO48POE"))           return "US48PRO";
     if (candidate.includes("USWPRO48"))           return "US48PRO2";
+    if (candidate.includes("SWITCHPRO48"))        return "US48PRO2";
     if (candidate.includes("PRO48"))              return "US48PRO2";
 
     if (candidate === "US24PRO2")                 return "US24PRO2";
@@ -838,6 +852,9 @@ export function resolveModelKey(device) {
     if (candidate === "USPM16P")                  return "USPM16P";
     if (candidate.includes("USWPROMAX16POE"))     return "USPM16P";
     if (candidate.includes("PROMAX16POE"))        return "USPM16P";
+    if (candidate === "USPM16")                   return "USPM16";
+    if (candidate.includes("USWPROMAX16"))        return "USPM16";
+    if (candidate.includes("PROMAX16"))           return "USPM16";
 
     if (candidate === "USPM24P")                  return "USPM24P";
     if (candidate.includes("USWPROMAX24POE"))     return "USPM24P";
@@ -905,21 +922,29 @@ export function resolveModelKey(device) {
     if (candidate.includes("USW16P"))             return "USL16P";
 
     if (candidate === "USL24P")                   return "USL24P";
+    if (candidate === "USL24PB")                  return "USL24P";
     if (candidate === "USL24")                    return "USL24";
     if (candidate.includes("USW24G2"))            return "USL24";
     if (candidate.includes("USW24POE"))           return "USL24P";
+    if (candidate.includes("USW24P"))             return "USL24P";
 
     if (candidate === "USL48P")                   return "USL48P";
+    if (candidate === "USL48PB")                  return "USL48P";
     if (candidate === "USL48")                    return "USL48";
     if (candidate.includes("USW48G2"))            return "USL48";
     if (candidate.includes("USW48POE"))           return "USL48P";
+    if (candidate.includes("USW48P"))             return "USL48P";
 
     if (candidate.includes("USW24NONPOE"))        return "USL24";
     if (candidate.includes("USW48NONPOE"))        return "USL48";
-    if (candidate.includes("USW24"))              return "USL24P";
-    if (candidate.includes("USW48"))              return "USL48P";
-    if (candidate.startsWith("US24"))             return "USL24P";
-    if (candidate.startsWith("US48"))             return "USL48P";
+    // Note: aiounifi/controller naming can expose marketed USW-24/USW-48
+    // while the internal model keys are USL24/USL48 (non-PoE Gen2).
+    if (candidate.includes("USW24"))              return "USL24";
+    if (candidate.includes("USW48"))              return "USL48";
+    if (candidate.startsWith("US24P"))            return "USL24P";
+    if (candidate.startsWith("US48P"))            return "USL48P";
+    if (candidate.startsWith("US24"))             return "USL24";
+    if (candidate.startsWith("US48"))             return "USL48";
   }
 
   return null;
@@ -959,9 +984,9 @@ export function inferPortCountFromModel(device) {
   if (text.includes("US16P150") || text.includes("US16P"))                           return 18;
   if (text.includes("USL16P"))                                                        return 18;
 
-  if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
-  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48")) return 52;
-  if (text.includes("USPM16P")  || text.includes("PROMAX16POE"))                     return 18;
+  if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24") || text.includes("SWITCHPRO24")) return 26;
+  if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48") || text.includes("SWITCHPRO48")) return 52;
+  if (text.includes("USPM16P")  || text.includes("USPM16") || text.includes("PROMAX16")) return 18;
   if (text.includes("USPM24P")  || text.includes("USPM24")  || text.includes("PROMAX24")) return 26;
   if (text.includes("USPM48P")  || text.includes("USPM48")  || text.includes("PROMAX48")) return 52;
 

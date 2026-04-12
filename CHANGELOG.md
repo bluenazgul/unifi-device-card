@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.5.6] - 2026-04-12
+
+### ✨ Improvements
+- Added explicit non-PoE `USW Pro Max 16` (`USPM16`) model mapping and switch classification, including 16x RJ45 + 2x SFP+ port layout fallback.
+- Improved `USW-24` / `USW-48` fallback model resolution so generic identifiers now default to non-PoE variants, while explicit `...P`/`...PoE` identifiers still resolve to PoE models.
+- Added missing `SWITCHPRO48` alias handling (plus `SWITCHPRO24`/`SWITCHPRO48` fallback port-count inference) for better alignment with alternate UniFi/aiounifi naming variants.
+- Added additional alias support checks from recent device reports: `U7MSH`/`U7MESH` → `U7 Mesh` AP model and `USL24PB`/`USL48PB` → PoE switch variants.
+- Improved port-entity detection regex for LAN/ETH/SFP identifiers with compact numbering (for example `lan1`/`eth1`) to better detect active ports on devices like `USG-3P` (`UGW3`) when entity naming differs.
+- Extended shared port-id detection used by switch/gateway classification and telemetry heuristics to also recognize `lan1`/`eth1`/`sfp1` naming variants (not only `_port_#`), reducing model-specific edge cases.
+
 ## [v0.5.5] - 2026-04-12
 
 ### ✨ Improvements

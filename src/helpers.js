@@ -94,6 +94,16 @@ function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+const INDEXED_PORT_ID_RE = /(?:^|[_-])(?:port|lan|eth|ethernet|sfp)[_-]?(\d+)(?:[_-]|$)/i;
+
+function findIndexedPortIdMatch(value) {
+  return String(value || "").match(INDEXED_PORT_ID_RE);
+}
+
+function hasIndexedPortId(entityId) {
+  return !!findIndexedPortIdMatch(entityId);
+}
+
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version]
     .filter(Boolean)
@@ -119,7 +129,7 @@ function isVirtualControllerDevice(device) {
 }
 
 function hasInfrastructureEntitySignals(entities = []) {
-  const hasPortEntities = entities.some((e) => /_port_\d+(?:_|$)/i.test(e?.entity_id || ""));
+  const hasPortEntities = entities.some((e) => hasIndexedPortId(e?.entity_id));
   if (hasPortEntities) return true;
 
   const hasRebootControl = entities.some((e) => {
@@ -196,6 +206,7 @@ export function getDeviceType(device, entities = []) {
         "US24PRO2",
         "US48PRO",
         "US48PRO2",
+        "USPM16",
         "USPM16P",
         "USPM24",
         "USPM24P",
@@ -234,7 +245,7 @@ export function getDeviceType(device, entities = []) {
   });
   if (hasAccessPointSignals && hasUbiquitiManufacturer(device)) return "access_point";
 
-  const hasPorts = entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id));
+  const hasPorts = entities.some((e) => hasIndexedPortId(e.entity_id));
   if (hasPorts) return "switch";
 
   if (hasUbiquitiManufacturer(device)) {
@@ -444,7 +455,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   }
 
   if (
-    entities.some((e) => /_port_\d+(?:_|$)/i.test(e.entity_id)) &&
+    entities.some((e) => hasIndexedPortId(e.entity_id)) &&
     hasUbiquitiManufacturer(device)
   ) {
     return true;
@@ -499,7 +510,7 @@ function findDeviceEntityByPatterns(entities, patterns = []) {
 function isPortLevelTelemetrySensor(entityId) {
   const id = lower(entityId);
   return (
-    id.includes("_port_") ||
+    hasIndexedPortId(id) ||
     id.includes("_wan_") ||
     id.includes("link_speed") ||
     id.includes("_rx") ||
@@ -677,10 +688,10 @@ function classifyRelevantEntityType(entity) {
   if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) {
     return "power_cycle";
   }
-  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
+  if (eid.startsWith("switch.") && hasIndexedPortId(id) && id.endsWith("_poe")) {
     return "poe_switch";
   }
-  if (eid.startsWith("switch.") && id.includes("_port_")) {
+  if (eid.startsWith("switch.") && hasIndexedPortId(id)) {
     return "port_switch";
   }
   if (
@@ -802,19 +813,13 @@ export const getDeviceWarningInfo = getRelevantEntityWarningsForDevice;
 
 function extractPortNumber(entity) {
   const uid = normalize(entity.unique_id);
-  const uidMatch =
-    uid.match(/_port[_-]?(\d+)(?:[_-]|$)/i) ||
-    uid.match(/-(\d+)-[a-z]/i) ||
-    uid.match(/port[_-](\d+)/i) ||
-    uid.match(/[_-](\d+)$/);
+  const uidMatch = findIndexedPortIdMatch(uid) || uid.match(/-(\d+)-[a-z]/i);
 
   if (uidMatch) return parseInt(uidMatch[1], 10);
 
   const eid = lower(entity.entity_id);
-  const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
+  const eidMatch = findIndexedPortIdMatch(eid);
   if (eidMatch) return parseInt(eidMatch[1], 10);
-  const eidAltMatch = eid.match(/_(?:lan|eth|ethernet|sfp)_(\d+)(?:_|$)/i);
-  if (eidAltMatch) return parseInt(eidAltMatch[1], 10);
 
   const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
   if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
@@ -828,7 +833,7 @@ function extractPortNumber(entity) {
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const hasPortLikeId = /_(?:port|lan|eth|ethernet|sfp)_(\d+)(?:_|$)/i.test(id);
+  const hasPortLikeId = hasIndexedPortId(id);
   const tk = lower(entity.translation_key || "");
   const dc = lower(entity.device_class || "");
   const odc = lower(entity.original_device_class || "");
@@ -1545,7 +1550,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
       !e.unique_id &&
       e.translation_key &&
       PORT_TRANSLATION_KEYS.has(e.translation_key) &&
-      !/_port_\d+/i.test(e.entity_id) &&
+      !hasIndexedPortId(e.entity_id) &&
       !/\bport\s+\d+\b/i.test(e.original_name || "")
   );
 
