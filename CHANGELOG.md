@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.5.6] - 2026-04-12
+
+### ✨ Improvements
+- Added explicit non-PoE `USW Pro Max 16` (`USPM16`) model mapping and switch classification, including 16x RJ45 + 2x SFP+ port layout fallback.
+- Improved `USW-24` / `USW-48` fallback model resolution so generic identifiers now default to non-PoE variants, while explicit `...P`/`...PoE` identifiers still resolve to PoE models.
+- Added missing `SWITCHPRO48` alias handling (plus `SWITCHPRO24`/`SWITCHPRO48` fallback port-count inference) for better alignment with alternate UniFi/aiounifi naming variants.
+
 ## [v0.5.5] - 2026-04-12
 
 ### ✨ Improvements
