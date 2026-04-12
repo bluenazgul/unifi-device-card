@@ -188,6 +188,13 @@ wan2_port: none               # optional (gateway only)
 
 > If `wan_port` or `wan2_port` is set in YAML, `edit_special_ports` is automatically treated as enabled in the editor and persisted.
 
+### YAML notes for `port_*` keys
+
+- `port_*: sensor.*_link_speed` can be used as a manual fallback if automatic mapping fails after port renaming in Home Assistant.
+- Example: `port_5: sensor.<device>_port_5_link_speed`.
+- Use this only when a renamed port is no longer automatically assigned to the correct physical port.
+- Keep key and sensor port number aligned (for example `port_5` → `..._port_5_link_speed`) to avoid mismatched telemetry.
+
 ## Troubleshooting
 
 ### Card not loading
@@ -250,6 +257,31 @@ Renamed entities are supported, but if Home Assistant entity registry data is st
 PoE controls are only shown if a PoE switch entity exists.
 
 Ports that expose only `poe_power` sensors will still show consumption, but no PoE toggle button.
+
+### `port_*` remap does not work (compact checklist)
+
+1. Check YAML syntax: `port_<n>: sensor.*_link_speed`.
+2. Verify the referenced sensor exists and has state updates in Home Assistant.
+3. Confirm key and sensor belong to the same physical port number (`port_5` ↔ `..._port_5_link_speed`).
+4. Save YAML, reload dashboard/card, then verify mapping in the port detail panel.
+5. If still wrong, open **Developer Tools → States** and verify the configured `sensor.*_link_speed` entity is available and updating for that exact device.
+
+If remapping still fails after port renaming, the configured `sensor.*_link_speed` entity is usually missing, disabled, or still tied to a different physical port than expected.
+
+### Bug report for unsupported/new UniFi devices
+
+If you want me to add clean support for a new device model, please include the following in your issue:
+
+- **UniFi device name** as shown in Home Assistant / UniFi Controller
+- **UniFi model identifier** (for example `USW...`, `UCG...`, `UDM...`, `U7...`)
+- **RJ45 port count** (LAN/WAN if relevant)
+- **SFP/SFP+/SFP28 port count**
+- Optional but very helpful:
+  - Which ports should be treated as special slots (WAN, WAN2, uplink)
+  - Screenshot/photo of the physical front panel
+  - Example entity IDs (especially `switch.*_port_*` and `sensor.*_link_speed`)
+
+This is the minimum data needed to map the model correctly in `model-registry.js` and let helper logic in `helpers.js` detect and render ports reliably.
 
 ### Background color does not change
 
