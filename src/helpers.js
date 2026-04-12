@@ -156,6 +156,7 @@ export function getDeviceType(device, entities = []) {
         "UCGFIBER",
         "UDMPRO",
         "UDMPROSE",
+        "UDM67A",
         "UXGPRO",
         "UXGL",
         "UGW3",

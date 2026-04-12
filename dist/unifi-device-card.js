@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.3-dev */
+/* UniFi Device Card 0.0.0-dev.637a537 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -536,11 +536,24 @@ var MODEL_REGISTRY = {
     frontStyle: "gateway-single-row",
     rows: [[1, 2, 3]],
     portCount: 5,
-    displayModel: "Dream Router 7",
+    displayModel: "UDM67A (UDR7)",
     theme: "white",
     specialSlots: [
       { key: "wan", label: "WAN", port: 4 },
       { key: "sfp_1", label: "SFP+ WAN", port: 5 }
+    ]
+  },
+  UDM67A: {
+    kind: "gateway",
+    frontStyle: "gateway-rack",
+    rows: [range(1, 8)],
+    portCount: 11,
+    displayModel: "UDM67A (UDM-Pro / UDMPRO)",
+    theme: "silver",
+    specialSlots: [
+      { key: "wan", label: "WAN", port: 9 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11 }
     ]
   },
   UCGMAX: {
@@ -687,9 +700,10 @@ function resolveModelKey(device) {
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
+    if (candidate.includes("UDM67AUDR7")) return "UDR7";
     if (candidate.includes("UDR7")) return "UDR7";
     if (candidate.includes("DREAMROUTER7")) return "UDR7";
-    if (candidate.includes("UDM67A")) return "UDR7";
+    if (candidate.includes("UDM67A")) return "UDM67A";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -798,7 +812,8 @@ function inferPortCountFromModel(device) {
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
-  if (text.includes("UDR7") || text.includes("DREAMROUTER7") || text.includes("UDM67A")) return 5;
+  if (text.includes("UDM67AUDR7") || text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
+  if (text.includes("UDM67A")) return 11;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
   if (text.includes("UXGPRO")) return 4;
@@ -832,8 +847,20 @@ function inferPortCountFromModel(device) {
 }
 function getDeviceLayout(device, discoveredPorts = []) {
   const modelKey = resolveModelKey(device);
-  if (modelKey && MODEL_REGISTRY[modelKey]) {
-    return { modelKey, ...MODEL_REGISTRY[modelKey] };
+  const normalizedText = normalizeModelKey(
+    [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).join(" ")
+  );
+  const maxDiscoveredPort = discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port || 0)) : 0;
+  let effectiveModelKey = modelKey;
+  if (effectiveModelKey === "UDM67A") {
+    if (normalizedText.includes("UDM67AUDR7") || normalizedText.includes("UDR7") || normalizedText.includes("DREAMROUTER7")) {
+      effectiveModelKey = "UDR7";
+    } else if (maxDiscoveredPort > 0 && maxDiscoveredPort <= 5) {
+      effectiveModelKey = "UDR7";
+    }
+  }
+  if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
+    return { modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] };
   }
   if (isAccessPointLikeModel(device)) {
     return {
@@ -953,6 +980,7 @@ function getDeviceType(device, entities = []) {
       "UCGFIBER",
       "UDMPRO",
       "UDMPROSE",
+      "UDM67A",
       "UXGPRO",
       "UXGL",
       "UGW3",
@@ -3203,7 +3231,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.3-dev";
+var VERSION = "0.0.0-dev.637a537";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
