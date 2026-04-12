@@ -94,8 +94,14 @@ function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+const INDEXED_PORT_ID_RE = /(?:^|[_-])(?:port|lan|eth|ethernet|sfp)[_-]?(\d+)(?:[_-]|$)/i;
+
+function findIndexedPortIdMatch(value) {
+  return String(value || "").match(INDEXED_PORT_ID_RE);
+}
+
 function hasIndexedPortId(entityId) {
-  return /_(?:port|lan|eth|ethernet|sfp)[_-]?\d+(?:_|$)/i.test(String(entityId || ""));
+  return !!findIndexedPortIdMatch(entityId);
 }
 
 function modelStartsWith(device, prefixes) {
@@ -682,10 +688,10 @@ function classifyRelevantEntityType(entity) {
   if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle")) {
     return "power_cycle";
   }
-  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
+  if (eid.startsWith("switch.") && hasIndexedPortId(id) && id.endsWith("_poe")) {
     return "poe_switch";
   }
-  if (eid.startsWith("switch.") && id.includes("_port_")) {
+  if (eid.startsWith("switch.") && hasIndexedPortId(id)) {
     return "port_switch";
   }
   if (
@@ -807,19 +813,13 @@ export const getDeviceWarningInfo = getRelevantEntityWarningsForDevice;
 
 function extractPortNumber(entity) {
   const uid = normalize(entity.unique_id);
-  const uidMatch =
-    uid.match(/_port[_-]?(\d+)(?:[_-]|$)/i) ||
-    uid.match(/-(\d+)-[a-z]/i) ||
-    uid.match(/port[_-](\d+)/i) ||
-    uid.match(/[_-](\d+)$/);
+  const uidMatch = findIndexedPortIdMatch(uid) || uid.match(/-(\d+)-[a-z]/i);
 
   if (uidMatch) return parseInt(uidMatch[1], 10);
 
   const eid = lower(entity.entity_id);
-  const eidMatch = eid.match(/_port_(\d+)(?:_|$)/i);
+  const eidMatch = findIndexedPortIdMatch(eid);
   if (eidMatch) return parseInt(eidMatch[1], 10);
-  const eidAltMatch = eid.match(/_(?:lan|eth|ethernet|sfp)[_-]?(\d+)(?:_|$)/i);
-  if (eidAltMatch) return parseInt(eidAltMatch[1], 10);
 
   const originalNameMatch = (entity.original_name || "").match(/\bport\s+(\d+)\b/i);
   if (originalNameMatch) return parseInt(originalNameMatch[1], 10);
@@ -833,7 +833,7 @@ function extractPortNumber(entity) {
 function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
-  const hasPortLikeId = /_(?:port|lan|eth|ethernet|sfp)[_-]?(\d+)(?:_|$)/i.test(id);
+  const hasPortLikeId = hasIndexedPortId(id);
   const tk = lower(entity.translation_key || "");
   const dc = lower(entity.device_class || "");
   const odc = lower(entity.original_device_class || "");
