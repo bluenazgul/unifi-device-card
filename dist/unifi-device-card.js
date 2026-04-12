@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.4-dev */
+/* UniFi Device Card 0.0.0-dev.942a96a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -95,6 +95,9 @@ var MODEL_REGISTRY = {
   U7LR: apModel("U7 LR"),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
+  U7PROXG: apModel("U7 Pro XG"),
+  U7PROXGS: apModel("U7 Pro XGS"),
+  U6MESHPRO: apModel("U6 Mesh Pro"),
   E7: apModel("E7"),
   UWBXG: apModel("UWB-XG"),
   // ══════════════════════════════════════════════════════════════════════════
@@ -153,28 +156,28 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 2 Standard (USW-*)
   // ══════════════════════════════════════════════════════════════════════════
-  // USW Flex Mini  — 5× 1G RJ45, no PoE out
+  // USW Flex Mini  — Port 1 Uplink/PoE-in, ports 2-5 LAN
   USMINI: {
     kind: "switch",
     frontStyle: "single-row",
-    rows: [range(1, 5)],
+    rows: [range(2, 5)],
     portCount: 5,
     displayModel: "USW Flex Mini",
     theme: "white",
-    specialSlots: []
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 1 }]
   },
-  // USW Flex  — 4× 1G RJ45 PoE-out (1-4), Port 5 uplink / PoE-in
+  // USW Flex  — Port 1 Uplink/PoE-in, ports 2-5 LAN PoE-out
   USF5P: {
     kind: "switch",
     frontStyle: "single-row",
-    rows: [range(1, 4)],
+    rows: [range(2, 5)],
     portCount: 5,
     displayModel: "USW Flex",
     theme: "white",
-    poePortRange: [1, 4],
-    specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }]
+    poePortRange: [2, 5],
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 1 }]
   },
-  // USW Flex Mini 2.5G  — 4× 2.5G RJ45 LAN (1-4), Port 5 uplink / PoE-in
+  // USW Flex Mini 2.5G 5  — Port 5 Uplink/PoE-in, ports 1-4 LAN
   USWFLEX25G5: {
     kind: "switch",
     frontStyle: "single-row",
@@ -184,16 +187,29 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }]
   },
-  // USW Flex 2.5G 8 PoE  — 9× RJ45, 1× SFP uplink
+  // USW Flex 2.5G 8 PoE  — Port 9 Uplink/PoE-in, ports 1-8 LAN PoE-out, 1× SFP uplink
   USWFLEX25G8POE: {
     kind: "switch",
     frontStyle: "single-row",
-    rows: [range(1, 9)],
+    rows: [range(1, 8)],
     portCount: 10,
     displayModel: "USW Flex 2.5G 8 PoE",
     theme: "white",
-    poePortRange: [1, 9],
+    poePortRange: [1, 8],
     specialSlots: [
+      { key: "uplink", label: "Uplink", port: 9 },
+      { key: "sfp_1", label: "SFP 1", port: 10 }
+    ]
+  },
+  USWFLEX25G8: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 10,
+    displayModel: "USW Flex 2.5G 8",
+    theme: "white",
+    specialSlots: [
+      { key: "uplink", label: "Uplink", port: 9 },
       { key: "sfp_1", label: "SFP 1", port: 10 }
     ]
   },
@@ -396,6 +412,76 @@ var MODEL_REGISTRY = {
       { key: "sfp_4", label: "SFP+ 4", port: 52 }
     ]
   },
+  // USW Pro Max 16 PoE  — 16× RJ45, 2× SFP+
+  USPM16P: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [range(1, 8), range(9, 16)],
+    portCount: 18,
+    displayModel: "USW Pro Max 16 PoE",
+    theme: "silver",
+    poePortRange: [1, 16],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 17 },
+      { key: "sfp_2", label: "SFP+ 2", port: 18 }
+    ]
+  },
+  // USW Pro Max 24 (PoE / non-PoE)  — 24× RJ45, 2× SFP+
+  USPM24: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "USW Pro Max 24",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  USPM24P: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "USW Pro Max 24 PoE",
+    theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  // USW Pro Max 48 (PoE / non-PoE)  — 48× RJ45, 4× SFP+
+  USPM48: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 52,
+    displayModel: "USW Pro Max 48",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 49 },
+      { key: "sfp_2", label: "SFP+ 2", port: 50 },
+      { key: "sfp_3", label: "SFP+ 3", port: 51 },
+      { key: "sfp_4", label: "SFP+ 4", port: 52 }
+    ]
+  },
+  USPM48P: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 52,
+    displayModel: "USW Pro Max 48 PoE",
+    theme: "silver",
+    poePortRange: [1, 48],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 49 },
+      { key: "sfp_2", label: "SFP+ 2", port: 50 },
+      { key: "sfp_3", label: "SFP+ 3", port: 51 },
+      { key: "sfp_4", label: "SFP+ 4", port: 52 }
+    ]
+  },
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Enterprise
   // ══════════════════════════════════════════════════════════════════════════
@@ -438,6 +524,33 @@ var MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP+ 2", port: 50 },
       { key: "sfp_3", label: "SFP+ 3", port: 51 },
       { key: "sfp_4", label: "SFP+ 4", port: 52 }
+    ]
+  },
+  // USW Enterprise XG 24  — 24× RJ45, 2× SFP+
+  USXG24: {
+    kind: "switch",
+    frontStyle: "six-grid",
+    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    portCount: 26,
+    displayModel: "USW Enterprise XG 24",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  // USW Industrial  — 8× RJ45, 2× SFP+
+  USWINDUSTRIAL: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 10,
+    displayModel: "USW Industrial",
+    theme: "silver",
+    poePortRange: [1, 8],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 9 },
+      { key: "sfp_2", label: "SFP+ 2", port: 10 }
     ]
   },
   // ══════════════════════════════════════════════════════════════════════════
@@ -578,6 +691,24 @@ var MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP+ WAN", port: 7 }
     ]
   },
+  UDM: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 5,
+    displayModel: "UDM",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+  },
+  UDR: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 5,
+    displayModel: "UDR",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+  },
   UDMPRO: {
     kind: "gateway",
     frontStyle: "gateway-rack",
@@ -687,12 +818,15 @@ function resolveModelKey(device) {
     if (candidate.includes("U6IW")) return "U6IW";
     if (candidate.includes("U6EXTENDER")) return "U6EXTENDER";
     if (candidate.includes("U6EXT")) return "U6EXTENDER";
+    if (candidate.includes("U6MESHPRO")) return "U6MESHPRO";
     if (candidate.includes("U7IW")) return "U7IW";
     if (candidate.includes("U7INWALL")) return "U7IW";
     if (candidate.includes("U7LR")) return "U7LR";
     if (candidate.includes("U7LITE")) return "U7LITE";
     if (candidate.includes("U7ULTRA")) return "U7LITE";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
+    if (candidate.includes("U7PROXGS")) return "U7PROXGS";
+    if (candidate.includes("U7PROXG")) return "U7PROXG";
     if (candidate.includes("U7PROMAX")) return "U7PROMAX";
     if (candidate.includes("U7PRO")) return "U7PRO";
     if (candidate.includes("U7OUTDOOR")) return "U7OUTDOOR";
@@ -700,6 +834,10 @@ function resolveModelKey(device) {
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
+    if (candidate === "UDM") return "UDM";
+    if (candidate.includes("DREAMMACHINE")) return "UDM";
+    if (candidate === "UDR") return "UDR";
+    if (candidate.includes("DREAMROUTER")) return "UDR";
     if (candidate.includes("UDM67AUDR7")) return "UDR7";
     if (candidate.includes("UDR7")) return "UDR7";
     if (candidate.includes("DREAMROUTER7")) return "UDR7";
@@ -730,8 +868,13 @@ function resolveModelKey(device) {
     if (candidate.includes("ENTERPRISE48")) return "US648P";
     if (candidate === "US624P") return "US624P";
     if (candidate.includes("ENTERPRISE24")) return "US624P";
+    if (candidate === "USXG24") return "USXG24";
+    if (candidate.includes("USWENTERPRISEXG24")) return "USXG24";
+    if (candidate.includes("ENTERPRISEXG24")) return "USXG24";
     if (candidate === "US68P") return "US68P";
     if (candidate.includes("ENTERPRISE8")) return "US68P";
+    if (candidate === "USWINDUSTRIAL") return "USWINDUSTRIAL";
+    if (candidate.includes("USWINDUSTRIAL")) return "USWINDUSTRIAL";
     if (candidate === "US48PRO") return "US48PRO";
     if (candidate.includes("US48PRO2")) return "US48PRO2";
     if (candidate.includes("US48PRO")) return "US48PRO";
@@ -747,6 +890,21 @@ function resolveModelKey(device) {
     if (candidate.includes("US24PRO")) return "US24PRO";
     if (candidate.includes("USWPRO24")) return "US24PRO2";
     if (candidate.includes("SWITCHPRO24")) return "US24PRO2";
+    if (candidate === "USPM16P") return "USPM16P";
+    if (candidate.includes("USWPROMAX16POE")) return "USPM16P";
+    if (candidate.includes("PROMAX16POE")) return "USPM16P";
+    if (candidate === "USPM24P") return "USPM24P";
+    if (candidate.includes("USWPROMAX24POE")) return "USPM24P";
+    if (candidate.includes("PROMAX24POE")) return "USPM24P";
+    if (candidate === "USPM24") return "USPM24";
+    if (candidate.includes("USWPROMAX24")) return "USPM24";
+    if (candidate.includes("PROMAX24")) return "USPM24";
+    if (candidate === "USPM48P") return "USPM48P";
+    if (candidate.includes("USWPROMAX48POE")) return "USPM48P";
+    if (candidate.includes("PROMAX48POE")) return "USPM48P";
+    if (candidate === "USPM48") return "USPM48";
+    if (candidate.includes("USWPROMAX48")) return "USPM48";
+    if (candidate.includes("PROMAX48")) return "USPM48";
     if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
     if (candidate.includes("USWLITE16")) return "USL16LPB";
@@ -775,7 +933,9 @@ function resolveModelKey(device) {
     if (candidate.includes("SWITCHFLEXMINI25G")) return "USWFLEX25G5";
     if (candidate === "USWFLEX25G8POE") return "USWFLEX25G8POE";
     if (candidate.includes("FLEX25G8POE")) return "USWFLEX25G8POE";
-    if (candidate.includes("USWFLEX25G8")) return "USWFLEX25G8POE";
+    if (candidate === "USWFLEX25G8") return "USWFLEX25G8";
+    if (candidate.includes("FLEX25G8")) return "USWFLEX25G8";
+    if (candidate.includes("USWFLEX25G8")) return "USWFLEX25G8";
     if (candidate === "USF5P") return "USF5P";
     if (candidate.includes("USWFLEX")) return "USF5P";
     if (candidate === "USWULTRA210W") return "USWULTRA210W";
@@ -798,6 +958,8 @@ function resolveModelKey(device) {
     if (candidate === "USL48") return "USL48";
     if (candidate.includes("USW48G2")) return "USL48";
     if (candidate.includes("USW48POE")) return "USL48P";
+    if (candidate.includes("USW24NONPOE")) return "USL24";
+    if (candidate.includes("USW48NONPOE")) return "USL48";
     if (candidate.includes("USW24")) return "USL24P";
     if (candidate.includes("USW48")) return "USL48P";
     if (candidate.startsWith("US24")) return "USL24P";
@@ -811,6 +973,8 @@ function inferPortCountFromModel(device) {
   );
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
+  if (text === "UDM" || text.includes("DREAMMACHINE")) return 5;
+  if (text === "UDR" || text.includes("DREAMROUTER")) return 5;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
   if (text.includes("UDM67AUDR7") || text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
   if (text.includes("UDM67A")) return 11;
@@ -834,9 +998,14 @@ function inferPortCountFromModel(device) {
   if (text.includes("USL16P")) return 18;
   if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
   if (text.includes("US48PRO2") || text.includes("US48PRO") || text.includes("USWPRO48")) return 52;
+  if (text.includes("USPM16P") || text.includes("PROMAX16POE")) return 18;
+  if (text.includes("USPM24P") || text.includes("USPM24") || text.includes("PROMAX24")) return 26;
+  if (text.includes("USPM48P") || text.includes("USPM48") || text.includes("PROMAX48")) return 52;
   if (text.includes("US648P") || text.includes("ENTERPRISE48POE")) return 52;
   if (text.includes("US624P") || text.includes("ENTERPRISE24POE")) return 26;
+  if (text.includes("USXG24") || text.includes("ENTERPRISEXG24")) return 26;
   if (text.includes("US68P") || text.includes("ENTERPRISE8POE")) return 10;
+  if (text.includes("USWINDUSTRIAL")) return 10;
   if (text.includes("USL48P") || text.includes("USL48")) return 52;
   if (text.includes("USL24P") || text.includes("USL24")) return 26;
   if (text.includes("USWULTRA")) return 8;
@@ -917,6 +1086,8 @@ function hasUbiquitiManufacturer(device) {
 var SWITCH_MODEL_PREFIXES = [
   "USW",
   "USL",
+  "USPM",
+  "USXG",
   "USF",
   "US8",
   "USC8",
@@ -978,6 +1149,8 @@ function getDeviceType(device, entities = []) {
       "UDRULT",
       "UCGMAX",
       "UCGFIBER",
+      "UDM",
+      "UDR",
       "UDMPRO",
       "UDMPROSE",
       "UDM67A",
@@ -996,6 +1169,8 @@ function getDeviceType(device, entities = []) {
       "USMINI",
       "USF5P",
       "USWFLEX25G5",
+      "USWFLEX25G8",
+      "USWFLEX25G8POE",
       "USL8LP",
       "USL8LPB",
       "USL16LP",
@@ -1011,9 +1186,16 @@ function getDeviceType(device, entities = []) {
       "US24PRO2",
       "US48PRO",
       "US48PRO2",
+      "USPM16P",
+      "USPM24",
+      "USPM24P",
+      "USPM48",
+      "USPM48P",
       "US68P",
       "US624P",
       "US648P",
+      "USXG24",
+      "USWINDUSTRIAL",
       "USL8A",
       "USAGGPRO",
       "USWULTRA",
@@ -2469,6 +2651,228 @@ var TRANSLATIONS = {
     type_switch: "Switch",
     type_gateway: "Passerelle",
     type_access_point: "Point d\u2019acc\xE8s"
+  },
+  es: {
+    // Card states
+    select_device: "Selecciona un dispositivo UniFi en el editor de tarjetas.",
+    loading: "Cargando datos del dispositivo\u2026",
+    no_data: "No hay datos del dispositivo.",
+    no_ports: "No se detectaron puertos.",
+    // Front panel
+    front_panel: "Panel frontal",
+    // Port detail
+    link_status: "Estado del enlace",
+    ap_status: "Estado del AP",
+    link_lan: "Enlace LAN",
+    link_mesh: "Enlace Mesh",
+    uptime: "Tiempo activo",
+    clients: "Clientes",
+    speed: "Velocidad",
+    poe: "PoE",
+    poe_power: "Potencia PoE",
+    connected: "Conectado",
+    no_link: "Sin enlace",
+    online: "En l\xEDnea",
+    offline: "Sin conexi\xF3n",
+    // Actions
+    port_disable: "Desactivar puerto",
+    port_enable: "Activar puerto",
+    poe_off: "PoE apagado",
+    poe_on: "PoE encendido",
+    power_cycle: "Reinicio PoE",
+    reboot: "Reiniciar",
+    led_on: "LED encendido",
+    led_off: "LED apagado",
+    // Hints
+    speed_disabled: "Entidad de velocidad deshabilitada \u2014 act\xEDvala en HA para mostrar la velocidad de enlace.",
+    // Editor
+    editor_device_title: "Dispositivo",
+    editor_device_label: "Dispositivo UniFi",
+    editor_device_loading: "Cargando dispositivos desde Home Assistant\u2026",
+    editor_device_select: "Seleccionar dispositivo\u2026",
+    editor_name_label: "Nombre para mostrar",
+    editor_name_hint: "Opcional \u2014 por defecto, el nombre del dispositivo",
+    editor_panel_toggle_label: "Panel frontal",
+    editor_panel_toggle_text: "Mostrar vista de hardware del panel frontal",
+    editor_panel_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar la vista visual del panel.",
+    editor_ports_per_row_label: "Puertos por fila (opcional)",
+    editor_ports_per_row_hint: "D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico. Define un n\xFAmero (p. ej. 4, 6, 8, 12).",
+    editor_edit_special_ports_toggle: "Editar puertos especiales",
+    editor_edit_special_ports_toggle_hint: "Activa para mostrar selectores WAN/WAN2 y elegir qu\xE9 puertos aparecen en la fila especial superior.",
+    editor_custom_special_ports_label: "Puertos especiales (fila superior)",
+    editor_custom_special_ports_hint: "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadr\xEDcula normal.",
+    editor_port_size_label: "Tama\xF1o de puerto",
+    editor_port_size_hint: "Ajusta el tama\xF1o de puertos del panel frontal para switches y gateways.",
+    editor_ap_scale_label: "Tama\xF1o AP",
+    editor_ap_scale_hint: "Escala el tama\xF1o del dispositivo AP en modo tarjeta AP.",
+    editor_no_devices: "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
+    editor_hint: "Solo se muestran dispositivos de la integraci\xF3n UniFi Network.",
+    editor_error: "No se pudieron cargar los dispositivos UniFi.",
+    // WAN / WAN2 selector
+    editor_wan_port_label: "Puerto WAN",
+    editor_wan_port_auto: "Predeterminado (autom\xE1tico)",
+    editor_wan_port_hint: "Selecciona qu\xE9 puerto se usa como WAN. Solo para gateways.",
+    editor_wan_port_lan: "LAN",
+    editor_wan_port_sfp: "SFP",
+    editor_wan_port_sfpwan: "SFP (compatible con WAN)",
+    editor_wan2_port_label: "Puerto WAN 2",
+    editor_wan2_port_hint: "Segundo puerto WAN/uplink opcional. Ponlo en \xABDeshabilitado\xBB si no se usa.",
+    editor_wan2_port_none: "Deshabilitado",
+    // Raw HA state values
+    state_on: "Encendido",
+    state_off: "Apagado",
+    state_up: "Conectado",
+    state_down: "Sin enlace",
+    state_connected: "Conectado",
+    state_disconnected: "Desconectado",
+    state_true: "Conectado",
+    state_false: "Sin enlace",
+    state_active: "Activo",
+    state_pending: "Pendiente",
+    state_firmware_mismatch: "Firmware incompatible",
+    state_upgrading: "Actualizando",
+    state_provisioning: "Provisionando",
+    state_heartbeat_missed: "Heartbeat perdido",
+    state_adopting: "Adoptando",
+    state_deleting: "Eliminando",
+    state_inform_error: "Error de inform",
+    state_adoption_failed: "Adopci\xF3n fallida",
+    state_isolated: "Aislado",
+    // Port label prefix
+    port_label: "Puerto",
+    // Background color field (editor)
+    editor_bg_label: "Color de fondo (opcional)",
+    editor_bg_hint: "Predeterminado: var(--card-background-color)",
+    editor_bg_opacity_label: "Transparencia del fondo",
+    editor_bg_opacity_hint: "0% = totalmente transparente, 100% = totalmente opaco",
+    // Entity warning
+    warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado\u2026",
+    warning_title: "Se detectaron entidades UniFi deshabilitadas u ocultas",
+    warning_body: "El dispositivo seleccionado tiene entidades UniFi relevantes que est\xE1n deshabilitadas u ocultas. Esto puede causar controles faltantes, telemetr\xEDa incompleta o estado de puertos incorrecto en la tarjeta.",
+    warning_status: "Resumen: {disabled} deshabilitadas, {hidden} ocultas.",
+    warning_check_in: "Comprobar en Home Assistant en:",
+    warning_ha_path: "Ajustes \u2192 Dispositivos y servicios \u2192 UniFi \u2192 Dispositivos / Entidades",
+    warning_entity_port_switch: "entidades de conmutaci\xF3n de puerto",
+    warning_entity_poe_switch: "entidades de conmutaci\xF3n PoE",
+    warning_entity_poe_power: "sensores de potencia PoE",
+    warning_entity_link_speed: "sensores de velocidad de enlace",
+    warning_entity_rx_tx: "sensores RX/TX",
+    warning_entity_power_cycle: "botones de reinicio PoE",
+    warning_entity_link: "entidades de enlace",
+    type_switch: "Switch",
+    type_gateway: "Gateway",
+    type_access_point: "Punto de acceso"
+  },
+  it: {
+    // Card states
+    select_device: "Seleziona un dispositivo UniFi nell\u2019editor della card.",
+    loading: "Caricamento dati dispositivo\u2026",
+    no_data: "Nessun dato dispositivo disponibile.",
+    no_ports: "Nessuna porta rilevata.",
+    // Front panel
+    front_panel: "Pannello frontale",
+    // Port detail
+    link_status: "Stato collegamento",
+    ap_status: "Stato AP",
+    link_lan: "Link LAN",
+    link_mesh: "Link Mesh",
+    uptime: "Uptime",
+    clients: "Client",
+    speed: "Velocit\xE0",
+    poe: "PoE",
+    poe_power: "Potenza PoE",
+    connected: "Connesso",
+    no_link: "Nessun link",
+    online: "Online",
+    offline: "Offline",
+    // Actions
+    port_disable: "Disattiva porta",
+    port_enable: "Attiva porta",
+    poe_off: "PoE spento",
+    poe_on: "PoE acceso",
+    power_cycle: "Riavvio PoE",
+    reboot: "Riavvia",
+    led_on: "LED acceso",
+    led_off: "LED spento",
+    // Hints
+    speed_disabled: "Entit\xE0 velocit\xE0 disabilitata \u2014 abilitala in HA per mostrare la velocit\xE0 del link.",
+    // Editor
+    editor_device_title: "Dispositivo",
+    editor_device_label: "Dispositivo UniFi",
+    editor_device_loading: "Caricamento dispositivi da Home Assistant\u2026",
+    editor_device_select: "Seleziona dispositivo\u2026",
+    editor_name_label: "Nome visualizzato",
+    editor_name_hint: "Opzionale \u2014 per impostazione predefinita il nome del dispositivo",
+    editor_panel_toggle_label: "Pannello frontale",
+    editor_panel_toggle_text: "Mostra la vista hardware del pannello frontale",
+    editor_panel_toggle_hint: "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
+    editor_ports_per_row_label: "Porte per riga (opzionale)",
+    editor_ports_per_row_hint: "Lascia vuoto per layout automatico. Imposta un numero (es. 4, 6, 8, 12).",
+    editor_edit_special_ports_toggle: "Modifica porte speciali",
+    editor_edit_special_ports_toggle_hint: "Abilita per mostrare i selettori WAN/WAN2 e scegliere quali porte appaiono nella riga speciale superiore.",
+    editor_custom_special_ports_label: "Porte speciali (riga superiore)",
+    editor_custom_special_ports_hint: "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
+    editor_port_size_label: "Dimensione porta",
+    editor_port_size_hint: "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
+    editor_ap_scale_label: "Dimensione AP",
+    editor_ap_scale_hint: "Scala la dimensione del dispositivo AP in modalit\xE0 card AP.",
+    editor_no_devices: "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
+    editor_hint: "Vengono mostrati solo i dispositivi dell\u2019integrazione UniFi Network.",
+    editor_error: "Impossibile caricare i dispositivi UniFi.",
+    // WAN / WAN2 selector
+    editor_wan_port_label: "Porta WAN",
+    editor_wan_port_auto: "Predefinita (automatica)",
+    editor_wan_port_hint: "Seleziona quale porta usare come WAN. Solo per dispositivi gateway.",
+    editor_wan_port_lan: "LAN",
+    editor_wan_port_sfp: "SFP",
+    editor_wan_port_sfpwan: "SFP (compatibile WAN)",
+    editor_wan2_port_label: "Porta WAN 2",
+    editor_wan2_port_hint: "Seconda porta WAN/uplink opzionale. Imposta su \xABDisabilitata\xBB se non necessaria.",
+    editor_wan2_port_none: "Disabilitata",
+    // Raw HA state values
+    state_on: "Acceso",
+    state_off: "Spento",
+    state_up: "Connesso",
+    state_down: "Nessun link",
+    state_connected: "Connesso",
+    state_disconnected: "Disconnesso",
+    state_true: "Connesso",
+    state_false: "Nessun link",
+    state_active: "Attivo",
+    state_pending: "In attesa",
+    state_firmware_mismatch: "Firmware non compatibile",
+    state_upgrading: "Aggiornamento",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat perso",
+    state_adopting: "Adozione in corso",
+    state_deleting: "Eliminazione in corso",
+    state_inform_error: "Errore inform",
+    state_adoption_failed: "Adozione fallita",
+    state_isolated: "Isolato",
+    // Port label prefix
+    port_label: "Porta",
+    // Background color field (editor)
+    editor_bg_label: "Colore sfondo (opzionale)",
+    editor_bg_hint: "Predefinito: var(--card-background-color)",
+    editor_bg_opacity_label: "Trasparenza sfondo",
+    editor_bg_opacity_hint: "0% = completamente trasparente, 100% = completamente opaco",
+    // Entity warning
+    warning_checking: "Controllo entit\xE0 UniFi disabilitate o nascoste per il dispositivo selezionato\u2026",
+    warning_title: "Rilevate entit\xE0 UniFi disabilitate o nascoste",
+    warning_body: "Il dispositivo selezionato ha entit\xE0 UniFi rilevanti attualmente disabilitate o nascoste. Questo pu\xF2 causare controlli mancanti, telemetria incompleta o stato porte non corretto nella card.",
+    warning_status: "Riepilogo: {disabled} disabilitate, {hidden} nascoste.",
+    warning_check_in: "Controlla in Home Assistant in:",
+    warning_ha_path: "Impostazioni \u2192 Dispositivi e servizi \u2192 UniFi \u2192 Dispositivi / Entit\xE0",
+    warning_entity_port_switch: "entit\xE0 switch porta",
+    warning_entity_poe_switch: "entit\xE0 switch PoE",
+    warning_entity_poe_power: "sensori potenza PoE",
+    warning_entity_link_speed: "sensori velocit\xE0 link",
+    warning_entity_rx_tx: "sensori RX/TX",
+    warning_entity_power_cycle: "pulsanti riavvio PoE",
+    warning_entity_link: "entit\xE0 link",
+    type_switch: "Switch",
+    type_gateway: "Gateway",
+    type_access_point: "Access Point"
   }
 };
 function getTranslations(lang) {
@@ -3240,7 +3644,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.4-dev";
+var VERSION = "0.0.0-dev.942a96a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -3762,7 +4166,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const layoutSlot = Number.isInteger(slot?.port) ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port) : null;
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
-    return slot?.kind === "special" && (label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || key.includes("uplink") || physicalKey.includes("uplink") || layoutKey.includes("sfp") || layoutKey.includes("uplink") || layoutLabel.includes("sfp"));
+    return slot?.kind === "special" && (label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || layoutKey.includes("sfp") || layoutLabel.includes("sfp"));
   }
   _isWanLike(slot) {
     const key = String(slot?.key || "").toLowerCase();

@@ -696,10 +696,7 @@ class UnifiDeviceCard extends HTMLElement {
         label.includes("sfp") ||
         key.includes("sfp") ||
         physicalKey.includes("sfp") ||
-        key.includes("uplink") ||
-        physicalKey.includes("uplink") ||
         layoutKey.includes("sfp") ||
-        layoutKey.includes("uplink") ||
         layoutLabel.includes("sfp")
       )
     );

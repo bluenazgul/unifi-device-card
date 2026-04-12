@@ -532,6 +532,256 @@ const TRANSLATIONS = {
     type_gateway: "Passerelle",
     type_access_point: "Point d’accès",
   },
+
+  es: {
+    // Card states
+    select_device:      "Selecciona un dispositivo UniFi en el editor de tarjetas.",
+    loading:            "Cargando datos del dispositivo…",
+    no_data:            "No hay datos del dispositivo.",
+    no_ports:           "No se detectaron puertos.",
+
+    // Front panel
+    front_panel:        "Panel frontal",
+
+    // Port detail
+    link_status:        "Estado del enlace",
+    ap_status:          "Estado del AP",
+    link_lan:           "Enlace LAN",
+    link_mesh:          "Enlace Mesh",
+    uptime:             "Tiempo activo",
+    clients:            "Clientes",
+    speed:              "Velocidad",
+    poe:                "PoE",
+    poe_power:          "Potencia PoE",
+    connected:          "Conectado",
+    no_link:            "Sin enlace",
+    online:             "En línea",
+    offline:            "Sin conexión",
+
+    // Actions
+    port_disable:       "Desactivar puerto",
+    port_enable:        "Activar puerto",
+    poe_off:            "PoE apagado",
+    poe_on:             "PoE encendido",
+    power_cycle:        "Reinicio PoE",
+    reboot:             "Reiniciar",
+    led_on:             "LED encendido",
+    led_off:            "LED apagado",
+
+    // Hints
+    speed_disabled:     "Entidad de velocidad deshabilitada — actívala en HA para mostrar la velocidad de enlace.",
+
+    // Editor
+    editor_device_title:   "Dispositivo",
+    editor_device_label:   "Dispositivo UniFi",
+    editor_device_loading: "Cargando dispositivos desde Home Assistant…",
+    editor_device_select:  "Seleccionar dispositivo…",
+    editor_name_label:     "Nombre para mostrar",
+    editor_name_hint:      "Opcional — por defecto, el nombre del dispositivo",
+    editor_panel_toggle_label: "Panel frontal",
+    editor_panel_toggle_text:  "Mostrar vista de hardware del panel frontal",
+    editor_panel_toggle_hint:  "Activado por defecto. Desactívalo para ocultar la vista visual del panel.",
+    editor_ports_per_row_label: "Puertos por fila (opcional)",
+    editor_ports_per_row_hint:  "Déjalo vacío para diseño automático. Define un número (p. ej. 4, 6, 8, 12).",
+    editor_edit_special_ports_toggle: "Editar puertos especiales",
+    editor_edit_special_ports_toggle_hint: "Activa para mostrar selectores WAN/WAN2 y elegir qué puertos aparecen en la fila especial superior.",
+    editor_custom_special_ports_label: "Puertos especiales (fila superior)",
+    editor_custom_special_ports_hint:  "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadrícula normal.",
+    editor_port_size_label: "Tamaño de puerto",
+    editor_port_size_hint:  "Ajusta el tamaño de puertos del panel frontal para switches y gateways.",
+    editor_ap_scale_label:  "Tamaño AP",
+    editor_ap_scale_hint:   "Escala el tamaño del dispositivo AP en modo tarjeta AP.",
+    editor_no_devices:     "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
+    editor_hint:           "Solo se muestran dispositivos de la integración UniFi Network.",
+    editor_error:          "No se pudieron cargar los dispositivos UniFi.",
+
+    // WAN / WAN2 selector
+    editor_wan_port_label:   "Puerto WAN",
+    editor_wan_port_auto:    "Predeterminado (automático)",
+    editor_wan_port_hint:    "Selecciona qué puerto se usa como WAN. Solo para gateways.",
+    editor_wan_port_lan:     "LAN",
+    editor_wan_port_sfp:     "SFP",
+    editor_wan_port_sfpwan:  "SFP (compatible con WAN)",
+
+    editor_wan2_port_label:  "Puerto WAN 2",
+    editor_wan2_port_hint:   "Segundo puerto WAN/uplink opcional. Ponlo en «Deshabilitado» si no se usa.",
+    editor_wan2_port_none:   "Deshabilitado",
+
+    // Raw HA state values
+    state_on:           "Encendido",
+    state_off:          "Apagado",
+    state_up:           "Conectado",
+    state_down:         "Sin enlace",
+    state_connected:    "Conectado",
+    state_disconnected: "Desconectado",
+    state_true:         "Conectado",
+    state_false:        "Sin enlace",
+    state_active:       "Activo",
+    state_pending:      "Pendiente",
+    state_firmware_mismatch: "Firmware incompatible",
+    state_upgrading:    "Actualizando",
+    state_provisioning: "Provisionando",
+    state_heartbeat_missed: "Heartbeat perdido",
+    state_adopting:     "Adoptando",
+    state_deleting:     "Eliminando",
+    state_inform_error: "Error de inform",
+    state_adoption_failed: "Adopción fallida",
+    state_isolated:     "Aislado",
+
+    // Port label prefix
+    port_label:         "Puerto",
+
+    // Background color field (editor)
+    editor_bg_label: "Color de fondo (opcional)",
+    editor_bg_hint:  "Predeterminado: var(--card-background-color)",
+    editor_bg_opacity_label: "Transparencia del fondo",
+    editor_bg_opacity_hint:  "0% = totalmente transparente, 100% = totalmente opaco",
+
+    // Entity warning
+    warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado…",
+    warning_title:   "Se detectaron entidades UniFi deshabilitadas u ocultas",
+    warning_body:    "El dispositivo seleccionado tiene entidades UniFi relevantes que están deshabilitadas u ocultas. Esto puede causar controles faltantes, telemetría incompleta o estado de puertos incorrecto en la tarjeta.",
+    warning_status:  "Resumen: {disabled} deshabilitadas, {hidden} ocultas.",
+    warning_check_in: "Comprobar en Home Assistant en:",
+    warning_ha_path: "Ajustes → Dispositivos y servicios → UniFi → Dispositivos / Entidades",
+
+    warning_entity_port_switch: "entidades de conmutación de puerto",
+    warning_entity_poe_switch:  "entidades de conmutación PoE",
+    warning_entity_poe_power:   "sensores de potencia PoE",
+    warning_entity_link_speed:  "sensores de velocidad de enlace",
+    warning_entity_rx_tx:       "sensores RX/TX",
+    warning_entity_power_cycle: "botones de reinicio PoE",
+    warning_entity_link:        "entidades de enlace",
+
+    type_switch:  "Switch",
+    type_gateway: "Gateway",
+    type_access_point: "Punto de acceso",
+  },
+
+  it: {
+    // Card states
+    select_device:      "Seleziona un dispositivo UniFi nell’editor della card.",
+    loading:            "Caricamento dati dispositivo…",
+    no_data:            "Nessun dato dispositivo disponibile.",
+    no_ports:           "Nessuna porta rilevata.",
+
+    // Front panel
+    front_panel:        "Pannello frontale",
+
+    // Port detail
+    link_status:        "Stato collegamento",
+    ap_status:          "Stato AP",
+    link_lan:           "Link LAN",
+    link_mesh:          "Link Mesh",
+    uptime:             "Uptime",
+    clients:            "Client",
+    speed:              "Velocità",
+    poe:                "PoE",
+    poe_power:          "Potenza PoE",
+    connected:          "Connesso",
+    no_link:            "Nessun link",
+    online:             "Online",
+    offline:            "Offline",
+
+    // Actions
+    port_disable:       "Disattiva porta",
+    port_enable:        "Attiva porta",
+    poe_off:            "PoE spento",
+    poe_on:             "PoE acceso",
+    power_cycle:        "Riavvio PoE",
+    reboot:             "Riavvia",
+    led_on:             "LED acceso",
+    led_off:            "LED spento",
+
+    // Hints
+    speed_disabled:     "Entità velocità disabilitata — abilitala in HA per mostrare la velocità del link.",
+
+    // Editor
+    editor_device_title:   "Dispositivo",
+    editor_device_label:   "Dispositivo UniFi",
+    editor_device_loading: "Caricamento dispositivi da Home Assistant…",
+    editor_device_select:  "Seleziona dispositivo…",
+    editor_name_label:     "Nome visualizzato",
+    editor_name_hint:      "Opzionale — per impostazione predefinita il nome del dispositivo",
+    editor_panel_toggle_label: "Pannello frontale",
+    editor_panel_toggle_text:  "Mostra la vista hardware del pannello frontale",
+    editor_panel_toggle_hint:  "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
+    editor_ports_per_row_label: "Porte per riga (opzionale)",
+    editor_ports_per_row_hint:  "Lascia vuoto per layout automatico. Imposta un numero (es. 4, 6, 8, 12).",
+    editor_edit_special_ports_toggle: "Modifica porte speciali",
+    editor_edit_special_ports_toggle_hint: "Abilita per mostrare i selettori WAN/WAN2 e scegliere quali porte appaiono nella riga speciale superiore.",
+    editor_custom_special_ports_label: "Porte speciali (riga superiore)",
+    editor_custom_special_ports_hint:  "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
+    editor_port_size_label: "Dimensione porta",
+    editor_port_size_hint:  "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
+    editor_ap_scale_label:  "Dimensione AP",
+    editor_ap_scale_hint:   "Scala la dimensione del dispositivo AP in modalità card AP.",
+    editor_no_devices:     "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
+    editor_hint:           "Vengono mostrati solo i dispositivi dell’integrazione UniFi Network.",
+    editor_error:          "Impossibile caricare i dispositivi UniFi.",
+
+    // WAN / WAN2 selector
+    editor_wan_port_label:   "Porta WAN",
+    editor_wan_port_auto:    "Predefinita (automatica)",
+    editor_wan_port_hint:    "Seleziona quale porta usare come WAN. Solo per dispositivi gateway.",
+    editor_wan_port_lan:     "LAN",
+    editor_wan_port_sfp:     "SFP",
+    editor_wan_port_sfpwan:  "SFP (compatibile WAN)",
+
+    editor_wan2_port_label:  "Porta WAN 2",
+    editor_wan2_port_hint:   "Seconda porta WAN/uplink opzionale. Imposta su «Disabilitata» se non necessaria.",
+    editor_wan2_port_none:   "Disabilitata",
+
+    // Raw HA state values
+    state_on:           "Acceso",
+    state_off:          "Spento",
+    state_up:           "Connesso",
+    state_down:         "Nessun link",
+    state_connected:    "Connesso",
+    state_disconnected: "Disconnesso",
+    state_true:         "Connesso",
+    state_false:        "Nessun link",
+    state_active:       "Attivo",
+    state_pending:      "In attesa",
+    state_firmware_mismatch: "Firmware non compatibile",
+    state_upgrading:    "Aggiornamento",
+    state_provisioning: "Provisioning",
+    state_heartbeat_missed: "Heartbeat perso",
+    state_adopting:     "Adozione in corso",
+    state_deleting:     "Eliminazione in corso",
+    state_inform_error: "Errore inform",
+    state_adoption_failed: "Adozione fallita",
+    state_isolated:     "Isolato",
+
+    // Port label prefix
+    port_label:         "Porta",
+
+    // Background color field (editor)
+    editor_bg_label: "Colore sfondo (opzionale)",
+    editor_bg_hint:  "Predefinito: var(--card-background-color)",
+    editor_bg_opacity_label: "Trasparenza sfondo",
+    editor_bg_opacity_hint:  "0% = completamente trasparente, 100% = completamente opaco",
+
+    // Entity warning
+    warning_checking: "Controllo entità UniFi disabilitate o nascoste per il dispositivo selezionato…",
+    warning_title:   "Rilevate entità UniFi disabilitate o nascoste",
+    warning_body:    "Il dispositivo selezionato ha entità UniFi rilevanti attualmente disabilitate o nascoste. Questo può causare controlli mancanti, telemetria incompleta o stato porte non corretto nella card.",
+    warning_status:  "Riepilogo: {disabled} disabilitate, {hidden} nascoste.",
+    warning_check_in: "Controlla in Home Assistant in:",
+    warning_ha_path: "Impostazioni → Dispositivi e servizi → UniFi → Dispositivi / Entità",
+
+    warning_entity_port_switch: "entità switch porta",
+    warning_entity_poe_switch:  "entità switch PoE",
+    warning_entity_poe_power:   "sensori potenza PoE",
+    warning_entity_link_speed:  "sensori velocità link",
+    warning_entity_rx_tx:       "sensori RX/TX",
+    warning_entity_power_cycle: "pulsanti riavvio PoE",
+    warning_entity_link:        "entità link",
+
+    type_switch:  "Switch",
+    type_gateway: "Gateway",
+    type_access_point: "Access Point",
+  },
 };
 
 /**
