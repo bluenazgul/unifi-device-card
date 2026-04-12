@@ -59,10 +59,11 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | UniFi Switch 8 60W (`US8P60`) | 8 | Silver |
 | UniFi Switch 8 150W (`US8P150`) | 8 + 2 SFP | Silver |
 | UniFi Switch 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
-| USW Flex Mini (`USMINI`) | 5 | White |
+| USW Flex Mini (`USMINI`) | 4 + Uplink | White |
 | USW Flex (`USF5P`) | 4 + Uplink | White |
-| USW Flex 2.5G 5 (`USWFLEX25G5`) | 5 | White |
-| USW Flex 2.5G 8 PoE (`USWFLEX25G8POE`) | 8 + 2 SFP+ | White |
+| USW Flex 2.5G 5 (`USWFLEX25G5`) | 4 + Uplink | White |
+| USW Flex 2.5G 8 (`USWFLEX25G8`) | 8 + Uplink + 1 SFP | White |
+| USW Flex 2.5G 8 PoE (`USWFLEX25G8POE`) | 8 + Uplink + 1 SFP | White |
 | USW Lite 8 PoE (`USL8LP`, `USL8LPB`) | 8 | White |
 | USW Lite 16 PoE (`USL16LP`, `USL16LPB`) | 16 | White |
 | USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
@@ -74,9 +75,16 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | USW Pro 24 (`US24PRO2`) | 24 + 2 SFP+ | Silver |
 | USW Pro 48 PoE (`US48PRO`) | 48 + 4 SFP+ | Silver |
 | USW Pro 48 (`US48PRO2`) | 48 + 4 SFP+ | Silver |
+| USW Pro Max 16 PoE (`USPM16P`) | 16 + 2 SFP+ | Silver |
+| USW Pro Max 24 (`USPM24`) | 24 + 2 SFP+ | Silver |
+| USW Pro Max 24 PoE (`USPM24P`) | 24 + 2 SFP+ | Silver |
+| USW Pro Max 48 (`USPM48`) | 48 + 4 SFP+ | Silver |
+| USW Pro Max 48 PoE (`USPM48P`) | 48 + 4 SFP+ | Silver |
 | USW Enterprise 8 PoE (`US68P`) | 8 + 2 SFP+ | Silver |
 | USW Enterprise 24 PoE (`US624P`) | 24 + 2 SFP+ | Silver |
 | USW Enterprise 48 PoE (`US648P`) | 48 + 4 SFP+ | Silver |
+| USW Enterprise XG 24 (`USXG24`) | 24 + 2 SFP+ | Silver |
+| USW Industrial (`USWINDUSTRIAL`) | 8 + 2 SFP+ | Silver |
 | USW Aggregation (`USL8A`) | 8 SFP+ | Silver |
 | USW Pro Aggregation (`USAGGPRO`) | 28 SFP+ + 4 SFP28 | Silver |
 | USW Ultra (`USWULTRA`) | 8 | White |
@@ -86,6 +94,8 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
 | Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
 | Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |
+| Dream Machine (`UDM`) | 4 + WAN | White |
+| Dream Router (`UDR`) | 4 + WAN | White |
 | UDM Pro (`UDMPRO`) | 8 + WAN/SFP+ | Silver |
 | UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
 | UXG-Pro (`UXGPRO`) | 2 + WAN + SFP+ | Silver |
@@ -100,6 +110,9 @@ If you see improvements, issues, or fixes, feel free to open an issue or create 
 | U7 In-Wall (`U7IW`) | AP panel | White |
 | U7 LR (`U7LR`) | AP panel | White |
 | U7 Lite (`U7LITE`) | AP panel | White |
+| U7 Pro XG (`U7PROXG`) | AP panel | White |
+| U7 Pro XGS (`U7PROXGS`) | AP panel | White |
+| U6 Mesh Pro (`U6MESHPRO`) | AP panel | White |
 | Weitere AP-Familien (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) | AP panel | White |
 
 Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
