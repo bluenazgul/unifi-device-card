@@ -10,6 +10,7 @@ import {
   isPortConnected,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
+  parseLinkSpeedMbit,
   stateObj,
 } from "./helpers.js";
 import { t } from "./translations.js";
@@ -646,11 +647,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _speedValueMbit(port) {
-    const text = String(getPortSpeedText(this._hass, port) || "");
-    const m = text.match(/([0-9]+(?:[.,][0-9]+)?)/);
-    if (!m) return null;
-    const n = parseFloat(m[1].replace(",", "."));
-    return Number.isFinite(n) ? n : null;
+    return parseLinkSpeedMbit(this._hass, port?.speed_entity);
   }
 
   _linkLedClass(port) {
@@ -1047,6 +1044,7 @@ class UnifiDeviceCard extends HTMLElement {
         min-width: 0;
         border: none;
         background: transparent;
+        transition: outline .1s ease, opacity .15s ease, filter .15s ease;
       }
 
       .port:focus {
@@ -1068,6 +1066,23 @@ class UnifiDeviceCard extends HTMLElement {
         display: flex;
         justify-content: center;
         align-items: flex-start;
+        transition: opacity .15s ease, filter .15s ease;
+      }
+
+      .port.down .port-housing {
+        opacity: .42;
+        filter: saturate(.45) brightness(.78);
+      }
+
+      .port.up .port-housing {
+        opacity: 1;
+        filter: saturate(1.05) brightness(1.02);
+      }
+
+      .port:hover .port-housing,
+      .port.selected .port-housing {
+        opacity: 1;
+        filter: none;
       }
 
       .port-rj45 {
@@ -1302,10 +1317,22 @@ class UnifiDeviceCard extends HTMLElement {
         letter-spacing: 0;
         user-select: none;
         color: #646a76;
+        transition: color .15s ease, opacity .15s ease;
+      }
+
+      .port.down .port-num {
+        color: #4c5260;
+        opacity: .6;
       }
 
       .port.up .port-num {
         color: #414957;
+        opacity: 1;
+      }
+
+      .port:hover .port-num,
+      .port.selected .port-num {
+        opacity: 1;
       }
 
       .port.is-sfp .port-num {

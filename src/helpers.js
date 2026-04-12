@@ -1628,6 +1628,20 @@ export function stateValue(hass, entityId) {
   return stateObj(hass, entityId)?.state ?? null;
 }
 
+export function parseLinkSpeedMbit(hass, entityId) {
+  const obj = stateObj(hass, entityId);
+  const raw = obj?.state;
+  if (raw == null || raw === "unavailable" || raw === "unknown") return null;
+
+  const n = parseFloat(String(raw).replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+
+  const unit = String(obj?.attributes?.unit_of_measurement || "").toLowerCase();
+  if (unit.includes("gb")) return n * 1000;
+  if (unit.includes("kb")) return n / 1000;
+  return n;
+}
+
 export function isOn(hass, entityId) {
   const s = stateValue(hass, entityId);
   return s === "on" || s === "true" || s === "connected" || s === "up" || s === "active";
@@ -1667,11 +1681,10 @@ export function isPortConnected(hass, port) {
     if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
 
-  const speed = stateValue(hass, port.speed_entity);
-  if (speed && speed !== "unavailable" && speed !== "unknown") {
-    const n = parseFloat(String(speed).replace(",", "."));
-    if (!Number.isNaN(n) && n > 10) return true;
-    if (!Number.isNaN(n) && n <= 10) return false;
+  const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
+  if (speedMbit != null) {
+    if (speedMbit > 10) return true;
+    if (speedMbit <= 10) return false;
   }
 
   const rx = stateValue(hass, port.rx_entity);
