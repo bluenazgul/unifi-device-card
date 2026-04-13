@@ -2,6 +2,9 @@
 
 ## [0.5.7] - 2026-04-13
 
+### ✨ Improvements
+- Added missing `USM8P60`, `USM8P210`, `USM8P` alias handling for USW Ultra Switches
+
 ### 🐛 Bug Fixes
 - complete UniFi port telemetry mapping and SFP/PoE behavior polish PR [#93](https://github.com/bluenazgul/unifi-device-card/pull/93) thanks to @DAE51D
 - Fixes: Idle ports show as connected due to 10 Mbit/s ghost link speed Issue [#81](https://github.com/bluenazgul/unifi-device-card/issues/81) thanks to @DAE51D
