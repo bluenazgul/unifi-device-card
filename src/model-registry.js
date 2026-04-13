@@ -112,7 +112,7 @@ export const MODEL_REGISTRY = {
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
   UAPHD: apModel("UAP HD"),
-  UAPXG: apModel("UAP XG"),F
+  UAPXG: apModel("UAP XG"),
   UAPSHD: apModel("UAP SHD"),
   UAPFLEXHD: apModel("UAP FlexHD"),
   UAPBEACONHD: apModel("UAP BeaconHD"),
