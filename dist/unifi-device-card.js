@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.6-dev */
+/* UniFi Device Card 0.0.0-dev.b53f4b5 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3698,7 +3698,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.6-dev";
+var VERSION = "0.0.0-dev.b53f4b5";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -3775,8 +3775,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     const panelRows = this._buildEffectiveRows(this._ctx, visibleNumbered).length + (specials.length ? 1 : 0);
     const selected = [...specials, ...visibleNumbered].find((slot) => slot.key === this._selectedKey) || specials[0] || visibleNumbered[0] || null;
     const hasPoe = !!(selected?.poe_switch_entity || selected?.poe_power_entity || selected?.power_cycle_entity);
-    const hasTraffic = !!(selected?.rx_entity || selected?.tx_entity);
-    return Math.max(6, Math.min(20, 5 + panelRows + (hasPoe ? 1 : 0) + (hasTraffic ? 1 : 0)));
+    const hasTraffic2 = !!(selected?.rx_entity || selected?.tx_entity);
+    return Math.max(6, Math.min(20, 5 + panelRows + (hasPoe ? 1 : 0) + (hasTraffic2 ? 1 : 0)));
   }
   _updateCardSize() {
     const cardEl = this.shadowRoot?.querySelector("ha-card");
