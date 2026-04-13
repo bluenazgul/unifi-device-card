@@ -662,7 +662,7 @@ export const MODEL_REGISTRY = {
     portCount: 3, displayModel: "UniFi Security Gateway", theme: "white",
     specialSlots: [
       { key: "wan",  label: "WAN",   port: 1 },
-      { key: "wan2", label: "WAN 2", port: 3 },
+      //{ key: "wan2", label: "WAN 2", port: 3 },
     ],
   },
   UGW4: {
