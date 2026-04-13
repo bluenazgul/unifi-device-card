@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.71] - 2026-04-13
+
+### 🐛 Bug Fixes
+- fixed accidental disabled WAN2/LAN2 on USG3P
+
 ## [0.5.7] - 2026-04-13
 
 ### ✨ Improvements
