@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.72] - 2026-04-13
+
+### 🐛 Bug Fixes
+- Fixed special-port link detection so only SFP/SFP28 special slots prefer live RX/TX traffic over negotiated link speed, preserving ghost-link protection without forcing WAN/WAN2/uplink into traffic-only evaluation.
+- Fixed gateway WAN/WAN2 override remapping to retain entities when a selected special slot (for example UDR7 SFP+ WAN) is resolved by key, preventing false `no_link` on mapped WAN special ports with valid link/traffic sensors.
+
 ## [0.5.71] - 2026-04-13
 
 ### 🐛 Bug Fixes
