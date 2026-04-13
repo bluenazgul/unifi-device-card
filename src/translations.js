@@ -22,6 +22,7 @@ const TRANSLATIONS = {
     cpu_utilization:    "CPU utilization",
     cpu_temperature:    "CPU temperature",
     memory_utilization: "Memory utilization",
+    temperature:        "Temperature",
 
     // Port detail
     link_status:        "Link Status",
@@ -154,6 +155,7 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Front Panel",
+    temperature:        "Temperatur",
 
     // Port detail
     link_status:        "Link Status",
@@ -289,6 +291,7 @@ const TRANSLATIONS = {
     cpu_utilization:    "CPU-gebruik",
     cpu_temperature:    "CPU-temperatuur",
     memory_utilization: "Geheugengebruik",
+    temperature:        "Temperatuur",
 
     // Port detail
     link_status:        "Linkstatus",
@@ -417,6 +420,7 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Panneau avant",
+    temperature:        "Température",
 
     // Port detail
     link_status:        "État du lien",
@@ -542,6 +546,7 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Panel frontal",
+    temperature:        "Temperatura",
 
     // Port detail
     link_status:        "Estado del enlace",
@@ -667,6 +672,7 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Pannello frontale",
+    temperature:        "Temperatura",
 
     // Port detail
     link_status:        "Stato collegamento",
