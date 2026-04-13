@@ -852,6 +852,20 @@ function classifyPortEntity(entity, isSpecial = false) {
     return "power_cycle_entity";
   }
 
+  // Translation keys are stable even when users rename port entities.
+  if (eid.startsWith("sensor.")) {
+    if (tk === "port_bandwidth_rx" || tk === "rx") return "rx_entity";
+    if (tk === "port_bandwidth_tx" || tk === "tx") return "tx_entity";
+    if (tk === "port_link_speed" || tk === "link_speed") return "speed_entity";
+    if (
+      tk === "poe_power" ||
+      tk === "port_poe_power" ||
+      tk === "poe_power_consumption"
+    ) {
+      return "poe_power_entity";
+    }
+  }
+
   if (eid.startsWith("switch.") && hasPortLikeId && id.endsWith("_poe")) {
     return "poe_switch_entity";
   }
@@ -1557,7 +1571,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
       !e.unique_id &&
       e.translation_key &&
       PORT_TRANSLATION_KEYS.has(e.translation_key) &&
-      !hasIndexedPortId(e.entity_id) &&
+      (!hasIndexedPortId(e.entity_id) || /(?:^|[_-])sfp[_+]?\d+(?:[_-]|$)/i.test(lower(e.entity_id))) &&
       !/\bport\s+\d+\b/i.test(e.original_name || "")
   );
 
@@ -1709,11 +1723,29 @@ export function getPoeStatus(hass, port) {
   };
 }
 
+function trafficValue(hass, entityId) {
+  const raw = stateValue(hass, entityId);
+  if (raw == null || raw === "unavailable" || raw === "unknown") return 0;
+
+  const num = parseFloat(String(raw).replace(",", "."));
+  return Number.isFinite(num) ? num : 0;
+}
+
+function hasTraffic(hass, port) {
+  return trafficValue(hass, port?.rx_entity) > 0 || trafficValue(hass, port?.tx_entity) > 0;
+}
+
 export function isPortConnected(hass, port) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
     if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
+  }
+
+  // For WAN/SFP special slots, prefer live traffic over negotiated speed.
+  // Some gateways report ghost speed on idle SFP ports even when no cable is active.
+  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+    return hasTraffic(hass, port);
   }
 
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
