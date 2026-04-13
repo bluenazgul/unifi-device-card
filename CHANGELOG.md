@@ -1,15 +1,17 @@
 # Changelog
 
-## [0.5.72] - 2026-04-13
+## [0.5.8] - 2026-04-13
+
+### ✨ Improvements
+- Added optional header metric for a generic device temperature sensor (shown only when available and valid).
+- Improved metric rendering to avoid duplicate header entries when multiple metric slots resolve to the same entity.
+- Added translation key for the new temperature metric across all existing language blocks.
 
 ### 🐛 Bug Fixes
 - Fixed special-port link detection so only SFP/SFP28 special slots prefer live RX/TX traffic over negotiated link speed, preserving ghost-link protection without forcing WAN/WAN2/uplink into traffic-only evaluation.
 - Fixed gateway WAN/WAN2 override remapping to retain entities when a selected special slot (for example UDR7 SFP+ WAN) is resolved by key, preventing false `no_link` on mapped WAN special ports with valid link/traffic sensors.
-
-## [0.5.71] - 2026-04-13
-
-### 🐛 Bug Fixes
-- fixed accidental disabled WAN2/LAN2 on USG3P
+- Fixed accidental disabled WAN2/LAN2 on USG3P.
+- Fixed SFP connector rendering so SFP/SFP+ ports keep SFP-style visualization based on slot metadata and no longer fall back to RJ45 styling in override/selection edge cases.
 
 ## [0.5.7] - 2026-04-13
 
