@@ -635,10 +635,17 @@ class UnifiDeviceCard extends HTMLElement {
       { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },
       { key: "cpu_temperature", entity: this._ctx.cpu_temperature_entity },
       { key: "memory_utilization", entity: this._ctx.memory_utilization_entity },
+      { key: "temperature", entity: this._ctx.temperature_entity },
     ];
 
+    const seenEntities = new Set();
     return metrics
-      .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
+      .filter((item) => {
+        if (!item.entity) return false;
+        if (seenEntities.has(item.entity)) return false;
+        seenEntities.add(item.entity);
+        return formatState(this._hass, item.entity) !== "—";
+      })
       .map((item) => ({
         label: this._t(item.key),
         value: formatState(this._hass, item.entity),
@@ -691,14 +698,11 @@ class UnifiDeviceCard extends HTMLElement {
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
     return (
-      slot?.kind === "special" &&
-      (
-        label.includes("sfp") ||
-        key.includes("sfp") ||
-        physicalKey.includes("sfp") ||
-        layoutKey.includes("sfp") ||
-        layoutLabel.includes("sfp")
-      )
+      label.includes("sfp") ||
+      key.includes("sfp") ||
+      physicalKey.includes("sfp") ||
+      layoutKey.includes("sfp") ||
+      layoutLabel.includes("sfp")
     );
   }
 
