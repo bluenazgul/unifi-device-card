@@ -1441,6 +1441,11 @@ class UnifiDeviceCard extends HTMLElement {
         color: #fff;
       }
 
+      .action-btn.primary.dimmed {
+        opacity: .52;
+        filter: saturate(.6) brightness(.9);
+      }
+
       .action-btn.secondary {
         background: var(--udc-surf2);
         border: 1px solid var(--udc-border);
@@ -1643,8 +1648,8 @@ class UnifiDeviceCard extends HTMLElement {
               ${enabled ? this._t("port_disable") : this._t("port_enable")}
             </button>`;
           })() : ""}
-          ${selected.poe_switch_entity ? `<button class="action-btn primary" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            ⚡ ${poeOn ? this._t("poe_off") : this._t("poe_on")}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+            ⚡ ${this._t("poe")}
           </button>` : ""}
           ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
             ↺ ${this._t("power_cycle")}

@@ -662,7 +662,7 @@ export const MODEL_REGISTRY = {
     portCount: 3, displayModel: "UniFi Security Gateway", theme: "white",
     specialSlots: [
       { key: "wan",  label: "WAN",   port: 1 },
-      { key: "wan2", label: "WAN 2", port: 3 },
+      //{ key: "wan2", label: "WAN 2", port: 3 },
     ],
   },
   UGW4: {
@@ -908,14 +908,17 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWFLEX"))            return "USF5P";
 
     if (candidate === "USWULTRA210W")             return "USWULTRA210W";
-    if (candidate === "USWULTRA60W")              return "USWULTRA60W";
-    if (candidate === "USWULTRA")                 return "USWULTRA";
-    if (candidate.includes("USWULTRA210"))        return "USWULTRA210W";
-    if (candidate.includes("USWULTRA60"))         return "USWULTRA60W";
-    if (candidate.includes("USWULTRA"))           return "USWULTRA";
     if (candidate.includes("SWITCHULTRA210"))     return "USWULTRA210W";
+    if (candidate.includes("USWULTRA210"))        return "USWULTRA210W";
+    if (candidate === "USM8P210")                 return "USWULTRA210W";
+    if (candidate === "USWULTRA60W")              return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA60"))      return "USWULTRA60W";
+    if (candidate.includes("USWULTRA60"))         return "USWULTRA60W";
+    if (candidate === "USM8P60")                  return "USWULTRA60W";
+    if (candidate === "USWULTRA")                 return "USWULTRA";
+    if (candidate.includes("USWULTRA"))           return "USWULTRA";
     if (candidate.includes("SWITCHULTRA"))        return "USWULTRA";
+    if (candidate === "USM8P")                    return "USWULTRA";
 
     if (candidate === "USL16P")                   return "USL16P";
     if (candidate.includes("USW16POE"))           return "USL16P";
