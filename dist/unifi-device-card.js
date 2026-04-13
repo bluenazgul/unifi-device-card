@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b510e98 */
+/* UniFi Device Card 0.0.0-dev.db1d1ea */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3708,7 +3708,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b510e98";
+var VERSION = "0.0.0-dev.db1d1ea";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
