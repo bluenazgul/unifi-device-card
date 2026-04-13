@@ -1442,7 +1442,9 @@ export function applyGatewayPortOverrides(config, specials, numbered, layout) {
     if (!sel) continue;
 
     if (sel.type === "port") {
-      const physical = physicalByPort.get(sel.port) || emptyNumberedPort(sel.port);
+      const physicalByPortSlot = physicalByPort.get(sel.port);
+      const physicalByKeySlot = sel.key ? specialsByKey.get(sel.key) : null;
+      const physical = physicalByPortSlot || physicalByKeySlot || emptyNumberedPort(sel.port);
       newSpecials.push(makeSpecialFromPhysical(roleKey, physical));
     } else {
       const specialData =
@@ -1735,6 +1737,13 @@ function hasTraffic(hass, port) {
   return trafficValue(hass, port?.rx_entity) > 0 || trafficValue(hass, port?.tx_entity) > 0;
 }
 
+function isSfpSpecialPort(port) {
+  if (port?.kind !== "special") return false;
+
+  const key = lower(port?.physical_key || port?.key || "");
+  return key.startsWith("sfp_") || key.startsWith("sfp28_");
+}
+
 export function isPortConnected(hass, port) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
@@ -1742,11 +1751,21 @@ export function isPortConnected(hass, port) {
     if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
 
+  // --- BEGIN previous behavior (kept for easy rollback) ---
   // For WAN/SFP special slots, prefer live traffic over negotiated speed.
   // Some gateways report ghost speed on idle SFP ports even when no cable is active.
-  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+  // if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+  //   return hasTraffic(hass, port);
+  // }
+  // --- END previous behavior ---
+
+  // --- BEGIN new behavior for Issue #91 ---
+  // Keep the ghost-speed protection for SFP/SFP28 special ports only.
+  // WAN/WAN2/Uplink special slots continue with speed_entity and then RX/TX fallback.
+  if (isSfpSpecialPort(port) && (port?.rx_entity || port?.tx_entity)) {
     return hasTraffic(hass, port);
   }
+  // --- END new behavior for Issue #91 ---
 
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {

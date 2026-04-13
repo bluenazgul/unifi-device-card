@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.3913a36 */
+/* UniFi Device Card 0.0.0-dev.db1d1ea */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2017,7 +2017,9 @@ function applyGatewayPortOverrides(config, specials, numbered, layout) {
     const sel = roleAssignments.get(roleKey);
     if (!sel) continue;
     if (sel.type === "port") {
-      const physical = physicalByPort.get(sel.port) || emptyNumberedPort(sel.port);
+      const physicalByPortSlot = physicalByPort.get(sel.port);
+      const physicalByKeySlot = sel.key ? specialsByKey.get(sel.key) : null;
+      const physical = physicalByPortSlot || physicalByKeySlot || emptyNumberedPort(sel.port);
       newSpecials.push(makeSpecialFromPhysical(roleKey, physical));
     } else {
       const specialData = specialsByKey.get(sel.key) || emptySpecialPort(roleKey, roleKey === "wan2" ? "WAN 2" : "WAN");
@@ -2210,13 +2212,18 @@ function trafficValue(hass, entityId) {
 function hasTraffic(hass, port) {
   return trafficValue(hass, port?.rx_entity) > 0 || trafficValue(hass, port?.tx_entity) > 0;
 }
+function isSfpSpecialPort(port) {
+  if (port?.kind !== "special") return false;
+  const key = lower(port?.physical_key || port?.key || "");
+  return key.startsWith("sfp_") || key.startsWith("sfp28_");
+}
 function isPortConnected(hass, port) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
     if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
-  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+  if (isSfpSpecialPort(port) && (port?.rx_entity || port?.tx_entity)) {
     return hasTraffic(hass, port);
   }
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
@@ -3701,7 +3708,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.3913a36";
+var VERSION = "0.0.0-dev.db1d1ea";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
