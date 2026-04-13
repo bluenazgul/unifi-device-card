@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.72 */
+/* UniFi Device Card 0.0.0-dev.d5f9622 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1426,7 +1426,12 @@ function getDeviceTelemetry(entities) {
   return {
     cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
     cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
-    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"])
+    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
+    temperature_entity: findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) || findSystemStatEntity(
+      entities,
+      ["temperature", "temp"],
+      ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"]
+    )
   };
 }
 function getDeviceOnlineEntity(entities) {
@@ -2223,7 +2228,7 @@ function isPortConnected(hass, port) {
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
     if (["off", "false", "disconnected", "down", "inactive"].includes(s)) return false;
   }
-  if (isSfpSpecialPort(port) && (port?.rx_entity || port?.tx_entity)) {
+  if (isSfpSpecialPort(port) && (port?.rx_entity || port?.tx_entity) && !port?.link_entity && !port?.speed_entity) {
     return hasTraffic(hass, port);
   }
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
@@ -2262,6 +2267,7 @@ var TRANSLATIONS = {
     cpu_utilization: "CPU utilization",
     cpu_temperature: "CPU temperature",
     memory_utilization: "Memory utilization",
+    temperature: "Temperature",
     // Port detail
     link_status: "Link Status",
     ap_status: "AP Status",
@@ -2379,6 +2385,7 @@ var TRANSLATIONS = {
     no_ports: "Keine Ports erkannt.",
     // Front panel
     front_panel: "Front Panel",
+    temperature: "Temperatur",
     // Port detail
     link_status: "Link Status",
     ap_status: "AP Status",
@@ -2499,6 +2506,7 @@ var TRANSLATIONS = {
     cpu_utilization: "CPU-gebruik",
     cpu_temperature: "CPU-temperatuur",
     memory_utilization: "Geheugengebruik",
+    temperature: "Temperatuur",
     // Port detail
     link_status: "Linkstatus",
     ap_status: "AP-status",
@@ -2613,6 +2621,7 @@ var TRANSLATIONS = {
     no_ports: "Aucun port d\xE9tect\xE9.",
     // Front panel
     front_panel: "Panneau avant",
+    temperature: "Temp\xE9rature",
     // Port detail
     link_status: "\xC9tat du lien",
     ap_status: "Statut AP",
@@ -2724,6 +2733,7 @@ var TRANSLATIONS = {
     no_ports: "No se detectaron puertos.",
     // Front panel
     front_panel: "Panel frontal",
+    temperature: "Temperatura",
     // Port detail
     link_status: "Estado del enlace",
     ap_status: "Estado del AP",
@@ -2835,6 +2845,7 @@ var TRANSLATIONS = {
     no_ports: "Nessuna porta rilevata.",
     // Front panel
     front_panel: "Pannello frontale",
+    temperature: "Temperatura",
     // Port detail
     link_status: "Stato collegamento",
     ap_status: "Stato AP",
@@ -3708,7 +3719,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.72";
+var VERSION = "0.0.0-dev.d5f9622";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4188,9 +4199,16 @@ var UnifiDeviceCard = class extends HTMLElement {
     const metrics = [
       { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },
       { key: "cpu_temperature", entity: this._ctx.cpu_temperature_entity },
-      { key: "memory_utilization", entity: this._ctx.memory_utilization_entity }
+      { key: "memory_utilization", entity: this._ctx.memory_utilization_entity },
+      { key: "temperature", entity: this._ctx.temperature_entity }
     ];
-    return metrics.filter((item) => item.entity && formatState(this._hass, item.entity) !== "\u2014").map((item) => ({
+    const seenEntities = /* @__PURE__ */ new Set();
+    return metrics.filter((item) => {
+      if (!item.entity) return false;
+      if (seenEntities.has(item.entity)) return false;
+      seenEntities.add(item.entity);
+      return formatState(this._hass, item.entity) !== "\u2014";
+    }).map((item) => ({
       label: this._t(item.key),
       value: formatState(this._hass, item.entity)
     }));
@@ -4230,7 +4248,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const layoutSlot = Number.isInteger(slot?.port) ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port) : null;
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
-    return slot?.kind === "special" && (label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || layoutKey.includes("sfp") || layoutLabel.includes("sfp"));
+    return label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || layoutKey.includes("sfp") || layoutLabel.includes("sfp");
   }
   _isWanLike(slot) {
     const key = String(slot?.key || "").toLowerCase();

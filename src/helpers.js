@@ -542,6 +542,13 @@ export function getDeviceTelemetry(entities) {
     memory_utilization_entity:
       findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
       findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
+    temperature_entity:
+      findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) ||
+      findSystemStatEntity(
+        entities,
+        ["temperature", "temp"],
+        ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"]
+      ),
   };
 }
 
@@ -1761,8 +1768,14 @@ export function isPortConnected(hass, port) {
 
   // --- BEGIN new behavior for Issue #91 ---
   // Keep the ghost-speed protection for SFP/SFP28 special ports only.
-  // WAN/WAN2/Uplink special slots continue with speed_entity and then RX/TX fallback.
-  if (isSfpSpecialPort(port) && (port?.rx_entity || port?.tx_entity)) {
+  // However, if the integration exposes an explicit link or speed state,
+  // trust those first so idle-but-linked SFP(+) ports still show correctly.
+  if (
+    isSfpSpecialPort(port) &&
+    (port?.rx_entity || port?.tx_entity) &&
+    !port?.link_entity &&
+    !port?.speed_entity
+  ) {
     return hasTraffic(hass, port);
   }
   // --- END new behavior for Issue #91 ---
