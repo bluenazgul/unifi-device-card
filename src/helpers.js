@@ -817,6 +817,13 @@ function extractPortNumber(entity) {
 
   if (uidMatch) return parseInt(uidMatch[1], 10);
 
+  // UniFi HA integration unique_ids use "translation_key-{mac}_{portNum}" format.
+  // e.g. "port_link_speed-f4:92:bf:92:19:d5_23" → port 23.
+  // Must be checked before entity_id fallback to prevent SFP entities (whose
+  // entity_id contains "_sfp_1_") from mapping to the wrong port number.
+  const macPortMatch = uid.match(/[0-9a-f]{2}_(\d+)$/i);
+  if (macPortMatch) return parseInt(macPortMatch[1], 10);
+
   const eid = lower(entity.entity_id);
   const eidMatch = findIndexedPortIdMatch(eid);
   if (eidMatch) return parseInt(eidMatch[1], 10);

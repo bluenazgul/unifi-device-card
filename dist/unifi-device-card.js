@@ -1584,6 +1584,8 @@ function extractPortNumber(entity) {
   const uid = normalize(entity.unique_id);
   const uidMatch = findIndexedPortIdMatch(uid) || uid.match(/-(\d+)-[a-z]/i);
   if (uidMatch) return parseInt(uidMatch[1], 10);
+  const macPortMatch = uid.match(/[0-9a-f]{2}_(\d+)$/i);
+  if (macPortMatch) return parseInt(macPortMatch[1], 10);
   const eid = lower(entity.entity_id);
   const eidMatch = findIndexedPortIdMatch(eid);
   if (eidMatch) return parseInt(eidMatch[1], 10);
