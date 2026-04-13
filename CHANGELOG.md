@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.5.8] - 2026-04-13
+## [0.5.80] - 2026-04-13
 
 ### ✨ Improvements
 - Added optional header metric for a generic device temperature sensor (shown only when available and valid).
