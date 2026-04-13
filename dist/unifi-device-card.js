@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b53f4b5 */
+/* UniFi Device Card 0.0.0-dev.91df4ad */
 
 // src/model-registry.js
 function range(start, end) {
@@ -959,14 +959,17 @@ function resolveModelKey(device) {
     if (candidate === "USF5P") return "USF5P";
     if (candidate.includes("USWFLEX")) return "USF5P";
     if (candidate === "USWULTRA210W") return "USWULTRA210W";
-    if (candidate === "USWULTRA60W") return "USWULTRA60W";
-    if (candidate === "USWULTRA") return "USWULTRA";
-    if (candidate.includes("USWULTRA210")) return "USWULTRA210W";
-    if (candidate.includes("USWULTRA60")) return "USWULTRA60W";
-    if (candidate.includes("USWULTRA")) return "USWULTRA";
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
+    if (candidate.includes("USWULTRA210")) return "USWULTRA210W";
+    if (candidate === "USM8P210") return "USWULTRA210W";
+    if (candidate === "USWULTRA60W") return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA60")) return "USWULTRA60W";
+    if (candidate.includes("USWULTRA60")) return "USWULTRA60W";
+    if (candidate === "USM8P60") return "USWULTRA60W";
+    if (candidate === "USWULTRA") return "USWULTRA";
+    if (candidate.includes("USWULTRA")) return "USWULTRA";
     if (candidate.includes("SWITCHULTRA")) return "USWULTRA";
+    if (candidate === "USM8P") return "USWULTRA";
     if (candidate === "USL16P") return "USL16P";
     if (candidate.includes("USW16POE")) return "USL16P";
     if (candidate.includes("USW16P")) return "USL16P";
@@ -3698,7 +3701,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b53f4b5";
+var VERSION = "0.0.0-dev.91df4ad";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
