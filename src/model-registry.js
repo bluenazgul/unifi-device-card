@@ -112,7 +112,7 @@ export const MODEL_REGISTRY = {
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
   UAPHD: apModel("UAP HD"),
-  UAPXG: apModel("UAP XG"),
+  UAPXG: apModel("UAP XG"),F
   UAPSHD: apModel("UAP SHD"),
   UAPFLEXHD: apModel("UAP FlexHD"),
   UAPBEACONHD: apModel("UAP BeaconHD"),
@@ -908,14 +908,17 @@ export function resolveModelKey(device) {
     if (candidate.includes("USWFLEX"))            return "USF5P";
 
     if (candidate === "USWULTRA210W")             return "USWULTRA210W";
-    if (candidate === "USWULTRA60W")              return "USWULTRA60W";
-    if (candidate === "USWULTRA")                 return "USWULTRA";
-    if (candidate.includes("USWULTRA210"))        return "USWULTRA210W";
-    if (candidate.includes("USWULTRA60"))         return "USWULTRA60W";
-    if (candidate.includes("USWULTRA"))           return "USWULTRA";
     if (candidate.includes("SWITCHULTRA210"))     return "USWULTRA210W";
+    if (candidate.includes("USWULTRA210"))        return "USWULTRA210W";
+    if (candidate === "USM8P210")                 return "USWULTRA210W";
+    if (candidate === "USWULTRA60W")              return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA60"))      return "USWULTRA60W";
+    if (candidate.includes("USWULTRA60"))         return "USWULTRA60W";
+    if (candidate === "USM8P60")                  return "USWULTRA60W";
+    if (candidate === "USWULTRA")                 return "USWULTRA";
+    if (candidate.includes("USWULTRA"))           return "USWULTRA";
     if (candidate.includes("SWITCHULTRA"))        return "USWULTRA";
+    if (candidate === "USM8P")                    return "USWULTRA";
 
     if (candidate === "USL16P")                   return "USL16P";
     if (candidate.includes("USW16POE"))           return "USL16P";
