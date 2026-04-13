@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.8299076 */
+/* UniFi Device Card 0.0.0-dev.3913a36 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -779,8 +779,8 @@ var MODEL_REGISTRY = {
     displayModel: "UniFi Security Gateway",
     theme: "white",
     specialSlots: [
-      { key: "wan", label: "WAN", port: 1 }
-      //{ key: "wan2", label: "WAN 2", port: 3 },
+      { key: "wan", label: "WAN", port: 1 },
+      { key: "wan2", label: "WAN2/LAN2", port: 3 }
     ]
   },
   UGW4: {
@@ -3701,7 +3701,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.8299076";
+var VERSION = "0.0.0-dev.3913a36";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
