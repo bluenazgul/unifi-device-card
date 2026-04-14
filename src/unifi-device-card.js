@@ -377,6 +377,26 @@ class UnifiDeviceCard extends HTMLElement {
     return null;
   }
 
+  _apUplinkText(uplink) {
+    if (!uplink) return null;
+    const remotePort = String(uplink.remote_port || "").trim();
+    const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
+    const lanLabel = this._t("link_lan");
+    const meshLabel = this._t("link_mesh");
+
+    if (uplink.kind === "mesh") {
+      if (deviceLabel) return `${deviceLabel} · ${meshLabel}`;
+      return meshLabel;
+    }
+
+    if (remotePort && deviceLabel) {
+      return `${deviceLabel} · ${this._t("port_label")} ${remotePort} · ${lanLabel}`;
+    }
+    if (remotePort) return `${this._t("port_label")} ${remotePort} · ${lanLabel}`;
+    if (deviceLabel) return `${deviceLabel} · ${lanLabel}`;
+    return null;
+  }
+
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
