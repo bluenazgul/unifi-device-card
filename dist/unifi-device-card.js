@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.80 */
+/* UniFi Device Card 0.0.0-dev.80a063a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -19,6 +19,12 @@ function apModel(displayModel) {
   };
 }
 var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
+function modelStartsWith(device, prefixes) {
+  const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
+  return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
+}
 function isAccessPointLikeModel(device) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return AP_MODEL_PREFIXES.some(
@@ -1049,6 +1055,9 @@ function getDeviceLayout(device, discoveredPorts = []) {
     [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
   const maxDiscoveredPort = discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port || 0)) : 0;
+  const inferredPortCount = inferPortCountFromModel(device) || (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
+  const looksSwitchLike = modelStartsWith(device, SWITCH_MODEL_PREFIXES);
+  const looksGatewayLike = modelStartsWith(device, GATEWAY_MODEL_PREFIXES);
   let effectiveModelKey = modelKey;
   if (effectiveModelKey === "UDM67A") {
     if (normalizedText.includes("UDM67AUDR7") || normalizedText.includes("UDR7") || normalizedText.includes("DREAMROUTER7")) {
@@ -1060,7 +1069,20 @@ function getDeviceLayout(device, discoveredPorts = []) {
   if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
     return { modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] };
   }
-  if (isAccessPointLikeModel(device)) {
+  if (looksGatewayLike && inferredPortCount > 0) {
+    const lanPortCount = Math.max(1, inferredPortCount - 1);
+    return {
+      modelKey: null,
+      kind: "gateway",
+      frontStyle: inferredPortCount > 8 ? "gateway-rack" : "gateway-single-row",
+      rows: [range(1, lanPortCount)],
+      portCount: inferredPortCount,
+      displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
+      theme: inferredPortCount > 8 ? "silver" : "white",
+      specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }]
+    };
+  }
+  if (isAccessPointLikeModel(device) && !looksSwitchLike && !looksGatewayLike) {
     return {
       modelKey: null,
       kind: "access_point",
@@ -1072,7 +1094,6 @@ function getDeviceLayout(device, discoveredPorts = []) {
       specialSlots: []
     };
   }
-  const inferredPortCount = inferPortCountFromModel(device) || (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
   if (inferredPortCount > 0) {
     return {
       modelKey: null,
@@ -1112,7 +1133,7 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES = [
+var SWITCH_MODEL_PREFIXES2 = [
   "USW",
   "USL",
   "USPM",
@@ -1126,7 +1147,7 @@ var SWITCH_MODEL_PREFIXES = [
   "USMINI",
   "FLEXMINI"
 ];
-var GATEWAY_MODEL_PREFIXES = [
+var GATEWAY_MODEL_PREFIXES2 = [
   "UDM",
   "UCG",
   "UXG",
@@ -1140,19 +1161,21 @@ var AP_MODEL_PREFIXES2 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
-var INDEXED_PORT_ID_RE = /(?:^|[_-])(?:port|lan|eth|ethernet|sfp)[_-]?(\d+)(?:[_-]|$)/i;
+var INDEXED_PORT_ID_RE = /(?:^|[_-])(?:port|lan|eth|ethernet)[_-]?(\d+)(?:[_-]|$)|(?:^|[_-])sfp(?:28)?[_-]?(\d+)(?:[_-]|$)/i;
 function findIndexedPortIdMatch(value) {
-  return String(value || "").match(INDEXED_PORT_ID_RE);
+  const match = String(value || "").match(INDEXED_PORT_ID_RE);
+  if (!match) return null;
+  return [match[0], match[1] || match[2]];
 }
 function hasIndexedPortId(entityId) {
   return !!findIndexedPortIdMatch(entityId);
 }
-function modelStartsWith(device, prefixes) {
+function modelStartsWith2(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelStr);
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
 }
 function isDefinitelyAP(device) {
-  return modelStartsWith(device, AP_MODEL_PREFIXES2);
+  return modelStartsWith2(device, AP_MODEL_PREFIXES2);
 }
 function isVirtualControllerDevice(device) {
   const model = lower(device?.model);
@@ -1176,7 +1199,6 @@ function hasInfrastructureEntitySignals(entities = []) {
   });
 }
 function getDeviceType(device, entities = []) {
-  if (isDefinitelyAP(device)) return "access_point";
   const modelKey = resolveModelKey(device);
   if (modelKey) {
     if ([
@@ -1242,9 +1264,10 @@ function getDeviceType(device, entities = []) {
       return "switch";
     }
   }
-  if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
-  if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
-  if (modelStartsWith(device, AP_MODEL_PREFIXES2)) return "access_point";
+  if (modelStartsWith2(device, SWITCH_MODEL_PREFIXES2)) return "switch";
+  if (modelStartsWith2(device, GATEWAY_MODEL_PREFIXES2)) return "gateway";
+  if (isDefinitelyAP(device)) return "access_point";
+  if (modelStartsWith2(device, AP_MODEL_PREFIXES2)) return "access_point";
   const hasAccessPointSignals = entities.some((entity) => {
     const id = lower(entity?.entity_id);
     if (!id) return false;
@@ -1262,10 +1285,11 @@ function getDeviceType(device, entities = []) {
     if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usc8") || name.includes("switch")) {
       return "switch";
     }
-    if (model.includes("uap") || model.includes("uac") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || model.includes("enterprise") || name.includes("access point") || name.includes("ap ")) {
+    if (model.includes("uap") || model.includes("uac") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || name.includes("access point") || name.includes("ap ")) {
       return "access_point";
     }
-    if (!hasPorts) return "access_point";
+    if (name.includes("gateway") || name.includes("router")) return "gateway";
+    if (name.includes("switch")) return "switch";
   }
   return "unknown";
 }
@@ -1362,9 +1386,9 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
-    if (modelStartsWith(device, [
-      ...SWITCH_MODEL_PREFIXES,
-      ...GATEWAY_MODEL_PREFIXES,
+    if (modelStartsWith2(device, [
+      ...SWITCH_MODEL_PREFIXES2,
+      ...GATEWAY_MODEL_PREFIXES2,
       ...AP_MODEL_PREFIXES2
     ])) {
       return true;
@@ -1375,7 +1399,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     return false;
   }
   if (resolveModelKey(device)) return true;
-  if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES, ...AP_MODEL_PREFIXES2])) {
+  if (modelStartsWith2(device, [...SWITCH_MODEL_PREFIXES2, ...GATEWAY_MODEL_PREFIXES2, ...AP_MODEL_PREFIXES2])) {
     return true;
   }
   if (entities.some((e) => hasIndexedPortId(e.entity_id)) && hasUbiquitiManufacturer(device)) {
@@ -1689,15 +1713,22 @@ function ensurePort(map, port) {
 function detectSpecialPortKey(entity) {
   const id = lower(entity.entity_id);
   const tk = entity.translation_key || "";
+  const text = lower([entity.entity_id, entity.translation_key, entity.original_name, entity.name].filter(Boolean).join(" "));
   if (id.includes("_wan2") || id.endsWith("wan2") || tk.includes("wan2")) {
     return { key: "wan2", label: "WAN 2" };
   }
   if (id.includes("_wan_") || id.endsWith("_wan") || tk.includes("wan")) {
     return { key: "wan", label: "WAN" };
   }
+  const sfp28Match = id.match(/_sfp28[_+]?(\d+)[_-]/) || tk.match(/sfp28[_+]?(\d+)/);
+  if (sfp28Match) return { key: `sfp28_${sfp28Match[1]}`, label: `SFP28 ${sfp28Match[1]}` };
+  if (id.includes("_sfp28") || tk.includes("sfp28")) return { key: "sfp28_1", label: "SFP28" };
+  const looksSfpPlus = text.includes("sfp+") || text.includes("sfp plus") || text.includes("sfpplus") || tk.includes("sfp_plus") || id.includes("sfpplus");
   const sfpMatch = id.match(/_sfp[_+]?(\d+)[_-]/) || tk.match(/sfp[_+]?(\d+)/);
-  if (sfpMatch) return { key: `sfp_${sfpMatch[1]}`, label: `SFP+ ${sfpMatch[1]}` };
-  if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: "SFP+" };
+  if (sfpMatch) {
+    return { key: `sfp_${sfpMatch[1]}`, label: `${looksSfpPlus ? "SFP+" : "SFP"} ${sfpMatch[1]}` };
+  }
+  if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: looksSfpPlus ? "SFP+" : "SFP" };
   if (id.includes("_uplink") || tk.includes("uplink")) {
     return { key: "uplink", label: "Uplink" };
   }
@@ -1793,6 +1824,7 @@ function mergePortsWithLayout(layout, discoveredPorts) {
     (layout?.specialSlots || []).map((s) => s.port).filter((p) => p != null)
   );
   const merged = [];
+  const hasKnownPoeRange = Array.isArray(layout?.poePortRange) && layout.poePortRange.length === 2 && Number.isInteger(layout.poePortRange[0]) && Number.isInteger(layout.poePortRange[1]);
   for (const portNumber of layoutPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
     const discovered = byPort.get(portNumber);
@@ -1813,7 +1845,7 @@ function mergePortsWithLayout(layout, discoveredPorts) {
       raw_entities: [],
       port_label: null
     };
-    merged.push(hasPoe ? port : stripPoeEntities(port));
+    merged.push(hasKnownPoeRange && !hasPoe ? stripPoeEntities(port) : port);
   }
   for (const port of discoveredPorts) {
     if (!layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port)) {
@@ -3719,7 +3751,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.80";
+var VERSION = "0.0.0-dev.80a063a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4241,14 +4273,24 @@ var UnifiDeviceCard = class extends HTMLElement {
     const poe = getPoeStatus(this._hass, port);
     return poe.active ? "orange" : "off";
   }
-  _isSfpLike(slot) {
+  _portMediaType(slot) {
     const label = String(slot?.label || "").toLowerCase();
     const key = String(slot?.key || "").toLowerCase();
     const physicalKey = String(slot?.physical_key || "").toLowerCase();
+    const rawEntities = Array.isArray(slot?.raw_entities) ? slot.raw_entities.map((entityId) => String(entityId || "").toLowerCase()) : [];
     const layoutSlot = Number.isInteger(slot?.port) ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port) : null;
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
-    return label.includes("sfp") || key.includes("sfp") || physicalKey.includes("sfp") || layoutKey.includes("sfp") || layoutLabel.includes("sfp");
+    const allHints = [label, key, physicalKey, layoutKey, layoutLabel, ...rawEntities].join(" ");
+    if (allHints.includes("sfp28") || allHints.includes("25g")) return "sfp28";
+    if (allHints.includes("sfp+") || allHints.includes("sfpplus") || allHints.includes("sfp_plus")) {
+      return "sfp_plus";
+    }
+    if (allHints.includes("sfp")) return "sfp";
+    return "rj45";
+  }
+  _isSfpLike(slot) {
+    return this._portMediaType(slot) !== "rj45";
   }
   _isWanLike(slot) {
     const key = String(slot?.key || "").toLowerCase();
@@ -4264,7 +4306,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _renderPortButton(slot, selectedKey) {
     const isSpecial = slot.kind === "special";
-    const isSfp = this._isSfpLike(slot);
+    const mediaType = this._portMediaType(slot);
+    const isSfp = mediaType !== "rj45";
     const isWan = this._isWanLike(slot);
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
@@ -4279,6 +4322,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       "port",
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
+      `media-${mediaType}`,
       isWan ? "is-wan" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : ""

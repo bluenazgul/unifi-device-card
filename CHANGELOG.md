@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.81] - 2026-04-14
+
+### 🐛 Bug Fixes
+- Refined SFP media detection to distinguish SFP, SFP+, and SFP28 based on explicit slot/entity hints.
+- Avoided false SFP+ rendering for generic `10G` hints so 10GbE RJ45 ports are no longer misclassified as SFP+.
+- Hardened fallback model/layout detection to reduce AP misclassification for unresolved gateway/switch-like devices.
+- Confirmed UDM Pro SE alias handling (`UDMSE` → `UDMPROSE`) remains active for gateway detection/layout mapping.
+
 ## [0.5.80] - 2026-04-13
 
 ### ✨ Improvements
