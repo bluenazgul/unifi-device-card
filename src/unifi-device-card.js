@@ -343,8 +343,6 @@ class UnifiDeviceCard extends HTMLElement {
     return deviceLabel || null;
   }
 
-
-
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
