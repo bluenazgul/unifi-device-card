@@ -29,6 +29,16 @@ function apModel(displayModel) {
 }
 
 const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
+const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
+
+function modelStartsWith(device, prefixes) {
+  const candidates = [device?.model, device?.hw_version]
+    .filter(Boolean)
+    .map(normalizeModelKey);
+
+  return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
+}
 
 function isAccessPointLikeModel(device) {
   const candidates = [device?.model, device?.hw_version]
@@ -1017,6 +1027,11 @@ export function getDeviceLayout(device, discoveredPorts = []) {
     [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
   const maxDiscoveredPort = discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port || 0)) : 0;
+  const inferredPortCount =
+    inferPortCountFromModel(device) ||
+    (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
+  const looksSwitchLike = modelStartsWith(device, SWITCH_MODEL_PREFIXES);
+  const looksGatewayLike = modelStartsWith(device, GATEWAY_MODEL_PREFIXES);
 
   let effectiveModelKey = modelKey;
   if (effectiveModelKey === "UDM67A") {
@@ -1035,7 +1050,21 @@ export function getDeviceLayout(device, discoveredPorts = []) {
     return { modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] };
   }
 
-  if (isAccessPointLikeModel(device)) {
+  if (looksGatewayLike && inferredPortCount > 0) {
+    const lanPortCount = Math.max(1, inferredPortCount - 1);
+    return {
+      modelKey: null,
+      kind: "gateway",
+      frontStyle: inferredPortCount > 8 ? "gateway-rack" : "gateway-single-row",
+      rows: [range(1, lanPortCount)],
+      portCount: inferredPortCount,
+      displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
+      theme: inferredPortCount > 8 ? "silver" : "white",
+      specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }],
+    };
+  }
+
+  if (isAccessPointLikeModel(device) && !looksSwitchLike && !looksGatewayLike) {
     return {
       modelKey: null,
       kind: "access_point",
@@ -1047,10 +1076,6 @@ export function getDeviceLayout(device, discoveredPorts = []) {
       specialSlots: [],
     };
   }
-
-  const inferredPortCount =
-    inferPortCountFromModel(device) ||
-    (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
 
   if (inferredPortCount > 0) {
     return {
