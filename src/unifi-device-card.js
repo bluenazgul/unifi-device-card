@@ -95,7 +95,7 @@ class UnifiDeviceCard extends HTMLElement {
   _estimateCardSize() {
     if (!this._config?.device_id) return 4;
     if (!this._ctx) return 5;
-    if (this._ctx?.type === "access_point") return 8;
+    if (this._ctx?.type === "access_point") return this._ctx?.ap_uplink ? 9 : 8;
 
     const { specials, numbered } = this._buildSlotData(this._ctx);
     const specialPortsInUse = new Set(
@@ -335,6 +335,25 @@ class UnifiDeviceCard extends HTMLElement {
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
     const ringColor = ledEnabled ? (this._apLedColorValue() || "#0000ff") : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
+  }
+
+  _apUplinkText(uplink) {
+    if (!uplink) return null;
+    const remotePort = String(uplink.remote_port || "").trim();
+    const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
+    const meshLabel = this._t("link_mesh");
+
+    if (uplink.kind === "mesh") {
+      if (deviceLabel) return `${deviceLabel} · ${meshLabel}`;
+      return meshLabel;
+    }
+
+    if (remotePort && deviceLabel) {
+      return `${deviceLabel} · ${this._t("port_label")} ${remotePort}`;
+    }
+    if (remotePort) return `${this._t("port_label")} ${remotePort}`;
+    if (deviceLabel) return deviceLabel;
+    return null;
   }
 
   _buildSlotData(ctx) {
@@ -1509,6 +1528,7 @@ class UnifiDeviceCard extends HTMLElement {
       const apStatusClass = apStatusRaw === "connected" ? "online" : (apStatusRaw === "disconnected" ? "offline" : "pending");
       const uptime = this._apUptimeState(this._ctx?.uptime_entity);
       const clients = this._wholeNumberState(this._ctx?.clients_entity);
+      const apUplink = this._apUplinkText(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
 
       const headerTitle = this._title();
@@ -1555,6 +1575,11 @@ class UnifiDeviceCard extends HTMLElement {
                 <div class="detail-label">${this._t("clients")}</div>
                 <div class="detail-value">${clients}</div>
               </div>
+              ${apUplink ? `
+              <div class="detail-item">
+                <div class="detail-label">${this._t("uplink")}</div>
+                <div class="detail-value">${apUplink}</div>
+              </div>` : ""}
             </div>
           </div>
         </ha-card>`;
