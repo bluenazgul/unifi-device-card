@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.83-dev */
+/* UniFi Device Card 0.0.0-dev.ff85bf7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1526,6 +1526,19 @@ function safeEntityState(hass, entityId) {
   if (!raw || raw === "unknown" || raw === "unavailable" || raw === "none") return null;
   return raw;
 }
+function readStateAttributes(hass, entityId) {
+  if (!entityId) return {};
+  const attrs = hass?.states?.[entityId]?.attributes;
+  return attrs && typeof attrs === "object" ? attrs : {};
+}
+function pickAttribute(attrs, keys = []) {
+  for (const key of keys) {
+    if (attrs[key] !== void 0 && attrs[key] !== null && String(attrs[key]).trim() !== "") {
+      return attrs[key];
+    }
+  }
+  return null;
+}
 function discoverApUplinkEntities(entities) {
   const result = {
     uplink_mac_entity: null,
@@ -1609,10 +1622,24 @@ function findDeviceByMac(devices, mac) {
 }
 function resolveAccessPointUplink(hass, entities, allDevices) {
   const discovered = discoverApUplinkEntities(entities);
+  const uplinkAttrs = readStateAttributes(hass, discovered.uplink_mac_entity);
   const uplinkMacRaw = safeEntityState(hass, discovered.uplink_mac_entity);
   const meshPeerMacRaw = safeEntityState(hass, discovered.mesh_peer_mac_entity);
-  const remotePortRaw = safeEntityState(hass, discovered.remote_port_entity);
-  const uplinkTypeRaw = lower(safeEntityState(hass, discovered.uplink_type_entity));
+  const remotePortRaw = safeEntityState(hass, discovered.remote_port_entity) || pickAttribute(uplinkAttrs, [
+    "uplink_remote_port",
+    "remote_port",
+    "port",
+    "uplink_port"
+  ]);
+  const uplinkTypeRaw = lower(
+    safeEntityState(hass, discovered.uplink_type_entity) || pickAttribute(uplinkAttrs, [
+      "uplink_type",
+      "type",
+      "uplink_source",
+      "connection_type",
+      "media"
+    ])
+  );
   const uplinkMac = extractFirstMac(uplinkMacRaw);
   const meshPeerMac = extractFirstMac(meshPeerMacRaw);
   const viaMac = meshPeerMac || uplinkMac;
@@ -1621,8 +1648,8 @@ function resolveAccessPointUplink(hass, entities, allDevices) {
   const remotePort = remotePortMatch ? remotePortMatch[0] : remotePortNormalized;
   const viaDevice = findDeviceByMac(allDevices, viaMac);
   const viaDeviceName = viaDevice ? normalize(viaDevice.name_by_user) || normalize(viaDevice.name) || normalize(viaDevice.model) : null;
-  const meshByType = uplinkTypeRaw.includes("mesh") || uplinkTypeRaw.includes("wireless") || uplinkTypeRaw.includes("wifi") || uplinkTypeRaw.includes("wlan");
-  const wiredByType = uplinkTypeRaw.includes("wired") || uplinkTypeRaw.includes("ethernet") || uplinkTypeRaw.includes("lan");
+  const meshByType = uplinkTypeRaw.includes("mesh") || uplinkTypeRaw.includes("wireless") || uplinkTypeRaw.includes("wifi") || uplinkTypeRaw.includes("wlan") || uplinkAttrs.is_uplink_wireless === true;
+  const wiredByType = uplinkTypeRaw.includes("wired") || uplinkTypeRaw.includes("ethernet") || uplinkTypeRaw.includes("lan") || uplinkAttrs.is_uplink_wireless === false;
   const resolvedDeviceType = viaDevice ? getDeviceType(viaDevice, []) : null;
   const meshSignals = meshPeerMac || meshByType || uplinkTypeRaw.includes("wireless_uplink");
   const wiredSignals = remotePort || wiredByType || resolvedDeviceType === "switch" || resolvedDeviceType === "gateway";
@@ -3882,7 +3909,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.83-dev";
+var VERSION = "0.0.0-dev.ff85bf7";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4153,16 +4180,17 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (!uplink) return null;
     const remotePort = String(uplink.remote_port || "").trim();
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
+    const lanLabel = this._t("link_lan");
     const meshLabel = this._t("link_mesh");
     if (uplink.kind === "mesh") {
       if (deviceLabel) return `${deviceLabel} \xB7 ${meshLabel}`;
       return meshLabel;
     }
     if (remotePort && deviceLabel) {
-      return `${deviceLabel} \xB7 ${this._t("port_label")} ${remotePort}`;
+      return `${deviceLabel} \xB7 ${this._t("port_label")} ${remotePort} \xB7 ${lanLabel}`;
     }
-    if (remotePort) return `${this._t("port_label")} ${remotePort}`;
-    if (deviceLabel) return deviceLabel;
+    if (remotePort) return `${this._t("port_label")} ${remotePort} \xB7 ${lanLabel}`;
+    if (deviceLabel) return `${deviceLabel} \xB7 ${lanLabel}`;
     return null;
   }
   _buildSlotData(ctx) {

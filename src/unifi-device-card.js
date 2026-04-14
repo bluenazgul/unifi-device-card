@@ -341,6 +341,7 @@ class UnifiDeviceCard extends HTMLElement {
     if (!uplink) return null;
     const remotePort = String(uplink.remote_port || "").trim();
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
+    const lanLabel = this._t("link_lan");
     const meshLabel = this._t("link_mesh");
 
     if (uplink.kind === "mesh") {
@@ -349,10 +350,10 @@ class UnifiDeviceCard extends HTMLElement {
     }
 
     if (remotePort && deviceLabel) {
-      return `${deviceLabel} · ${this._t("port_label")} ${remotePort}`;
+      return `${deviceLabel} · ${this._t("port_label")} ${remotePort} · ${lanLabel}`;
     }
-    if (remotePort) return `${this._t("port_label")} ${remotePort}`;
-    if (deviceLabel) return deviceLabel;
+    if (remotePort) return `${this._t("port_label")} ${remotePort} · ${lanLabel}`;
+    if (deviceLabel) return `${deviceLabel} · ${lanLabel}`;
     return null;
   }
 

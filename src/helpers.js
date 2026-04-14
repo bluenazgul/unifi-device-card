@@ -654,6 +654,230 @@ function safeEntityState(hass, entityId) {
   return raw;
 }
 
+function readStateAttributes(hass, entityId) {
+  if (!entityId) return {};
+  const attrs = hass?.states?.[entityId]?.attributes;
+  return attrs && typeof attrs === "object" ? attrs : {};
+}
+
+function pickAttribute(attrs, keys = []) {
+  for (const key of keys) {
+    if (attrs[key] !== undefined && attrs[key] !== null && String(attrs[key]).trim() !== "") {
+      return attrs[key];
+    }
+  }
+  return null;
+}
+
+function discoverApUplinkEntities(entities) {
+  const result = {
+    uplink_mac_entity: null,
+    mesh_peer_mac_entity: null,
+    remote_port_entity: null,
+    uplink_type_entity: null,
+  };
+
+  for (const entity of entities || []) {
+    const id = lower(entity.entity_id);
+    if (!id.startsWith("sensor.")) continue;
+    const translationKey = lower(entity.translation_key || "");
+    const displayText = lower([entity.original_name, entity.name].filter(Boolean).join(" "));
+    const fallbackText = lower([entity.entity_id, entity.original_name, entity.name].filter(Boolean).join(" "));
+
+    if (!result.uplink_mac_entity && translationKey === "device_uplink_mac") {
+      result.uplink_mac_entity = entity.entity_id;
+      continue;
+    }
+
+    if (!result.remote_port_entity && (translationKey === "device_uplink_remote_port" || translationKey === "uplink_remote_port")) {
+      result.remote_port_entity = entity.entity_id;
+      continue;
+    }
+
+    if (!result.uplink_type_entity && (translationKey === "device_uplink_type" || translationKey === "uplink_type")) {
+      result.uplink_type_entity = entity.entity_id;
+      continue;
+    }
+
+    if (!result.mesh_peer_mac_entity && (translationKey === "device_mesh_peer_mac" || translationKey === "mesh_peer_mac")) {
+      result.mesh_peer_mac_entity = entity.entity_id;
+      continue;
+    }
+
+    const hasUplinkSignal =
+      translationKey.includes("uplink") ||
+      displayText.includes("uplink") ||
+      displayText.includes("mesh peer");
+    if (!hasUplinkSignal) continue;
+
+    if (
+      !result.mesh_peer_mac_entity &&
+      (translationKey.includes("mesh_peer_mac") ||
+        (displayText.includes("mesh peer") && displayText.includes("mac")) ||
+        (fallbackText.includes("meshv3") && fallbackText.includes("peer") && fallbackText.includes("mac")))
+    ) {
+      result.mesh_peer_mac_entity = entity.entity_id;
+      continue;
+    }
+
+    if (
+      !result.uplink_mac_entity &&
+      ((translationKey.includes("uplink") && translationKey.includes("mac")) ||
+        (displayText.includes("uplink") && displayText.includes("mac")) ||
+        fallbackText.includes("_uplink_mac"))
+    ) {
+      result.uplink_mac_entity = entity.entity_id;
+      continue;
+    }
+
+    if (
+      !result.remote_port_entity &&
+      ((translationKey.includes("uplink") && translationKey.includes("port")) ||
+        (displayText.includes("uplink") && displayText.includes("port")) ||
+        fallbackText.includes("_uplink_remote_port"))
+    ) {
+      result.remote_port_entity = entity.entity_id;
+      continue;
+    }
+
+    if (
+      !result.uplink_type_entity &&
+      ((translationKey.includes("uplink") && (translationKey.includes("type") || translationKey.includes("source"))) ||
+        (displayText.includes("uplink") && (displayText.includes("type") || displayText.includes("source"))))
+    ) {
+      result.uplink_type_entity = entity.entity_id;
+    }
+  }
+
+  return result;
+}
+
+function extractDeviceMacs(device) {
+  const macs = new Set();
+  const candidates = [device?.connections, device?.identifiers];
+
+  for (const block of candidates) {
+    if (!Array.isArray(block)) continue;
+    for (const entry of block) {
+      if (!Array.isArray(entry) || entry.length < 2) continue;
+      const [, value] = entry;
+      const mac = extractFirstMac(value);
+      if (mac) macs.add(mac);
+    }
+  }
+
+  if (macs.size > 0) return macs;
+
+  const fallback = extractFirstMac(
+    JSON.stringify({
+      connections: device?.connections,
+      identifiers: device?.identifiers,
+      configuration_url: device?.configuration_url,
+    })
+  );
+  if (fallback) macs.add(fallback);
+  return macs;
+}
+
+function findDeviceByMac(devices, mac) {
+  const normalized = normalizeMac(mac);
+  if (!normalized) return null;
+
+  for (const device of devices || []) {
+    const macs = extractDeviceMacs(device);
+    if (macs.has(normalized)) return device;
+  }
+  return null;
+}
+
+function resolveAccessPointUplink(hass, entities, allDevices) {
+  const discovered = discoverApUplinkEntities(entities);
+  const uplinkAttrs = readStateAttributes(hass, discovered.uplink_mac_entity);
+  const uplinkMacRaw = safeEntityState(hass, discovered.uplink_mac_entity);
+  const meshPeerMacRaw = safeEntityState(hass, discovered.mesh_peer_mac_entity);
+  const remotePortRaw = safeEntityState(hass, discovered.remote_port_entity) || pickAttribute(uplinkAttrs, [
+    "uplink_remote_port",
+    "remote_port",
+    "port",
+    "uplink_port",
+  ]);
+  const uplinkTypeRaw = lower(
+    safeEntityState(hass, discovered.uplink_type_entity) || pickAttribute(uplinkAttrs, [
+      "uplink_type",
+      "type",
+      "uplink_source",
+      "connection_type",
+      "media",
+    ])
+  );
+
+  const uplinkMac = extractFirstMac(uplinkMacRaw);
+  const meshPeerMac = extractFirstMac(meshPeerMacRaw);
+  const viaMac = meshPeerMac || uplinkMac;
+  const remotePortNormalized = normalize(remotePortRaw);
+  const remotePortMatch = remotePortNormalized.match(/\d+/);
+  const remotePort = remotePortMatch ? remotePortMatch[0] : remotePortNormalized;
+
+  const viaDevice = findDeviceByMac(allDevices, viaMac);
+  const viaDeviceName = viaDevice
+    ? normalize(viaDevice.name_by_user) || normalize(viaDevice.name) || normalize(viaDevice.model)
+    : null;
+
+  const meshByType =
+    uplinkTypeRaw.includes("mesh") ||
+    uplinkTypeRaw.includes("wireless") ||
+    uplinkTypeRaw.includes("wifi") ||
+    uplinkTypeRaw.includes("wlan") ||
+    uplinkAttrs.is_uplink_wireless === true;
+  const wiredByType =
+    uplinkTypeRaw.includes("wired") ||
+    uplinkTypeRaw.includes("ethernet") ||
+    uplinkTypeRaw.includes("lan") ||
+    uplinkAttrs.is_uplink_wireless === false;
+  const resolvedDeviceType = viaDevice ? getDeviceType(viaDevice, []) : null;
+
+  const meshSignals = meshPeerMac || meshByType || uplinkTypeRaw.includes("wireless_uplink");
+  const wiredSignals = remotePort || wiredByType || resolvedDeviceType === "switch" || resolvedDeviceType === "gateway";
+
+  const kind = wiredSignals
+    ? "wired"
+    : meshSignals
+      ? "mesh"
+      : "unknown";
+
+  if (!viaMac && !remotePort && !uplinkTypeRaw) return null;
+
+  return {
+    kind,
+    via_device_id: viaDevice?.id || null,
+    via_device_name: viaDeviceName || null,
+    via_mac: viaMac || null,
+    remote_port: remotePort || null,
+  };
+}
+
+function normalizeMac(value) {
+  const raw = String(value ?? "")
+    .toLowerCase()
+    .replace(/[^0-9a-f]/g, "");
+  if (raw.length !== 12) return null;
+  return raw.match(/.{1,2}/g)?.join(":") || null;
+}
+
+function extractFirstMac(value) {
+  const text = String(value ?? "");
+  const match = text.match(/(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|[0-9a-f]{12}/i);
+  if (!match) return null;
+  return normalizeMac(match[0]);
+}
+
+function safeEntityState(hass, entityId) {
+  if (!entityId) return null;
+  const raw = String(hass?.states?.[entityId]?.state ?? "").trim();
+  if (!raw || raw === "unknown" || raw === "unavailable" || raw === "none") return null;
+  return raw;
+}
+
 function discoverApUplinkEntities(entities) {
   const result = {
     uplink_mac_entity: null,
