@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.84-dev */
+/* UniFi Device Card 0.0.0-dev.d9a4faa */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3909,7 +3909,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.84-dev";
+var VERSION = "0.0.0-dev.d9a4faa";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4178,20 +4178,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _apUplinkText(uplink) {
     if (!uplink) return null;
-    const remotePort = String(uplink.remote_port || "").trim();
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
-    const lanLabel = this._t("link_lan");
-    const meshLabel = this._t("link_mesh");
-    if (uplink.kind === "mesh") {
-      if (deviceLabel) return `${deviceLabel} \xB7 ${meshLabel}`;
-      return meshLabel;
-    }
-    if (remotePort && deviceLabel) {
-      return `${deviceLabel} \xB7 ${this._t("port_label")} ${remotePort} \xB7 ${lanLabel}`;
-    }
-    if (remotePort) return `${this._t("port_label")} ${remotePort} \xB7 ${lanLabel}`;
-    if (deviceLabel) return `${deviceLabel} \xB7 ${lanLabel}`;
-    return null;
+    return deviceLabel || null;
   }
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
