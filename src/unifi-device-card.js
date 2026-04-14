@@ -688,22 +688,34 @@ class UnifiDeviceCard extends HTMLElement {
     return poe.active ? "orange" : "off";
   }
 
-  _isSfpLike(slot) {
+  _portMediaType(slot) {
     const label = String(slot?.label || "").toLowerCase();
     const key = String(slot?.key || "").toLowerCase();
     const physicalKey = String(slot?.physical_key || "").toLowerCase();
+    const rawEntities = Array.isArray(slot?.raw_entities)
+      ? slot.raw_entities.map((entityId) => String(entityId || "").toLowerCase())
+      : [];
     const layoutSlot = Number.isInteger(slot?.port)
       ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port)
       : null;
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
-    return (
-      label.includes("sfp") ||
-      key.includes("sfp") ||
-      physicalKey.includes("sfp") ||
-      layoutKey.includes("sfp") ||
-      layoutLabel.includes("sfp")
-    );
+    const allHints = [label, key, physicalKey, layoutKey, layoutLabel, ...rawEntities].join(" ");
+
+    if (allHints.includes("sfp28") || allHints.includes("25g")) return "sfp28";
+    if (
+      allHints.includes("sfp+") ||
+      allHints.includes("sfpplus") ||
+      allHints.includes("sfp_plus")
+    ) {
+      return "sfp_plus";
+    }
+    if (allHints.includes("sfp")) return "sfp";
+    return "rj45";
+  }
+
+  _isSfpLike(slot) {
+    return this._portMediaType(slot) !== "rj45";
   }
 
   _isWanLike(slot) {
@@ -722,7 +734,8 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderPortButton(slot, selectedKey) {
     const isSpecial = slot.kind === "special";
-    const isSfp = this._isSfpLike(slot);
+    const mediaType = this._portMediaType(slot);
+    const isSfp = mediaType !== "rj45";
     const isWan = this._isWanLike(slot);
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
@@ -739,6 +752,7 @@ class UnifiDeviceCard extends HTMLElement {
       "port",
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
+      `media-${mediaType}`,
       isWan ? "is-wan" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : "",

@@ -94,10 +94,12 @@ function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-const INDEXED_PORT_ID_RE = /(?:^|[_-])(?:port|lan|eth|ethernet|sfp)[_-]?(\d+)(?:[_-]|$)/i;
+const INDEXED_PORT_ID_RE = /(?:^|[_-])(?:port|lan|eth|ethernet)[_-]?(\d+)(?:[_-]|$)|(?:^|[_-])sfp(?:28)?[_-]?(\d+)(?:[_-]|$)/i;
 
 function findIndexedPortIdMatch(value) {
-  return String(value || "").match(INDEXED_PORT_ID_RE);
+  const match = String(value || "").match(INDEXED_PORT_ID_RE);
+  if (!match) return null;
+  return [match[0], match[1] || match[2]];
 }
 
 function hasIndexedPortId(entityId) {
@@ -155,8 +157,6 @@ function hasInfrastructureEntitySignals(entities = []) {
 }
 
 export function getDeviceType(device, entities = []) {
-  if (isDefinitelyAP(device)) return "access_point";
-
   const modelKey = resolveModelKey(device);
   if (modelKey) {
     if (
@@ -230,6 +230,7 @@ export function getDeviceType(device, entities = []) {
 
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
+  if (isDefinitelyAP(device)) return "access_point";
   if (modelStartsWith(device, AP_MODEL_PREFIXES)) return "access_point";
 
   const hasAccessPointSignals = entities.some((entity) => {
@@ -282,17 +283,14 @@ export function getDeviceType(device, entities = []) {
       model.includes("iw") ||
       model.includes("mesh") ||
       model.includes("nanohd") ||
-      model.includes("enterprise") ||
       name.includes("access point") ||
       name.includes("ap ")
     ) {
       return "access_point";
     }
 
-    // UniFi Network registry mostly contains APs, switches and gateways.
-    // If it is not clearly switch/gateway and has no switch-like port entities,
-    // treat it as AP for broad model compatibility.
-    if (!hasPorts) return "access_point";
+    if (name.includes("gateway") || name.includes("router")) return "gateway";
+    if (name.includes("switch")) return "switch";
   }
 
   return "unknown";
@@ -1025,6 +1023,7 @@ function ensurePort(map, port) {
 function detectSpecialPortKey(entity) {
   const id = lower(entity.entity_id);
   const tk = entity.translation_key || "";
+  const text = lower([entity.entity_id, entity.translation_key, entity.original_name, entity.name].filter(Boolean).join(" "));
 
   if (id.includes("_wan2") || id.endsWith("wan2") || tk.includes("wan2")) {
     return { key: "wan2", label: "WAN 2" };
@@ -1033,9 +1032,22 @@ function detectSpecialPortKey(entity) {
     return { key: "wan", label: "WAN" };
   }
 
+  const sfp28Match = id.match(/_sfp28[_+]?(\d+)[_-]/) || tk.match(/sfp28[_+]?(\d+)/);
+  if (sfp28Match) return { key: `sfp28_${sfp28Match[1]}`, label: `SFP28 ${sfp28Match[1]}` };
+  if (id.includes("_sfp28") || tk.includes("sfp28")) return { key: "sfp28_1", label: "SFP28" };
+
+  const looksSfpPlus =
+    text.includes("sfp+") ||
+    text.includes("sfp plus") ||
+    text.includes("sfpplus") ||
+    tk.includes("sfp_plus") ||
+    id.includes("sfpplus");
+
   const sfpMatch = id.match(/_sfp[_+]?(\d+)[_-]/) || tk.match(/sfp[_+]?(\d+)/);
-  if (sfpMatch) return { key: `sfp_${sfpMatch[1]}`, label: `SFP+ ${sfpMatch[1]}` };
-  if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: "SFP+" };
+  if (sfpMatch) {
+    return { key: `sfp_${sfpMatch[1]}`, label: `${looksSfpPlus ? "SFP+" : "SFP"} ${sfpMatch[1]}` };
+  }
+  if (id.includes("_sfp") || id.includes("sfp+")) return { key: "sfp_1", label: looksSfpPlus ? "SFP+" : "SFP" };
 
   if (id.includes("_uplink") || tk.includes("uplink")) {
     return { key: "uplink", label: "Uplink" };
@@ -1159,6 +1171,12 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   );
 
   const merged = [];
+  const hasKnownPoeRange =
+    Array.isArray(layout?.poePortRange) &&
+    layout.poePortRange.length === 2 &&
+    Number.isInteger(layout.poePortRange[0]) &&
+    Number.isInteger(layout.poePortRange[1]);
+
   for (const portNumber of layoutPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
 
@@ -1182,7 +1200,7 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
       port_label: null,
     };
 
-    merged.push(hasPoe ? port : stripPoeEntities(port));
+    merged.push(hasKnownPoeRange && !hasPoe ? stripPoeEntities(port) : port);
   }
 
   for (const port of discoveredPorts) {
