@@ -1,10 +1,17 @@
 # Changelog
 
+## [0.5.91] - 2026-04-15
+
+### ✨ Improvements
+- Added new optional YAML key `rotate180` (`false` default / `true`) for switch and gateway front-panel rotation.
+  - right-to-left row order,
+  - special ports moved to the bottom,
+  - rotated front-panel area aligned to the right.
+
 ## [0.5.90] - 2026-04-14
 
 ### ✨ Improvements
 - Added an Uplink Info on AP Card to show the current Uplink Device of an AccessPoint
-  <img width="397" height="140" alt="image" src="https://github.com/user-attachments/assets/5835ea20-92f9-4d52-b792-4a5234370bcd" />
 
 ## [0.5.81] - 2026-04-14
 
