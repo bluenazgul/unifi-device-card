@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.2699823 */
+/* UniFi Device Card 0.0.0-dev.56793e4 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3908,7 +3908,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.2699823";
+var VERSION = "0.0.0-dev.56793e4";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4340,7 +4340,9 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _rotate180Enabled(ctx) {
     const type = ctx?.type;
-    return (type === "switch" || type === "gateway") && this._config?.rotate180 === true;
+    const rawRotate = this._config?.rotate180;
+    const rotate180 = rawRotate === true || rawRotate === "true" || rawRotate === 1 || rawRotate === "1";
+    return (type === "switch" || type === "gateway") && rotate180;
   }
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;

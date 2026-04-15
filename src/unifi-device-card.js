@@ -574,7 +574,14 @@ class UnifiDeviceCard extends HTMLElement {
 
   _rotate180Enabled(ctx) {
     const type = ctx?.type;
-    return (type === "switch" || type === "gateway") && this._config?.rotate180 === true;
+    const rawRotate = this._config?.rotate180;
+    const rotate180 =
+      rawRotate === true ||
+      rawRotate === "true" ||
+      rawRotate === 1 ||
+      rawRotate === "1";
+
+    return (type === "switch" || type === "gateway") && rotate180;
   }
 
   async _ensureLoaded() {
