@@ -174,6 +174,7 @@ background_color: "#1f2937"   # optional
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
 show_panel: true              # optional (default: true)
+rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
 ports_per_row: 8              # optional (switches only)
 port_size: 36                 # optional (switch/gateway front panel scale in px)
 ap_scale: 100                 # optional (AP size in %, 60-140)
@@ -193,6 +194,7 @@ wan2_port: none               # optional (gateway only)
 | `background_color` | string | `var(--card-background-color)` | Any valid CSS color/token. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
+| `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
 | `ports_per_row` | number | auto | Optional row width override for switch layouts. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |

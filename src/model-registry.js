@@ -1059,7 +1059,6 @@ export function getDeviceLayout(device, discoveredPorts = []) {
       rows: [range(1, lanPortCount)],
       portCount: inferredPortCount,
       displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
-      theme: inferredPortCount > 8 ? "silver" : "white",
       specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }],
     };
   }

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.90 */
+/* UniFi Device Card 0.0.0-dev.66f0757 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1078,7 +1078,6 @@ function getDeviceLayout(device, discoveredPorts = []) {
       rows: [range(1, lanPortCount)],
       portCount: inferredPortCount,
       displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
-      theme: inferredPortCount > 8 ? "silver" : "white",
       specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }]
     };
   }
@@ -3909,7 +3908,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.90";
+var VERSION = "0.0.0-dev.66f0757";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4339,6 +4338,12 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     return packedRows;
   }
+  _rotate180Enabled(ctx) {
+    const type = ctx?.type;
+    const rawRotate = this._config?.rotate180;
+    const rotate180 = rawRotate === true || rawRotate === "true" || rawRotate === 1 || rawRotate === "1";
+    return (type === "switch" || type === "gateway") && rotate180;
+  }
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
     const currentId = this._config.device_id;
@@ -4486,6 +4491,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
       `media-${mediaType}`,
+      this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : ""
@@ -4703,6 +4709,18 @@ var UnifiDeviceCard = class extends HTMLElement {
         column-gap: 6px;
       }
 
+      .frontpanel.rotate180-enabled .panel-label {
+        text-align: right;
+      }
+
+      .frontpanel.rotate180-enabled .special-row {
+        justify-content: flex-end;
+      }
+
+      .frontpanel.rotate180-enabled .port-row {
+        justify-content: end;
+      }
+
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
         grid-template-columns: repeat(8, var(--udc-port-size));
@@ -4844,6 +4862,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         justify-content: center;
         align-items: flex-start;
         transition: opacity .15s ease, filter .15s ease;
+      }
+
+      .port.rotated180 .port-housing {
+        transform: rotate(180deg);
       }
 
       .port.down .port-housing {
@@ -5301,19 +5323,26 @@ var UnifiDeviceCard = class extends HTMLElement {
     const allSlots = [...allSpecials, ...normalizedNumbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
-    const theme = ctx?.layout?.theme || "dark";
-    const showPanel = this._config?.show_panel !== false;
+    const layoutTheme = ctx?.layout?.theme;
+    const theme = layoutTheme || "dark";
+    const showPanel = this._config?.show_panel !== false && !!layoutTheme;
     const specialPortsInUse = new Set(
       allSpecials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
     );
     const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
-    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
-    const specialRow = allSpecials.length ? `<div class="special-row">${allSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
+    const reverseFrontpanel = this._rotate180Enabled(ctx);
+    const baseRows = this._buildEffectiveRows(ctx, visibleNumbered);
+    const effectiveRows = reverseFrontpanel ? baseRows.map((row) => [...row].reverse()).reverse() : baseRows;
+    const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
+    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
     const layoutRows = effectiveRows.map((rowPorts) => {
       const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key)).join("");
       const cols = Math.max(1, rowPorts.length);
       return items ? `<div class="port-row" style="grid-template-columns: repeat(${cols}, var(--udc-port-size));">${items}</div>` : "";
     }).filter(Boolean);
+    const panelRowsHtml = layoutRows.join("");
+    const panelPortsHtml = reverseFrontpanel ? `${panelRowsHtml}${specialRow}` : `${specialRow}${panelRowsHtml}`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
     if (selected) {
       const linkUp = isPortConnected(this._hass, selected);
@@ -5396,10 +5425,9 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}">
+        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
           <div class="panel-label">${this._t("front_panel")}</div>
-          ${specialRow}
-          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`}
+          ${panelContentHtml}
         </div>
 
         <div class="section">${detail}</div>
