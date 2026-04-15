@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.56793e4 */
+/* UniFi Device Card 0.0.0-dev.08787e1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3908,7 +3908,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.56793e4";
+var VERSION = "0.0.0-dev.08787e1";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4491,6 +4491,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
       `media-${mediaType}`,
+      this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : ""
@@ -4849,6 +4850,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         justify-content: center;
         align-items: flex-start;
         transition: opacity .15s ease, filter .15s ease;
+      }
+
+      .port.rotated180 .port-housing {
+        transform: rotate(180deg);
       }
 
       .port.down .port-housing {

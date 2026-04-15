@@ -771,6 +771,7 @@ class UnifiDeviceCard extends HTMLElement {
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
       `media-${mediaType}`,
+      this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : "",
@@ -1135,6 +1136,10 @@ class UnifiDeviceCard extends HTMLElement {
         justify-content: center;
         align-items: flex-start;
         transition: opacity .15s ease, filter .15s ease;
+      }
+
+      .port.rotated180 .port-housing {
+        transform: rotate(180deg);
       }
 
       .port.down .port-housing {
