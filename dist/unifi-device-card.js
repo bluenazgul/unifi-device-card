@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.585003b */
+/* UniFi Device Card 0.0.0-dev.e704d61 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3908,7 +3908,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.585003b";
+var VERSION = "0.0.0-dev.e704d61";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4709,6 +4709,18 @@ var UnifiDeviceCard = class extends HTMLElement {
         column-gap: 6px;
       }
 
+      .frontpanel.rotate180-enabled .panel-label {
+        text-align: right;
+      }
+
+      .frontpanel.rotate180-enabled .special-row {
+        justify-content: flex-end;
+      }
+
+      .frontpanel.rotate180-enabled .port-row {
+        justify-content: end;
+      }
+
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
         grid-template-columns: repeat(8, var(--udc-port-size));
@@ -5413,7 +5425,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}">
+        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
           <div class="panel-label">${this._t("front_panel")}</div>
           ${panelContentHtml}
         </div>

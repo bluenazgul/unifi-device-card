@@ -995,6 +995,18 @@ class UnifiDeviceCard extends HTMLElement {
         column-gap: 6px;
       }
 
+      .frontpanel.rotate180-enabled .panel-label {
+        text-align: right;
+      }
+
+      .frontpanel.rotate180-enabled .special-row {
+        justify-content: flex-end;
+      }
+
+      .frontpanel.rotate180-enabled .port-row {
+        justify-content: end;
+      }
+
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
         grid-template-columns: repeat(8, var(--udc-port-size));
@@ -1737,7 +1749,7 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}">
+        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
           <div class="panel-label">${this._t("front_panel")}</div>
           ${panelContentHtml}
         </div>
