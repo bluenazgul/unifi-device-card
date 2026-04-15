@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.91] - 2026-04-15
+
+### ✨ Improvements
+- Added new optional YAML key `rotate180` (`false` default / `true`) for switch and gateway front-panel rotation.
+- Improved rotated front-panel rendering to better mirror a full 180° view:
+  - right-to-left row order,
+  - special ports moved to the bottom,
+  - rotated front-panel area aligned to the right.
+
 ## [0.5.90] - 2026-04-14
 
 ### ✨ Improvements
