@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.5.85-dev */
+/* UniFi Device Card 0.0.0-dev.2699823 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1078,7 +1078,6 @@ function getDeviceLayout(device, discoveredPorts = []) {
       rows: [range(1, lanPortCount)],
       portCount: inferredPortCount,
       displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
-      theme: inferredPortCount > 8 ? "silver" : "white",
       specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }]
     };
   }
@@ -3909,7 +3908,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.5.85-dev";
+var VERSION = "0.0.0-dev.2699823";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4338,6 +4337,10 @@ var UnifiDeviceCard = class extends HTMLElement {
       packedRows.push(orderedPorts.slice(i, i + fitCols));
     }
     return packedRows;
+  }
+  _rotate180Enabled(ctx) {
+    const type = ctx?.type;
+    return (type === "switch" || type === "gateway") && this._config?.rotate180 === true;
   }
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
@@ -5301,14 +5304,18 @@ var UnifiDeviceCard = class extends HTMLElement {
     const allSlots = [...allSpecials, ...normalizedNumbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
-    const theme = ctx?.layout?.theme || "dark";
-    const showPanel = this._config?.show_panel !== false;
+    const layoutTheme = ctx?.layout?.theme;
+    const theme = layoutTheme || "dark";
+    const showPanel = this._config?.show_panel !== false && !!layoutTheme;
     const specialPortsInUse = new Set(
       allSpecials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
     );
     const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
-    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
-    const specialRow = allSpecials.length ? `<div class="special-row">${allSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
+    const reverseFrontpanel = this._rotate180Enabled(ctx);
+    const baseRows = this._buildEffectiveRows(ctx, visibleNumbered);
+    const effectiveRows = reverseFrontpanel ? baseRows.map((row) => [...row].reverse()).reverse() : baseRows;
+    const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
+    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
     const layoutRows = effectiveRows.map((rowPorts) => {
       const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key)).join("");
       const cols = Math.max(1, rowPorts.length);

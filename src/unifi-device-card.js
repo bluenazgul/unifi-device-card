@@ -572,6 +572,11 @@ class UnifiDeviceCard extends HTMLElement {
     return packedRows;
   }
 
+  _rotate180Enabled(ctx) {
+    const type = ctx?.type;
+    return (type === "switch" || type === "gateway") && this._config?.rotate180 === true;
+  }
+
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
 
@@ -1589,8 +1594,9 @@ class UnifiDeviceCard extends HTMLElement {
     const allSlots = [...allSpecials, ...normalizedNumbered];
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
-    const theme = ctx?.layout?.theme || "dark";
-    const showPanel = this._config?.show_panel !== false;
+    const layoutTheme = ctx?.layout?.theme;
+    const theme = layoutTheme || "dark";
+    const showPanel = this._config?.show_panel !== false && !!layoutTheme;
 
     const specialPortsInUse = new Set(
       allSpecials
@@ -1599,10 +1605,15 @@ class UnifiDeviceCard extends HTMLElement {
     );
 
     const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
-    const effectiveRows = this._buildEffectiveRows(ctx, visibleNumbered);
+    const reverseFrontpanel = this._rotate180Enabled(ctx);
+    const baseRows = this._buildEffectiveRows(ctx, visibleNumbered);
+    const effectiveRows = reverseFrontpanel
+      ? baseRows.map((row) => [...row].reverse()).reverse()
+      : baseRows;
+    const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
 
-    const specialRow = allSpecials.length
-      ? `<div class="special-row">${allSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
+    const specialRow = renderedSpecials.length
+      ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>`
       : "";
 
     const layoutRows = effectiveRows
