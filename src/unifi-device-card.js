@@ -1643,6 +1643,12 @@ class UnifiDeviceCard extends HTMLElement {
       })
       .filter(Boolean);
 
+    const panelRowsHtml = layoutRows.join("");
+    const panelPortsHtml = reverseFrontpanel
+      ? `${panelRowsHtml}${specialRow}`
+      : `${specialRow}${panelRowsHtml}`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
+
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
 
     if (selected) {
@@ -1733,8 +1739,7 @@ class UnifiDeviceCard extends HTMLElement {
 
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}">
           <div class="panel-label">${this._t("front_panel")}</div>
-          ${specialRow}
-          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`}
+          ${panelContentHtml}
         </div>
 
         <div class="section">${detail}</div>

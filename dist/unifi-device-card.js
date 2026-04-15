@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.08787e1 */
+/* UniFi Device Card 0.0.0-dev.585003b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3908,7 +3908,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.08787e1";
+var VERSION = "0.0.0-dev.585003b";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -5328,6 +5328,9 @@ var UnifiDeviceCard = class extends HTMLElement {
       const cols = Math.max(1, rowPorts.length);
       return items ? `<div class="port-row" style="grid-template-columns: repeat(${cols}, var(--udc-port-size));">${items}</div>` : "";
     }).filter(Boolean);
+    const panelRowsHtml = layoutRows.join("");
+    const panelPortsHtml = reverseFrontpanel ? `${panelRowsHtml}${specialRow}` : `${specialRow}${panelRowsHtml}`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
     if (selected) {
       const linkUp = isPortConnected(this._hass, selected);
@@ -5412,8 +5415,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}">
           <div class="panel-label">${this._t("front_panel")}</div>
-          ${specialRow}
-          ${layoutRows.join("") || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`}
+          ${panelContentHtml}
         </div>
 
         <div class="section">${detail}</div>
