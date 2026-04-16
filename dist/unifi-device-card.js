@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1df2c8f */
+/* UniFi Device Card 0.0.0-dev.0ab4b78 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4107,7 +4107,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1df2c8f";
+var VERSION = "0.0.0-dev.0ab4b78";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4560,7 +4560,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (friendly) return friendly;
     return String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
   }
-  _extractPortFromAttributes(attrs) {
+  _extractPortFromAttributes(attrs, entityId = "") {
     const keys = [
       "port",
       "switch_port",
@@ -4576,6 +4576,13 @@ var UnifiDeviceCard = class extends HTMLElement {
       const match = String(attrs?.[key] ?? "").match(/\d+/);
       if (match) return Number.parseInt(match[0], 10);
     }
+    const textKeys = ["connected_to", "uplink", "uplink_source", "source", "network_path", "connection_path"];
+    for (const key of textKeys) {
+      const match = String(attrs?.[key] ?? "").match(/port\D*(\d+)/i);
+      if (match) return Number.parseInt(match[1], 10);
+    }
+    const idMatch = String(entityId || "").match(/(?:^|[_-])port[_-]?(\d+)(?:[_-]|$)/i);
+    if (idMatch) return Number.parseInt(idMatch[1], 10);
     return null;
   }
   _extractParentMacFromAttributes(attrs) {
@@ -4597,15 +4604,39 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     return null;
   }
+  _extractParentText(attrs) {
+    const textKeys = [
+      "connected_to",
+      "uplink",
+      "uplink_source",
+      "source",
+      "network_device",
+      "network_path",
+      "connection_path",
+      "switch",
+      "parent"
+    ];
+    return textKeys.map((key) => String(attrs?.[key] ?? "").trim()).filter(Boolean).join(" ").toLowerCase();
+  }
+  _matchesParentDevice(attrs, deviceMac) {
+    const parentMac = this._extractParentMacFromAttributes(attrs);
+    if (parentMac) return parentMac === deviceMac;
+    const parentText = this._extractParentText(attrs);
+    if (!parentText) return false;
+    const deviceName = String(this._ctx?.name || "").toLowerCase().trim();
+    const deviceModel = String(this._ctx?.model || "").toLowerCase().trim();
+    if (deviceName && parentText.includes(deviceName)) return true;
+    if (deviceModel && parentText.includes(deviceModel)) return true;
+    return false;
+  }
   _buildPortClientIndex() {
     const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
     if (!deviceMac || !this._hass?.states) return /* @__PURE__ */ new Map();
     const byPort = /* @__PURE__ */ new Map();
     for (const [entityId, obj] of Object.entries(this._hass.states)) {
       const attrs = obj?.attributes || {};
-      const parentMac = this._extractParentMacFromAttributes(attrs);
-      if (parentMac !== deviceMac) continue;
-      const port = this._extractPortFromAttributes(attrs);
+      if (!this._matchesParentDevice(attrs, deviceMac)) continue;
+      const port = this._extractPortFromAttributes(attrs, entityId);
       if (!Number.isInteger(port) || port < 1) continue;
       if (!byPort.has(port)) {
         byPort.set(port, { count: 0, names: /* @__PURE__ */ new Set() });

@@ -576,7 +576,7 @@ class UnifiDeviceCard extends HTMLElement {
       .trim();
   }
 
-  _extractPortFromAttributes(attrs) {
+  _extractPortFromAttributes(attrs, entityId = "") {
     const keys = [
       "port",
       "switch_port",
@@ -592,6 +592,13 @@ class UnifiDeviceCard extends HTMLElement {
       const match = String(attrs?.[key] ?? "").match(/\d+/);
       if (match) return Number.parseInt(match[0], 10);
     }
+    const textKeys = ["connected_to", "uplink", "uplink_source", "source", "network_path", "connection_path"];
+    for (const key of textKeys) {
+      const match = String(attrs?.[key] ?? "").match(/port\D*(\d+)/i);
+      if (match) return Number.parseInt(match[1], 10);
+    }
+    const idMatch = String(entityId || "").match(/(?:^|[_-])port[_-]?(\d+)(?:[_-]|$)/i);
+    if (idMatch) return Number.parseInt(idMatch[1], 10);
     return null;
   }
 
@@ -615,6 +622,39 @@ class UnifiDeviceCard extends HTMLElement {
     return null;
   }
 
+  _extractParentText(attrs) {
+    const textKeys = [
+      "connected_to",
+      "uplink",
+      "uplink_source",
+      "source",
+      "network_device",
+      "network_path",
+      "connection_path",
+      "switch",
+      "parent",
+    ];
+    return textKeys
+      .map((key) => String(attrs?.[key] ?? "").trim())
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  }
+
+  _matchesParentDevice(attrs, deviceMac) {
+    const parentMac = this._extractParentMacFromAttributes(attrs);
+    if (parentMac) return parentMac === deviceMac;
+
+    const parentText = this._extractParentText(attrs);
+    if (!parentText) return false;
+
+    const deviceName = String(this._ctx?.name || "").toLowerCase().trim();
+    const deviceModel = String(this._ctx?.model || "").toLowerCase().trim();
+    if (deviceName && parentText.includes(deviceName)) return true;
+    if (deviceModel && parentText.includes(deviceModel)) return true;
+    return false;
+  }
+
   _buildPortClientIndex() {
     const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
     if (!deviceMac || !this._hass?.states) return new Map();
@@ -622,10 +662,9 @@ class UnifiDeviceCard extends HTMLElement {
     const byPort = new Map();
     for (const [entityId, obj] of Object.entries(this._hass.states)) {
       const attrs = obj?.attributes || {};
-      const parentMac = this._extractParentMacFromAttributes(attrs);
-      if (parentMac !== deviceMac) continue;
+      if (!this._matchesParentDevice(attrs, deviceMac)) continue;
 
-      const port = this._extractPortFromAttributes(attrs);
+      const port = this._extractPortFromAttributes(attrs, entityId);
       if (!Number.isInteger(port) || port < 1) continue;
 
       if (!byPort.has(port)) {
