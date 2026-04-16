@@ -3,6 +3,15 @@ import {
   getDeviceLayout,
   resolveModelKey,
 } from "./model-registry.js";
+// Shared architecture modules:
+// identity => canonical device identity + MAC helpers
+// capabilities => per-device feature matrix
+// classify => device type decision
+// unique-id => stable UniFi unique_id parsing helpers
+import { buildNormalizedDeviceIdentity, extractFirstMac, findDeviceByMac } from "./identity.js";
+import { buildDeviceCapabilities } from "./capabilities.js";
+import { classifyDeviceType } from "./classify.js";
+import { parseUnifiPortUniqueId } from "./unique-id.js";
 
 // ─────────────────────────────────────────────────
 // String utilities
@@ -157,143 +166,9 @@ function hasInfrastructureEntitySignals(entities = []) {
 }
 
 export function getDeviceType(device, entities = []) {
-  const modelKey = resolveModelKey(device);
-  if (modelKey) {
-    if (
-      [
-        "UCGULTRA",
-        "UDR7",
-        "UDRULT",
-        "UCGMAX",
-        "UCGFIBER",
-        "UDM",
-        "UDR",
-        "UDMPRO",
-        "UDMPROSE",
-        "UDM67A",
-        "UXGPRO",
-        "UXGL",
-        "UGW3",
-        "UGW4",
-      ].includes(modelKey)
-    ) {
-      return "gateway";
-    }
-
-    if (
-      [
-        "USC8",
-        "US8P60",
-        "US8P150",
-        "US16P150",
-        "USMINI",
-        "USF5P",
-        "USWFLEX25G5",
-        "USWFLEX25G8",
-        "USWFLEX25G8POE",
-        "USL8LP",
-        "USL8LPB",
-        "USL16LP",
-        "USL16LPB",
-        "USL16P",
-        "USL24",
-        "USL24P",
-        "USW24P",
-        "USL48",
-        "USL48P",
-        "USW48P",
-        "US24PRO",
-        "US24PRO2",
-        "US48PRO",
-        "US48PRO2",
-        "USPM16",
-        "USPM16P",
-        "USPM24",
-        "USPM24P",
-        "USPM48",
-        "USPM48P",
-        "US68P",
-        "US624P",
-        "US648P",
-        "USXG24",
-        "USWINDUSTRIAL",
-        "USL8A",
-        "USAGGPRO",
-        "USWULTRA",
-        "USWULTRA60W",
-        "USWULTRA210W",
-      ].includes(modelKey)
-    ) {
-      return "switch";
-    }
-  }
-
-  if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
-  if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
-  if (isDefinitelyAP(device)) return "access_point";
-  if (modelStartsWith(device, AP_MODEL_PREFIXES)) return "access_point";
-
-  const hasAccessPointSignals = entities.some((entity) => {
-    const id = lower(entity?.entity_id);
-    if (!id) return false;
-    return (
-      id.endsWith("_clients") ||
-      id.includes("_clients_") ||
-      id.endsWith("_uptime") ||
-      id.includes("_is_online") ||
-      id.includes("_connected")
-    );
-  });
-  if (hasAccessPointSignals && hasUbiquitiManufacturer(device)) return "access_point";
-
-  const hasPorts = entities.some((e) => hasIndexedPortId(e.entity_id));
-  if (hasPorts) return "switch";
-
-  if (hasUbiquitiManufacturer(device)) {
-    const model = lower(device?.model);
-    const name = lower(device?.name_by_user || device?.name);
-
-    if (
-      model.includes("udm") ||
-      model.includes("ucg") ||
-      model.includes("uxg") ||
-      model.includes("ugw") ||
-      name.includes("gateway")
-    ) {
-      return "gateway";
-    }
-
-    if (
-      model.includes("usw") ||
-      model.includes("usl") ||
-      model.includes("us8") ||
-      model.includes("usc8") ||
-      name.includes("switch")
-    ) {
-      return "switch";
-    }
-
-    if (
-      model.includes("uap") ||
-      model.includes("uac") ||
-      model.includes("u6") ||
-      model.includes("u7") ||
-      model.includes("ap") ||
-      model.includes("in-wall") ||
-      model.includes("iw") ||
-      model.includes("mesh") ||
-      model.includes("nanohd") ||
-      name.includes("access point") ||
-      name.includes("ap ")
-    ) {
-      return "access_point";
-    }
-
-    if (name.includes("gateway") || name.includes("router")) return "gateway";
-    if (name.includes("switch")) return "switch";
-  }
-
-  return "unknown";
+  const identity = buildNormalizedDeviceIdentity(device);
+  const capabilities = buildDeviceCapabilities(entities, identity);
+  return classifyDeviceType(identity, capabilities, entities, device);
 }
 
 // ─────────────────────────────────────────────────
@@ -377,7 +252,9 @@ export async function getAllData(hass) {
 
   const promise = (async () => {
     const fallbackDevices = cached?.data?.devices || [];
-    const fallbackEntities = flattenEntitiesByDevice(cached?.data?.entitiesByDevice);
+    const fallbackEntities = flattenEntitiesByDevice(
+      cached?.data?.allEntitiesByDevice || cached?.data?.entitiesByDevice
+    );
     const fallbackConfigEntries = cached?.data?.configEntries || [];
 
     const [devices, rawEntities, configEntries] = await Promise.all([
@@ -386,7 +263,8 @@ export async function getAllData(hass) {
       safeCallWS(hass, { type: "config/config_entries" }, fallbackConfigEntries),
     ]);
 
-    const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
+    const allEntities = rawEntities || [];
+    const entities = allEntities.filter((e) => !e.disabled_by && !e.hidden_by);
 
     const entitiesByDevice = new Map();
     for (const entity of entities) {
@@ -397,9 +275,19 @@ export async function getAllData(hass) {
       entitiesByDevice.get(entity.device_id).push(entity);
     }
 
+    const allEntitiesByDevice = new Map();
+    for (const entity of allEntities) {
+      if (!entity.device_id) continue;
+      if (!allEntitiesByDevice.has(entity.device_id)) {
+        allEntitiesByDevice.set(entity.device_id, []);
+      }
+      allEntitiesByDevice.get(entity.device_id).push(entity);
+    }
+
     const data = {
       devices: devices || [],
       entitiesByDevice,
+      allEntitiesByDevice,
       configEntries: configEntries || [],
     };
 
@@ -632,21 +520,6 @@ export function getAccessPointStatEntities(entities) {
   };
 }
 
-function normalizeMac(value) {
-  const raw = String(value ?? "")
-    .toLowerCase()
-    .replace(/[^0-9a-f]/g, "");
-  if (raw.length !== 12) return null;
-  return raw.match(/.{1,2}/g)?.join(":") || null;
-}
-
-function extractFirstMac(value) {
-  const text = String(value ?? "");
-  const match = text.match(/(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|[0-9a-f]{12}/i);
-  if (!match) return null;
-  return normalizeMac(match[0]);
-}
-
 function safeEntityState(hass, entityId) {
   if (!entityId) return null;
   const raw = String(hass?.states?.[entityId]?.state ?? "").trim();
@@ -750,44 +623,6 @@ function discoverApUplinkEntities(entities) {
   }
 
   return result;
-}
-
-function extractDeviceMacs(device) {
-  const macs = new Set();
-  const candidates = [device?.connections, device?.identifiers];
-
-  for (const block of candidates) {
-    if (!Array.isArray(block)) continue;
-    for (const entry of block) {
-      if (!Array.isArray(entry) || entry.length < 2) continue;
-      const [, value] = entry;
-      const mac = extractFirstMac(value);
-      if (mac) macs.add(mac);
-    }
-  }
-
-  if (macs.size > 0) return macs;
-
-  const fallback = extractFirstMac(
-    JSON.stringify({
-      connections: device?.connections,
-      identifiers: device?.identifiers,
-      configuration_url: device?.configuration_url,
-    })
-  );
-  if (fallback) macs.add(fallback);
-  return macs;
-}
-
-function findDeviceByMac(devices, mac) {
-  const normalized = normalizeMac(mac);
-  if (!normalized) return null;
-
-  for (const device of devices || []) {
-    const macs = extractDeviceMacs(device);
-    if (macs.has(normalized)) return device;
-  }
-  return null;
 }
 
 function resolveAccessPointUplink(hass, entities, allDevices) {
@@ -903,15 +738,17 @@ export function getDeviceRebootEntity(entities) {
 // ─────────────────────────────────────────────────
 
 export async function getUnifiDevices(hass) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
   const results = [];
   for (const device of devices || []) {
-    const entities = entitiesByDevice.get(device.id) || [];
+    const entities = allEntitiesByDevice?.get(device.id) || entitiesByDevice.get(device.id) || [];
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
 
-    const type = getDeviceType(device, entities);
+    const identity = buildNormalizedDeviceIdentity(device);
+    const capabilities = buildDeviceCapabilities(entities, identity);
+    const type = classifyDeviceType(identity, capabilities, entities, device);
     if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
 
     results.push({
@@ -1015,7 +852,7 @@ export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     safeCallWS(
       hass,
       { type: "config/entity_registry/list" },
-      flattenEntitiesByDevice(cached?.entitiesByDevice)
+      flattenEntitiesByDevice(cached?.allEntitiesByDevice || cached?.entitiesByDevice)
     ),
   ]);
 
@@ -1066,17 +903,13 @@ export const getDeviceWarningInfo = getRelevantEntityWarningsForDevice;
 // ─────────────────────────────────────────────────
 
 function extractPortNumber(entity) {
+  const parsedUid = parseUnifiPortUniqueId(entity?.unique_id);
+  if (parsedUid?.port) return parsedUid.port;
+
   const uid = normalize(entity.unique_id);
   const uidMatch = findIndexedPortIdMatch(uid) || uid.match(/-(\d+)-[a-z]/i);
 
   if (uidMatch) return parseInt(uidMatch[1], 10);
-
-  // UniFi HA integration unique_ids use "translation_key-{mac}_{portNum}" format.
-  // e.g. "port_link_speed-f4:92:bf:92:19:d5_23" → port 23.
-  // Must be checked before entity_id fallback to prevent SFP entities (whose
-  // entity_id contains "_sfp_1_") from mapping to the wrong port number.
-  const macPortMatch = uid.match(/[0-9a-f]{2}_(\d+)$/i);
-  if (macPortMatch) return parseInt(macPortMatch[1], 10);
 
   const eid = lower(entity.entity_id);
   const eidMatch = findIndexedPortIdMatch(eid);
@@ -1830,16 +1663,19 @@ function filterPortsByLayout(discoveredPorts, layout) {
 }
 
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
   const device = devices.find((d) => d.id === deviceId);
   if (!device) return null;
 
+  const allEntities = allEntitiesByDevice?.get(deviceId) || entitiesByDevice.get(deviceId) || [];
   let entities = entitiesByDevice.get(deviceId) || [];
-  if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
+  if (!isUnifiDevice(device, unifiEntryIds, allEntities)) return null;
 
-  const type = getDeviceType(device, entities);
+  const identity = buildNormalizedDeviceIdentity(device);
+  const capabilities = buildDeviceCapabilities(allEntities, identity);
+  const type = classifyDeviceType(identity, capabilities, allEntities, device);
   if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
 
   const needsUID = entities.filter(
@@ -1896,6 +1732,8 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
 
   return {
     device,
+    identity,
+    capabilities,
     entities,
     type,
     layout,

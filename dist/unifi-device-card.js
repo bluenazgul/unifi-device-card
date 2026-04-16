@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.66f0757 */
+/* UniFi Device Card 0.0.0-dev.e07d5da */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1111,6 +1111,278 @@ function getDeviceLayout(device, discoveredPorts = []) {
   };
 }
 
+// src/identity.js
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+function normalizeMac(value) {
+  const raw = String(value ?? "").toLowerCase().replace(/[^0-9a-f]/g, "");
+  if (raw.length !== 12) return null;
+  return raw.match(/.{1,2}/g)?.join(":") || null;
+}
+function extractFirstMac(value) {
+  const text = String(value ?? "");
+  const match = text.match(/(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|[0-9a-f]{12}/i);
+  if (!match) return null;
+  return normalizeMac(match[0]);
+}
+function sameMac(a, b) {
+  const left = normalizeMac(a);
+  const right = normalizeMac(b);
+  return !!left && !!right && left === right;
+}
+function extractPrimaryMacFromConnections(connections) {
+  if (!Array.isArray(connections)) return null;
+  for (const entry of connections) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const [type, value] = entry;
+    const key = String(type ?? "").toLowerCase();
+    if (key !== "mac") continue;
+    const mac = extractFirstMac(value);
+    if (mac) return mac;
+  }
+  for (const entry of connections) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const mac = extractFirstMac(entry[1]);
+    if (mac) return mac;
+  }
+  return null;
+}
+function buildNormalizedDeviceIdentity(device) {
+  return {
+    device_id: device?.id || null,
+    model: normalizeText(device?.model),
+    manufacturer: normalizeText(device?.manufacturer),
+    name: normalizeText(device?.name_by_user || device?.name),
+    hw_version: normalizeText(device?.hw_version),
+    sw_version: normalizeText(device?.sw_version),
+    primary_mac: extractPrimaryMacFromConnections(device?.connections),
+    config_entries: Array.isArray(device?.config_entries) ? device.config_entries : []
+  };
+}
+function extractDeviceMacs(device) {
+  const macs = /* @__PURE__ */ new Set();
+  const candidates = [device?.connections, device?.identifiers];
+  for (const block of candidates) {
+    if (!Array.isArray(block)) continue;
+    for (const entry of block) {
+      if (!Array.isArray(entry) || entry.length < 2) continue;
+      const [, value] = entry;
+      const mac = extractFirstMac(value);
+      if (mac) macs.add(mac);
+    }
+  }
+  const primaryMac = extractPrimaryMacFromConnections(device?.connections);
+  if (primaryMac) macs.add(primaryMac);
+  return macs;
+}
+function findDeviceByMac(devices, mac) {
+  const normalized = normalizeMac(mac);
+  if (!normalized) return null;
+  for (const device of devices || []) {
+    const macs = extractDeviceMacs(device);
+    if (macs.has(normalized)) return device;
+  }
+  return null;
+}
+
+// src/unique-id.js
+var PORT_FEATURE_PREFIXES = {
+  port: "port_control",
+  power_cycle: "power_cycle",
+  poe_power: "poe_power",
+  port_rx: "port_rx",
+  port_tx: "port_tx",
+  port_bandwidth_rx: "port_rx",
+  port_bandwidth_tx: "port_tx",
+  port_link_speed: "link_speed"
+};
+var DEVICE_FEATURE_PREFIXES = {
+  device_restart: "restart",
+  device_uplink_mac: "uplink_mac",
+  rx: "client_rx",
+  tx: "client_tx",
+  wired_speed: "client_link_speed"
+};
+function parseUnifiPortUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+  const [, prefix, macRaw, portRaw] = match;
+  const feature = PORT_FEATURE_PREFIXES[prefix] || null;
+  const mac = normalizeMac(macRaw);
+  const port = Number.parseInt(portRaw, 10);
+  if (!feature || !mac || !Number.isInteger(port)) return null;
+  return { feature, mac, port };
+}
+function parseUnifiDeviceUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
+  if (!match) return null;
+  const [, prefix, macRaw] = match;
+  const feature = DEVICE_FEATURE_PREFIXES[prefix] || null;
+  const mac = normalizeMac(macRaw);
+  if (!feature || !mac) return null;
+  return { feature, mac };
+}
+function parseUnifiObjectUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^(wlan|qr_code|regenerate_password|firewall_policy)-(.+)$/i);
+  if (!match) return null;
+  const [, prefix, objectId] = match;
+  const featureMap = {
+    wlan: "wlan_control",
+    qr_code: "wlan_qr_code",
+    regenerate_password: "wlan_regenerate_password",
+    firewall_policy: "firewall_policy"
+  };
+  return {
+    feature: featureMap[prefix] || null,
+    object_id: objectId || null
+  };
+}
+
+// src/capabilities.js
+function emptyBucket() {
+  return { active: 0, disabled: 0, hidden: 0 };
+}
+function statusKey(entity) {
+  if (entity?.disabled_by) return "disabled";
+  if (entity?.hidden_by) return "hidden";
+  return "active";
+}
+function inferCapability(entity, identity) {
+  const domain = String(entity?.entity_id || "").split(".")[0] || "";
+  const tk = String(entity?.translation_key || "").toLowerCase();
+  const uniqueId = entity?.unique_id || "";
+  const portInfo = parseUnifiPortUniqueId(uniqueId);
+  if (portInfo && sameMac(portInfo.mac, identity?.primary_mac)) {
+    if (portInfo.feature === "port_control") return "port_control";
+    if (portInfo.feature === "power_cycle") return "power_cycle";
+    if (portInfo.feature === "poe_power") return "poe_power";
+    if (portInfo.feature === "port_rx") return "port_rx";
+    if (portInfo.feature === "port_tx") return "port_tx";
+    if (portInfo.feature === "link_speed") return "link_speed";
+  }
+  const deviceInfo = parseUnifiDeviceUniqueId(uniqueId);
+  if (deviceInfo && sameMac(deviceInfo.mac, identity?.primary_mac)) {
+    if (deviceInfo.feature === "uplink_mac") return "uplink_mac";
+    if (deviceInfo.feature === "restart") return "restart";
+    if (deviceInfo.feature === "client_rx") return "client_rx";
+    if (deviceInfo.feature === "client_tx") return "client_tx";
+    if (deviceInfo.feature === "client_link_speed") return "link_speed";
+  }
+  const objectInfo = parseUnifiObjectUniqueId(uniqueId);
+  if (objectInfo?.feature === "wlan_control" || tk === "wlan_control") return "wlan_control";
+  if (objectInfo?.feature === "firewall_policy" || tk === "firewall_policy_control") {
+    return "firewall_policy";
+  }
+  if (domain === "button" && (tk === "restart" || tk === "reboot" || tk === "power_cycle")) {
+    return tk === "power_cycle" ? "power_cycle" : "restart";
+  }
+  if (domain === "sensor" && tk === "port_bandwidth_rx") return "port_rx";
+  if (domain === "sensor" && tk === "port_bandwidth_tx") return "port_tx";
+  if (domain === "sensor" && tk === "client_bandwidth_rx") return "client_rx";
+  if (domain === "sensor" && tk === "client_bandwidth_tx") return "client_tx";
+  if (domain === "sensor" && (tk === "port_link_speed" || tk === "link_speed")) return "link_speed";
+  if (domain === "sensor" && (tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption")) {
+    return "poe_power";
+  }
+  if (domain === "switch" && tk === "poe_port_control") return "port_control";
+  if (domain === "sensor" && tk === "device_uplink_mac") return "uplink_mac";
+  return null;
+}
+function buildDeviceCapabilities(entities, identity) {
+  const counts = {
+    restart: emptyBucket(),
+    ports: emptyBucket(),
+    port_control: emptyBucket(),
+    power_cycle: emptyBucket(),
+    poe_power: emptyBucket(),
+    port_rx: emptyBucket(),
+    port_tx: emptyBucket(),
+    client_rx: emptyBucket(),
+    client_tx: emptyBucket(),
+    link_speed: emptyBucket(),
+    uplink_mac: emptyBucket(),
+    ap_stats: emptyBucket(),
+    led_control: emptyBucket(),
+    wlan_control: emptyBucket(),
+    firewall_policy: emptyBucket()
+  };
+  for (const entity of entities || []) {
+    const status = statusKey(entity);
+    const cap = inferCapability(entity, identity);
+    if (cap && counts[cap]) counts[cap][status] += 1;
+    const portInfo = parseUnifiPortUniqueId(entity?.unique_id || "");
+    if (portInfo && (!identity?.primary_mac || sameMac(portInfo.mac, identity?.primary_mac))) {
+      counts.ports[status] += 1;
+    }
+    const id = String(entity?.entity_id || "").toLowerCase();
+    if (id.startsWith("light.") && (id.includes("led") || String(entity?.translation_key || "").includes("led"))) {
+      counts.led_control[status] += 1;
+    }
+    if (id.startsWith("sensor.") && (id.includes("_clients") || id.includes("_uptime"))) {
+      counts.ap_stats[status] += 1;
+    }
+  }
+  const out = { counts };
+  for (const [key, bucket] of Object.entries(counts)) {
+    out[key] = bucket.active + bucket.disabled + bucket.hidden > 0;
+  }
+  return out;
+}
+
+// src/classify.js
+function normalizeModel(value) {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+var SWITCH_MODEL_PREFIXES2 = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI"];
+var GATEWAY_MODEL_PREFIXES2 = ["UDM", "UCG", "UXG", "UGW", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
+var AP_MODEL_PREFIXES2 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+function startsWithAny(value, prefixes) {
+  return prefixes.some((prefix) => value.startsWith(prefix));
+}
+function fromModel(model) {
+  if (startsWithAny(model, GATEWAY_MODEL_PREFIXES2)) return "gateway";
+  if (startsWithAny(model, SWITCH_MODEL_PREFIXES2)) return "switch";
+  if (startsWithAny(model, AP_MODEL_PREFIXES2)) return "access_point";
+  return null;
+}
+function classifyDeviceType(identity, capabilities, entities = [], device = null) {
+  const model = normalizeModel(identity?.model || identity?.hw_version || "");
+  const manufacturer = String(identity?.manufacturer || "").toLowerCase();
+  const name = String(identity?.name || "").toLowerCase();
+  const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
+  const registryType = fromModel(model);
+  if (registryType) return registryType;
+  const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || name.includes("gateway") || name.includes("router");
+  if (gatewaySignals) return "gateway";
+  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
+  if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
+  const modelKey = resolveModelKey(device || identity || {});
+  if (modelKey) {
+    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+      return "gateway";
+    }
+    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
+      return "switch";
+    }
+  }
+  if (manufacturer.includes("ubiquiti") || manufacturer.includes("unifi")) {
+    if (name.includes("switch")) return "switch";
+    if (name.includes("access point") || name.includes(" ap")) return "access_point";
+  }
+  if (translationKeys.has("port_control") || translationKeys.has("poe_port_control")) return "switch";
+  if (translationKeys.has("device_uplink_mac")) return "access_point";
+  const entityIds = (entities || []).map((e) => String(e?.entity_id || "").toLowerCase());
+  if (entityIds.some((id) => id.includes("_port_") || id.includes("_sfp_"))) return "switch";
+  return "unknown";
+}
+
 // src/helpers.js
 function normalize(value) {
   return String(value ?? "").trim();
@@ -1132,7 +1404,7 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES2 = [
+var SWITCH_MODEL_PREFIXES3 = [
   "USW",
   "USL",
   "USPM",
@@ -1146,7 +1418,7 @@ var SWITCH_MODEL_PREFIXES2 = [
   "USMINI",
   "FLEXMINI"
 ];
-var GATEWAY_MODEL_PREFIXES2 = [
+var GATEWAY_MODEL_PREFIXES3 = [
   "UDM",
   "UCG",
   "UXG",
@@ -1156,7 +1428,7 @@ var GATEWAY_MODEL_PREFIXES2 = [
   "UDMPRO",
   "UDMPROSE"
 ];
-var AP_MODEL_PREFIXES2 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+var AP_MODEL_PREFIXES3 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -1172,9 +1444,6 @@ function hasIndexedPortId(entityId) {
 function modelStartsWith2(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelStr);
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
-}
-function isDefinitelyAP(device) {
-  return modelStartsWith2(device, AP_MODEL_PREFIXES2);
 }
 function isVirtualControllerDevice(device) {
   const model = lower(device?.model);
@@ -1198,99 +1467,9 @@ function hasInfrastructureEntitySignals(entities = []) {
   });
 }
 function getDeviceType(device, entities = []) {
-  const modelKey = resolveModelKey(device);
-  if (modelKey) {
-    if ([
-      "UCGULTRA",
-      "UDR7",
-      "UDRULT",
-      "UCGMAX",
-      "UCGFIBER",
-      "UDM",
-      "UDR",
-      "UDMPRO",
-      "UDMPROSE",
-      "UDM67A",
-      "UXGPRO",
-      "UXGL",
-      "UGW3",
-      "UGW4"
-    ].includes(modelKey)) {
-      return "gateway";
-    }
-    if ([
-      "USC8",
-      "US8P60",
-      "US8P150",
-      "US16P150",
-      "USMINI",
-      "USF5P",
-      "USWFLEX25G5",
-      "USWFLEX25G8",
-      "USWFLEX25G8POE",
-      "USL8LP",
-      "USL8LPB",
-      "USL16LP",
-      "USL16LPB",
-      "USL16P",
-      "USL24",
-      "USL24P",
-      "USW24P",
-      "USL48",
-      "USL48P",
-      "USW48P",
-      "US24PRO",
-      "US24PRO2",
-      "US48PRO",
-      "US48PRO2",
-      "USPM16",
-      "USPM16P",
-      "USPM24",
-      "USPM24P",
-      "USPM48",
-      "USPM48P",
-      "US68P",
-      "US624P",
-      "US648P",
-      "USXG24",
-      "USWINDUSTRIAL",
-      "USL8A",
-      "USAGGPRO",
-      "USWULTRA",
-      "USWULTRA60W",
-      "USWULTRA210W"
-    ].includes(modelKey)) {
-      return "switch";
-    }
-  }
-  if (modelStartsWith2(device, SWITCH_MODEL_PREFIXES2)) return "switch";
-  if (modelStartsWith2(device, GATEWAY_MODEL_PREFIXES2)) return "gateway";
-  if (isDefinitelyAP(device)) return "access_point";
-  if (modelStartsWith2(device, AP_MODEL_PREFIXES2)) return "access_point";
-  const hasAccessPointSignals = entities.some((entity) => {
-    const id = lower(entity?.entity_id);
-    if (!id) return false;
-    return id.endsWith("_clients") || id.includes("_clients_") || id.endsWith("_uptime") || id.includes("_is_online") || id.includes("_connected");
-  });
-  if (hasAccessPointSignals && hasUbiquitiManufacturer(device)) return "access_point";
-  const hasPorts = entities.some((e) => hasIndexedPortId(e.entity_id));
-  if (hasPorts) return "switch";
-  if (hasUbiquitiManufacturer(device)) {
-    const model = lower(device?.model);
-    const name = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("ugw") || name.includes("gateway")) {
-      return "gateway";
-    }
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usc8") || name.includes("switch")) {
-      return "switch";
-    }
-    if (model.includes("uap") || model.includes("uac") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || name.includes("access point") || name.includes("ap ")) {
-      return "access_point";
-    }
-    if (name.includes("gateway") || name.includes("router")) return "gateway";
-    if (name.includes("switch")) return "switch";
-  }
-  return "unknown";
+  const identity = buildNormalizedDeviceIdentity(device);
+  const capabilities = buildDeviceCapabilities(entities, identity);
+  return classifyDeviceType(identity, capabilities, entities, device);
 }
 function getWSErrorCode(err) {
   if (err?.code != null) return err.code;
@@ -1347,14 +1526,17 @@ async function getAllData(hass) {
   if (inflight) return inflight;
   const promise = (async () => {
     const fallbackDevices = cached?.data?.devices || [];
-    const fallbackEntities = flattenEntitiesByDevice(cached?.data?.entitiesByDevice);
+    const fallbackEntities = flattenEntitiesByDevice(
+      cached?.data?.allEntitiesByDevice || cached?.data?.entitiesByDevice
+    );
     const fallbackConfigEntries = cached?.data?.configEntries || [];
     const [devices, rawEntities, configEntries] = await Promise.all([
       safeCallWS(hass, { type: "config/device_registry/list" }, fallbackDevices),
       safeCallWS(hass, { type: "config/entity_registry/list" }, fallbackEntities),
       safeCallWS(hass, { type: "config/config_entries" }, fallbackConfigEntries)
     ]);
-    const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
+    const allEntities = rawEntities || [];
+    const entities = allEntities.filter((e) => !e.disabled_by && !e.hidden_by);
     const entitiesByDevice = /* @__PURE__ */ new Map();
     for (const entity of entities) {
       if (!entity.device_id) continue;
@@ -1363,9 +1545,18 @@ async function getAllData(hass) {
       }
       entitiesByDevice.get(entity.device_id).push(entity);
     }
+    const allEntitiesByDevice = /* @__PURE__ */ new Map();
+    for (const entity of allEntities) {
+      if (!entity.device_id) continue;
+      if (!allEntitiesByDevice.has(entity.device_id)) {
+        allEntitiesByDevice.set(entity.device_id, []);
+      }
+      allEntitiesByDevice.get(entity.device_id).push(entity);
+    }
     const data = {
       devices: devices || [],
       entitiesByDevice,
+      allEntitiesByDevice,
       configEntries: configEntries || []
     };
     if ((data.devices?.length || 0) > 0 || entities.length > 0) {
@@ -1386,9 +1577,9 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
     if (modelStartsWith2(device, [
-      ...SWITCH_MODEL_PREFIXES2,
-      ...GATEWAY_MODEL_PREFIXES2,
-      ...AP_MODEL_PREFIXES2
+      ...SWITCH_MODEL_PREFIXES3,
+      ...GATEWAY_MODEL_PREFIXES3,
+      ...AP_MODEL_PREFIXES3
     ])) {
       return true;
     }
@@ -1398,7 +1589,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     return false;
   }
   if (resolveModelKey(device)) return true;
-  if (modelStartsWith2(device, [...SWITCH_MODEL_PREFIXES2, ...GATEWAY_MODEL_PREFIXES2, ...AP_MODEL_PREFIXES2])) {
+  if (modelStartsWith2(device, [...SWITCH_MODEL_PREFIXES3, ...GATEWAY_MODEL_PREFIXES3, ...AP_MODEL_PREFIXES3])) {
     return true;
   }
   if (entities.some((e) => hasIndexedPortId(e.entity_id)) && hasUbiquitiManufacturer(device)) {
@@ -1508,17 +1699,6 @@ function getAccessPointStatEntities(entities) {
     led_color_entity: ledColorEntity
   };
 }
-function normalizeMac(value) {
-  const raw = String(value ?? "").toLowerCase().replace(/[^0-9a-f]/g, "");
-  if (raw.length !== 12) return null;
-  return raw.match(/.{1,2}/g)?.join(":") || null;
-}
-function extractFirstMac(value) {
-  const text = String(value ?? "");
-  const match = text.match(/(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|[0-9a-f]{12}/i);
-  if (!match) return null;
-  return normalizeMac(match[0]);
-}
 function safeEntityState(hass, entityId) {
   if (!entityId) return null;
   const raw = String(hass?.states?.[entityId]?.state ?? "").trim();
@@ -1587,38 +1767,6 @@ function discoverApUplinkEntities(entities) {
   }
   return result;
 }
-function extractDeviceMacs(device) {
-  const macs = /* @__PURE__ */ new Set();
-  const candidates = [device?.connections, device?.identifiers];
-  for (const block of candidates) {
-    if (!Array.isArray(block)) continue;
-    for (const entry of block) {
-      if (!Array.isArray(entry) || entry.length < 2) continue;
-      const [, value] = entry;
-      const mac = extractFirstMac(value);
-      if (mac) macs.add(mac);
-    }
-  }
-  if (macs.size > 0) return macs;
-  const fallback = extractFirstMac(
-    JSON.stringify({
-      connections: device?.connections,
-      identifiers: device?.identifiers,
-      configuration_url: device?.configuration_url
-    })
-  );
-  if (fallback) macs.add(fallback);
-  return macs;
-}
-function findDeviceByMac(devices, mac) {
-  const normalized = normalizeMac(mac);
-  if (!normalized) return null;
-  for (const device of devices || []) {
-    const macs = extractDeviceMacs(device);
-    if (macs.has(normalized)) return device;
-  }
-  return null;
-}
 function resolveAccessPointUplink(hass, entities, allDevices) {
   const discovered = discoverApUplinkEntities(entities);
   const uplinkAttrs = readStateAttributes(hass, discovered.uplink_mac_entity);
@@ -1674,13 +1822,15 @@ function getDeviceRebootEntity(entities) {
   return null;
 }
 async function getUnifiDevices(hass) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const results = [];
   for (const device of devices || []) {
-    const entities = entitiesByDevice.get(device.id) || [];
+    const entities = allEntitiesByDevice?.get(device.id) || entitiesByDevice.get(device.id) || [];
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
-    const type = getDeviceType(device, entities);
+    const identity = buildNormalizedDeviceIdentity(device);
+    const capabilities = buildDeviceCapabilities(entities, identity);
+    const type = classifyDeviceType(identity, capabilities, entities, device);
     if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
     results.push({
       id: device.id,
@@ -1730,7 +1880,7 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     safeCallWS(
       hass,
       { type: "config/entity_registry/list" },
-      flattenEntitiesByDevice(cached?.entitiesByDevice)
+      flattenEntitiesByDevice(cached?.allEntitiesByDevice || cached?.entitiesByDevice)
     )
   ]);
   const device = (devices || []).find((d) => d.id === deviceId);
@@ -1766,11 +1916,11 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
   return { disabled, hidden, disabledCount, hiddenCount };
 }
 function extractPortNumber(entity) {
+  const parsedUid = parseUnifiPortUniqueId(entity?.unique_id);
+  if (parsedUid?.port) return parsedUid.port;
   const uid = normalize(entity.unique_id);
   const uidMatch = findIndexedPortIdMatch(uid) || uid.match(/-(\d+)-[a-z]/i);
   if (uidMatch) return parseInt(uidMatch[1], 10);
-  const macPortMatch = uid.match(/[0-9a-f]{2}_(\d+)$/i);
-  if (macPortMatch) return parseInt(macPortMatch[1], 10);
   const eid = lower(entity.entity_id);
   const eidMatch = findIndexedPortIdMatch(eid);
   if (eidMatch) return parseInt(eidMatch[1], 10);
@@ -2266,13 +2416,16 @@ function filterPortsByLayout(discoveredPorts, layout) {
   return discoveredPorts.filter((port) => allowed.has(port.port));
 }
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const device = devices.find((d) => d.id === deviceId);
   if (!device) return null;
+  const allEntities = allEntitiesByDevice?.get(deviceId) || entitiesByDevice.get(deviceId) || [];
   let entities = entitiesByDevice.get(deviceId) || [];
-  if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
-  const type = getDeviceType(device, entities);
+  if (!isUnifiDevice(device, unifiEntryIds, allEntities)) return null;
+  const identity = buildNormalizedDeviceIdentity(device);
+  const capabilities = buildDeviceCapabilities(allEntities, identity);
+  const type = classifyDeviceType(identity, capabilities, allEntities, device);
   if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
   const needsUID = entities.filter(
     (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && (!hasIndexedPortId(e.entity_id) || /(?:^|[_-])sfp[_+]?\d+(?:[_-]|$)/i.test(lower(e.entity_id))) && !/\bport\s+\d+\b/i.test(e.original_name || "")
@@ -2312,6 +2465,8 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const apUplink = type === "access_point" ? resolveAccessPointUplink(hass, entities, devices) : null;
   return {
     device,
+    identity,
+    capabilities,
     entities,
     type,
     layout,
@@ -3908,7 +4063,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.66f0757";
+var VERSION = "0.0.0-dev.e07d5da";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
