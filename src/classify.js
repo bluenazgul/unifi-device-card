@@ -13,17 +13,14 @@ function normalizeModel(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-const EXTRA_GATEWAY_PREFIXES = ["UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
-const EXTRA_AP_PREFIXES = ["UAC"];
-
 function startsWithAny(value, prefixes) {
   return prefixes.some((prefix) => value.startsWith(prefix));
 }
 
 function fromModel(model) {
-  if (startsWithAny(model, [...GATEWAY_MODEL_PREFIXES, ...EXTRA_GATEWAY_PREFIXES])) return "gateway";
+  if (startsWithAny(model, GATEWAY_MODEL_PREFIXES)) return "gateway";
   if (startsWithAny(model, SWITCH_MODEL_PREFIXES)) return "switch";
-  if (startsWithAny(model, [...AP_MODEL_PREFIXES, ...EXTRA_AP_PREFIXES])) return "access_point";
+  if (startsWithAny(model, AP_MODEL_PREFIXES)) return "access_point";
   return null;
 }
 

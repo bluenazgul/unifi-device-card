@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.8ac8089 */
+/* UniFi Device Card 0.0.0-dev.114bef3 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -18,9 +18,9 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
@@ -1340,15 +1340,13 @@ function buildDeviceCapabilities(entities, identity) {
 function normalizeModel(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
-var EXTRA_GATEWAY_PREFIXES = ["UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
-var EXTRA_AP_PREFIXES = ["UAC"];
 function startsWithAny(value, prefixes) {
   return prefixes.some((prefix) => value.startsWith(prefix));
 }
 function fromModel(model) {
-  if (startsWithAny(model, [...GATEWAY_MODEL_PREFIXES, ...EXTRA_GATEWAY_PREFIXES])) return "gateway";
+  if (startsWithAny(model, GATEWAY_MODEL_PREFIXES)) return "gateway";
   if (startsWithAny(model, SWITCH_MODEL_PREFIXES)) return "switch";
-  if (startsWithAny(model, [...AP_MODEL_PREFIXES, ...EXTRA_AP_PREFIXES])) return "access_point";
+  if (startsWithAny(model, AP_MODEL_PREFIXES)) return "access_point";
   return null;
 }
 function classifyDeviceType(identity, capabilities, entities = [], device = null) {
@@ -1403,8 +1401,6 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var EXTRA_GATEWAY_PREFIXES2 = ["UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
-var EXTRA_AP_PREFIXES2 = ["UAC"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -1555,9 +1551,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     if (modelStartsWith2(device, [
       ...SWITCH_MODEL_PREFIXES,
       ...GATEWAY_MODEL_PREFIXES,
-      ...EXTRA_GATEWAY_PREFIXES2,
-      ...AP_MODEL_PREFIXES,
-      ...EXTRA_AP_PREFIXES2
+      ...AP_MODEL_PREFIXES
     ])) {
       return true;
     }
@@ -1570,9 +1564,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (modelStartsWith2(device, [
     ...SWITCH_MODEL_PREFIXES,
     ...GATEWAY_MODEL_PREFIXES,
-    ...EXTRA_GATEWAY_PREFIXES2,
-    ...AP_MODEL_PREFIXES,
-    ...EXTRA_AP_PREFIXES2
+    ...AP_MODEL_PREFIXES
   ])) {
     return true;
   }
@@ -4091,7 +4083,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.8ac8089";
+var VERSION = "0.0.0-dev.114bef3";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
