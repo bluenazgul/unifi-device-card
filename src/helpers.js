@@ -1857,6 +1857,45 @@ function hasTraffic(hass, port) {
   return trafficValue(hass, port?.rx_entity) > 0 || trafficValue(hass, port?.tx_entity) > 0;
 }
 
+function portObservedClientCount(hass, port) {
+  const candidates = [
+    port?.link_entity,
+    port?.speed_entity,
+    port?.port_switch_entity,
+    port?.rx_entity,
+    port?.tx_entity,
+  ].filter(Boolean);
+
+  const numericKeys = [
+    "connected_clients",
+    "client_count",
+    "clients",
+    "num_clients",
+    "active_clients",
+    "station_count",
+  ];
+
+  const listKeys = ["clients", "connected_clients", "client_list", "stations", "hosts"];
+  let bestCount = 0;
+
+  for (const entityId of candidates) {
+    const attrs = stateObj(hass, entityId)?.attributes;
+    if (!attrs || typeof attrs !== "object") continue;
+
+    for (const key of numericKeys) {
+      const num = Number.parseInt(attrs[key], 10);
+      if (Number.isInteger(num) && num > bestCount) bestCount = num;
+    }
+
+    for (const key of listKeys) {
+      const value = attrs[key];
+      if (Array.isArray(value) && value.length > bestCount) bestCount = value.length;
+    }
+  }
+
+  return bestCount;
+}
+
 function isSfpSpecialPort(port) {
   if (port?.kind !== "special") return false;
 
@@ -1895,7 +1934,19 @@ export function isPortConnected(hass, port) {
 
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {
-    if (speedMbit > 0) return true;
+    if (speedMbit > 0) {
+      // RJ45 ghost-link guard:
+      // Some setups report persistent 10 Mbit on idle/disconnected copper ports.
+      // If no explicit link sensor exists and we have neither traffic, clients, nor PoE activity,
+      // treat 10 Mbit as not connected to avoid false "up" LEDs.
+      if (!isSfpSpecialPort(port) && !port?.link_entity && speedMbit <= 10) {
+        const hasActiveTraffic = hasTraffic(hass, port);
+        const clientCount = portObservedClientCount(hass, port);
+        const poeActive = getPoeStatus(hass, port).active;
+        if (!hasActiveTraffic && clientCount === 0 && !poeActive) return false;
+      }
+      return true;
+    }
     if (speedMbit <= 0) return false;
   }
 
