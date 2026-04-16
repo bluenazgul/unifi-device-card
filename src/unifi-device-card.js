@@ -340,7 +340,11 @@ class UnifiDeviceCard extends HTMLElement {
   _apUplinkText(uplink) {
     if (!uplink) return null;
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
-    return deviceLabel || null;
+    if (!deviceLabel) return null;
+
+    const port = String(uplink.remote_port || "").trim();
+    if (port) return `${deviceLabel} · Port ${port}`;
+    return deviceLabel;
   }
 
   _escapeAttr(value) {

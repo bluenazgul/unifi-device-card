@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a4075de */
+/* UniFi Device Card 0.0.0-dev.dfc2044 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1776,7 +1776,11 @@ function resolveAccessPointUplink(hass, entities, allDevices) {
     "uplink_remote_port",
     "remote_port",
     "port",
-    "uplink_port"
+    "uplink_port",
+    "port_number",
+    "remote_port_number",
+    "uplink_port_number",
+    "uplink_port_id"
   ]);
   const uplinkTypeRaw = lower(
     safeEntityState(hass, discovered.uplink_type_entity) || pickAttribute(uplinkAttrs, [
@@ -4063,7 +4067,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a4075de";
+var VERSION = "0.0.0-dev.dfc2044";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4333,7 +4337,10 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apUplinkText(uplink) {
     if (!uplink) return null;
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
-    return deviceLabel || null;
+    if (!deviceLabel) return null;
+    const port = String(uplink.remote_port || "").trim();
+    if (port) return `${deviceLabel} \xB7 Port ${port}`;
+    return deviceLabel;
   }
   _escapeAttr(value) {
     return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

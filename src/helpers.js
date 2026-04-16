@@ -635,6 +635,10 @@ function resolveAccessPointUplink(hass, entities, allDevices) {
     "remote_port",
     "port",
     "uplink_port",
+    "port_number",
+    "remote_port_number",
+    "uplink_port_number",
+    "uplink_port_id",
   ]);
   const uplinkTypeRaw = lower(
     safeEntityState(hass, discovered.uplink_type_entity) || pickAttribute(uplinkAttrs, [
