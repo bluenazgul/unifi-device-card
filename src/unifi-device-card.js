@@ -85,6 +85,79 @@ class UnifiDeviceCard extends HTMLElement {
     );
   }
 
+  _numericState(entityId) {
+    if (!entityId || !this._hass?.states) return null;
+    const raw = this._hass.states[entityId]?.state;
+    if (raw == null || raw === "unknown" || raw === "unavailable") return null;
+    const n = Number.parseFloat(String(raw).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  _buildPortDebugSnapshot(ctx) {
+    if (!ctx || (ctx.type !== "switch" && ctx.type !== "gateway")) {
+      return {
+        summary: null,
+        ports: [],
+      };
+    }
+
+    const slotData = this._buildSlotData(ctx);
+    const ports = [...(slotData?.specials || []), ...(slotData?.numbered || [])]
+      .filter((slot) => Number.isInteger(slot?.port))
+      .sort((a, b) => a.port - b.port);
+
+    let connected = 0;
+    let poePorts = 0;
+    let trafficPorts = 0;
+    let poeTotalW = 0;
+
+    const details = ports.map((slot) => {
+      const linkUp = isPortConnected(this._hass, slot);
+      if (linkUp) connected += 1;
+
+      const poeStatus = getPoeStatus(this._hass, slot);
+      if (poeStatus.active) poePorts += 1;
+      const poeNum = this._numericState(slot?.poe_power_entity);
+      if (poeNum != null && poeNum > 0) poeTotalW += poeNum;
+
+      const rx = this._numericState(slot?.rx_entity) || 0;
+      const tx = this._numericState(slot?.tx_entity) || 0;
+      const traffic = rx + tx;
+      if (traffic > 0) trafficPorts += 1;
+
+      return {
+        port: slot.port,
+        link: linkUp ? "up" : "down",
+        speed: getPortSpeedText(this._hass, slot) || null,
+        poe: poeStatus.active ? (poeStatus.power || "on") : "off",
+        rx,
+        tx,
+      };
+    });
+
+    const topTraffic = [...details]
+      .sort((a, b) => (b.rx + b.tx) - (a.rx + a.tx))
+      .filter((row) => (row.rx + row.tx) > 0)
+      .slice(0, 5)
+      .map((row) => ({
+        port: row.port,
+        rx: row.rx,
+        tx: row.tx,
+      }));
+
+    return {
+      summary: {
+        ports_total: ports.length,
+        ports_connected: connected,
+        ports_with_poe: poePorts,
+        poe_total_w: Number(poeTotalW.toFixed(2)),
+        ports_with_traffic: trafficPorts,
+      },
+      ports: details,
+      top_traffic: topTraffic,
+    };
+  }
+
   connectedCallback() {
     if (this._resizeObserver) return;
     this._resizeObserver = new ResizeObserver(() => {
@@ -792,11 +865,17 @@ class UnifiDeviceCard extends HTMLElement {
 
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
+      const portSnapshot = this._buildPortDebugSnapshot(ctx);
       this._log("info", "context loaded", {
         type: ctx?.type || null,
         model: ctx?.model || null,
         identity_mac: ctx?.identity?.primary_mac || null,
+        ...(portSnapshot.summary || {}),
+        top_traffic: portSnapshot.top_traffic || [],
       });
+      if (this._shouldLog("debug") && portSnapshot.ports?.length) {
+        this._log("debug", "port snapshot", portSnapshot.ports);
+      }
 
       const { specials, numbered } = this._buildSlotData(ctx);
       const first = specials[0] || numbered[0] || null;
