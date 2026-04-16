@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c7ed3b7 */
+/* UniFi Device Card 0.0.0-dev.47a6788 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4107,8 +4107,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c7ed3b7";
+var VERSION = "0.0.0-dev.47a6788";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
+var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
+var LOG_STYLES = {
+  badge: "background:#00AEEF;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
+  version: "background:#2a2a2a;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
+  error: "color:#ff5f56;font-weight:700;",
+  warn: "color:#ffbd2e;font-weight:700;",
+  info: "color:#9effa1;font-weight:700;",
+  debug: "color:#8ab4f8;font-weight:700;",
+  trace: "color:#caa7ff;font-weight:700;"
+};
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -4129,6 +4139,34 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
+    this._instanceId = Math.random().toString(36).slice(2, 7);
+  }
+  _configuredLogLevel() {
+    const raw = String(this._config?.log_level || "").toLowerCase().trim();
+    if (raw && Object.prototype.hasOwnProperty.call(LOG_LEVELS, raw)) return raw;
+    if (this._config?.debug === true) return "debug";
+    return "warn";
+  }
+  _shouldLog(level) {
+    const target = LOG_LEVELS[this._configuredLogLevel()];
+    const current = LOG_LEVELS[level];
+    if (current == null || target == null) return false;
+    return current <= target;
+  }
+  _log(level, message, ...args) {
+    if (!this._shouldLog(level)) return;
+    const fn = level === "error" ? "error" : level === "warn" ? "warn" : "log";
+    const levelLabel = level.toUpperCase();
+    const device = this._config?.device_id ? ` ${this._config.device_id}` : "";
+    const header = `%cUNIFI-DEVICE-CARD%c ${levelLabel}%c${device} #${this._instanceId}`;
+    console[fn](
+      header,
+      LOG_STYLES.badge,
+      LOG_STYLES[level] || LOG_STYLES.info,
+      LOG_STYLES.version,
+      message,
+      ...args
+    );
   }
   connectedCallback() {
     if (this._resizeObserver) return;
@@ -4149,6 +4187,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     const newConfig = config || {};
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
+    this._log("info", "setConfig", {
+      device_id: newDeviceId || null,
+      log_level: this._configuredLogLevel()
+    });
     if (oldDeviceId !== newDeviceId) {
       this._ctx = null;
       this._selectedKey = null;
@@ -4165,6 +4207,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const previousHass = this._hass;
     this._hass = hass;
     this._ensureLoaded();
+    this._log("trace", "hass update");
     if (!previousHass || !this._ctx || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
@@ -4658,6 +4701,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (this._loadedDeviceId === currentId && this._ctx) return;
     if (this._loading) return;
     this._loading = true;
+    this._log("debug", "loading device context");
     this._render();
     const token = ++this._loadToken;
     try {
@@ -4665,11 +4709,16 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (token !== this._loadToken) return;
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
+      this._log("info", "context loaded", {
+        type: ctx?.type || null,
+        model: ctx?.model || null,
+        identity_mac: ctx?.identity?.primary_mac || null
+      });
       const { specials, numbered } = this._buildSlotData(ctx);
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
-      console.error("[unifi-device-card] Failed to load device context", err);
+      this._log("error", "Failed to load device context", err);
       if (token !== this._loadToken) return;
       this._ctx = null;
       this._loadedDeviceId = null;
@@ -4684,10 +4733,12 @@ var UnifiDeviceCard = class extends HTMLElement {
   async _toggleEntity(entityId) {
     if (!entityId || !this._hass) return;
     const [domain] = entityId.split(".");
+    this._log("debug", "toggle entity", entityId);
     await this._hass.callService(domain, "toggle", { entity_id: entityId });
   }
   async _pressButton(entityId) {
     if (!entityId || !this._hass) return;
+    this._log("debug", "press button", entityId);
     await this._hass.callService("button", "press", { entity_id: entityId });
   }
   _title() {
@@ -5813,5 +5864,9 @@ window.customCards.push({
 });
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;
-  console.info(`[UNIFI-DEVICE-CARD] Version ${VERSION}`);
+  console.log(
+    `%cUNIFI-DEVICE-CARD%c v${VERSION}`,
+    LOG_STYLES.badge,
+    LOG_STYLES.version
+  );
 }
