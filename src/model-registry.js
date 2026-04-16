@@ -28,9 +28,9 @@ function apModel(displayModel) {
   };
 }
 
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
-const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
-const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
+export const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
+export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
 
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version]

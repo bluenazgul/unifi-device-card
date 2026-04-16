@@ -1,7 +1,10 @@
 import {
+  AP_MODEL_PREFIXES,
   applyPortsPerRowOverride,
+  GATEWAY_MODEL_PREFIXES,
   getDeviceLayout,
   resolveModelKey,
+  SWITCH_MODEL_PREFIXES,
 } from "./model-registry.js";
 // Shared architecture modules:
 // identity => canonical device identity + MAC helpers
@@ -71,33 +74,8 @@ function hasUbiquitiManufacturer(device) {
   return m.includes("ubiquiti") || m.includes("unifi");
 }
 
-const SWITCH_MODEL_PREFIXES = [
-  "USW",
-  "USL",
-  "USPM",
-  "USXG",
-  "USF",
-  "US8",
-  "USC8",
-  "US16",
-  "US24",
-  "US48",
-  "USMINI",
-  "FLEXMINI",
-];
-
-const GATEWAY_MODEL_PREFIXES = [
-  "UDM",
-  "UCG",
-  "UXG",
-  "UGW",
-  "UDR7",
-  "UDRULT",
-  "UDMPRO",
-  "UDMPROSE",
-];
-
-const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+const EXTRA_GATEWAY_PREFIXES = ["UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
+const EXTRA_AP_PREFIXES = ["UAC"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -124,7 +102,7 @@ function modelStartsWith(device, prefixes) {
 }
 
 function isDefinitelyAP(device) {
-  return modelStartsWith(device, AP_MODEL_PREFIXES);
+  return modelStartsWith(device, [...AP_MODEL_PREFIXES, ...EXTRA_AP_PREFIXES]);
 }
 
 function isVirtualControllerDevice(device) {
@@ -321,7 +299,9 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
       modelStartsWith(device, [
         ...SWITCH_MODEL_PREFIXES,
         ...GATEWAY_MODEL_PREFIXES,
+        ...EXTRA_GATEWAY_PREFIXES,
         ...AP_MODEL_PREFIXES,
+        ...EXTRA_AP_PREFIXES,
       ])
     ) {
       return true;
@@ -336,7 +316,13 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
 
   if (resolveModelKey(device)) return true;
 
-  if (modelStartsWith(device, [...SWITCH_MODEL_PREFIXES, ...GATEWAY_MODEL_PREFIXES, ...AP_MODEL_PREFIXES])) {
+  if (modelStartsWith(device, [
+    ...SWITCH_MODEL_PREFIXES,
+    ...GATEWAY_MODEL_PREFIXES,
+    ...EXTRA_GATEWAY_PREFIXES,
+    ...AP_MODEL_PREFIXES,
+    ...EXTRA_AP_PREFIXES,
+  ])) {
     return true;
   }
 
