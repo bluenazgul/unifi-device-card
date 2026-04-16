@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e07d5da */
+/* UniFi Device Card 0.0.0-dev.a4075de */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4063,7 +4063,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e07d5da";
+var VERSION = "0.0.0-dev.a4075de";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4334,6 +4334,76 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (!uplink) return null;
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
     return deviceLabel || null;
+  }
+  _escapeAttr(value) {
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  _apUplinkTooltip(uplink) {
+    if (!uplink) return "";
+    const lines = [];
+    const kind = String(uplink.kind || "").toLowerCase();
+    if (kind === "mesh") lines.push("Mesh Uplink");
+    else if (kind === "wired") lines.push("Wired Uplink");
+    else lines.push("Uplink");
+    if (uplink.via_device_name) lines.push(`Device: ${uplink.via_device_name}`);
+    if (uplink.remote_port) lines.push(`Port: ${uplink.remote_port}`);
+    if (uplink.via_mac) lines.push(`MAC: ${uplink.via_mac}`);
+    return lines.join(" \xB7 ");
+  }
+  _toClientNames(value) {
+    if (!Array.isArray(value)) return [];
+    const out = [];
+    for (const entry of value) {
+      if (typeof entry === "string" && entry.trim()) {
+        out.push(entry.trim());
+        continue;
+      }
+      if (entry && typeof entry === "object") {
+        const name = entry.name || entry.hostname || entry.client_name || entry.display_name || entry.mac || "";
+        if (String(name).trim()) out.push(String(name).trim());
+      }
+    }
+    return out;
+  }
+  _getPortClientInfo(slot) {
+    const candidates = new Set([
+      slot?.link_entity,
+      slot?.speed_entity,
+      slot?.port_switch_entity,
+      slot?.poe_power_entity,
+      slot?.rx_entity,
+      slot?.tx_entity,
+      ...Array.isArray(slot?.raw_entities) ? slot.raw_entities : []
+    ].filter(Boolean));
+    const numericKeys = [
+      "connected_clients",
+      "client_count",
+      "clients",
+      "num_clients",
+      "active_clients",
+      "station_count"
+    ];
+    const listKeys = ["clients", "connected_clients", "client_list", "stations", "hosts"];
+    let bestCount = null;
+    let bestNames = [];
+    for (const entityId of candidates) {
+      const attrs = stateObj(this._hass, entityId)?.attributes;
+      if (!attrs || typeof attrs !== "object") continue;
+      for (const key of numericKeys) {
+        const raw = attrs[key];
+        const num = Number.parseInt(raw, 10);
+        if (Number.isInteger(num) && num >= 0 && (bestCount == null || num > bestCount)) {
+          bestCount = num;
+        }
+      }
+      for (const key of listKeys) {
+        const names = this._toClientNames(attrs[key]);
+        if (names.length > bestNames.length) bestNames = names;
+      }
+    }
+    if ((bestCount == null || bestCount === 0) && bestNames.length === 0) return null;
+    const count = bestCount != null ? bestCount : bestNames.length;
+    return { count, names: bestNames.slice(0, 8) };
   }
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
@@ -4635,11 +4705,14 @@ var UnifiDeviceCard = class extends HTMLElement {
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
+    const clientInfo = this._getPortClientInfo(slot);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
       this._translateState(getPortLinkText(this._hass, slot)),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
-      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
+      clientInfo ? `${this._t("clients")}: ${clientInfo.count}` : null,
+      clientInfo?.names?.length ? clientInfo.names.join(", ") : null
     ].filter((v) => v && v !== "\u2014").join(" \xB7 ");
     const classes = [
       "port",
@@ -4676,7 +4749,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="rj45-floor"></div>
         </div>
       `;
-    return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
+    return `<button class="${classes}" data-key="${slot.key}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
       </div>
@@ -5413,6 +5486,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const uptime = this._apUptimeState(this._ctx?.uptime_entity);
       const clients = this._wholeNumberState(this._ctx?.clients_entity);
       const apUplink = this._apUplinkText(this._ctx?.ap_uplink);
+      const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
@@ -5460,7 +5534,7 @@ var UnifiDeviceCard = class extends HTMLElement {
               ${apUplink ? `
               <div class="detail-item">
                 <div class="detail-label">${this._t("uplink")}</div>
-                <div class="detail-value">${apUplink}</div>
+                <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
               </div>` : ""}
             </div>
           </div>
