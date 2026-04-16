@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.07b3261 */
+/* UniFi Device Card 0.0.0-dev.c7ed3b7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4107,7 +4107,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.07b3261";
+var VERSION = "0.0.0-dev.c7ed3b7";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
@@ -4449,6 +4449,45 @@ var UnifiDeviceCard = class extends HTMLElement {
     const count = bestCount != null ? bestCount : bestNames.length;
     return { count, names: bestNames.slice(0, 8) };
   }
+  _extractClientNameFromStateObj(obj, entityId) {
+    const attrs = obj?.attributes || {};
+    const friendly = String(attrs.friendly_name || "").trim();
+    if (friendly) return friendly;
+    return String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
+  }
+  _extractPortFromAttributes(attrs) {
+    const keys = ["port", "switch_port", "sw_port", "uplink_port", "port_number", "wired_port"];
+    for (const key of keys) {
+      const match = String(attrs?.[key] ?? "").match(/\d+/);
+      if (match) return Number.parseInt(match[0], 10);
+    }
+    return null;
+  }
+  _extractParentMacFromAttributes(attrs) {
+    const keys = ["sw_mac", "switch_mac", "uplink_mac", "parent_mac", "network_device_mac"];
+    for (const key of keys) {
+      const mac = normalizeMac(attrs?.[key]);
+      if (mac) return mac;
+    }
+    return null;
+  }
+  _buildPortClientIndex() {
+    const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
+    if (!deviceMac || !this._hass?.states) return /* @__PURE__ */ new Map();
+    const byPort = /* @__PURE__ */ new Map();
+    for (const [entityId, obj] of Object.entries(this._hass.states)) {
+      if (!entityId.startsWith("device_tracker.")) continue;
+      const attrs = obj?.attributes || {};
+      const parentMac = this._extractParentMacFromAttributes(attrs);
+      if (parentMac !== deviceMac) continue;
+      const port = this._extractPortFromAttributes(attrs);
+      if (!Number.isInteger(port) || port < 1) continue;
+      const name = this._extractClientNameFromStateObj(obj, entityId);
+      if (!byPort.has(port)) byPort.set(port, /* @__PURE__ */ new Set());
+      if (name) byPort.get(port).add(name);
+    }
+    return byPort;
+  }
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
@@ -4741,7 +4780,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       </div>
     `;
   }
-  _renderPortButton(slot, selectedKey) {
+  _renderPortButton(slot, selectedKey, portClientIndex = null) {
     const isSpecial = slot.kind === "special";
     const mediaType = this._portMediaType(slot);
     const isSfp = mediaType !== "rj45";
@@ -4750,13 +4789,16 @@ var UnifiDeviceCard = class extends HTMLElement {
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
     const clientInfo = this._getPortClientInfo(slot);
+    const indexedNames = Number.isInteger(slot?.port) && portClientIndex?.has(slot.port) ? Array.from(portClientIndex.get(slot.port)) : [];
+    const mergedNames = Array.from(/* @__PURE__ */ new Set([...clientInfo?.names || [], ...indexedNames])).slice(0, 8);
+    const mergedCount = Math.max(clientInfo?.count || 0, indexedNames.length);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
       this._translateState(getPortLinkText(this._hass, slot)),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
-      clientInfo ? `${this._t("clients")}: ${clientInfo.count}` : null,
-      clientInfo?.names?.length ? clientInfo.names.join(", ") : null
+      mergedCount > 0 ? `${this._t("clients")}: ${mergedCount}` : null,
+      mergedNames.length ? mergedNames.join(", ") : null
     ].filter((v) => v && v !== "\u2014").join(" \xB7 ");
     const classes = [
       "port",
@@ -5604,12 +5646,13 @@ var UnifiDeviceCard = class extends HTMLElement {
     );
     const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const reverseFrontpanel = this._rotate180Enabled(ctx);
+    const portClientIndex = this._buildPortClientIndex();
     const baseRows = this._buildEffectiveRows(ctx, visibleNumbered);
     const effectiveRows = reverseFrontpanel ? baseRows.map((row) => [...row].reverse()).reverse() : baseRows;
     const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
-    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
+    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>` : "";
     const layoutRows = effectiveRows.map((rowPorts) => {
-      const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key)).join("");
+      const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex)).join("");
       const cols = Math.max(1, rowPorts.length);
       return items ? `<div class="port-row" style="grid-template-columns: repeat(${cols}, var(--udc-port-size));">${items}</div>` : "";
     }).filter(Boolean);
