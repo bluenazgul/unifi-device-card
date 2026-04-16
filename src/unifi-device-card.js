@@ -534,8 +534,18 @@ class UnifiDeviceCard extends HTMLElement {
     let bestNames = [];
 
     for (const entityId of candidates) {
-      const attrs = stateObj(this._hass, entityId)?.attributes;
+      const obj = stateObj(this._hass, entityId);
+      const attrs = obj?.attributes;
       if (!attrs || typeof attrs !== "object") continue;
+
+      const stateNum = Number.parseInt(String(obj?.state ?? ""), 10);
+      if (
+        Number.isInteger(stateNum) &&
+        stateNum >= 0 &&
+        (entityId.includes("clients") || String(attrs?.friendly_name || "").toLowerCase().includes("clients"))
+      ) {
+        if (bestCount == null || stateNum > bestCount) bestCount = stateNum;
+      }
 
       for (const key of numericKeys) {
         const raw = attrs[key];
@@ -567,7 +577,17 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _extractPortFromAttributes(attrs) {
-    const keys = ["port", "switch_port", "sw_port", "uplink_port", "port_number", "wired_port"];
+    const keys = [
+      "port",
+      "switch_port",
+      "sw_port",
+      "uplink_port",
+      "uplink_remote_port",
+      "remote_port",
+      "network_port",
+      "port_number",
+      "wired_port",
+    ];
     for (const key of keys) {
       const match = String(attrs?.[key] ?? "").match(/\d+/);
       if (match) return Number.parseInt(match[0], 10);
@@ -576,7 +596,18 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _extractParentMacFromAttributes(attrs) {
-    const keys = ["sw_mac", "switch_mac", "uplink_mac", "parent_mac", "network_device_mac"];
+    const keys = [
+      "sw_mac",
+      "switch_mac",
+      "uplink_mac",
+      "uplink_device_mac",
+      "wired_uplink_mac",
+      "switch_uplink_mac",
+      "connected_to_mac",
+      "parent_mac",
+      "parent_device_mac",
+      "network_device_mac",
+    ];
     for (const key of keys) {
       const mac = normalizeMac(attrs?.[key]);
       if (mac) return mac;
@@ -590,7 +621,6 @@ class UnifiDeviceCard extends HTMLElement {
 
     const byPort = new Map();
     for (const [entityId, obj] of Object.entries(this._hass.states)) {
-      if (!entityId.startsWith("device_tracker.")) continue;
       const attrs = obj?.attributes || {};
       const parentMac = this._extractParentMacFromAttributes(attrs);
       if (parentMac !== deviceMac) continue;
@@ -598,9 +628,32 @@ class UnifiDeviceCard extends HTMLElement {
       const port = this._extractPortFromAttributes(attrs);
       if (!Number.isInteger(port) || port < 1) continue;
 
-      const name = this._extractClientNameFromStateObj(obj, entityId);
-      if (!byPort.has(port)) byPort.set(port, new Set());
-      if (name) byPort.get(port).add(name);
+      if (!byPort.has(port)) {
+        byPort.set(port, { count: 0, names: new Set() });
+      }
+      const entry = byPort.get(port);
+
+      if (entityId.startsWith("device_tracker.")) {
+        const name = this._extractClientNameFromStateObj(obj, entityId);
+        if (name) entry.names.add(name);
+      }
+
+      const stateNum = Number.parseInt(String(obj?.state ?? ""), 10);
+      const friendly = String(attrs?.friendly_name || "").toLowerCase();
+      const looksLikeClientCounter =
+        entityId.includes("clients") ||
+        friendly.includes("clients") ||
+        friendly.includes("geräte");
+      if (looksLikeClientCounter && Number.isInteger(stateNum) && stateNum >= 0) {
+        entry.count = Math.max(entry.count, stateNum);
+      }
+
+      const attrNames = this._toClientNames(attrs?.clients || attrs?.connected_clients || attrs?.client_list);
+      for (const name of attrNames) {
+        entry.names.add(name);
+      }
+
+      entry.count = Math.max(entry.count, entry.names.size);
     }
 
     return byPort;
@@ -1037,11 +1090,11 @@ class UnifiDeviceCard extends HTMLElement {
     const poeOn = poeStatus.active;
 
     const clientInfo = this._getPortClientInfo(slot);
-    const indexedNames = Number.isInteger(slot?.port) && portClientIndex?.has(slot.port)
-      ? Array.from(portClientIndex.get(slot.port))
-      : [];
+    const indexedPortInfo = Number.isInteger(slot?.port) ? portClientIndex?.get(slot.port) : null;
+    const indexedNames = indexedPortInfo?.names ? Array.from(indexedPortInfo.names) : [];
+    const indexedCount = indexedPortInfo?.count || indexedNames.length;
     const mergedNames = Array.from(new Set([...(clientInfo?.names || []), ...indexedNames])).slice(0, 8);
-    const mergedCount = Math.max(clientInfo?.count || 0, indexedNames.length);
+    const mergedCount = Math.max(clientInfo?.count || 0, indexedCount);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
       this._translateState(getPortLinkText(this._hass, slot)),
