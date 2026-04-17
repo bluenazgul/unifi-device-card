@@ -4,6 +4,7 @@
 
 ### ✨ Improvements
 - Refactored sensor/entity handling to a device-registry + capability driven flow (identity/capability/unique_id/classify modules) for more robust detection across UniFi setups.
+- Added odd/even RJ45 front-panel layout support for models that expose alternating row orientation hints.
 - Added richer tooltip support:
   - AP uplink tooltip with wired/mesh context and peer details.
   - Port mouseover tooltip with client count/name hints (when available from HA entities).
