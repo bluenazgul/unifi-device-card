@@ -31,6 +31,16 @@ This dashboard is based on my idea, but was created with the help of ChatGPT and
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ---
 
 ## Features
