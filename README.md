@@ -178,6 +178,8 @@ rotate180: false              # optional (default: false) | true flips the switc
 ports_per_row: 8              # optional (switches only)
 port_size: 36                 # optional (switch/gateway front panel scale in px)
 ap_scale: 100                 # optional (AP size in %, 60-140)
+log_level: warn               # optional (error|warn|info|debug|trace)
+debug: false                  # optional shorthand (true => debug log level)
 edit_special_ports: false     # optional (switch/gateway only)
 special_ports: [1, 2, 9]      # optional (switch/gateway only)
 wan_port: auto                # optional (gateway only)
@@ -198,6 +200,8 @@ wan2_port: none               # optional (gateway only)
 | `ports_per_row` | number | auto | Optional row width override for switch layouts. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |
+| `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
+| `debug` | boolean | `false` | Shorthand for enabling debug logging (`true` behaves like `log_level: debug` if `log_level` is not set). |
 | `edit_special_ports` | boolean | `false` | Switch/Gateway only: enables WAN/WAN2 selectors and manual special-port editing in the UI/editor. |
 | `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
@@ -229,7 +233,17 @@ Try a hard refresh (`Ctrl+Shift+R`).
 
 Confirm the device appears under **Settings → Devices & Services → UniFi**.
 
-The card logs debug output prefixed with `[unifi-device-card]` in the browser console showing why each device is accepted or rejected.
+The card can log runtime output in the browser console with `UNIFI-DEVICE-CARD` prefix and colorized levels.
+
+Example:
+
+```yaml
+type: custom:unifi-device-card
+device_id: YOUR_DEVICE_ID
+log_level: debug
+```
+
+For noisy traces, use `log_level: trace`. For quiet production usage, keep the default `warn`.
 
 ### Ports show as offline despite being connected
 
