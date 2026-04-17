@@ -1400,18 +1400,11 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port-row {
-        --udc-cols: 8;
-        --udc-port-gap: 6px;
-        --udc-port-cell-size: min(
-          var(--udc-port-size),
-          calc((100% - ((var(--udc-cols) - 1) * var(--udc-port-gap))) / var(--udc-cols))
-        );
-        display: grid;
-        row-gap: 4px;
-        column-gap: var(--udc-port-gap);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
         width: 100%;
-        grid-template-columns: repeat(var(--udc-cols), var(--udc-port-cell-size));
-        justify-content: flex-start;
+        align-items: flex-start;
       }
 
       .frontpanel.rotate180-enabled .panel-label {
@@ -1538,7 +1531,8 @@ class UnifiDeviceCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 100%;
+        width: calc(var(--udc-port-size) - 2px);
+        flex: 0 0 calc(var(--udc-port-size) - 2px);
         padding: 0 0 1px;
         border-radius: 2px;
         position: relative;
@@ -1592,9 +1586,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port-rj45 {
         position: relative;
-        width: min(calc(var(--udc-port-size) - 2px), 100%);
-        aspect-ratio: 1 / 1;
-        height: auto;
+        width: calc(var(--udc-port-size) - 2px);
+        height: calc(var(--udc-port-size) - 2px);
         background: linear-gradient(180deg, #2e3137 0%, #0b0c0e 100%);
         border: 1px solid #666a72;
         border-radius: 1px 1px 2px 2px;
@@ -1608,6 +1601,20 @@ class UnifiDeviceCard extends HTMLElement {
       .port.odd-even-top .port-rj45 {
         transform: rotate(180deg);
         transform-origin: 50% 50%;
+      }
+
+      .port.odd-even-top .rj45-led.left {
+        left: 50%;
+        right: 0;
+        margin-left: 3px;
+        margin-right: 0;
+      }
+
+      .port.odd-even-top .rj45-led.right {
+        right: 50%;
+        left: 0;
+        margin-right: 3px;
+        margin-left: 0;
       }
 
       .rj45-shell-top {
@@ -1754,9 +1761,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port-sfp {
         position: relative;
-        width: min(calc(var(--udc-port-size) - 2px), 100%);
-        aspect-ratio: 34 / 36;
-        height: auto;
+        width: calc(var(--udc-port-size) - 2px);
+        height: var(--udc-port-size);
         z-index: 0;
       }
 
