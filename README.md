@@ -17,7 +17,7 @@ No direct API access, no extra configuration. Just add the card and pick your de
 
 ## Infos
 
-This dashboard is based on my idea, but was created with the help of ChatGPT and Claude.ai and only tested with the UniFi devices I own:
+This dashboard is based on my idea, but was created with the help of ChatGPT and only tested with the UniFi devices I own:
 
 - UCG-U
 - US 8 60W
@@ -28,6 +28,8 @@ This dashboard is based on my idea, but was created with the help of ChatGPT and
 - AC Pro
 - U6+
 - U6 Mesh
+
+The idea behind this card was to create a single place to gather the most important information about UniFi devices, so you do not have to open the excellent UniFi app for every small detail. Since there was nothing like this available, I decided to get creative.
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
