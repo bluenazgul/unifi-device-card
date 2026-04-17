@@ -1400,10 +1400,18 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port-row {
+        --udc-cols: 8;
+        --udc-port-gap: 6px;
+        --udc-port-cell-size: min(
+          var(--udc-port-size),
+          calc((100% - ((var(--udc-cols) - 1) * var(--udc-port-gap))) / var(--udc-cols))
+        );
         display: grid;
         row-gap: 4px;
-        column-gap: 6px;
+        column-gap: var(--udc-port-gap);
         width: 100%;
+        grid-template-columns: repeat(var(--udc-cols), var(--udc-port-cell-size));
+        justify-content: flex-start;
       }
 
       .frontpanel.rotate180-enabled .panel-label {
@@ -1420,51 +1428,51 @@ class UnifiDeviceCard extends HTMLElement {
 
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
-        grid-template-columns: repeat(8, minmax(0, 1fr));
+        --udc-cols: 8;
       }
 
       .frontpanel.dual-row .port-row {
-        grid-template-columns: repeat(8, minmax(0, 1fr));
+        --udc-cols: 8;
       }
 
       .frontpanel.gateway-rack .port-row {
-        grid-template-columns: repeat(8, minmax(0, 1fr));
+        --udc-cols: 8;
       }
 
       .frontpanel.gateway-compact .port-row {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        --udc-cols: 5;
       }
 
       .frontpanel.six-grid .port-row {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        --udc-cols: 6;
       }
 
       .frontpanel.eight-grid .port-row {
-        grid-template-columns: repeat(8, minmax(0, 1fr));
+        --udc-cols: 8;
       }
 
       .frontpanel.quad-row .port-row {
-        grid-template-columns: repeat(12, minmax(0, 1fr));
+        --udc-cols: 12;
       }
 
       .frontpanel.ultra-row .port-row {
-        grid-template-columns: repeat(7, minmax(0, 1fr));
+        --udc-cols: 7;
       }
 
       .frontpanel.grid-4 .port-row {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        --udc-cols: 4;
       }
 
       .frontpanel.grid-5 .port-row {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        --udc-cols: 5;
       }
 
       .frontpanel.grid-9 .port-row {
-        grid-template-columns: repeat(9, minmax(0, 1fr));
+        --udc-cols: 9;
       }
 
       .frontpanel.grid-10 .port-row {
-        grid-template-columns: repeat(10, minmax(0, 1fr));
+        --udc-cols: 10;
       }
 
       .frontpanel.ap-disc {
@@ -1809,8 +1817,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port.special {
-        min-width: 0;
-        max-width: none;
+        min-width: calc(var(--udc-port-size) - 2px);
+        max-width: calc(var(--udc-port-size) - 2px);
       }
 
       .port-num {
@@ -2074,7 +2082,7 @@ class UnifiDeviceCard extends HTMLElement {
 
         const cols = Math.max(1, rowPorts.length);
         return items
-          ? `<div class="port-row" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr));">${items}</div>`
+          ? `<div class="port-row" style="--udc-cols: ${cols};">${items}</div>`
           : "";
       })
       .filter(Boolean);
