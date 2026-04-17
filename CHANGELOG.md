@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.6.0] - 2026-04-16
+
+### ✨ Improvements
+- Refactored sensor/entity handling to a device-registry + capability driven flow (identity/capability/unique_id/classify modules) for more robust detection across UniFi setups.
+- Added odd/even RJ45 front-panel layout support for models that expose alternating row orientation hints.
+- Added richer tooltip support:
+  - AP uplink tooltip with wired/mesh context and peer details.
+  - Port mouseover tooltip with client count/name hints (when available from HA entities).
+- Added configurable per-card debug logging in browser console with colorized log output and YAML-configurable log levels (`log_level`, `debug`).
+
+### 🐛 Bug Fixes
+- Added RJ45 ghost-link guard so idle 10 Mbit reports without traffic/clients/PoE are no longer treated as connected.
+
+
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [0.5.91] - 2026-04-15
 
 ### ✨ Improvements
