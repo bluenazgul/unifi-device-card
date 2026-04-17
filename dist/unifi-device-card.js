@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.6.0 */
+/* UniFi Device Card 0.0.0-dev.1723b41 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -18,9 +18,9 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
@@ -45,6 +45,16 @@ function defaultSwitchLayout(portCount) {
     return { kind: "switch", frontStyle: "quad-row", rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)], portCount, specialSlots: [] };
   }
   return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
+}
+function applyRj45LayoutHints(layout) {
+  const numberedRj45Count = (layout?.rows || []).flat().filter((port) => Number.isInteger(port)).length;
+  const excludedOddEvenModels = /* @__PURE__ */ new Set(["USPM16", "USPM16P"]);
+  const isExcluded = excludedOddEvenModels.has(layout?.modelKey);
+  const isSwitchOrGateway = layout?.kind === "switch" || layout?.kind === "gateway";
+  return {
+    ...layout,
+    rj45_odd_even: isSwitchOrGateway && !isExcluded && numberedRj45Count > 8
+  };
 }
 function applyPortsPerRowOverride(layout, portsPerRow) {
   if (!portsPerRow || portsPerRow < 1 || layout.kind !== "switch") return layout;
@@ -422,8 +432,8 @@ var MODEL_REGISTRY = {
   // USW Pro Max 16  — 16× RJ45, 2× SFP+
   USPM16: {
     kind: "switch",
-    frontStyle: "dual-row",
-    rows: [range(1, 8), range(9, 16)],
+    frontStyle: "single-row",
+    rows: [range(1, 16)],
     portCount: 18,
     displayModel: "USW Pro Max 16",
     theme: "silver",
@@ -435,8 +445,8 @@ var MODEL_REGISTRY = {
   // USW Pro Max 16 PoE  — 16× RJ45, 2× SFP+
   USPM16P: {
     kind: "switch",
-    frontStyle: "dual-row",
-    rows: [range(1, 8), range(9, 16)],
+    frontStyle: "single-row",
+    rows: [range(1, 16)],
     portCount: 18,
     displayModel: "USW Pro Max 16 PoE",
     theme: "silver",
@@ -1067,11 +1077,11 @@ function getDeviceLayout(device, discoveredPorts = []) {
     }
   }
   if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
-    return { modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] };
+    return applyRj45LayoutHints({ modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] });
   }
   if (looksGatewayLike && inferredPortCount > 0) {
     const lanPortCount = Math.max(1, inferredPortCount - 1);
-    return {
+    return applyRj45LayoutHints({
       modelKey: null,
       kind: "gateway",
       frontStyle: inferredPortCount > 8 ? "gateway-rack" : "gateway-single-row",
@@ -1079,7 +1089,7 @@ function getDeviceLayout(device, discoveredPorts = []) {
       portCount: inferredPortCount,
       displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
       specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }]
-    };
+    });
   }
   if (isAccessPointLikeModel(device) && !looksSwitchLike && !looksGatewayLike) {
     return {
@@ -1094,13 +1104,13 @@ function getDeviceLayout(device, discoveredPorts = []) {
     };
   }
   if (inferredPortCount > 0) {
-    return {
+    return applyRj45LayoutHints({
       modelKey: null,
       ...defaultSwitchLayout(inferredPortCount),
       displayModel: device?.model || `UniFi Device (${inferredPortCount}p)`
-    };
+    });
   }
-  return {
+  return applyRj45LayoutHints({
     modelKey: null,
     kind: "gateway",
     frontStyle: "gateway-generic",
@@ -1108,7 +1118,276 @@ function getDeviceLayout(device, discoveredPorts = []) {
     portCount: 0,
     displayModel: device?.model || "UniFi Gateway",
     specialSlots: []
+  });
+}
+
+// src/identity.js
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+function normalizeMac(value) {
+  const raw = String(value ?? "").toLowerCase().replace(/[^0-9a-f]/g, "");
+  if (raw.length !== 12) return null;
+  return raw.match(/.{1,2}/g)?.join(":") || null;
+}
+function extractFirstMac(value) {
+  const text = String(value ?? "");
+  const match = text.match(/(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|[0-9a-f]{12}/i);
+  if (!match) return null;
+  return normalizeMac(match[0]);
+}
+function sameMac(a, b) {
+  const left = normalizeMac(a);
+  const right = normalizeMac(b);
+  return !!left && !!right && left === right;
+}
+function extractPrimaryMacFromConnections(connections) {
+  if (!Array.isArray(connections)) return null;
+  for (const entry of connections) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const [type, value] = entry;
+    const key = String(type ?? "").toLowerCase();
+    if (key !== "mac") continue;
+    const mac = extractFirstMac(value);
+    if (mac) return mac;
+  }
+  for (const entry of connections) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const mac = extractFirstMac(entry[1]);
+    if (mac) return mac;
+  }
+  return null;
+}
+function buildNormalizedDeviceIdentity(device) {
+  return {
+    device_id: device?.id || null,
+    model: normalizeText(device?.model),
+    manufacturer: normalizeText(device?.manufacturer),
+    name: normalizeText(device?.name_by_user || device?.name),
+    hw_version: normalizeText(device?.hw_version),
+    sw_version: normalizeText(device?.sw_version),
+    primary_mac: extractPrimaryMacFromConnections(device?.connections),
+    config_entries: Array.isArray(device?.config_entries) ? device.config_entries : []
   };
+}
+function extractDeviceMacs(device) {
+  const macs = /* @__PURE__ */ new Set();
+  const candidates = [device?.connections, device?.identifiers];
+  for (const block of candidates) {
+    if (!Array.isArray(block)) continue;
+    for (const entry of block) {
+      if (!Array.isArray(entry) || entry.length < 2) continue;
+      const [, value] = entry;
+      const mac = extractFirstMac(value);
+      if (mac) macs.add(mac);
+    }
+  }
+  const primaryMac = extractPrimaryMacFromConnections(device?.connections);
+  if (primaryMac) macs.add(primaryMac);
+  return macs;
+}
+function findDeviceByMac(devices, mac) {
+  const normalized = normalizeMac(mac);
+  if (!normalized) return null;
+  for (const device of devices || []) {
+    const macs = extractDeviceMacs(device);
+    if (macs.has(normalized)) return device;
+  }
+  return null;
+}
+
+// src/unique-id.js
+var PORT_FEATURE_PREFIXES = {
+  port: "port_control",
+  power_cycle: "power_cycle",
+  poe_power: "poe_power",
+  port_rx: "port_rx",
+  port_tx: "port_tx",
+  port_bandwidth_rx: "port_rx",
+  port_bandwidth_tx: "port_tx",
+  port_link_speed: "link_speed"
+};
+var DEVICE_FEATURE_PREFIXES = {
+  device_restart: "restart",
+  device_uplink_mac: "uplink_mac",
+  rx: "client_rx",
+  tx: "client_tx",
+  wired_speed: "client_link_speed"
+};
+function parseUnifiPortUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+  const [, prefix, macRaw, portRaw] = match;
+  const feature = PORT_FEATURE_PREFIXES[prefix] || null;
+  const mac = normalizeMac(macRaw);
+  const port = Number.parseInt(portRaw, 10);
+  if (!feature || !mac || !Number.isInteger(port)) return null;
+  return { feature, mac, port };
+}
+function parseUnifiDeviceUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
+  if (!match) return null;
+  const [, prefix, macRaw] = match;
+  const feature = DEVICE_FEATURE_PREFIXES[prefix] || null;
+  const mac = normalizeMac(macRaw);
+  if (!feature || !mac) return null;
+  return { feature, mac };
+}
+function parseUnifiObjectUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^(wlan|qr_code|regenerate_password|firewall_policy)-(.+)$/i);
+  if (!match) return null;
+  const [, prefix, objectId] = match;
+  const featureMap = {
+    wlan: "wlan_control",
+    qr_code: "wlan_qr_code",
+    regenerate_password: "wlan_regenerate_password",
+    firewall_policy: "firewall_policy"
+  };
+  return {
+    feature: featureMap[prefix] || null,
+    object_id: objectId || null
+  };
+}
+
+// src/capabilities.js
+function emptyBucket() {
+  return { active: 0, disabled: 0, hidden: 0 };
+}
+function statusKey(entity) {
+  if (entity?.disabled_by) return "disabled";
+  if (entity?.hidden_by) return "hidden";
+  return "active";
+}
+function inferCapability(entity, identity) {
+  const domain = String(entity?.entity_id || "").split(".")[0] || "";
+  const tk = String(entity?.translation_key || "").toLowerCase();
+  const uniqueId = entity?.unique_id || "";
+  const portInfo = parseUnifiPortUniqueId(uniqueId);
+  if (portInfo && sameMac(portInfo.mac, identity?.primary_mac)) {
+    if (portInfo.feature === "port_control") return "port_control";
+    if (portInfo.feature === "power_cycle") return "power_cycle";
+    if (portInfo.feature === "poe_power") return "poe_power";
+    if (portInfo.feature === "port_rx") return "port_rx";
+    if (portInfo.feature === "port_tx") return "port_tx";
+    if (portInfo.feature === "link_speed") return "link_speed";
+  }
+  const deviceInfo = parseUnifiDeviceUniqueId(uniqueId);
+  if (deviceInfo && sameMac(deviceInfo.mac, identity?.primary_mac)) {
+    if (deviceInfo.feature === "uplink_mac") return "uplink_mac";
+    if (deviceInfo.feature === "restart") return "restart";
+    if (deviceInfo.feature === "client_rx") return "client_rx";
+    if (deviceInfo.feature === "client_tx") return "client_tx";
+    if (deviceInfo.feature === "client_link_speed") return "link_speed";
+  }
+  const objectInfo = parseUnifiObjectUniqueId(uniqueId);
+  if (objectInfo?.feature === "wlan_control" || tk === "wlan_control") return "wlan_control";
+  if (objectInfo?.feature === "firewall_policy" || tk === "firewall_policy_control") {
+    return "firewall_policy";
+  }
+  if (domain === "button" && (tk === "restart" || tk === "reboot" || tk === "power_cycle")) {
+    return tk === "power_cycle" ? "power_cycle" : "restart";
+  }
+  if (domain === "sensor" && tk === "port_bandwidth_rx") return "port_rx";
+  if (domain === "sensor" && tk === "port_bandwidth_tx") return "port_tx";
+  if (domain === "sensor" && tk === "client_bandwidth_rx") return "client_rx";
+  if (domain === "sensor" && tk === "client_bandwidth_tx") return "client_tx";
+  if (domain === "sensor" && (tk === "port_link_speed" || tk === "link_speed")) return "link_speed";
+  if (domain === "sensor" && (tk === "poe_power" || tk === "port_poe_power" || tk === "poe_power_consumption")) {
+    return "poe_power";
+  }
+  if (domain === "switch" && tk === "poe_port_control") return "port_control";
+  if (domain === "sensor" && tk === "device_uplink_mac") return "uplink_mac";
+  return null;
+}
+function buildDeviceCapabilities(entities, identity) {
+  const counts = {
+    restart: emptyBucket(),
+    ports: emptyBucket(),
+    port_control: emptyBucket(),
+    power_cycle: emptyBucket(),
+    poe_power: emptyBucket(),
+    port_rx: emptyBucket(),
+    port_tx: emptyBucket(),
+    client_rx: emptyBucket(),
+    client_tx: emptyBucket(),
+    link_speed: emptyBucket(),
+    uplink_mac: emptyBucket(),
+    ap_stats: emptyBucket(),
+    led_control: emptyBucket(),
+    wlan_control: emptyBucket(),
+    firewall_policy: emptyBucket()
+  };
+  for (const entity of entities || []) {
+    const status = statusKey(entity);
+    const cap = inferCapability(entity, identity);
+    if (cap && counts[cap]) counts[cap][status] += 1;
+    const portInfo = parseUnifiPortUniqueId(entity?.unique_id || "");
+    if (portInfo && (!identity?.primary_mac || sameMac(portInfo.mac, identity?.primary_mac))) {
+      counts.ports[status] += 1;
+    }
+    const id = String(entity?.entity_id || "").toLowerCase();
+    if (id.startsWith("light.") && (id.includes("led") || String(entity?.translation_key || "").includes("led"))) {
+      counts.led_control[status] += 1;
+    }
+    if (id.startsWith("sensor.") && (id.includes("_clients") || id.includes("_uptime"))) {
+      counts.ap_stats[status] += 1;
+    }
+  }
+  const out = { counts };
+  for (const [key, bucket] of Object.entries(counts)) {
+    out[key] = bucket.active + bucket.disabled + bucket.hidden > 0;
+  }
+  return out;
+}
+
+// src/classify.js
+function normalizeModel(value) {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+function startsWithAny(value, prefixes) {
+  return prefixes.some((prefix) => value.startsWith(prefix));
+}
+function fromModel(model) {
+  if (startsWithAny(model, GATEWAY_MODEL_PREFIXES)) return "gateway";
+  if (startsWithAny(model, SWITCH_MODEL_PREFIXES)) return "switch";
+  if (startsWithAny(model, AP_MODEL_PREFIXES)) return "access_point";
+  return null;
+}
+function classifyDeviceType(identity, capabilities, entities = [], device = null) {
+  const model = normalizeModel(identity?.model || identity?.hw_version || "");
+  const manufacturer = String(identity?.manufacturer || "").toLowerCase();
+  const name = String(identity?.name || "").toLowerCase();
+  const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
+  const registryType = fromModel(model);
+  if (registryType) return registryType;
+  const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || name.includes("gateway") || name.includes("router");
+  if (gatewaySignals) return "gateway";
+  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
+  if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
+  const modelKey = resolveModelKey(device || identity || {});
+  if (modelKey) {
+    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+      return "gateway";
+    }
+    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
+      return "switch";
+    }
+  }
+  if (manufacturer.includes("ubiquiti") || manufacturer.includes("unifi")) {
+    if (name.includes("switch")) return "switch";
+    if (name.includes("access point") || name.includes(" ap")) return "access_point";
+  }
+  if (translationKeys.has("port_control") || translationKeys.has("poe_port_control")) return "switch";
+  if (translationKeys.has("device_uplink_mac")) return "access_point";
+  const entityIds = (entities || []).map((e) => String(e?.entity_id || "").toLowerCase());
+  if (entityIds.some((id) => id.includes("_port_") || id.includes("_sfp_"))) return "switch";
+  return "unknown";
 }
 
 // src/helpers.js
@@ -1132,31 +1411,6 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES2 = [
-  "USW",
-  "USL",
-  "USPM",
-  "USXG",
-  "USF",
-  "US8",
-  "USC8",
-  "US16",
-  "US24",
-  "US48",
-  "USMINI",
-  "FLEXMINI"
-];
-var GATEWAY_MODEL_PREFIXES2 = [
-  "UDM",
-  "UCG",
-  "UXG",
-  "UGW",
-  "UDR7",
-  "UDRULT",
-  "UDMPRO",
-  "UDMPROSE"
-];
-var AP_MODEL_PREFIXES2 = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -1172,9 +1426,6 @@ function hasIndexedPortId(entityId) {
 function modelStartsWith2(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelStr);
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
-}
-function isDefinitelyAP(device) {
-  return modelStartsWith2(device, AP_MODEL_PREFIXES2);
 }
 function isVirtualControllerDevice(device) {
   const model = lower(device?.model);
@@ -1198,99 +1449,9 @@ function hasInfrastructureEntitySignals(entities = []) {
   });
 }
 function getDeviceType(device, entities = []) {
-  const modelKey = resolveModelKey(device);
-  if (modelKey) {
-    if ([
-      "UCGULTRA",
-      "UDR7",
-      "UDRULT",
-      "UCGMAX",
-      "UCGFIBER",
-      "UDM",
-      "UDR",
-      "UDMPRO",
-      "UDMPROSE",
-      "UDM67A",
-      "UXGPRO",
-      "UXGL",
-      "UGW3",
-      "UGW4"
-    ].includes(modelKey)) {
-      return "gateway";
-    }
-    if ([
-      "USC8",
-      "US8P60",
-      "US8P150",
-      "US16P150",
-      "USMINI",
-      "USF5P",
-      "USWFLEX25G5",
-      "USWFLEX25G8",
-      "USWFLEX25G8POE",
-      "USL8LP",
-      "USL8LPB",
-      "USL16LP",
-      "USL16LPB",
-      "USL16P",
-      "USL24",
-      "USL24P",
-      "USW24P",
-      "USL48",
-      "USL48P",
-      "USW48P",
-      "US24PRO",
-      "US24PRO2",
-      "US48PRO",
-      "US48PRO2",
-      "USPM16",
-      "USPM16P",
-      "USPM24",
-      "USPM24P",
-      "USPM48",
-      "USPM48P",
-      "US68P",
-      "US624P",
-      "US648P",
-      "USXG24",
-      "USWINDUSTRIAL",
-      "USL8A",
-      "USAGGPRO",
-      "USWULTRA",
-      "USWULTRA60W",
-      "USWULTRA210W"
-    ].includes(modelKey)) {
-      return "switch";
-    }
-  }
-  if (modelStartsWith2(device, SWITCH_MODEL_PREFIXES2)) return "switch";
-  if (modelStartsWith2(device, GATEWAY_MODEL_PREFIXES2)) return "gateway";
-  if (isDefinitelyAP(device)) return "access_point";
-  if (modelStartsWith2(device, AP_MODEL_PREFIXES2)) return "access_point";
-  const hasAccessPointSignals = entities.some((entity) => {
-    const id = lower(entity?.entity_id);
-    if (!id) return false;
-    return id.endsWith("_clients") || id.includes("_clients_") || id.endsWith("_uptime") || id.includes("_is_online") || id.includes("_connected");
-  });
-  if (hasAccessPointSignals && hasUbiquitiManufacturer(device)) return "access_point";
-  const hasPorts = entities.some((e) => hasIndexedPortId(e.entity_id));
-  if (hasPorts) return "switch";
-  if (hasUbiquitiManufacturer(device)) {
-    const model = lower(device?.model);
-    const name = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("ugw") || name.includes("gateway")) {
-      return "gateway";
-    }
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usc8") || name.includes("switch")) {
-      return "switch";
-    }
-    if (model.includes("uap") || model.includes("uac") || model.includes("u6") || model.includes("u7") || model.includes("ap") || model.includes("in-wall") || model.includes("iw") || model.includes("mesh") || model.includes("nanohd") || name.includes("access point") || name.includes("ap ")) {
-      return "access_point";
-    }
-    if (name.includes("gateway") || name.includes("router")) return "gateway";
-    if (name.includes("switch")) return "switch";
-  }
-  return "unknown";
+  const identity = buildNormalizedDeviceIdentity(device);
+  const capabilities = buildDeviceCapabilities(entities, identity);
+  return classifyDeviceType(identity, capabilities, entities, device);
 }
 function getWSErrorCode(err) {
   if (err?.code != null) return err.code;
@@ -1347,14 +1508,17 @@ async function getAllData(hass) {
   if (inflight) return inflight;
   const promise = (async () => {
     const fallbackDevices = cached?.data?.devices || [];
-    const fallbackEntities = flattenEntitiesByDevice(cached?.data?.entitiesByDevice);
+    const fallbackEntities = flattenEntitiesByDevice(
+      cached?.data?.allEntitiesByDevice || cached?.data?.entitiesByDevice
+    );
     const fallbackConfigEntries = cached?.data?.configEntries || [];
     const [devices, rawEntities, configEntries] = await Promise.all([
       safeCallWS(hass, { type: "config/device_registry/list" }, fallbackDevices),
       safeCallWS(hass, { type: "config/entity_registry/list" }, fallbackEntities),
       safeCallWS(hass, { type: "config/config_entries" }, fallbackConfigEntries)
     ]);
-    const entities = (rawEntities || []).filter((e) => !e.disabled_by && !e.hidden_by);
+    const allEntities = rawEntities || [];
+    const entities = allEntities.filter((e) => !e.disabled_by && !e.hidden_by);
     const entitiesByDevice = /* @__PURE__ */ new Map();
     for (const entity of entities) {
       if (!entity.device_id) continue;
@@ -1363,9 +1527,18 @@ async function getAllData(hass) {
       }
       entitiesByDevice.get(entity.device_id).push(entity);
     }
+    const allEntitiesByDevice = /* @__PURE__ */ new Map();
+    for (const entity of allEntities) {
+      if (!entity.device_id) continue;
+      if (!allEntitiesByDevice.has(entity.device_id)) {
+        allEntitiesByDevice.set(entity.device_id, []);
+      }
+      allEntitiesByDevice.get(entity.device_id).push(entity);
+    }
     const data = {
       devices: devices || [],
       entitiesByDevice,
+      allEntitiesByDevice,
       configEntries: configEntries || []
     };
     if ((data.devices?.length || 0) > 0 || entities.length > 0) {
@@ -1386,9 +1559,9 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
     if (modelStartsWith2(device, [
-      ...SWITCH_MODEL_PREFIXES2,
-      ...GATEWAY_MODEL_PREFIXES2,
-      ...AP_MODEL_PREFIXES2
+      ...SWITCH_MODEL_PREFIXES,
+      ...GATEWAY_MODEL_PREFIXES,
+      ...AP_MODEL_PREFIXES
     ])) {
       return true;
     }
@@ -1398,7 +1571,11 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
     return false;
   }
   if (resolveModelKey(device)) return true;
-  if (modelStartsWith2(device, [...SWITCH_MODEL_PREFIXES2, ...GATEWAY_MODEL_PREFIXES2, ...AP_MODEL_PREFIXES2])) {
+  if (modelStartsWith2(device, [
+    ...SWITCH_MODEL_PREFIXES,
+    ...GATEWAY_MODEL_PREFIXES,
+    ...AP_MODEL_PREFIXES
+  ])) {
     return true;
   }
   if (entities.some((e) => hasIndexedPortId(e.entity_id)) && hasUbiquitiManufacturer(device)) {
@@ -1508,17 +1685,6 @@ function getAccessPointStatEntities(entities) {
     led_color_entity: ledColorEntity
   };
 }
-function normalizeMac(value) {
-  const raw = String(value ?? "").toLowerCase().replace(/[^0-9a-f]/g, "");
-  if (raw.length !== 12) return null;
-  return raw.match(/.{1,2}/g)?.join(":") || null;
-}
-function extractFirstMac(value) {
-  const text = String(value ?? "");
-  const match = text.match(/(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|[0-9a-f]{12}/i);
-  if (!match) return null;
-  return normalizeMac(match[0]);
-}
 function safeEntityState(hass, entityId) {
   if (!entityId) return null;
   const raw = String(hass?.states?.[entityId]?.state ?? "").trim();
@@ -1587,38 +1753,6 @@ function discoverApUplinkEntities(entities) {
   }
   return result;
 }
-function extractDeviceMacs(device) {
-  const macs = /* @__PURE__ */ new Set();
-  const candidates = [device?.connections, device?.identifiers];
-  for (const block of candidates) {
-    if (!Array.isArray(block)) continue;
-    for (const entry of block) {
-      if (!Array.isArray(entry) || entry.length < 2) continue;
-      const [, value] = entry;
-      const mac = extractFirstMac(value);
-      if (mac) macs.add(mac);
-    }
-  }
-  if (macs.size > 0) return macs;
-  const fallback = extractFirstMac(
-    JSON.stringify({
-      connections: device?.connections,
-      identifiers: device?.identifiers,
-      configuration_url: device?.configuration_url
-    })
-  );
-  if (fallback) macs.add(fallback);
-  return macs;
-}
-function findDeviceByMac(devices, mac) {
-  const normalized = normalizeMac(mac);
-  if (!normalized) return null;
-  for (const device of devices || []) {
-    const macs = extractDeviceMacs(device);
-    if (macs.has(normalized)) return device;
-  }
-  return null;
-}
 function resolveAccessPointUplink(hass, entities, allDevices) {
   const discovered = discoverApUplinkEntities(entities);
   const uplinkAttrs = readStateAttributes(hass, discovered.uplink_mac_entity);
@@ -1628,7 +1762,11 @@ function resolveAccessPointUplink(hass, entities, allDevices) {
     "uplink_remote_port",
     "remote_port",
     "port",
-    "uplink_port"
+    "uplink_port",
+    "port_number",
+    "remote_port_number",
+    "uplink_port_number",
+    "uplink_port_id"
   ]);
   const uplinkTypeRaw = lower(
     safeEntityState(hass, discovered.uplink_type_entity) || pickAttribute(uplinkAttrs, [
@@ -1674,13 +1812,15 @@ function getDeviceRebootEntity(entities) {
   return null;
 }
 async function getUnifiDevices(hass) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const results = [];
   for (const device of devices || []) {
-    const entities = entitiesByDevice.get(device.id) || [];
+    const entities = allEntitiesByDevice?.get(device.id) || entitiesByDevice.get(device.id) || [];
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
-    const type = getDeviceType(device, entities);
+    const identity = buildNormalizedDeviceIdentity(device);
+    const capabilities = buildDeviceCapabilities(entities, identity);
+    const type = classifyDeviceType(identity, capabilities, entities, device);
     if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
     results.push({
       id: device.id,
@@ -1730,7 +1870,7 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     safeCallWS(
       hass,
       { type: "config/entity_registry/list" },
-      flattenEntitiesByDevice(cached?.entitiesByDevice)
+      flattenEntitiesByDevice(cached?.allEntitiesByDevice || cached?.entitiesByDevice)
     )
   ]);
   const device = (devices || []).find((d) => d.id === deviceId);
@@ -1766,11 +1906,11 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
   return { disabled, hidden, disabledCount, hiddenCount };
 }
 function extractPortNumber(entity) {
+  const parsedUid = parseUnifiPortUniqueId(entity?.unique_id);
+  if (parsedUid?.port) return parsedUid.port;
   const uid = normalize(entity.unique_id);
   const uidMatch = findIndexedPortIdMatch(uid) || uid.match(/-(\d+)-[a-z]/i);
   if (uidMatch) return parseInt(uidMatch[1], 10);
-  const macPortMatch = uid.match(/[0-9a-f]{2}_(\d+)$/i);
-  if (macPortMatch) return parseInt(macPortMatch[1], 10);
   const eid = lower(entity.entity_id);
   const eidMatch = findIndexedPortIdMatch(eid);
   if (eidMatch) return parseInt(eidMatch[1], 10);
@@ -2266,13 +2406,16 @@ function filterPortsByLayout(discoveredPorts, layout) {
   return discoveredPorts.filter((port) => allowed.has(port.port));
 }
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
-  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
+  const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const device = devices.find((d) => d.id === deviceId);
   if (!device) return null;
+  const allEntities = allEntitiesByDevice?.get(deviceId) || entitiesByDevice.get(deviceId) || [];
   let entities = entitiesByDevice.get(deviceId) || [];
-  if (!isUnifiDevice(device, unifiEntryIds, entities)) return null;
-  const type = getDeviceType(device, entities);
+  if (!isUnifiDevice(device, unifiEntryIds, allEntities)) return null;
+  const identity = buildNormalizedDeviceIdentity(device);
+  const capabilities = buildDeviceCapabilities(allEntities, identity);
+  const type = classifyDeviceType(identity, capabilities, allEntities, device);
   if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
   const needsUID = entities.filter(
     (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && (!hasIndexedPortId(e.entity_id) || /(?:^|[_-])sfp[_+]?\d+(?:[_-]|$)/i.test(lower(e.entity_id))) && !/\bport\s+\d+\b/i.test(e.original_name || "")
@@ -2312,6 +2455,8 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const apUplink = type === "access_point" ? resolveAccessPointUplink(hass, entities, devices) : null;
   return {
     device,
+    identity,
+    capabilities,
     entities,
     type,
     layout,
@@ -2404,6 +2549,38 @@ function trafficValue(hass, entityId) {
 function hasTraffic(hass, port) {
   return trafficValue(hass, port?.rx_entity) > 0 || trafficValue(hass, port?.tx_entity) > 0;
 }
+function portObservedClientCount(hass, port) {
+  const candidates = [
+    port?.link_entity,
+    port?.speed_entity,
+    port?.port_switch_entity,
+    port?.rx_entity,
+    port?.tx_entity
+  ].filter(Boolean);
+  const numericKeys = [
+    "connected_clients",
+    "client_count",
+    "clients",
+    "num_clients",
+    "active_clients",
+    "station_count"
+  ];
+  const listKeys = ["clients", "connected_clients", "client_list", "stations", "hosts"];
+  let bestCount = 0;
+  for (const entityId of candidates) {
+    const attrs = stateObj(hass, entityId)?.attributes;
+    if (!attrs || typeof attrs !== "object") continue;
+    for (const key of numericKeys) {
+      const num = Number.parseInt(attrs[key], 10);
+      if (Number.isInteger(num) && num > bestCount) bestCount = num;
+    }
+    for (const key of listKeys) {
+      const value = attrs[key];
+      if (Array.isArray(value) && value.length > bestCount) bestCount = value.length;
+    }
+  }
+  return bestCount;
+}
 function isSfpSpecialPort(port) {
   if (port?.kind !== "special") return false;
   const key = lower(port?.physical_key || port?.key || "");
@@ -2420,7 +2597,15 @@ function isPortConnected(hass, port) {
   }
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {
-    if (speedMbit > 0) return true;
+    if (speedMbit > 0) {
+      if (!isSfpSpecialPort(port) && !port?.link_entity && speedMbit <= 10) {
+        const hasActiveTraffic = hasTraffic(hass, port);
+        const clientCount = portObservedClientCount(hass, port);
+        const poeActive = getPoeStatus(hass, port).active;
+        if (!hasActiveTraffic && clientCount === 0 && !poeActive) return false;
+      }
+      return true;
+    }
     if (speedMbit <= 0) return false;
   }
   const rx = stateValue(hass, port.rx_entity);
@@ -3908,8 +4093,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.6.0";
+var VERSION = "0.0.0-dev.1723b41";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
+var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
+var LOG_STYLES = {
+  badge: "background:#00AEEF;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
+  version: "background:#2a2a2a;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
+  error: "color:#ff5f56;font-weight:700;",
+  warn: "color:#ffbd2e;font-weight:700;",
+  info: "color:#9effa1;font-weight:700;",
+  debug: "color:#8ab4f8;font-weight:700;",
+  trace: "color:#caa7ff;font-weight:700;"
+};
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -3930,6 +4125,91 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
+    this._instanceId = Math.random().toString(36).slice(2, 7);
+  }
+  _configuredLogLevel() {
+    const raw = String(this._config?.log_level || "").toLowerCase().trim();
+    if (raw && Object.prototype.hasOwnProperty.call(LOG_LEVELS, raw)) return raw;
+    if (this._config?.debug === true) return "debug";
+    return "warn";
+  }
+  _shouldLog(level) {
+    const target = LOG_LEVELS[this._configuredLogLevel()];
+    const current = LOG_LEVELS[level];
+    if (current == null || target == null) return false;
+    return current <= target;
+  }
+  _log(level, message, ...args) {
+    if (!this._shouldLog(level)) return;
+    const fn = level === "error" ? "error" : level === "warn" ? "warn" : "log";
+    const levelLabel = level.toUpperCase();
+    const device = this._config?.device_id ? ` ${this._config.device_id}` : "";
+    const header = `%cUNIFI-DEVICE-CARD%c ${levelLabel}%c${device} #${this._instanceId}`;
+    console[fn](
+      header,
+      LOG_STYLES.badge,
+      LOG_STYLES[level] || LOG_STYLES.info,
+      LOG_STYLES.version,
+      message,
+      ...args
+    );
+  }
+  _numericState(entityId) {
+    if (!entityId || !this._hass?.states) return null;
+    const raw = this._hass.states[entityId]?.state;
+    if (raw == null || raw === "unknown" || raw === "unavailable") return null;
+    const n = Number.parseFloat(String(raw).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+  _buildPortDebugSnapshot(ctx) {
+    if (!ctx || ctx.type !== "switch" && ctx.type !== "gateway") {
+      return {
+        summary: null,
+        ports: []
+      };
+    }
+    const slotData = this._buildSlotData(ctx);
+    const ports = [...slotData?.specials || [], ...slotData?.numbered || []].filter((slot) => Number.isInteger(slot?.port)).sort((a, b) => a.port - b.port);
+    let connected = 0;
+    let poePorts = 0;
+    let trafficPorts = 0;
+    let poeTotalW = 0;
+    const details = ports.map((slot) => {
+      const linkUp = isPortConnected(this._hass, slot);
+      if (linkUp) connected += 1;
+      const poeStatus = getPoeStatus(this._hass, slot);
+      if (poeStatus.active) poePorts += 1;
+      const poeNum = this._numericState(slot?.poe_power_entity);
+      if (poeNum != null && poeNum > 0) poeTotalW += poeNum;
+      const rx = this._numericState(slot?.rx_entity) || 0;
+      const tx = this._numericState(slot?.tx_entity) || 0;
+      const traffic = rx + tx;
+      if (traffic > 0) trafficPorts += 1;
+      return {
+        port: slot.port,
+        link: linkUp ? "up" : "down",
+        speed: getPortSpeedText(this._hass, slot) || null,
+        poe: poeStatus.active ? poeStatus.power || "on" : "off",
+        rx,
+        tx
+      };
+    });
+    const topTraffic = [...details].sort((a, b) => b.rx + b.tx - (a.rx + a.tx)).filter((row) => row.rx + row.tx > 0).slice(0, 5).map((row) => ({
+      port: row.port,
+      rx: row.rx,
+      tx: row.tx
+    }));
+    return {
+      summary: {
+        ports_total: ports.length,
+        ports_connected: connected,
+        ports_with_poe: poePorts,
+        poe_total_w: Number(poeTotalW.toFixed(2)),
+        ports_with_traffic: trafficPorts
+      },
+      ports: details,
+      top_traffic: topTraffic
+    };
   }
   connectedCallback() {
     if (this._resizeObserver) return;
@@ -3950,6 +4230,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     const newConfig = config || {};
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
+    this._log("info", "setConfig", {
+      device_id: newDeviceId || null,
+      log_level: this._configuredLogLevel()
+    });
     if (oldDeviceId !== newDeviceId) {
       this._ctx = null;
       this._selectedKey = null;
@@ -3966,6 +4250,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const previousHass = this._hass;
     this._hass = hass;
     this._ensureLoaded();
+    this._log("trace", "hass update");
     if (!previousHass || !this._ctx || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
@@ -4180,6 +4465,187 @@ var UnifiDeviceCard = class extends HTMLElement {
     const deviceLabel = String(uplink.via_device_name || uplink.via_mac || "").trim();
     return deviceLabel || null;
   }
+  _escapeAttr(value) {
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  _apUplinkTooltip(uplink) {
+    if (!uplink) return "";
+    const lines = [];
+    const kind = String(uplink.kind || "").toLowerCase();
+    if (kind === "mesh") lines.push("Mesh Uplink");
+    else if (kind === "wired") lines.push("Wired Uplink");
+    else lines.push("Uplink");
+    if (uplink.via_device_name) lines.push(`Device: ${uplink.via_device_name}`);
+    if (uplink.remote_port) lines.push(`Port: ${uplink.remote_port}`);
+    if (uplink.via_mac) lines.push(`MAC: ${uplink.via_mac}`);
+    return lines.join(" \xB7 ");
+  }
+  _toClientNames(value) {
+    if (!Array.isArray(value)) return [];
+    const out = [];
+    for (const entry of value) {
+      if (typeof entry === "string" && entry.trim()) {
+        out.push(entry.trim());
+        continue;
+      }
+      if (entry && typeof entry === "object") {
+        const name = entry.name || entry.hostname || entry.client_name || entry.display_name || entry.mac || "";
+        if (String(name).trim()) out.push(String(name).trim());
+      }
+    }
+    return out;
+  }
+  _getPortClientInfo(slot) {
+    const candidates = new Set([
+      slot?.link_entity,
+      slot?.speed_entity,
+      slot?.port_switch_entity,
+      slot?.poe_power_entity,
+      slot?.rx_entity,
+      slot?.tx_entity,
+      ...Array.isArray(slot?.raw_entities) ? slot.raw_entities : []
+    ].filter(Boolean));
+    const numericKeys = [
+      "connected_clients",
+      "client_count",
+      "clients",
+      "num_clients",
+      "active_clients",
+      "station_count"
+    ];
+    const listKeys = ["clients", "connected_clients", "client_list", "stations", "hosts"];
+    let bestCount = null;
+    let bestNames = [];
+    for (const entityId of candidates) {
+      const obj = stateObj(this._hass, entityId);
+      const attrs = obj?.attributes;
+      if (!attrs || typeof attrs !== "object") continue;
+      const stateNum = Number.parseInt(String(obj?.state ?? ""), 10);
+      if (Number.isInteger(stateNum) && stateNum >= 0 && (entityId.includes("clients") || String(attrs?.friendly_name || "").toLowerCase().includes("clients"))) {
+        if (bestCount == null || stateNum > bestCount) bestCount = stateNum;
+      }
+      for (const key of numericKeys) {
+        const raw = attrs[key];
+        const num = Number.parseInt(raw, 10);
+        if (Number.isInteger(num) && num >= 0 && (bestCount == null || num > bestCount)) {
+          bestCount = num;
+        }
+      }
+      for (const key of listKeys) {
+        const names = this._toClientNames(attrs[key]);
+        if (names.length > bestNames.length) bestNames = names;
+      }
+    }
+    if ((bestCount == null || bestCount === 0) && bestNames.length === 0) return null;
+    const count = bestCount != null ? bestCount : bestNames.length;
+    return { count, names: bestNames.slice(0, 8) };
+  }
+  _extractClientNameFromStateObj(obj, entityId) {
+    const attrs = obj?.attributes || {};
+    const friendly = String(attrs.friendly_name || "").trim();
+    if (friendly) return friendly;
+    return String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
+  }
+  _extractPortFromAttributes(attrs, entityId = "") {
+    const keys = [
+      "port",
+      "switch_port",
+      "sw_port",
+      "uplink_port",
+      "uplink_remote_port",
+      "remote_port",
+      "network_port",
+      "port_number",
+      "wired_port"
+    ];
+    for (const key of keys) {
+      const match = String(attrs?.[key] ?? "").match(/\d+/);
+      if (match) return Number.parseInt(match[0], 10);
+    }
+    const textKeys = ["connected_to", "uplink", "uplink_source", "source", "network_path", "connection_path"];
+    for (const key of textKeys) {
+      const match = String(attrs?.[key] ?? "").match(/port\D*(\d+)/i);
+      if (match) return Number.parseInt(match[1], 10);
+    }
+    const idMatch = String(entityId || "").match(/(?:^|[_-])port[_-]?(\d+)(?:[_-]|$)/i);
+    if (idMatch) return Number.parseInt(idMatch[1], 10);
+    return null;
+  }
+  _extractParentMacFromAttributes(attrs) {
+    const keys = [
+      "sw_mac",
+      "switch_mac",
+      "uplink_mac",
+      "uplink_device_mac",
+      "wired_uplink_mac",
+      "switch_uplink_mac",
+      "connected_to_mac",
+      "parent_mac",
+      "parent_device_mac",
+      "network_device_mac"
+    ];
+    for (const key of keys) {
+      const mac = normalizeMac(attrs?.[key]);
+      if (mac) return mac;
+    }
+    return null;
+  }
+  _extractParentText(attrs) {
+    const textKeys = [
+      "connected_to",
+      "uplink",
+      "uplink_source",
+      "source",
+      "network_device",
+      "network_path",
+      "connection_path",
+      "switch",
+      "parent"
+    ];
+    return textKeys.map((key) => String(attrs?.[key] ?? "").trim()).filter(Boolean).join(" ").toLowerCase();
+  }
+  _matchesParentDevice(attrs, deviceMac) {
+    const parentMac = this._extractParentMacFromAttributes(attrs);
+    if (parentMac) return parentMac === deviceMac;
+    const parentText = this._extractParentText(attrs);
+    if (!parentText) return false;
+    const deviceName = String(this._ctx?.name || "").toLowerCase().trim();
+    const deviceModel = String(this._ctx?.model || "").toLowerCase().trim();
+    if (deviceName && parentText.includes(deviceName)) return true;
+    if (deviceModel && parentText.includes(deviceModel)) return true;
+    return false;
+  }
+  _buildPortClientIndex() {
+    const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
+    if (!deviceMac || !this._hass?.states) return /* @__PURE__ */ new Map();
+    const byPort = /* @__PURE__ */ new Map();
+    for (const [entityId, obj] of Object.entries(this._hass.states)) {
+      const attrs = obj?.attributes || {};
+      if (!this._matchesParentDevice(attrs, deviceMac)) continue;
+      const port = this._extractPortFromAttributes(attrs, entityId);
+      if (!Number.isInteger(port) || port < 1) continue;
+      if (!byPort.has(port)) {
+        byPort.set(port, { count: 0, names: /* @__PURE__ */ new Set() });
+      }
+      const entry = byPort.get(port);
+      if (entityId.startsWith("device_tracker.")) {
+        const name = this._extractClientNameFromStateObj(obj, entityId);
+        if (name) entry.names.add(name);
+      }
+      const stateNum = Number.parseInt(String(obj?.state ?? ""), 10);
+      const friendly = String(attrs?.friendly_name || "").toLowerCase();
+      const looksLikeClientCounter = entityId.includes("clients") || friendly.includes("clients") || friendly.includes("ger\xE4te");
+      if (looksLikeClientCounter && Number.isInteger(stateNum) && stateNum >= 0) {
+        entry.count = Math.max(entry.count, stateNum);
+      }
+      const attrNames = this._toClientNames(attrs?.clients || attrs?.connected_clients || attrs?.client_list);
+      for (const name of attrNames) {
+        entry.names.add(name);
+      }
+      entry.count = Math.max(entry.count, entry.names.size);
+    }
+    return byPort;
+  }
   _buildSlotData(ctx) {
     const discovered = Array.isArray(ctx?.numberedPorts) ? ctx.numberedPorts : [];
     const numberedRaw = mergePortsWithLayout(ctx?.layout, discovered);
@@ -4338,6 +4804,35 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     return packedRows;
   }
+  _shouldUseOddEvenRows(ctx, numbered) {
+    if (!ctx || ctx.type !== "switch" && ctx.type !== "gateway") return false;
+    if (ctx?.layout?.rj45_odd_even === true) return true;
+    if (ctx?.layout?.rj45_odd_even === false) return false;
+    const portCount = (numbered || []).filter((slot) => Number.isInteger(slot?.port)).length;
+    return portCount > 8;
+  }
+  _applyOddEvenRows(rows) {
+    const out = [];
+    for (let i = 0; i < rows.length; i += 2) {
+      const first = rows[i] || [];
+      const second = rows[i + 1] || [];
+      const pair = [...first, ...second];
+      if (pair.length <= 1) {
+        if (first.length) out.push(first);
+        if (second.length) out.push(second);
+        continue;
+      }
+      const odds = pair.filter((port) => Number.isInteger(port) && port % 2 === 1);
+      const evens = pair.filter((port) => Number.isInteger(port) && port % 2 === 0);
+      if (odds.length && evens.length) {
+        out.push(odds, evens);
+      } else {
+        if (first.length) out.push(first);
+        if (second.length) out.push(second);
+      }
+    }
+    return out;
+  }
   _rotate180Enabled(ctx) {
     const type = ctx?.type;
     const rawRotate = this._config?.rotate180;
@@ -4350,6 +4845,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (this._loadedDeviceId === currentId && this._ctx) return;
     if (this._loading) return;
     this._loading = true;
+    this._log("debug", "loading device context");
     this._render();
     const token = ++this._loadToken;
     try {
@@ -4357,11 +4853,22 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (token !== this._loadToken) return;
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
+      const portSnapshot = this._buildPortDebugSnapshot(ctx);
+      this._log("info", "context loaded", {
+        type: ctx?.type || null,
+        model: ctx?.model || null,
+        identity_mac: ctx?.identity?.primary_mac || null,
+        ...portSnapshot.summary || {},
+        top_traffic: portSnapshot.top_traffic || []
+      });
+      if (this._shouldLog("debug") && portSnapshot.ports?.length) {
+        this._log("debug", "port snapshot", portSnapshot.ports);
+      }
       const { specials, numbered } = this._buildSlotData(ctx);
       const first = specials[0] || numbered[0] || null;
       this._selectedKey = first?.key || null;
     } catch (err) {
-      console.error("[unifi-device-card] Failed to load device context", err);
+      this._log("error", "Failed to load device context", err);
       if (token !== this._loadToken) return;
       this._ctx = null;
       this._loadedDeviceId = null;
@@ -4376,10 +4883,12 @@ var UnifiDeviceCard = class extends HTMLElement {
   async _toggleEntity(entityId) {
     if (!entityId || !this._hass) return;
     const [domain] = entityId.split(".");
+    this._log("debug", "toggle entity", entityId);
     await this._hass.callService(domain, "toggle", { entity_id: entityId });
   }
   async _pressButton(entityId) {
     if (!entityId || !this._hass) return;
+    this._log("debug", "press button", entityId);
     await this._hass.callService("button", "press", { entity_id: entityId });
   }
   _title() {
@@ -4472,7 +4981,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       </div>
     `;
   }
-  _renderPortButton(slot, selectedKey) {
+  _renderPortButton(slot, selectedKey, portClientIndex = null, oddEvenTopRow = false) {
     const isSpecial = slot.kind === "special";
     const mediaType = this._portMediaType(slot);
     const isSfp = mediaType !== "rj45";
@@ -4480,11 +4989,19 @@ var UnifiDeviceCard = class extends HTMLElement {
     const linkUp = isPortConnected(this._hass, slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
+    const clientInfo = this._getPortClientInfo(slot);
+    const indexedPortInfo = Number.isInteger(slot?.port) ? portClientIndex?.get(slot.port) : null;
+    const indexedNames = indexedPortInfo?.names ? Array.from(indexedPortInfo.names) : [];
+    const indexedCount = indexedPortInfo?.count || indexedNames.length;
+    const mergedNames = Array.from(/* @__PURE__ */ new Set([...clientInfo?.names || [], ...indexedNames])).slice(0, 8);
+    const mergedCount = Math.max(clientInfo?.count || 0, indexedCount);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
       this._translateState(getPortLinkText(this._hass, slot)),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
-      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null
+      poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
+      mergedCount > 0 ? `${this._t("clients")}: ${mergedCount}` : null,
+      mergedNames.length ? mergedNames.join(", ") : null
     ].filter((v) => v && v !== "\u2014").join(" \xB7 ");
     const classes = [
       "port",
@@ -4493,6 +5010,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       `media-${mediaType}`,
       this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
+      oddEvenTopRow && !isSpecial && !isSfp ? "odd-even-top" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : ""
     ].filter(Boolean).join(" ");
@@ -4521,7 +5039,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="rj45-floor"></div>
         </div>
       `;
-    return `<button class="${classes}" data-key="${slot.key}" title="${tooltip}">
+    return `<button class="${classes}" data-key="${slot.key}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
       </div>
@@ -4704,9 +5222,11 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .port-row {
-        display: grid;
-        row-gap: 4px;
-        column-gap: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+        width: 100%;
+        align-items: flex-start;
       }
 
       .frontpanel.rotate180-enabled .panel-label {
@@ -4723,51 +5243,51 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .frontpanel.single-row .port-row,
       .frontpanel.gateway-single-row .port-row {
-        grid-template-columns: repeat(8, var(--udc-port-size));
+        --udc-cols: 8;
       }
 
       .frontpanel.dual-row .port-row {
-        grid-template-columns: repeat(8, var(--udc-port-size));
+        --udc-cols: 8;
       }
 
       .frontpanel.gateway-rack .port-row {
-        grid-template-columns: repeat(8, var(--udc-port-size));
+        --udc-cols: 8;
       }
 
       .frontpanel.gateway-compact .port-row {
-        grid-template-columns: repeat(5, var(--udc-port-size));
+        --udc-cols: 5;
       }
 
       .frontpanel.six-grid .port-row {
-        grid-template-columns: repeat(6, var(--udc-port-size));
+        --udc-cols: 6;
       }
 
       .frontpanel.eight-grid .port-row {
-        grid-template-columns: repeat(8, var(--udc-port-size));
+        --udc-cols: 8;
       }
 
       .frontpanel.quad-row .port-row {
-        grid-template-columns: repeat(12, var(--udc-port-size));
+        --udc-cols: 12;
       }
 
       .frontpanel.ultra-row .port-row {
-        grid-template-columns: repeat(7, var(--udc-port-size));
+        --udc-cols: 7;
       }
 
       .frontpanel.grid-4 .port-row {
-        grid-template-columns: repeat(4, var(--udc-port-size));
+        --udc-cols: 4;
       }
 
       .frontpanel.grid-5 .port-row {
-        grid-template-columns: repeat(5, var(--udc-port-size));
+        --udc-cols: 5;
       }
 
       .frontpanel.grid-9 .port-row {
-        grid-template-columns: repeat(9, var(--udc-port-size));
+        --udc-cols: 9;
       }
 
       .frontpanel.grid-10 .port-row {
-        grid-template-columns: repeat(10, var(--udc-port-size));
+        --udc-cols: 10;
       }
 
       .frontpanel.ap-disc {
@@ -4833,6 +5353,8 @@ var UnifiDeviceCard = class extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
+        width: calc(var(--udc-port-size) - 2px);
+        flex: 0 0 calc(var(--udc-port-size) - 2px);
         padding: 0 0 1px;
         border-radius: 2px;
         position: relative;
@@ -4896,6 +5418,25 @@ var UnifiDeviceCard = class extends HTMLElement {
           inset 0 -1px 0 rgba(0,0,0,.45);
         overflow: hidden;
         z-index: 0;
+      }
+
+      .port.odd-even-top .port-rj45 {
+        transform: rotate(180deg);
+        transform-origin: 50% 50%;
+      }
+
+      .port.odd-even-top .rj45-led.left {
+        left: 50%;
+        right: 0;
+        margin-left: 3px;
+        margin-right: 0;
+      }
+
+      .port.odd-even-top .rj45-led.right {
+        right: 50%;
+        left: 0;
+        margin-right: 3px;
+        margin-left: 0;
       }
 
       .rj45-shell-top {
@@ -5104,8 +5645,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .port.special {
-        min-width: var(--udc-port-size);
-        max-width: var(--udc-port-size);
+        min-width: calc(var(--udc-port-size) - 2px);
+        max-width: calc(var(--udc-port-size) - 2px);
       }
 
       .port-num {
@@ -5258,6 +5799,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const uptime = this._apUptimeState(this._ctx?.uptime_entity);
       const clients = this._wholeNumberState(this._ctx?.clients_entity);
       const apUplink = this._apUplinkText(this._ctx?.ap_uplink);
+      const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
@@ -5305,7 +5847,7 @@ var UnifiDeviceCard = class extends HTMLElement {
               ${apUplink ? `
               <div class="detail-item">
                 <div class="detail-label">${this._t("uplink")}</div>
-                <div class="detail-value">${apUplink}</div>
+                <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
               </div>` : ""}
             </div>
           </div>
@@ -5331,14 +5873,18 @@ var UnifiDeviceCard = class extends HTMLElement {
     );
     const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const reverseFrontpanel = this._rotate180Enabled(ctx);
-    const baseRows = this._buildEffectiveRows(ctx, visibleNumbered);
+    const portClientIndex = this._buildPortClientIndex();
+    const oddEvenRows = this._shouldUseOddEvenRows(ctx, visibleNumbered);
+    const baseRowsRaw = this._buildEffectiveRows(ctx, visibleNumbered);
+    const baseRows = oddEvenRows ? this._applyOddEvenRows(baseRowsRaw) : baseRowsRaw;
     const effectiveRows = reverseFrontpanel ? baseRows.map((row) => [...row].reverse()).reverse() : baseRows;
     const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
-    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key)).join("")}</div>` : "";
-    const layoutRows = effectiveRows.map((rowPorts) => {
-      const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key)).join("");
+    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>` : "";
+    const layoutRows = effectiveRows.map((rowPorts, rowIndex) => {
+      const oddEvenTopRow = oddEvenRows && rowIndex % 2 === 0;
+      const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow)).join("");
       const cols = Math.max(1, rowPorts.length);
-      return items ? `<div class="port-row" style="grid-template-columns: repeat(${cols}, var(--udc-port-size));">${items}</div>` : "";
+      return items ? `<div class="port-row" style="--udc-cols: ${cols};">${items}</div>` : "";
     }).filter(Boolean);
     const panelRowsHtml = layoutRows.join("");
     const panelPortsHtml = reverseFrontpanel ? `${panelRowsHtml}${specialRow}` : `${specialRow}${panelRowsHtml}`;
@@ -5497,5 +6043,9 @@ window.customCards.push({
 });
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;
-  console.info(`[UNIFI-DEVICE-CARD] Version ${VERSION}`);
+  console.log(
+    `%cUNIFI-DEVICE-CARD%c v${VERSION}`,
+    LOG_STYLES.badge,
+    LOG_STYLES.version
+  );
 }

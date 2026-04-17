@@ -28,9 +28,9 @@ function apModel(displayModel) {
   };
 }
 
-const AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
-const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
-const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR"];
+export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
+export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version]
@@ -64,6 +64,18 @@ function defaultSwitchLayout(portCount) {
     return { kind: "switch", frontStyle: "quad-row", rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)], portCount, specialSlots: [] };
   }
   return { kind: "switch", frontStyle: "single-row", rows: [range(1, portCount)], portCount, specialSlots: [] };
+}
+
+function applyRj45LayoutHints(layout) {
+  const numberedRj45Count = (layout?.rows || []).flat().filter((port) => Number.isInteger(port)).length;
+  const excludedOddEvenModels = new Set(["USPM16", "USPM16P"]);
+  const isExcluded = excludedOddEvenModels.has(layout?.modelKey);
+  const isSwitchOrGateway = layout?.kind === "switch" || layout?.kind === "gateway";
+
+  return {
+    ...layout,
+    rj45_odd_even: isSwitchOrGateway && !isExcluded && numberedRj45Count > 8,
+  };
 }
 
 export function applyPortsPerRowOverride(layout, portsPerRow) {
@@ -400,7 +412,7 @@ export const MODEL_REGISTRY = {
 
   // USW Pro Max 16  — 16× RJ45, 2× SFP+
   USPM16: {
-    kind: "switch", frontStyle: "dual-row", rows: [range(1, 8), range(9, 16)],
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 16)],
     portCount: 18, displayModel: "USW Pro Max 16", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 17 },
@@ -410,7 +422,7 @@ export const MODEL_REGISTRY = {
 
   // USW Pro Max 16 PoE  — 16× RJ45, 2× SFP+
   USPM16P: {
-    kind: "switch", frontStyle: "dual-row", rows: [range(1, 8), range(9, 16)],
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 16)],
     portCount: 18, displayModel: "USW Pro Max 16 PoE", theme: "silver",
     poePortRange: [1, 16],
     specialSlots: [
@@ -1047,12 +1059,12 @@ export function getDeviceLayout(device, discoveredPorts = []) {
   }
 
   if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
-    return { modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] };
+    return applyRj45LayoutHints({ modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] });
   }
 
   if (looksGatewayLike && inferredPortCount > 0) {
     const lanPortCount = Math.max(1, inferredPortCount - 1);
-    return {
+    return applyRj45LayoutHints({
       modelKey: null,
       kind: "gateway",
       frontStyle: inferredPortCount > 8 ? "gateway-rack" : "gateway-single-row",
@@ -1060,7 +1072,7 @@ export function getDeviceLayout(device, discoveredPorts = []) {
       portCount: inferredPortCount,
       displayModel: device?.model || `UniFi Gateway (${inferredPortCount}p)`,
       specialSlots: [{ key: "wan", label: "WAN", port: inferredPortCount }],
-    };
+    });
   }
 
   if (isAccessPointLikeModel(device) && !looksSwitchLike && !looksGatewayLike) {
@@ -1077,14 +1089,14 @@ export function getDeviceLayout(device, discoveredPorts = []) {
   }
 
   if (inferredPortCount > 0) {
-    return {
+    return applyRj45LayoutHints({
       modelKey: null,
       ...defaultSwitchLayout(inferredPortCount),
       displayModel: device?.model || `UniFi Device (${inferredPortCount}p)`,
-    };
+    });
   }
 
-  return {
+  return applyRj45LayoutHints({
     modelKey: null,
     kind: "gateway",
     frontStyle: "gateway-generic",
@@ -1092,5 +1104,5 @@ export function getDeviceLayout(device, discoveredPorts = []) {
     portCount: 0,
     displayModel: device?.model || "UniFi Gateway",
     specialSlots: [],
-  };
+  });
 }
