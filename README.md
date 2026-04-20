@@ -188,6 +188,7 @@ show_name: true               # optional (default: true)
 show_panel: true              # optional (default: true)
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
 ports_per_row: 8              # optional (switches only)
+force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
 port_size: 36                 # optional (switch/gateway front panel scale in px)
 ap_scale: 100                 # optional (AP size in %, 60-140)
 log_level: warn               # optional (error|warn|info|debug|trace)
@@ -210,6 +211,7 @@ wan2_port: none               # optional (gateway only)
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
 | `ports_per_row` | number | auto | Optional row width override for switch layouts. |
+| `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |

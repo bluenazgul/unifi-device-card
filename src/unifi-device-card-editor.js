@@ -322,6 +322,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.show_name !== false) delete next.show_name;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
     if (!next.ports_per_row) delete next.ports_per_row;
     next.port_size = clampPortSize(next.port_size);
@@ -385,6 +386,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onPortsPerRowChange(ev) {
     this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
+  }
+
+  _onForceSequentialPortsChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ force_sequential_ports: checked ? true : undefined });
   }
 
   _onPortSizeInput(ev) {
@@ -767,6 +773,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
+    const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const portsPerRow = this._config?.ports_per_row || "";
@@ -842,6 +849,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+        </div>
+
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -879,6 +888,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
           </div>
           <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
+
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
+            <span>${this._t("editor_force_sequential_ports_label")}</span>
+          </label>
+          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+        </div>
         ` : ""}
 
         <div class="field">
@@ -916,6 +933,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")
       ?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
+    this.shadowRoot.getElementById("force_sequential_ports")
+      ?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("port_size")
       ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
