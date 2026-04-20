@@ -6,6 +6,8 @@ import {
   getPoeStatus,
   getPortLinkText,
   getPortSpeedText,
+  hasTraffic,
+  isSfpLikePort,
   isOn,
   isPortConnected,
   mergePortsWithLayout,
@@ -53,6 +55,10 @@ class UnifiDeviceCard extends HTMLElement {
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
     this._instanceId = Math.random().toString(36).slice(2, 7);
+    // Keys of SFP-like ports that have been observed with live traffic.
+    // Used by _isPortConnected() to avoid false "offline" flickers on
+    // polling-interval gaps where rx/tx momentarily reads 0.
+    this._sfpConnectedSeen = new Set();
   }
 
   _configuredLogLevel() {
@@ -112,7 +118,7 @@ class UnifiDeviceCard extends HTMLElement {
     let poeTotalW = 0;
 
     const details = ports.map((slot) => {
-      const linkUp = isPortConnected(this._hass, slot);
+      const linkUp = this._isPortConnected(slot);
       if (linkUp) connected += 1;
 
       const poeStatus = getPoeStatus(this._hass, slot);
@@ -329,17 +335,24 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _maxFittableColumns() {
+    // When the user has explicitly set ports_per_row, honour it unconditionally.
+    // The measured panel width must not override an intentional layout choice.
+    const configuredPPR = Number.parseInt(this._config?.ports_per_row, 10);
+    if (Number.isFinite(configuredPPR) && configuredPPR > 0) return Infinity;
+
     const portSize = this._portSize();
     const panelContentWidth = this._measuredFrontPanelContentWidth();
     const hostWidth = this._measuredCardWidth();
     if (!panelContentWidth && !hostWidth) return Infinity;
 
-    const horizontalPadding = 40;
+    // Use a tighter slot estimate so measured width does not under-count columns.
+    const horizontalPadding = 24;
     const gap = 6;
+    const slotWidth = Math.max(1, portSize - 2);
     const available = panelContentWidth > 0
       ? panelContentWidth
       : Math.max(180, hostWidth - horizontalPadding);
-    return Math.max(1, Math.floor((available + gap) / (portSize + gap)));
+    return Math.max(1, Math.floor((available + gap) / (slotWidth + gap)));
   }
 
   _wholeNumberState(entityId) {
@@ -929,8 +942,17 @@ class UnifiDeviceCard extends HTMLElement {
 
   _shouldUseOddEvenRows(ctx, numbered) {
     if (!ctx || (ctx.type !== "switch" && ctx.type !== "gateway")) return false;
+    // Explicit per-layout overrides always win.
     if (ctx?.layout?.rj45_odd_even === true) return true;
     if (ctx?.layout?.rj45_odd_even === false) return false;
+    // Devices with an explicit multi-row frontStyle (six-grid, eight-grid, dual-row,
+    // quad-row) already define their own row groupings.  Applying odd/even reordering
+    // on top would break those groupings (e.g. a USW Pro 24 ending up with 6 columns
+    // instead of the declared 6-per-row layout).
+    const frontStyle = String(ctx?.layout?.frontStyle || "");
+    if (["dual-row", "six-grid", "eight-grid", "quad-row"].includes(frontStyle)) {
+      return false;
+    }
     const portCount = (numbered || []).filter((slot) => Number.isInteger(slot?.port)).length;
     return portCount > 8;
   }
@@ -1071,8 +1093,34 @@ class UnifiDeviceCard extends HTMLElement {
       }));
   }
 
+  /**
+   * Wrapper around the module-level isPortConnected() that adds sticky-state
+   * tracking for SFP-like ports.  When a port has been observed with live
+   * traffic, short polling-interval gaps where rx/tx momentarily reads 0 will
+   * no longer flip the LED off.  The sticky state is cleared only when the
+   * link speed itself drops to 0 (cable genuinely removed).
+   */
+  _isPortConnected(port) {
+    if (isSfpLikePort(port)) {
+      const key = port?.key || port?.physical_key;
+      if (key) {
+        if (hasTraffic(this._hass, port)) this._sfpConnectedSeen.add(key);
+        const result = isPortConnected(this._hass, port);
+        if (!result && this._sfpConnectedSeen.has(key)) {
+          // Port was live before — only go dark if speed actually reached 0.
+          const speedMbit = parseLinkSpeedMbit(this._hass, port?.speed_entity);
+          if (speedMbit == null || speedMbit > 0) return true;
+          // Speed is 0: cable removed. Clear sticky state.
+          this._sfpConnectedSeen.delete(key);
+        }
+        return result;
+      }
+    }
+    return isPortConnected(this._hass, port);
+  }
+
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => isPortConnected(this._hass, s)).length;
+    return allSlots.filter((s) => this._isPortConnected(s)).length;
   }
 
   _isDeviceOnline() {
@@ -1093,7 +1141,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _linkLedClass(port) {
-    const connected = isPortConnected(this._hass, port);
+    const connected = this._isPortConnected(port);
     if (!connected) return "off";
 
     const speed = this._speedValueMbit(port);
@@ -1156,7 +1204,7 @@ class UnifiDeviceCard extends HTMLElement {
     const mediaType = this._portMediaType(slot);
     const isSfp = mediaType !== "rj45";
     const isWan = this._isWanLike(slot);
-    const linkUp = isPortConnected(this._hass, slot);
+    const linkUp = this._isPortConnected(slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
 
@@ -2102,7 +2150,7 @@ class UnifiDeviceCard extends HTMLElement {
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
 
     if (selected) {
-      const linkUp = isPortConnected(this._hass, selected);
+      const linkUp = this._isPortConnected(selected);
       const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
