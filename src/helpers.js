@@ -1824,7 +1824,7 @@ export function getPoeStatus(hass, port) {
   };
 }
 
-function trafficValue(hass, entityId) {
+export function trafficValue(hass, entityId) {
   const raw = stateValue(hass, entityId);
   if (raw == null || raw === "unavailable" || raw === "unknown") return 0;
 
@@ -1832,7 +1832,7 @@ function trafficValue(hass, entityId) {
   return Number.isFinite(num) ? num : 0;
 }
 
-function hasTraffic(hass, port) {
+export function hasTraffic(hass, port) {
   return trafficValue(hass, port?.rx_entity) > 0 || trafficValue(hass, port?.tx_entity) > 0;
 }
 
@@ -1882,6 +1882,28 @@ function isSfpSpecialPort(port) {
   return key.startsWith("sfp_") || key.startsWith("sfp28_");
 }
 
+/**
+ * Returns true if the port is SFP-like, either by slot kind or by entity naming.
+ * Catches cases like the UDMPRO where SFP ports are numbered but named "sfp_1" /
+ * "sfp_2" in their entity IDs rather than being declared as special slots.
+ */
+export function isSfpLikePort(port) {
+  if (isSfpSpecialPort(port)) return true;
+  const text = [
+    port?.key,
+    port?.physical_key,
+    port?.label,
+    port?.speed_entity,
+    port?.rx_entity,
+    port?.tx_entity,
+    port?.link_entity,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return text.includes("sfp") || text.includes("10g");
+}
+
 export function isPortConnected(hass, port) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
@@ -1918,11 +1940,17 @@ export function isPortConnected(hass, port) {
       // Some setups report persistent 10 Mbit on idle/disconnected copper ports.
       // If no explicit link sensor exists and we have neither traffic, clients, nor PoE activity,
       // treat 10 Mbit as not connected to avoid false "up" LEDs.
-      if (!isSfpSpecialPort(port) && !port?.link_entity && speedMbit <= 10) {
+      if (!isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
         const hasActiveTraffic = hasTraffic(hass, port);
         const clientCount = portObservedClientCount(hass, port);
         const poeActive = getPoeStatus(hass, port).active;
         if (!hasActiveTraffic && clientCount === 0 && !poeActive) return false;
+      }
+      // SFP ghost-link guard (extended): some gateways report rated speed on SFP
+      // ports when the module is seated but no cable is connected. Use traffic
+      // presence as the definitive test when an explicit link sensor is absent.
+      if (isSfpLikePort(port) && !port?.link_entity && (port?.rx_entity || port?.tx_entity)) {
+        if (!hasTraffic(hass, port)) return false;
       }
       return true;
     }

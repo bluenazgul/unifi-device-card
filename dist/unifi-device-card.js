@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1723b41 */
+/* UniFi Device Card 0.0.0-dev.f8cb179 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2586,6 +2586,19 @@ function isSfpSpecialPort(port) {
   const key = lower(port?.physical_key || port?.key || "");
   return key.startsWith("sfp_") || key.startsWith("sfp28_");
 }
+function isSfpLikePort(port) {
+  if (isSfpSpecialPort(port)) return true;
+  const text = [
+    port?.key,
+    port?.physical_key,
+    port?.label,
+    port?.speed_entity,
+    port?.rx_entity,
+    port?.tx_entity,
+    port?.link_entity
+  ].filter(Boolean).join(" ").toLowerCase();
+  return text.includes("sfp") || text.includes("10g");
+}
 function isPortConnected(hass, port) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
@@ -2598,11 +2611,14 @@ function isPortConnected(hass, port) {
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {
     if (speedMbit > 0) {
-      if (!isSfpSpecialPort(port) && !port?.link_entity && speedMbit <= 10) {
+      if (!isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
         const hasActiveTraffic = hasTraffic(hass, port);
         const clientCount = portObservedClientCount(hass, port);
         const poeActive = getPoeStatus(hass, port).active;
         if (!hasActiveTraffic && clientCount === 0 && !poeActive) return false;
+      }
+      if (isSfpLikePort(port) && !port?.link_entity && (port?.rx_entity || port?.tx_entity)) {
+        if (!hasTraffic(hass, port)) return false;
       }
       return true;
     }
@@ -4093,7 +4109,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1723b41";
+var VERSION = "0.0.0-dev.f8cb179";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4126,6 +4142,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
     this._instanceId = Math.random().toString(36).slice(2, 7);
+    this._sfpConnectedSeen = /* @__PURE__ */ new Set();
   }
   _configuredLogLevel() {
     const raw = String(this._config?.log_level || "").toLowerCase().trim();
@@ -4175,7 +4192,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     let trafficPorts = 0;
     let poeTotalW = 0;
     const details = ports.map((slot) => {
-      const linkUp = isPortConnected(this._hass, slot);
+      const linkUp = this._isPortConnected(slot);
       if (linkUp) connected += 1;
       const poeStatus = getPoeStatus(this._hass, slot);
       if (poeStatus.active) poePorts += 1;
@@ -4352,14 +4369,17 @@ var UnifiDeviceCard = class extends HTMLElement {
     return Math.max(0, panelWidth - paddingLeft - paddingRight);
   }
   _maxFittableColumns() {
+    const configuredPPR = Number.parseInt(this._config?.ports_per_row, 10);
+    if (Number.isFinite(configuredPPR) && configuredPPR > 0) return Infinity;
     const portSize = this._portSize();
     const panelContentWidth = this._measuredFrontPanelContentWidth();
     const hostWidth = this._measuredCardWidth();
     if (!panelContentWidth && !hostWidth) return Infinity;
-    const horizontalPadding = 40;
+    const horizontalPadding = 24;
     const gap = 6;
+    const slotWidth = Math.max(1, portSize - 2);
     const available = panelContentWidth > 0 ? panelContentWidth : Math.max(180, hostWidth - horizontalPadding);
-    return Math.max(1, Math.floor((available + gap) / (portSize + gap)));
+    return Math.max(1, Math.floor((available + gap) / (slotWidth + gap)));
   }
   _wholeNumberState(entityId) {
     if (!entityId || !this._hass) return "\u2014";
@@ -4808,6 +4828,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (!ctx || ctx.type !== "switch" && ctx.type !== "gateway") return false;
     if (ctx?.layout?.rj45_odd_even === true) return true;
     if (ctx?.layout?.rj45_odd_even === false) return false;
+    const frontStyle = String(ctx?.layout?.frontStyle || "");
+    if (["dual-row", "six-grid", "eight-grid", "quad-row"].includes(frontStyle)) {
+      return false;
+    }
     const portCount = (numbered || []).filter((slot) => Number.isInteger(slot?.port)).length;
     return portCount > 8;
   }
@@ -4922,8 +4946,31 @@ var UnifiDeviceCard = class extends HTMLElement {
       value: formatState(this._hass, item.entity)
     }));
   }
+  /**
+   * Wrapper around the module-level isPortConnected() that adds sticky-state
+   * tracking for SFP-like ports.  When a port has been observed with live
+   * traffic, short polling-interval gaps where rx/tx momentarily reads 0 will
+   * no longer flip the LED off.  The sticky state is cleared only when the
+   * link speed itself drops to 0 (cable genuinely removed).
+   */
+  _isPortConnected(port) {
+    if (isSfpLikePort(port)) {
+      const key = port?.key || port?.physical_key;
+      if (key) {
+        if (hasTraffic(this._hass, port)) this._sfpConnectedSeen.add(key);
+        const result = isPortConnected(this._hass, port);
+        if (!result && this._sfpConnectedSeen.has(key)) {
+          const speedMbit = parseLinkSpeedMbit(this._hass, port?.speed_entity);
+          if (speedMbit == null || speedMbit > 0) return true;
+          this._sfpConnectedSeen.delete(key);
+        }
+        return result;
+      }
+    }
+    return isPortConnected(this._hass, port);
+  }
   _connectedCount(allSlots) {
-    return allSlots.filter((s) => isPortConnected(this._hass, s)).length;
+    return allSlots.filter((s) => this._isPortConnected(s)).length;
   }
   _isDeviceOnline() {
     const onlineEntity = this._ctx?.online_entity;
@@ -4939,7 +4986,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return parseLinkSpeedMbit(this._hass, port?.speed_entity);
   }
   _linkLedClass(port) {
-    const connected = isPortConnected(this._hass, port);
+    const connected = this._isPortConnected(port);
     if (!connected) return "off";
     const speed = this._speedValueMbit(port);
     if (speed == null) return "green";
@@ -4986,7 +5033,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const mediaType = this._portMediaType(slot);
     const isSfp = mediaType !== "rj45";
     const isWan = this._isWanLike(slot);
-    const linkUp = isPortConnected(this._hass, slot);
+    const linkUp = this._isPortConnected(slot);
     const poeStatus = getPoeStatus(this._hass, slot);
     const poeOn = poeStatus.active;
     const clientInfo = this._getPortClientInfo(slot);
@@ -5891,7 +5938,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
     let detail = `<div class="muted">${this._t("no_ports")}</div>`;
     if (selected) {
-      const linkUp = isPortConnected(this._hass, selected);
+      const linkUp = this._isPortConnected(selected);
       const linkText = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
