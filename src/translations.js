@@ -68,6 +68,8 @@ const TRANSLATIONS = {
     editor_panel_toggle_hint:  "Enabled by default. Disable to hide the visual front panel.",
     editor_ports_per_row_label: "Ports per row (optional)",
     editor_ports_per_row_hint:  "Leave empty for automatic layout. Set a number (for example 4, 6, 8, 12).",
+    editor_force_sequential_ports_label: "Force sequential ports",
+    editor_force_sequential_ports_hint:  "Disable odd/even port layout and keep ports in natural numeric order.",
     editor_edit_special_ports_toggle: "Edit special ports",
     editor_edit_special_ports_toggle_hint: "Enable to show WAN/WAN2 selectors and customize which ports appear in the top special row.",
     editor_custom_special_ports_label: "Special ports (top row)",
@@ -156,6 +158,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Front Panel",
+    cpu_utilization:    "CPU-Auslastung",
+    cpu_temperature:    "CPU-Temperatur",
+    memory_utilization: "Speicherauslastung",
     temperature:        "Temperatur",
 
     // Port detail
@@ -202,6 +207,8 @@ const TRANSLATIONS = {
     editor_panel_toggle_hint:  "Standardmäßig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
     editor_ports_per_row_hint:  "Leer lassen für automatisches Layout. Zahl setzen (z. B. 4, 6, 8, 12).",
+    editor_force_sequential_ports_label: "Ports fortlaufend erzwingen",
+    editor_force_sequential_ports_hint:  "Deaktiviert odd/even-Portlayout und zeigt Ports in natürlicher Reihenfolge.",
     editor_edit_special_ports_toggle: "Spezial-Ports bearbeiten",
     editor_edit_special_ports_toggle_hint: "Aktivieren, um WAN/WAN2-Auswahl anzuzeigen und festzulegen, welche Ports in der oberen Spezial-Reihe erscheinen.",
     editor_custom_special_ports_label: "Spezial-Ports (obere Reihe)",
@@ -300,6 +307,7 @@ const TRANSLATIONS = {
     ap_status:          "AP-status",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
+    uplink:             "Uplink",
     uptime:             "Uptime",
     clients:            "Clients",
     speed:              "Snelheid",
@@ -338,6 +346,8 @@ const TRANSLATIONS = {
     editor_panel_toggle_hint:  "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
     editor_ports_per_row_hint:  "Leeg laten voor automatische layout. Stel een getal in (bijv. 4, 6, 8, 12).",
+    editor_force_sequential_ports_label: "Opeenvolgende poorten forceren",
+    editor_force_sequential_ports_hint:  "Schakelt odd/even-poortindeling uit en houdt poorten in natuurlijke volgorde.",
     editor_edit_special_ports_toggle: "Speciale poorten bewerken",
     editor_edit_special_ports_toggle_hint: "Inschakelen om WAN/WAN2-selectie te tonen en te bepalen welke poorten in de bovenste speciale rij staan.",
     editor_custom_special_ports_label: "Speciale poorten (bovenste rij)",
@@ -422,6 +432,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Panneau avant",
+    cpu_utilization:    "Utilisation CPU",
+    cpu_temperature:    "Température CPU",
+    memory_utilization: "Utilisation mémoire",
     temperature:        "Température",
 
     // Port detail
@@ -429,6 +442,7 @@ const TRANSLATIONS = {
     ap_status:          "Statut AP",
     link_lan:           "Lien LAN",
     link_mesh:          "Lien Mesh",
+    uplink:             "Uplink",
     uptime:             "Disponibilité",
     clients:            "Clients",
     speed:              "Vitesse",
@@ -457,6 +471,9 @@ const TRANSLATIONS = {
     editor_device_label:   "Appareil UniFi",
     editor_device_loading: "Chargement des appareils…",
     editor_device_select:  "Sélectionner un appareil…",
+    editor_name_toggle_label: "Nom affiché",
+    editor_name_toggle_text:  "Afficher le nom dans l’en-tête de la carte",
+    editor_name_toggle_hint:  "Activé par défaut. Si désactivé, seule la ligne modèle/firmware est affichée.",
     editor_name_label:     "Nom d'affichage",
     editor_name_hint:      "Optionnel — par défaut le nom de l'appareil",
     editor_panel_toggle_label: "Panneau avant",
@@ -464,6 +481,8 @@ const TRANSLATIONS = {
     editor_panel_toggle_hint:  "Activé par défaut. Désactivez pour masquer la vue visuelle des ports.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
     editor_ports_per_row_hint:  "Laissez vide pour la mise en page automatique. Définissez un nombre (ex. 4, 6, 8, 12).",
+    editor_force_sequential_ports_label: "Forcer l’ordre séquentiel des ports",
+    editor_force_sequential_ports_hint:  "Désactive l’affichage impair/pair et conserve l’ordre numérique naturel des ports.",
     editor_edit_special_ports_toggle: "Modifier les ports spéciaux",
     editor_edit_special_ports_toggle_hint: "Activez pour afficher les sélecteurs WAN/WAN2 et choisir quels ports apparaissent dans la ligne spéciale supérieure.",
     editor_custom_special_ports_label: "Ports spéciaux (ligne du haut)",
@@ -548,6 +567,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Panel frontal",
+    cpu_utilization:    "Uso de CPU",
+    cpu_temperature:    "Temperatura de CPU",
+    memory_utilization: "Uso de memoria",
     temperature:        "Temperatura",
 
     // Port detail
@@ -555,6 +577,7 @@ const TRANSLATIONS = {
     ap_status:          "Estado del AP",
     link_lan:           "Enlace LAN",
     link_mesh:          "Enlace Mesh",
+    uplink:             "Uplink",
     uptime:             "Tiempo activo",
     clients:            "Clientes",
     speed:              "Velocidad",
@@ -583,6 +606,9 @@ const TRANSLATIONS = {
     editor_device_label:   "Dispositivo UniFi",
     editor_device_loading: "Cargando dispositivos desde Home Assistant…",
     editor_device_select:  "Seleccionar dispositivo…",
+    editor_name_toggle_label: "Nombre mostrado",
+    editor_name_toggle_text:  "Mostrar nombre en el encabezado de la tarjeta",
+    editor_name_toggle_hint:  "Activado por defecto. Si se desactiva, solo se muestra la línea de modelo/firmware.",
     editor_name_label:     "Nombre para mostrar",
     editor_name_hint:      "Opcional — por defecto, el nombre del dispositivo",
     editor_panel_toggle_label: "Panel frontal",
@@ -590,6 +616,8 @@ const TRANSLATIONS = {
     editor_panel_toggle_hint:  "Activado por defecto. Desactívalo para ocultar la vista visual del panel.",
     editor_ports_per_row_label: "Puertos por fila (opcional)",
     editor_ports_per_row_hint:  "Déjalo vacío para diseño automático. Define un número (p. ej. 4, 6, 8, 12).",
+    editor_force_sequential_ports_label: "Forzar puertos secuenciales",
+    editor_force_sequential_ports_hint:  "Desactiva la distribución impar/par y mantiene el orden numérico natural de puertos.",
     editor_edit_special_ports_toggle: "Editar puertos especiales",
     editor_edit_special_ports_toggle_hint: "Activa para mostrar selectores WAN/WAN2 y elegir qué puertos aparecen en la fila especial superior.",
     editor_custom_special_ports_label: "Puertos especiales (fila superior)",
@@ -674,6 +702,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Pannello frontale",
+    cpu_utilization:    "Utilizzo CPU",
+    cpu_temperature:    "Temperatura CPU",
+    memory_utilization: "Utilizzo memoria",
     temperature:        "Temperatura",
 
     // Port detail
@@ -681,6 +712,7 @@ const TRANSLATIONS = {
     ap_status:          "Stato AP",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
+    uplink:             "Uplink",
     uptime:             "Uptime",
     clients:            "Client",
     speed:              "Velocità",
@@ -709,6 +741,9 @@ const TRANSLATIONS = {
     editor_device_label:   "Dispositivo UniFi",
     editor_device_loading: "Caricamento dispositivi da Home Assistant…",
     editor_device_select:  "Seleziona dispositivo…",
+    editor_name_toggle_label: "Nome visualizzato",
+    editor_name_toggle_text:  "Mostra il nome nell’intestazione della card",
+    editor_name_toggle_hint:  "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label:     "Nome visualizzato",
     editor_name_hint:      "Opzionale — per impostazione predefinita il nome del dispositivo",
     editor_panel_toggle_label: "Pannello frontale",
@@ -716,6 +751,8 @@ const TRANSLATIONS = {
     editor_panel_toggle_hint:  "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
     editor_ports_per_row_label: "Porte per riga (opzionale)",
     editor_ports_per_row_hint:  "Lascia vuoto per layout automatico. Imposta un numero (es. 4, 6, 8, 12).",
+    editor_force_sequential_ports_label: "Forza porte sequenziali",
+    editor_force_sequential_ports_hint:  "Disattiva il layout dispari/pari e mantiene le porte nell’ordine numerico naturale.",
     editor_edit_special_ports_toggle: "Modifica porte speciali",
     editor_edit_special_ports_toggle_hint: "Abilita per mostrare i selettori WAN/WAN2 e scegliere quali porte appaiono nella riga speciale superiore.",
     editor_custom_special_ports_label: "Porte speciali (riga superiore)",

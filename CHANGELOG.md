@@ -1,9 +1,33 @@
 # Changelog
 
+## [0.6.2] - 2026-04-20
+
+### ✨ Improvements
+- Include Respect explicit 'special_ports' config to allow show all ports in an single row (like Uplink (Port1) on USW-Flex-mini)
+- Add force_sequential_ports option to disable odd/even port layout
+
+### 🐛 Bug Fixes
+- Included fixes from [PR #130](https://github.com/bluenazgul/unifi-device-card/pull/130): clear SFP sticky state when speed entity is absent or unavailable . Thanks to @DAE51D.
+
+
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [0.6.1] - 2026-04-20
 
 ### 🐛 Bug Fixes
 - Included fixes from [PR #125](https://github.com/bluenazgul/unifi-device-card/pull/125): stabilized SFP link-state handling and restored support for explicit row-layout behavior. Thanks to @DAE51D.
+
 
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
