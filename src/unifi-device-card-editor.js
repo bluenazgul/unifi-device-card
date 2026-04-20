@@ -279,6 +279,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _emitConfig(partial) {
     const next = { ...this._config, ...partial };
+    const keepExplicitSpecialPorts = Object.prototype.hasOwnProperty.call(partial || {}, "special_ports");
 
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
@@ -292,10 +293,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
     next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
     if (!next.custom_special_ports.length) delete next.custom_special_ports;
     next.special_ports = normalizeSpecialPortNumbers(next.special_ports);
-    if (!next.special_ports.length && next.edit_special_ports === true) {
+    if (
+      !next.special_ports.length &&
+      next.edit_special_ports === true &&
+      !keepExplicitSpecialPorts
+    ) {
       next.special_ports = collectDefaultSpecialPorts(this._deviceCtx?.layout);
     }
-    if (!next.special_ports.length) delete next.special_ports;
+    if (!next.special_ports.length) {
+      if (next.edit_special_ports === true && keepExplicitSpecialPorts) {
+        next.special_ports = [];
+      } else {
+        delete next.special_ports;
+      }
+    }
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     if (next.show_name !== false) delete next.show_name;
