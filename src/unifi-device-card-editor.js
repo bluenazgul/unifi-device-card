@@ -297,6 +297,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     }
     if (!next.special_ports.length) delete next.special_ports;
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
+    if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     if (next.show_name !== false) delete next.show_name;
     if (next.show_panel !== false) delete next.show_panel;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -358,6 +359,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _onShowPanelChange(ev) {
     const checked = !!ev.target.checked;
     this._emitConfig({ show_panel: checked ? undefined : false });
+  }
+
+  _onForceSequentialPortsChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ force_sequential_ports: checked ? true : undefined });
   }
 
   _onPortsPerRowChange(ev) {
@@ -741,6 +747,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
+    const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const portsPerRow = this._config?.ports_per_row || "";
@@ -845,6 +852,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
         </div>
 
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
+            <span>${this._t("editor_force_sequential_ports_label")}</span>
+          </label>
+          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+        </div>
+
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
@@ -896,6 +911,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
     this.shadowRoot.getElementById("port_size")
       ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
+    this.shadowRoot.getElementById("force_sequential_ports")
+      ?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("ap_scale")
       ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
 

@@ -74,6 +74,8 @@ const TRANSLATIONS = {
     editor_custom_special_ports_hint:  "Click to toggle ports in the upper special row. Unselected ports move to the normal grid.",
     editor_port_size_label: "Port size",
     editor_port_size_hint:  "Adjusts front-panel port size for switches and gateways.",
+    editor_force_sequential_ports_label: "Force sequential ports",
+    editor_force_sequential_ports_hint:  "Optional: disable odd/even row layout and keep ports in ascending order.",
     editor_ap_scale_label:  "AP size",
     editor_ap_scale_hint:   "Scales the AP device size in AP card mode.",
     editor_no_devices:     "No UniFi switches, gateways, or access points found in Home Assistant.",
@@ -156,6 +158,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Front Panel",
+    cpu_utilization:    "CPU-Auslastung",
+    cpu_temperature:    "CPU-Temperatur",
+    memory_utilization: "Speicherauslastung",
     temperature:        "Temperatur",
 
     // Port detail
@@ -208,6 +213,8 @@ const TRANSLATIONS = {
     editor_custom_special_ports_hint:  "Per Klick Ports in der oberen Spezial-Reihe umschalten. Nicht gewählte Ports erscheinen im normalen Grid.",
     editor_port_size_label: "Portgröße",
     editor_port_size_hint:  "Skaliert die Frontpanel-Portgröße für Switches und Gateways.",
+    editor_force_sequential_ports_label: "Sequenzielle Ports erzwingen",
+    editor_force_sequential_ports_hint:  "Optional: Deaktiviert die Odd/Even-Zeilendarstellung und hält Ports in aufsteigender Reihenfolge.",
     editor_ap_scale_label:  "AP-Größe",
     editor_ap_scale_hint:   "Skaliert die AP-Gerätegröße im AP-Kartenmodus.",
     editor_no_devices:     "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
@@ -300,6 +307,7 @@ const TRANSLATIONS = {
     ap_status:          "AP-status",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
+    uplink:             "Uplink",
     uptime:             "Uptime",
     clients:            "Clients",
     speed:              "Snelheid",
@@ -344,6 +352,8 @@ const TRANSLATIONS = {
     editor_custom_special_ports_hint:  "Klik om poorten in de bovenste speciale rij te wisselen. Niet-geselecteerde poorten gaan naar het normale raster.",
     editor_port_size_label: "Poortgrootte",
     editor_port_size_hint:  "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
+    editor_force_sequential_ports_label: "Sequentiële poorten forceren",
+    editor_force_sequential_ports_hint:  "Optioneel: schakelt odd/even-rijindeling uit en houdt poorten in oplopende volgorde.",
     editor_ap_scale_label:  "AP-grootte",
     editor_ap_scale_hint:   "Schaalt de AP-apparaatgrootte in AP-kaartmodus.",
     editor_no_devices:     "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
@@ -422,6 +432,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Panneau avant",
+    cpu_utilization:    "Utilisation CPU",
+    cpu_temperature:    "Température CPU",
+    memory_utilization: "Utilisation mémoire",
     temperature:        "Température",
 
     // Port detail
@@ -429,6 +442,7 @@ const TRANSLATIONS = {
     ap_status:          "Statut AP",
     link_lan:           "Lien LAN",
     link_mesh:          "Lien Mesh",
+    uplink:             "Uplink",
     uptime:             "Disponibilité",
     clients:            "Clients",
     speed:              "Vitesse",
@@ -457,6 +471,9 @@ const TRANSLATIONS = {
     editor_device_label:   "Appareil UniFi",
     editor_device_loading: "Chargement des appareils…",
     editor_device_select:  "Sélectionner un appareil…",
+    editor_name_toggle_label: "Nom affiché",
+    editor_name_toggle_text:  "Afficher le nom dans l’en-tête de la carte",
+    editor_name_toggle_hint:  "Activé par défaut. Si désactivé, seule la ligne modèle/firmware est affichée.",
     editor_name_label:     "Nom d'affichage",
     editor_name_hint:      "Optionnel — par défaut le nom de l'appareil",
     editor_panel_toggle_label: "Panneau avant",
@@ -470,6 +487,8 @@ const TRANSLATIONS = {
     editor_custom_special_ports_hint:  "Cliquez pour basculer les ports de la ligne spéciale supérieure. Les ports non sélectionnés passent dans la grille normale.",
     editor_port_size_label: "Taille des ports",
     editor_port_size_hint:  "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
+    editor_force_sequential_ports_label: "Forcer les ports séquentiels",
+    editor_force_sequential_ports_hint:  "Optionnel : désactive l'affichage odd/even et conserve les ports en ordre croissant.",
     editor_ap_scale_label:  "Taille AP",
     editor_ap_scale_hint:   "Ajuste la taille de l’appareil AP en mode carte AP.",
     editor_no_devices:     "Aucun switch, gateway ou point d’accès UniFi trouvé dans Home Assistant.",
@@ -548,6 +567,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Panel frontal",
+    cpu_utilization:    "Uso de CPU",
+    cpu_temperature:    "Temperatura de CPU",
+    memory_utilization: "Uso de memoria",
     temperature:        "Temperatura",
 
     // Port detail
@@ -555,6 +577,7 @@ const TRANSLATIONS = {
     ap_status:          "Estado del AP",
     link_lan:           "Enlace LAN",
     link_mesh:          "Enlace Mesh",
+    uplink:             "Uplink",
     uptime:             "Tiempo activo",
     clients:            "Clientes",
     speed:              "Velocidad",
@@ -583,6 +606,9 @@ const TRANSLATIONS = {
     editor_device_label:   "Dispositivo UniFi",
     editor_device_loading: "Cargando dispositivos desde Home Assistant…",
     editor_device_select:  "Seleccionar dispositivo…",
+    editor_name_toggle_label: "Nombre mostrado",
+    editor_name_toggle_text:  "Mostrar nombre en el encabezado de la tarjeta",
+    editor_name_toggle_hint:  "Activado por defecto. Si se desactiva, solo se muestra la línea de modelo/firmware.",
     editor_name_label:     "Nombre para mostrar",
     editor_name_hint:      "Opcional — por defecto, el nombre del dispositivo",
     editor_panel_toggle_label: "Panel frontal",
@@ -596,6 +622,8 @@ const TRANSLATIONS = {
     editor_custom_special_ports_hint:  "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadrícula normal.",
     editor_port_size_label: "Tamaño de puerto",
     editor_port_size_hint:  "Ajusta el tamaño de puertos del panel frontal para switches y gateways.",
+    editor_force_sequential_ports_label: "Forzar puertos secuenciales",
+    editor_force_sequential_ports_hint:  "Opcional: desactiva el diseño odd/even y mantiene los puertos en orden ascendente.",
     editor_ap_scale_label:  "Tamaño AP",
     editor_ap_scale_hint:   "Escala el tamaño del dispositivo AP en modo tarjeta AP.",
     editor_no_devices:     "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
@@ -674,6 +702,9 @@ const TRANSLATIONS = {
 
     // Front panel
     front_panel:        "Pannello frontale",
+    cpu_utilization:    "Utilizzo CPU",
+    cpu_temperature:    "Temperatura CPU",
+    memory_utilization: "Utilizzo memoria",
     temperature:        "Temperatura",
 
     // Port detail
@@ -681,6 +712,7 @@ const TRANSLATIONS = {
     ap_status:          "Stato AP",
     link_lan:           "Link LAN",
     link_mesh:          "Link Mesh",
+    uplink:             "Uplink",
     uptime:             "Uptime",
     clients:            "Client",
     speed:              "Velocità",
@@ -709,6 +741,9 @@ const TRANSLATIONS = {
     editor_device_label:   "Dispositivo UniFi",
     editor_device_loading: "Caricamento dispositivi da Home Assistant…",
     editor_device_select:  "Seleziona dispositivo…",
+    editor_name_toggle_label: "Nome visualizzato",
+    editor_name_toggle_text:  "Mostra il nome nell’intestazione della card",
+    editor_name_toggle_hint:  "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label:     "Nome visualizzato",
     editor_name_hint:      "Opzionale — per impostazione predefinita il nome del dispositivo",
     editor_panel_toggle_label: "Pannello frontale",
@@ -722,6 +757,8 @@ const TRANSLATIONS = {
     editor_custom_special_ports_hint:  "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
     editor_port_size_label: "Dimensione porta",
     editor_port_size_hint:  "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
+    editor_force_sequential_ports_label: "Forza porte sequenziali",
+    editor_force_sequential_ports_hint:  "Opzionale: disattiva il layout odd/even e mantiene le porte in ordine crescente.",
     editor_ap_scale_label:  "Dimensione AP",
     editor_ap_scale_hint:   "Scala la dimensione del dispositivo AP in modalità card AP.",
     editor_no_devices:     "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",

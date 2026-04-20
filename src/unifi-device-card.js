@@ -942,6 +942,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _shouldUseOddEvenRows(ctx, numbered) {
     if (!ctx || (ctx.type !== "switch" && ctx.type !== "gateway")) return false;
+    if (this._config?.force_sequential_ports === true) return false;
     // Explicit per-layout overrides always win.
     if (ctx?.layout?.rj45_odd_even === true) return true;
     if (ctx?.layout?.rj45_odd_even === false) return false;

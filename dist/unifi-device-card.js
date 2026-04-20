@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.18c9838 */
+/* UniFi Device Card 0.0.0-dev.22f60ba */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2703,6 +2703,8 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Click to toggle ports in the upper special row. Unselected ports move to the normal grid.",
     editor_port_size_label: "Port size",
     editor_port_size_hint: "Adjusts front-panel port size for switches and gateways.",
+    editor_force_sequential_ports_label: "Force sequential ports",
+    editor_force_sequential_ports_hint: "Optional: disable odd/even row layout and keep ports in ascending order.",
     editor_ap_scale_label: "AP size",
     editor_ap_scale_hint: "Scales the AP device size in AP card mode.",
     editor_no_devices: "No UniFi switches, gateways, or access points found in Home Assistant.",
@@ -2774,6 +2776,9 @@ var TRANSLATIONS = {
     no_ports: "Keine Ports erkannt.",
     // Front panel
     front_panel: "Front Panel",
+    cpu_utilization: "CPU-Auslastung",
+    cpu_temperature: "CPU-Temperatur",
+    memory_utilization: "Speicherauslastung",
     temperature: "Temperatur",
     // Port detail
     link_status: "Link Status",
@@ -2822,6 +2827,8 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Per Klick Ports in der oberen Spezial-Reihe umschalten. Nicht gew\xE4hlte Ports erscheinen im normalen Grid.",
     editor_port_size_label: "Portgr\xF6\xDFe",
     editor_port_size_hint: "Skaliert die Frontpanel-Portgr\xF6\xDFe f\xFCr Switches und Gateways.",
+    editor_force_sequential_ports_label: "Sequenzielle Ports erzwingen",
+    editor_force_sequential_ports_hint: "Optional: Deaktiviert die Odd/Even-Zeilendarstellung und h\xE4lt Ports in aufsteigender Reihenfolge.",
     editor_ap_scale_label: "AP-Gr\xF6\xDFe",
     editor_ap_scale_hint: "Skaliert die AP-Ger\xE4tegr\xF6\xDFe im AP-Kartenmodus.",
     editor_no_devices: "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
@@ -2902,6 +2909,7 @@ var TRANSLATIONS = {
     ap_status: "AP-status",
     link_lan: "Link LAN",
     link_mesh: "Link Mesh",
+    uplink: "Uplink",
     uptime: "Uptime",
     clients: "Clients",
     speed: "Snelheid",
@@ -2943,6 +2951,8 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Klik om poorten in de bovenste speciale rij te wisselen. Niet-geselecteerde poorten gaan naar het normale raster.",
     editor_port_size_label: "Poortgrootte",
     editor_port_size_hint: "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
+    editor_force_sequential_ports_label: "Sequenti\xEBle poorten forceren",
+    editor_force_sequential_ports_hint: "Optioneel: schakelt odd/even-rijindeling uit en houdt poorten in oplopende volgorde.",
     editor_ap_scale_label: "AP-grootte",
     editor_ap_scale_hint: "Schaalt de AP-apparaatgrootte in AP-kaartmodus.",
     editor_no_devices: "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
@@ -3011,12 +3021,16 @@ var TRANSLATIONS = {
     no_ports: "Aucun port d\xE9tect\xE9.",
     // Front panel
     front_panel: "Panneau avant",
+    cpu_utilization: "Utilisation CPU",
+    cpu_temperature: "Temp\xE9rature CPU",
+    memory_utilization: "Utilisation m\xE9moire",
     temperature: "Temp\xE9rature",
     // Port detail
     link_status: "\xC9tat du lien",
     ap_status: "Statut AP",
     link_lan: "Lien LAN",
     link_mesh: "Lien Mesh",
+    uplink: "Uplink",
     uptime: "Disponibilit\xE9",
     clients: "Clients",
     speed: "Vitesse",
@@ -3042,6 +3056,9 @@ var TRANSLATIONS = {
     editor_device_label: "Appareil UniFi",
     editor_device_loading: "Chargement des appareils\u2026",
     editor_device_select: "S\xE9lectionner un appareil\u2026",
+    editor_name_toggle_label: "Nom affich\xE9",
+    editor_name_toggle_text: "Afficher le nom dans l\u2019en-t\xEAte de la carte",
+    editor_name_toggle_hint: "Activ\xE9 par d\xE9faut. Si d\xE9sactiv\xE9, seule la ligne mod\xE8le/firmware est affich\xE9e.",
     editor_name_label: "Nom d'affichage",
     editor_name_hint: "Optionnel \u2014 par d\xE9faut le nom de l'appareil",
     editor_panel_toggle_label: "Panneau avant",
@@ -3055,6 +3072,8 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Cliquez pour basculer les ports de la ligne sp\xE9ciale sup\xE9rieure. Les ports non s\xE9lectionn\xE9s passent dans la grille normale.",
     editor_port_size_label: "Taille des ports",
     editor_port_size_hint: "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
+    editor_force_sequential_ports_label: "Forcer les ports s\xE9quentiels",
+    editor_force_sequential_ports_hint: "Optionnel : d\xE9sactive l'affichage odd/even et conserve les ports en ordre croissant.",
     editor_ap_scale_label: "Taille AP",
     editor_ap_scale_hint: "Ajuste la taille de l\u2019appareil AP en mode carte AP.",
     editor_no_devices: "Aucun switch, gateway ou point d\u2019acc\xE8s UniFi trouv\xE9 dans Home Assistant.",
@@ -3123,12 +3142,16 @@ var TRANSLATIONS = {
     no_ports: "No se detectaron puertos.",
     // Front panel
     front_panel: "Panel frontal",
+    cpu_utilization: "Uso de CPU",
+    cpu_temperature: "Temperatura de CPU",
+    memory_utilization: "Uso de memoria",
     temperature: "Temperatura",
     // Port detail
     link_status: "Estado del enlace",
     ap_status: "Estado del AP",
     link_lan: "Enlace LAN",
     link_mesh: "Enlace Mesh",
+    uplink: "Uplink",
     uptime: "Tiempo activo",
     clients: "Clientes",
     speed: "Velocidad",
@@ -3154,6 +3177,9 @@ var TRANSLATIONS = {
     editor_device_label: "Dispositivo UniFi",
     editor_device_loading: "Cargando dispositivos desde Home Assistant\u2026",
     editor_device_select: "Seleccionar dispositivo\u2026",
+    editor_name_toggle_label: "Nombre mostrado",
+    editor_name_toggle_text: "Mostrar nombre en el encabezado de la tarjeta",
+    editor_name_toggle_hint: "Activado por defecto. Si se desactiva, solo se muestra la l\xEDnea de modelo/firmware.",
     editor_name_label: "Nombre para mostrar",
     editor_name_hint: "Opcional \u2014 por defecto, el nombre del dispositivo",
     editor_panel_toggle_label: "Panel frontal",
@@ -3167,6 +3193,8 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadr\xEDcula normal.",
     editor_port_size_label: "Tama\xF1o de puerto",
     editor_port_size_hint: "Ajusta el tama\xF1o de puertos del panel frontal para switches y gateways.",
+    editor_force_sequential_ports_label: "Forzar puertos secuenciales",
+    editor_force_sequential_ports_hint: "Opcional: desactiva el dise\xF1o odd/even y mantiene los puertos en orden ascendente.",
     editor_ap_scale_label: "Tama\xF1o AP",
     editor_ap_scale_hint: "Escala el tama\xF1o del dispositivo AP en modo tarjeta AP.",
     editor_no_devices: "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
@@ -3235,12 +3263,16 @@ var TRANSLATIONS = {
     no_ports: "Nessuna porta rilevata.",
     // Front panel
     front_panel: "Pannello frontale",
+    cpu_utilization: "Utilizzo CPU",
+    cpu_temperature: "Temperatura CPU",
+    memory_utilization: "Utilizzo memoria",
     temperature: "Temperatura",
     // Port detail
     link_status: "Stato collegamento",
     ap_status: "Stato AP",
     link_lan: "Link LAN",
     link_mesh: "Link Mesh",
+    uplink: "Uplink",
     uptime: "Uptime",
     clients: "Client",
     speed: "Velocit\xE0",
@@ -3266,6 +3298,9 @@ var TRANSLATIONS = {
     editor_device_label: "Dispositivo UniFi",
     editor_device_loading: "Caricamento dispositivi da Home Assistant\u2026",
     editor_device_select: "Seleziona dispositivo\u2026",
+    editor_name_toggle_label: "Nome visualizzato",
+    editor_name_toggle_text: "Mostra il nome nell\u2019intestazione della card",
+    editor_name_toggle_hint: "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label: "Nome visualizzato",
     editor_name_hint: "Opzionale \u2014 per impostazione predefinita il nome del dispositivo",
     editor_panel_toggle_label: "Pannello frontale",
@@ -3279,6 +3314,8 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
     editor_port_size_label: "Dimensione porta",
     editor_port_size_hint: "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
+    editor_force_sequential_ports_label: "Forza porte sequenziali",
+    editor_force_sequential_ports_hint: "Opzionale: disattiva il layout odd/even e mantiene le porte in ordine crescente.",
     editor_ap_scale_label: "Dimensione AP",
     editor_ap_scale_hint: "Scala la dimensione del dispositivo AP in modalit\xE0 card AP.",
     editor_no_devices: "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
@@ -3595,6 +3632,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     if (!next.special_ports.length) delete next.special_ports;
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
+    if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     if (next.show_name !== false) delete next.show_name;
     if (next.show_panel !== false) delete next.show_panel;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -3646,6 +3684,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _onShowPanelChange(ev) {
     const checked = !!ev.target.checked;
     this._emitConfig({ show_panel: checked ? void 0 : false });
+  }
+  _onForceSequentialPortsChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ force_sequential_ports: checked ? true : void 0 });
   }
   _onPortsPerRowChange(ev) {
     this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
@@ -3959,6 +4001,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
+    const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const portsPerRow = this._config?.ports_per_row || "";
@@ -4046,6 +4089,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
         </div>
 
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
+            <span>${this._t("editor_force_sequential_ports_label")}</span>
+          </label>
+          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+        </div>
+
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
@@ -4086,6 +4137,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
     this.shadowRoot.getElementById("port_size")?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
+    this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("ap_scale")?.addEventListener("input", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("background_color")?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
@@ -4109,7 +4161,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.18c9838";
+var VERSION = "0.0.0-dev.22f60ba";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4826,6 +4878,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _shouldUseOddEvenRows(ctx, numbered) {
     if (!ctx || ctx.type !== "switch" && ctx.type !== "gateway") return false;
+    if (this._config?.force_sequential_ports === true) return false;
     if (ctx?.layout?.rj45_odd_even === true) return true;
     if (ctx?.layout?.rj45_odd_even === false) return false;
     const frontStyle = String(ctx?.layout?.frontStyle || "");
