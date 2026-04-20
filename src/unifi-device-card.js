@@ -855,9 +855,11 @@ class UnifiDeviceCard extends HTMLElement {
       .map((slot) => slot?.port)
       .filter((port) => Number.isInteger(port));
     const hasEditMode = this._config?.edit_special_ports === true;
+    const hasExplicitSpecialPorts =
+      hasEditMode && Object.prototype.hasOwnProperty.call(this._config || {}, "special_ports");
 
     const selectedPorts = hasEditMode
-      ? (Array.isArray(this._config?.special_ports)
+      ? (hasExplicitSpecialPorts
           ? this._normalizePortList(this._config?.special_ports)
           : this._normalizePortList(specialPortDefaults))
       : this._normalizePortList([
