@@ -139,6 +139,16 @@ function collectDefaultSpecialPorts(layout) {
   ).sort((a, b) => a - b);
 }
 
+function hasExplicitSpecialPorts(config) {
+  return Object.prototype.hasOwnProperty.call(config || {}, "special_ports");
+}
+
+function resolveSelectedSpecialPorts(config, layout) {
+  const configured = normalizeSpecialPortNumbers(config?.special_ports);
+  if (hasExplicitSpecialPorts(config)) return configured;
+  return collectDefaultSpecialPorts(layout);
+}
+
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -279,6 +289,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _emitConfig(partial) {
     const next = { ...this._config, ...partial };
+    const hadExplicitSpecialPorts = hasExplicitSpecialPorts(this._config);
+    const hasIncomingSpecialPorts = hasExplicitSpecialPorts(partial);
+    const keepExplicitSpecialPorts = hasIncomingSpecialPorts || hadExplicitSpecialPorts;
 
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
@@ -292,10 +305,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
     next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
     if (!next.custom_special_ports.length) delete next.custom_special_ports;
     next.special_ports = normalizeSpecialPortNumbers(next.special_ports);
-    if (!next.special_ports.length && next.edit_special_ports === true) {
+    if (
+      !next.special_ports.length &&
+      next.edit_special_ports === true &&
+      !keepExplicitSpecialPorts
+    ) {
       next.special_ports = collectDefaultSpecialPorts(this._deviceCtx?.layout);
     }
-    if (!next.special_ports.length) delete next.special_ports;
+    if (!next.special_ports.length) {
+      if (next.edit_special_ports === true && keepExplicitSpecialPorts) {
+        next.special_ports = [];
+      } else {
+        delete next.special_ports;
+      }
+    }
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.show_name !== false) delete next.show_name;
     if (next.show_panel !== false) delete next.show_panel;
@@ -408,11 +431,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _onEditSpecialPortsChange(ev) {
     const enabled = !!ev.target.checked;
     const defaults = collectDefaultSpecialPorts(this._deviceCtx?.layout);
+    const hasConfiguredSpecialPorts = hasExplicitSpecialPorts(this._config);
     const current = normalizeSpecialPortNumbers(this._config?.special_ports);
 
     this._emitConfig({
       edit_special_ports: enabled ? true : undefined,
-      special_ports: enabled ? (current.length ? current : defaults) : undefined,
+      special_ports: enabled
+        ? (hasConfiguredSpecialPorts ? current : defaults)
+        : undefined,
       custom_special_ports: undefined,
     });
   }
@@ -424,7 +450,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const port = Number.parseInt(button.dataset.port, 10);
     if (!Number.isInteger(port) || port < 1) return;
 
-    const current = normalizeSpecialPortNumbers(this._config?.special_ports);
+    const current = resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout);
     const next = current.includes(port)
       ? current.filter((p) => p !== port)
       : [...current, port];
@@ -758,12 +784,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       new Set([...collectLayoutPorts(this._deviceCtx?.layout), ...discoveredPorts])
     ).sort((a, b) => a - b);
     const customSpecialPortOptions = selectableSpecialPorts;
-    const defaultSpecialPorts = collectDefaultSpecialPorts(this._deviceCtx?.layout);
     const selectedSpecialPorts = editSpecialPorts
-      ? (() => {
-          const configured = normalizeSpecialPortNumbers(this._config?.special_ports);
-          return configured.length ? configured : defaultSpecialPorts;
-        })()
+      ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
 
     this.shadowRoot.innerHTML = `
