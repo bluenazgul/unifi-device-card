@@ -852,14 +852,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
         </div>
 
-        <div class="field">
-          <label class="checkbox-row">
-            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
-            <span>${this._t("editor_force_sequential_ports_label")}</span>
-          </label>
-          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
-        </div>
-
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
@@ -872,6 +864,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
           </div>
           <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
+
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
+            <span>${this._t("editor_force_sequential_ports_label")}</span>
+          </label>
+          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+        </div>
         ` : ""}
 
         <div class="field">

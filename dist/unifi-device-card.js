@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.22f60ba */
+/* UniFi Device Card 0.0.0-dev.233d929 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4089,14 +4089,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
         </div>
 
-        <div class="field">
-          <label class="checkbox-row">
-            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
-            <span>${this._t("editor_force_sequential_ports_label")}</span>
-          </label>
-          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
-        </div>
-
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
@@ -4107,6 +4099,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           </div>
           <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
         </div>` : ""}
+
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
+            <span>${this._t("editor_force_sequential_ports_label")}</span>
+          </label>
+          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+        </div>
         ` : ""}
 
         <div class="field">
@@ -4161,7 +4161,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.22f60ba";
+var VERSION = "0.0.0-dev.233d929";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
