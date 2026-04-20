@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1adc75a */
+/* UniFi Device Card 0.0.0-dev.267cd72 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4123,7 +4123,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1adc75a";
+var VERSION = "0.0.0-dev.267cd72";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4976,7 +4976,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         const result = isPortConnected(this._hass, port);
         if (!result && this._sfpConnectedSeen.has(key)) {
           const speedMbit = parseLinkSpeedMbit(this._hass, port?.speed_entity);
-          if (speedMbit == null || speedMbit > 0) return true;
+          if (speedMbit != null && speedMbit > 0) return true;
           this._sfpConnectedSeen.delete(key);
         }
         return result;
