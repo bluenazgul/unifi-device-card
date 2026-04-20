@@ -7,7 +7,7 @@
 - Add force_sequential_ports option to disable odd/even port layout
 
 ### 🐛 Bug Fixes
-- Included fixes from [PR #130](https://github.com/bluenazgul/unifi-device-card/pull/130): fix: clear SFP sticky state when speed entity is absent or unavailable . Thanks to @DAE51D.
+- Included fixes from [PR #130](https://github.com/bluenazgul/unifi-device-card/pull/130): clear SFP sticky state when speed entity is absent or unavailable . Thanks to @DAE51D.
 
 
 
