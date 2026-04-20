@@ -5031,7 +5031,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         const result = isPortConnected(this._hass, port);
         if (!result && this._sfpConnectedSeen.has(key)) {
           const speedMbit = parseLinkSpeedMbit(this._hass, port?.speed_entity);
-          if (speedMbit == null || speedMbit > 0) return true;
+          if (speedMbit != null && speedMbit > 0) return true;
           this._sfpConnectedSeen.delete(key);
         }
         return result;

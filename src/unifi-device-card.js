@@ -1110,10 +1110,13 @@ class UnifiDeviceCard extends HTMLElement {
         if (hasTraffic(this._hass, port)) this._sfpConnectedSeen.add(key);
         const result = isPortConnected(this._hass, port);
         if (!result && this._sfpConnectedSeen.has(key)) {
-          // Port was live before — only go dark if speed actually reached 0.
+          // Port was live before — only keep sticky when speed entity confirms
+          // the link is still up (> 0). A null means no speed entity exists so
+          // we cannot distinguish a poll-dip from a real disconnect; let it fall
+          // through. A value of 0 means the cable was removed.
           const speedMbit = parseLinkSpeedMbit(this._hass, port?.speed_entity);
-          if (speedMbit == null || speedMbit > 0) return true;
-          // Speed is 0: cable removed. Clear sticky state.
+          if (speedMbit != null && speedMbit > 0) return true;
+          // Speed is 0 or unavailable: clear sticky state.
           this._sfpConnectedSeen.delete(key);
         }
         return result;
