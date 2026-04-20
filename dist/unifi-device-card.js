@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9427655 */
+/* UniFi Device Card 0.6.2 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4078,8 +4078,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
-        </div>
-
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -4177,7 +4175,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9427655";
+var VERSION = "0.6.2";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
