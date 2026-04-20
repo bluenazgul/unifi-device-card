@@ -849,8 +849,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
           <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
-        </div>
-
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
