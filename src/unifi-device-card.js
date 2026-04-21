@@ -301,6 +301,19 @@ class UnifiDeviceCard extends HTMLElement {
     return Math.min(140, Math.max(60, raw));
   }
 
+  _apCompactScaleLimit() {
+    const cardWidth = this._measuredCardWidth();
+    if (!Number.isFinite(cardWidth) || cardWidth <= 0) return 1;
+
+    const compactThreshold = 340;
+    if (cardWidth >= compactThreshold) return 1;
+
+    const available = Math.max(0, cardWidth - 28);
+    const scale = available / 225;
+    if (!Number.isFinite(scale)) return 1;
+    return Math.max(0.6, Math.min(1, scale));
+  }
+
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
     const maxRowCols = rows.reduce((max, row) => Math.max(max, row.length || 0), 0);
@@ -1523,10 +1536,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .frontpanel.ap-disc {
-        --udc-ap-effective-scale: min(
-          var(--udc-ap-scale),
-          max(0.6, calc((100% - 28px) / 225))
-        );
+        --udc-ap-effective-scale: min(var(--udc-ap-scale), var(--udc-ap-compact-scale, 1));
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
         place-items: center;
@@ -2043,7 +2053,7 @@ class UnifiDeviceCard extends HTMLElement {
       const headerMetrics = this._headerMetrics();
 
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}; --udc-ap-compact-scale: ${this._apCompactScaleLimit()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}

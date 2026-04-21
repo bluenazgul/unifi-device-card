@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6e36a75 */
+/* UniFi Device Card 0.0.0-dev.054d5be */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4175,7 +4175,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6e36a75";
+var VERSION = "0.0.0-dev.054d5be";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4406,6 +4406,16 @@ var UnifiDeviceCard = class extends HTMLElement {
     const raw = Number.parseInt(this._config?.ap_scale, 10);
     if (!Number.isFinite(raw)) return 100;
     return Math.min(140, Math.max(60, raw));
+  }
+  _apCompactScaleLimit() {
+    const cardWidth = this._measuredCardWidth();
+    if (!Number.isFinite(cardWidth) || cardWidth <= 0) return 1;
+    const compactThreshold = 340;
+    if (cardWidth >= compactThreshold) return 1;
+    const available = Math.max(0, cardWidth - 28);
+    const scale = available / 225;
+    if (!Number.isFinite(scale)) return 1;
+    return Math.max(0.6, Math.min(1, scale));
   }
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
@@ -5406,10 +5416,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .frontpanel.ap-disc {
-        --udc-ap-effective-scale: min(
-          var(--udc-ap-scale),
-          max(0.6, calc((100% - 28px) / 225))
-        );
+        --udc-ap-effective-scale: min(var(--udc-ap-scale), var(--udc-ap-compact-scale, 1));
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
         place-items: center;
@@ -5923,7 +5930,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}; --udc-ap-compact-scale: ${this._apCompactScaleLimit()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
