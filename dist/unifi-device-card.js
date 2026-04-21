@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.6.4-dev */
+/* UniFi Device Card 0.0.0-dev.26fabec */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2451,7 +2451,8 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
-  const telemetry = getDeviceTelemetry(entities);
+  const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
+  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
   const apStats = getAccessPointStatEntities(entities);
   const apUplink = type === "access_point" ? resolveAccessPointUplink(hass, entities, devices) : null;
   return {
@@ -4211,7 +4212,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.6.4-dev";
+var VERSION = "0.0.0-dev.26fabec";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4448,6 +4449,9 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _apCompactViewEnabled() {
     return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
+  }
+  _apCompactHeaderTelemetryEnabled() {
+    return this._ctx?.type === "access_point" && this._config?.ap_compact_show_header_telemetry === true;
   }
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
@@ -5990,7 +5994,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
-      const headerMetrics2 = this._headerMetrics();
+      const headerMetrics2 = compactApView && !this._apCompactHeaderTelemetryEnabled() ? [] : this._headerMetrics();
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
@@ -6019,12 +6023,20 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>
 
             <div class="section">
-              <div class="detail-title">${this._t("ap_status")}</div>
               <div class="detail-grid">
                 <div class="detail-item">
                   <div class="detail-label">${this._t("ap_status")}</div>
                   <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
                 </div>
+                ${compactApView ? `
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("clients")}</div>
+                  <div class="detail-value">${clients}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uptime")}</div>
+                  <div class="detail-value">${uptime}</div>
+                </div>` : `
                 <div class="detail-item">
                   <div class="detail-label">${this._t("uptime")}</div>
                   <div class="detail-value">${uptime}</div>
@@ -6032,7 +6044,7 @@ var UnifiDeviceCard = class extends HTMLElement {
                 <div class="detail-item">
                   <div class="detail-label">${this._t("clients")}</div>
                   <div class="detail-value">${clients}</div>
-                </div>
+                </div>`}
                 ${apUplink ? `
                 <div class="detail-item">
                   <div class="detail-label">${this._t("uplink")}</div>
