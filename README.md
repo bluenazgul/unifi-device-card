@@ -19,11 +19,11 @@ USW-Lite-16-PoE with **force_sequential_port: true** (optional)  [additional use
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20USW-Lite-16-PoE-wihtout_Panel.png" />
 
 
-Normal AP Card Layout **ap_compact_view: false** (default) [additional used *background_opacity: 35 / show_panel: false*]
+Normal AP Card Layout **ap_compact_view: false** (default) [additional used *background_opacity: 35*]
 
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/fc2fae00697035b608feb18c4b24900b3c98a286/screenshots/AP%20Card%20normal.png" />
 
-Compact AP Card Layout **ap_compact_view: true** (optional) [additional used *background_opacity: 35 / show_panel: false*]
+Compact AP Card Layout **ap_compact_view: true** (optional) [additional used *background_opacity: 35*]
 
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/0dc4ffbd92ae473074e31ad2292a9e0ab17c14cf/screenshots/AP%20Card%20Compact.png" />
 
