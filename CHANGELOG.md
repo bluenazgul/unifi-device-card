@@ -6,6 +6,9 @@
 - Add AP-only `ap_compact_view` option with an editor checkbox to render AP cards in a compact side-by-side layout
 - Hide the AP size slider while compact view is enabled and extend AP size range to 25–140 for normal AP view
 
+### 🐛 Bug Fixes
+- Added per-model AP LED fallback colors so legacy models (`UAP`, `UAP-LR`, `UAP-Outdoor5`) use green when no LED RGB/color entity is available.
+
 ## [0.6.2] - 2026-04-20
 
 ### ✨ Improvements

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ddb1416 */
+/* UniFi Device Card 0.0.0-dev.b92c9c0 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -80,8 +80,9 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // ACCESS POINTS
   // ══════════════════════════════════════════════════════════════════════════
-  UAP: apModel("UAP"),
-  UAPLR: apModel("UAP-LR"),
+  UAP: { ...apModel("UAP"), apLedDefaultColor: "#33d35d" },
+  UAPLR: { ...apModel("UAP-LR"), apLedDefaultColor: "#33d35d" },
+  UAPOUTDOOR5: { ...apModel("UAP-Outdoor5"), apLedDefaultColor: "#33d35d" },
   UAPPRO: apModel("UAP-Pro"),
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
@@ -4210,7 +4211,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ddb1416";
+var VERSION = "0.0.0-dev.b92c9c0";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4584,7 +4585,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apLedState() {
     const ledEntity = this._ctx?.led_switch_entity;
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
-    const ringColor = ledEnabled ? this._apLedColorValue() || "#0000ff" : "#868b93";
+    const defaultColor = this._ctx?.layout?.apLedDefaultColor ?? "#0000ff";
+    const ringColor = ledEnabled ? this._apLedColorValue() || defaultColor : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
   }
   _apUplinkText(uplink) {
