@@ -1,6 +1,6 @@
 # Changelog
 
-## [unreleased]
+## [v0.6.5] - 2026-04-21
 
 ### ✨ Improvements
 - Add AP-only `ap_compact_view` option with an editor checkbox to render AP cards in a compact side-by-side layout
