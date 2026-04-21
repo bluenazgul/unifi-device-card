@@ -5,9 +5,11 @@
 ### ✨ Improvements
 - Add AP-only `ap_compact_view` option with an editor checkbox to render AP cards in a compact side-by-side layout
 - Hide the AP size slider while compact view is enabled and extend AP size range to 25–140 for normal AP view
+- Add optional YAML flag `ap_compact_show_header_telemetry` to keep AP header telemetry visible in compact view
 
 ### 🐛 Bug Fixes
 - Added per-model AP LED fallback colors so legacy models (`UAP`, `UAP-LR`, `UAP-Outdoor5`) use green when no LED RGB/color entity is available.
+- Restore header telemetry discovery for switch/AP devices by resolving telemetry entities from the full device entity set.
 
 
 

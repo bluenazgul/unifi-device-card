@@ -308,6 +308,10 @@ class UnifiDeviceCard extends HTMLElement {
     return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
 
+  _apCompactHeaderTelemetryEnabled() {
+    return this._ctx?.type === "access_point" && this._config?.ap_compact_show_header_telemetry === true;
+  }
+
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
     const maxRowCols = rows.reduce((max, row) => Math.max(max, row.length || 0), 0);
@@ -2074,7 +2078,9 @@ class UnifiDeviceCard extends HTMLElement {
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
 
       const headerTitle = this._title();
-      const headerMetrics = this._headerMetrics();
+      const headerMetrics = compactApView && !this._apCompactHeaderTelemetryEnabled()
+        ? []
+        : this._headerMetrics();
 
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
