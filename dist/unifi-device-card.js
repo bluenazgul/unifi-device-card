@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a4f5643 */
+/* UniFi Device Card 0.0.0-dev.26fabec */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2451,8 +2451,9 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
-  const telemetry = getDeviceTelemetry(allEntities);
-  const apStats = getAccessPointStatEntities(allEntities);
+  const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
+  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
+  const apStats = getAccessPointStatEntities(entities);
   const apUplink = type === "access_point" ? resolveAccessPointUplink(hass, entities, devices) : null;
   return {
     device,
@@ -4211,7 +4212,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a4f5643";
+var VERSION = "0.0.0-dev.26fabec";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

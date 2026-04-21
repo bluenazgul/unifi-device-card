@@ -1707,8 +1707,9 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
-  const telemetry = getDeviceTelemetry(allEntities);
-  const apStats = getAccessPointStatEntities(allEntities);
+  const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
+  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
+  const apStats = getAccessPointStatEntities(entities);
   const apUplink = type === "access_point"
     ? resolveAccessPointUplink(hass, entities, devices)
     : null;
