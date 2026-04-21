@@ -473,7 +473,8 @@ class UnifiDeviceCard extends HTMLElement {
   _apLedState() {
     const ledEntity = this._ctx?.led_switch_entity;
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
-    const ringColor = ledEnabled ? (this._apLedColorValue() || "#0000ff") : "#868b93";
+    const defaultColor = this._ctx?.layout?.apLedDefaultColor ?? "#0000ff";
+    const ringColor = ledEnabled ? (this._apLedColorValue() || defaultColor) : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
   }
 

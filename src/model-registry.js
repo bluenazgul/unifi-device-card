@@ -122,8 +122,9 @@ export const MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // ACCESS POINTS
   // ══════════════════════════════════════════════════════════════════════════
-  UAP: apModel("UAP"),
-  UAPLR: apModel("UAP-LR"),
+  UAP: { ...apModel("UAP"), apLedDefaultColor: "#33d35d" },
+  UAPLR: { ...apModel("UAP-LR"), apLedDefaultColor: "#33d35d" },
+  UAPOUTDOOR5: { ...apModel("UAP-Outdoor5"), apLedDefaultColor: "#33d35d" },
   UAPPRO: apModel("UAP-Pro"),
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
