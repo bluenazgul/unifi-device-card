@@ -1,12 +1,31 @@
 # UniFi Device Card
 
 
+Config Screenshots
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20Config%201.png" />
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20Config%202.png" />
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenhot%20Config%203.png" />
+
+UCG-U with **show_panel: true** (default) [additional used *background_opacity: 35*]
+
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20UCG-U-with_Panel.png" />
+
+USW-Lite-16-PoE with **force_sequential_port: false** (default) [additional used *background_opacity: 35 / show_panel: false*]
+
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/0dc4ffbd92ae473074e31ad2292a9e0ab17c14cf/screenshots/Screenshot%20USW-Lite-16-PoE%20odd-even.png" />
+
+USW-Lite-16-PoE with **force_sequential_port: true** (optional)  [additional used *background_opacity: 35 / show_panel: false*]
+
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenshot%20USW-Lite-16-PoE-wihtout_Panel.png" />
-<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/6c31b16aebb9bc744ba871ce10cf0b4e2d90536b/screenshots/Screenhot%20AP.png" />
+
+
+Normal AP Card Layout **ap_compact_view: false** (default) [additional used *background_opacity: 35 / show_panel: false*]
+
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/fc2fae00697035b608feb18c4b24900b3c98a286/screenshots/AP%20Card%20normal.png" />
+
+Compact AP Card Layout **ap_compact_view: true** (optional) [additional used *background_opacity: 35 / show_panel: false*]
+
+<img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/0dc4ffbd92ae473074e31ad2292a9e0ab17c14cf/screenshots/AP%20Card%20Compact.png" />
 
 
 A Home Assistant Lovelace custom card for UniFi switches, gateways, and access points — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
@@ -133,7 +152,7 @@ Unknown models are auto-detected by port count and fall back to a generic dark t
 
 ### Notes
 
-- Access points are supported via a dedicated AP panel (status/uptime/clients/reboot)
+- Access points are supported through a generic AP panel (status/uptime/clients/reboot)
 - Some models are still **layout-inferred** if no dedicated registry entry exists
 - WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
 - **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x
@@ -190,7 +209,9 @@ rotate180: false              # optional (default: false) | true flips the switc
 ports_per_row: 8              # optional (switches only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
 port_size: 36                 # optional (switch/gateway front panel scale in px)
-ap_scale: 100                 # optional (AP size in %, 60-140)
+ap_scale: 100                 # optional (AP size in %, 25-140)
+ap_compact_view: false        # optional (AP only; side-by-side compact AP layout)
+ap_compact_show_header_telemetry: false # optional (AP only; show header telemetry also in compact AP view)
 log_level: warn               # optional (error|warn|info|debug|trace)
 debug: false                  # optional shorthand (true => debug log level)
 edit_special_ports: false     # optional (switch/gateway only)
@@ -213,7 +234,9 @@ wan2_port: none               # optional (gateway only)
 | `ports_per_row` | number | auto | Optional row width override for switch layouts. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
-| `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |
+| `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
+| `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
+| `ap_compact_show_header_telemetry` | boolean | `false` | AP only: keeps CPU/memory/temperature header telemetry visible in compact AP view. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
 | `debug` | boolean | `false` | Shorthand for enabling debug logging (`true` behaves like `log_level: debug` if `log_level` is not set). |
 | `edit_special_ports` | boolean | `false` | Switch/Gateway only: enables WAN/WAN2 selectors and manual special-port editing in the UI/editor. |
