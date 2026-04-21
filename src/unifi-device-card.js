@@ -221,7 +221,10 @@ class UnifiDeviceCard extends HTMLElement {
   _estimateCardSize() {
     if (!this._config?.device_id) return 4;
     if (!this._ctx) return 5;
-    if (this._ctx?.type === "access_point") return this._ctx?.ap_uplink ? 9 : 8;
+    if (this._ctx?.type === "access_point") {
+      if (this._apCompactViewEnabled()) return this._ctx?.ap_uplink ? 7 : 6;
+      return this._ctx?.ap_uplink ? 9 : 8;
+    }
 
     const { specials, numbered } = this._buildSlotData(this._ctx);
     const specialPortsInUse = new Set(
@@ -298,7 +301,11 @@ class UnifiDeviceCard extends HTMLElement {
   _apScale() {
     const raw = Number.parseInt(this._config?.ap_scale, 10);
     if (!Number.isFinite(raw)) return 100;
-    return Math.min(140, Math.max(60, raw));
+    return Math.min(140, Math.max(25, raw));
+  }
+
+  _apCompactViewEnabled() {
+    return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
 
   _maxPortColumns() {
@@ -1533,6 +1540,28 @@ class UnifiDeviceCard extends HTMLElement {
         padding: 4px 14px;
       }
 
+      .ap-layout.compact {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(190px, 1fr);
+        align-items: stretch;
+      }
+
+      .ap-layout.compact .frontpanel.ap-disc {
+        min-height: calc((180px * var(--udc-ap-scale)) + 12px);
+        border-bottom: none;
+        border-right: 1px solid var(--udc-border);
+      }
+
+      .ap-layout.compact .ap-device {
+        width: calc(180px * var(--udc-ap-scale));
+        height: calc(180px * var(--udc-ap-scale));
+      }
+
+      .ap-layout.compact .section {
+        display: grid;
+        align-content: center;
+      }
+
       .ap-device {
         width: calc(225px * var(--udc-ap-scale));
         height: calc(225px * var(--udc-ap-scale));
@@ -2026,6 +2055,7 @@ class UnifiDeviceCard extends HTMLElement {
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
       const online = this._isDeviceOnline();
+      const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
       const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
       const apStatusClass = apStatusRaw === "connected" ? "online" : (apStatusRaw === "disconnected" ? "offline" : "pending");
@@ -2039,7 +2069,7 @@ class UnifiDeviceCard extends HTMLElement {
       const headerMetrics = this._headerMetrics();
 
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
@@ -2056,34 +2086,36 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
 
-          <div class="frontpanel ap-disc">
-            <div class="ap-device">
-              <div class="ap-ring ${ledEnabled ? "online" : "off"}">
-                <div class="ap-logo">u</div>
+          <div class="ap-layout ${compactApView ? "compact" : ""}">
+            <div class="frontpanel ap-disc">
+              <div class="ap-device">
+                <div class="ap-ring ${ledEnabled ? "online" : "off"}">
+                  <div class="ap-logo">u</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="section">
-            <div class="detail-title">${this._t("ap_status")}</div>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <div class="detail-label">${this._t("ap_status")}</div>
-                <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+            <div class="section">
+              <div class="detail-title">${this._t("ap_status")}</div>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("ap_status")}</div>
+                  <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uptime")}</div>
+                  <div class="detail-value">${uptime}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("clients")}</div>
+                  <div class="detail-value">${clients}</div>
+                </div>
+                ${apUplink ? `
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uplink")}</div>
+                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
+                </div>` : ""}
               </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("uptime")}</div>
-                <div class="detail-value">${uptime}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("clients")}</div>
-                <div class="detail-value">${clients}</div>
-              </div>
-              ${apUplink ? `
-              <div class="detail-item">
-                <div class="detail-label">${this._t("uplink")}</div>
-                <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
-              </div>` : ""}
             </div>
           </div>
         </ha-card>`;

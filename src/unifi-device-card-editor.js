@@ -106,7 +106,7 @@ function clampPortSize(value) {
 function clampApScale(value) {
   const num = Number.parseInt(value, 10);
   if (!Number.isFinite(num)) return 100;
-  return Math.min(140, Math.max(60, num));
+  return Math.min(140, Math.max(25, num));
 }
 
 function normalizeSpecialPortNumbers(value) {
@@ -329,6 +329,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.port_size === 36) delete next.port_size;
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
+    if (next.ap_compact_view !== true) delete next.ap_compact_view;
 
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
@@ -399,6 +400,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onApScaleInput(ev) {
     this._emitConfig({ ap_scale: clampApScale(ev.target.value) });
+  }
+
+  _onApCompactViewChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ ap_compact_view: checked ? true : undefined });
   }
 
   _onWanPortChange(ev) {
@@ -779,6 +785,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
+    const apCompactView = this._config?.ap_compact_view === true;
     const editSpecialPorts =
       this._config?.edit_special_ports === true ||
       !!this._config?.wan_port ||
@@ -860,10 +867,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
         ${isApDevice ? `
         <div class="field">
+          <label>${this._t("editor_ap_compact_toggle_label")}</label>
+          <label class="checkbox-row">
+            <input id="ap_compact_view" type="checkbox" ${apCompactView ? "checked" : ""}>
+            <span>${this._t("editor_ap_compact_toggle_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
+        </div>
+
+        ${!apCompactView ? `
+        <div class="field">
           <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
-          <input id="ap_scale" type="range" min="60" max="140" step="1" value="${apScale}">
+          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${apScale}">
           <div class="hint">${this._t("editor_ap_scale_hint")}</div>
-        </div>` : ""}
+        </div>` : ""}` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -937,6 +954,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
       ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("ap_compact_view")
+      ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
 
     this.shadowRoot.getElementById("background_color")
       ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));

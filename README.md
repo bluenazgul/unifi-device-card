@@ -190,7 +190,8 @@ rotate180: false              # optional (default: false) | true flips the switc
 ports_per_row: 8              # optional (switches only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
 port_size: 36                 # optional (switch/gateway front panel scale in px)
-ap_scale: 100                 # optional (AP size in %, 60-140)
+ap_scale: 100                 # optional (AP size in %, 25-140)
+ap_compact_view: false        # optional (AP only; side-by-side compact AP layout)
 log_level: warn               # optional (error|warn|info|debug|trace)
 debug: false                  # optional shorthand (true => debug log level)
 edit_special_ports: false     # optional (switch/gateway only)
@@ -213,7 +214,8 @@ wan2_port: none               # optional (gateway only)
 | `ports_per_row` | number | auto | Optional row width override for switch layouts. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
-| `ap_scale` | number | `100` | AP device scale in percent (`60`-`140`) for AP card mode. |
+| `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
+| `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
 | `debug` | boolean | `false` | Shorthand for enabling debug logging (`true` behaves like `log_level: debug` if `log_level` is not set). |
 | `edit_special_ports` | boolean | `false` | Switch/Gateway only: enables WAN/WAN2 selectors and manual special-port editing in the UI/editor. |
