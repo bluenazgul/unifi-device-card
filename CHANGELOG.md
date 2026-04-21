@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.6.6] - 2026-04-21
+
+### 🐛 Bug Fixes
+- Hotfix for legacy AP model detection so `UAP` / `UAP LR` aliases are resolved reliably (including legacy controller model keys like `BZ2` and `BZ2LR`).
+
 ## [v0.6.5] - 2026-04-21
 
 ### ✨ Improvements

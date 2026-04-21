@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.48851af */
+/* UniFi Device Card 0.0.0-dev.672191f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -18,7 +18,7 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2"];
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
 var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 function modelStartsWith(device, prefixes) {
@@ -824,6 +824,9 @@ function resolveModelKey(device) {
     if (candidate.includes("UDMSE")) return "UDMPROSE";
     if (candidate.includes("UDMPRO")) return "UDMPRO";
     if (candidate === "UAP") return "UAP";
+    if (candidate.includes("BZ2LR")) return "UAPLR";
+    if (candidate.includes("BZ2LZ")) return "UAPLR";
+    if (candidate.includes("BZ2")) return "UAP";
     if (candidate.includes("UAPLR")) return "UAPLR";
     if (candidate.includes("UAPPRO")) return "UAPPRO";
     if (candidate.includes("UAPACMESH")) return "UAPACM";
@@ -4212,7 +4215,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.48851af";
+var VERSION = "0.0.0-dev.672191f";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

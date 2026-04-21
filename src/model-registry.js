@@ -28,7 +28,7 @@ function apModel(displayModel) {
   };
 }
 
-export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB"];
+export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2"];
 export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 
@@ -767,6 +767,9 @@ export function resolveModelKey(device) {
     if (candidate.includes("UDMSE"))              return "UDMPROSE";
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
     if (candidate === "UAP")                      return "UAP";
+    if (candidate.includes("BZ2LR"))              return "UAPLR";
+    if (candidate.includes("BZ2LZ"))              return "UAPLR";
+    if (candidate.includes("BZ2"))                return "UAP";
     if (candidate.includes("UAPLR"))              return "UAPLR";
     if (candidate.includes("UAPPRO"))             return "UAPPRO";
     if (candidate.includes("UAPACMESH"))          return "UAPACM";
