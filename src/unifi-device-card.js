@@ -1542,7 +1542,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-layout.compact {
         display: grid;
-        grid-template-columns: minmax(220px, 1fr) minmax(190px, 1fr);
+        grid-template-columns: 1fr 1fr;
         align-items: stretch;
       }
 
@@ -1560,6 +1560,12 @@ class UnifiDeviceCard extends HTMLElement {
       .ap-layout.compact .section {
         display: grid;
         align-content: center;
+      }
+
+      .ap-layout.compact .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 0;
       }
 
       .ap-device {
