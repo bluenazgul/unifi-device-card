@@ -152,7 +152,7 @@ Unknown models are auto-detected by port count and fall back to a generic dark t
 
 ### Notes
 
-- Access points are supported via a dedicated AP panel (status/uptime/clients/reboot)
+- Access points are supported through a generic AP panel (status/uptime/clients/reboot)
 - Some models are still **layout-inferred** if no dedicated registry entry exists
 - WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
 - **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x
