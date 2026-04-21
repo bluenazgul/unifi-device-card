@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.86d20f9 */
+/* UniFi Device Card 0.0.0-dev.7208e0e */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2707,6 +2707,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label: "AP size",
     editor_ap_scale_hint: "Scales the AP device size in AP card mode.",
+    editor_ap_compact_toggle_label: "AP layout",
+    editor_ap_compact_toggle_text: "Use compact AP layout",
+    editor_ap_compact_toggle_hint: "Only for access points. Places AP image and status details side by side.",
     editor_no_devices: "No UniFi switches, gateways, or access points found in Home Assistant.",
     editor_hint: "Only devices from the UniFi Network Integration are shown.",
     editor_error: "Failed to load UniFi devices.",
@@ -2831,6 +2834,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Skaliert die Frontpanel-Portgr\xF6\xDFe f\xFCr Switches und Gateways.",
     editor_ap_scale_label: "AP-Gr\xF6\xDFe",
     editor_ap_scale_hint: "Skaliert die AP-Ger\xE4tegr\xF6\xDFe im AP-Kartenmodus.",
+    editor_ap_compact_toggle_label: "AP-Layout",
+    editor_ap_compact_toggle_text: "Kompakte AP-Ansicht verwenden",
+    editor_ap_compact_toggle_hint: "Nur f\xFCr Access Points. Zeigt AP-Bild und Statusdetails nebeneinander an.",
     editor_no_devices: "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
     editor_hint: "Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.",
     editor_error: "UniFi-Ger\xE4te konnten nicht geladen werden.",
@@ -2955,6 +2961,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
     editor_ap_scale_label: "AP-grootte",
     editor_ap_scale_hint: "Schaalt de AP-apparaatgrootte in AP-kaartmodus.",
+    editor_ap_compact_toggle_label: "AP-indeling",
+    editor_ap_compact_toggle_text: "Compacte AP-weergave gebruiken",
+    editor_ap_compact_toggle_hint: "Alleen voor access points. Toont AP-afbeelding en statusdetails naast elkaar.",
     editor_no_devices: "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
     editor_hint: "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error: "UniFi-apparaten konden niet worden geladen.",
@@ -3076,6 +3085,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
     editor_ap_scale_label: "Taille AP",
     editor_ap_scale_hint: "Ajuste la taille de l\u2019appareil AP en mode carte AP.",
+    editor_ap_compact_toggle_label: "Disposition AP",
+    editor_ap_compact_toggle_text: "Utiliser la vue AP compacte",
+    editor_ap_compact_toggle_hint: "Uniquement pour les points d\u2019acc\xE8s. Affiche l\u2019image AP et les d\xE9tails d\u2019\xE9tat c\xF4te \xE0 c\xF4te.",
     editor_no_devices: "Aucun switch, gateway ou point d\u2019acc\xE8s UniFi trouv\xE9 dans Home Assistant.",
     editor_hint: "Seuls les appareils de l'int\xE9gration UniFi Network sont affich\xE9s.",
     editor_error: "Impossible de charger les appareils UniFi.",
@@ -3197,6 +3209,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Ajusta el tama\xF1o de puertos del panel frontal para switches y gateways.",
     editor_ap_scale_label: "Tama\xF1o AP",
     editor_ap_scale_hint: "Escala el tama\xF1o del dispositivo AP en modo tarjeta AP.",
+    editor_ap_compact_toggle_label: "Dise\xF1o AP",
+    editor_ap_compact_toggle_text: "Usar vista AP compacta",
+    editor_ap_compact_toggle_hint: "Solo para puntos de acceso. Muestra la imagen del AP y los detalles de estado lado a lado.",
     editor_no_devices: "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
     editor_hint: "Solo se muestran dispositivos de la integraci\xF3n UniFi Network.",
     editor_error: "No se pudieron cargar los dispositivos UniFi.",
@@ -3318,6 +3333,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
     editor_ap_scale_label: "Dimensione AP",
     editor_ap_scale_hint: "Scala la dimensione del dispositivo AP in modalit\xE0 card AP.",
+    editor_ap_compact_toggle_label: "Layout AP",
+    editor_ap_compact_toggle_text: "Usa vista AP compatta",
+    editor_ap_compact_toggle_hint: "Solo per access point. Mostra immagine AP e dettagli di stato affiancati.",
     editor_no_devices: "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
     editor_hint: "Vengono mostrati solo i dispositivi dell\u2019integrazione UniFi Network.",
     editor_error: "Impossibile caricare i dispositivi UniFi.",
@@ -3473,7 +3491,7 @@ function clampPortSize(value) {
 function clampApScale(value) {
   const num = Number.parseInt(value, 10);
   if (!Number.isFinite(num)) return 100;
-  return Math.min(140, Math.max(60, num));
+  return Math.min(140, Math.max(25, num));
 }
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
@@ -3658,6 +3676,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.port_size === 36) delete next.port_size;
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
+    if (next.ap_compact_view !== true) delete next.ap_compact_view;
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
       bubbles: true,
@@ -3714,6 +3733,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _onApScaleInput(ev) {
     this._emitConfig({ ap_scale: clampApScale(ev.target.value) });
+  }
+  _onApCompactViewChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ ap_compact_view: checked ? true : void 0 });
   }
   _onWanPortChange(ev) {
     const nextValue = ev.target.value || "auto";
@@ -4025,6 +4048,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
+    const apCompactView = this._config?.ap_compact_view === true;
     const editSpecialPorts = this._config?.edit_special_ports === true || !!this._config?.wan_port || !!this._config?.wan2_port;
     const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
     const discoveredPorts = availablePortSlots.map((slot) => slot?.port).filter((port) => Number.isInteger(port) && port > 0);
@@ -4089,10 +4113,20 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 
         ${isApDevice ? `
         <div class="field">
+          <label>${this._t("editor_ap_compact_toggle_label")}</label>
+          <label class="checkbox-row">
+            <input id="ap_compact_view" type="checkbox" ${apCompactView ? "checked" : ""}>
+            <span>${this._t("editor_ap_compact_toggle_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
+        </div>
+
+        ${!apCompactView ? `
+        <div class="field">
           <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
-          <input id="ap_scale" type="range" min="60" max="140" step="1" value="${apScale}">
+          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${apScale}">
           <div class="hint">${this._t("editor_ap_scale_hint")}</div>
-        </div>` : ""}
+        </div>` : ""}` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -4153,6 +4187,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("port_size")?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")?.addEventListener("input", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("background_color")?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
@@ -4175,7 +4210,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.86d20f9";
+var VERSION = "0.0.0-dev.7208e0e";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4344,7 +4379,10 @@ var UnifiDeviceCard = class extends HTMLElement {
   _estimateCardSize() {
     if (!this._config?.device_id) return 4;
     if (!this._ctx) return 5;
-    if (this._ctx?.type === "access_point") return this._ctx?.ap_uplink ? 9 : 8;
+    if (this._ctx?.type === "access_point") {
+      if (this._apCompactViewEnabled()) return this._ctx?.ap_uplink ? 7 : 6;
+      return this._ctx?.ap_uplink ? 9 : 8;
+    }
     const { specials, numbered } = this._buildSlotData(this._ctx);
     const specialPortsInUse = new Set(
       specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
@@ -4405,7 +4443,10 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apScale() {
     const raw = Number.parseInt(this._config?.ap_scale, 10);
     if (!Number.isFinite(raw)) return 100;
-    return Math.min(140, Math.max(60, raw));
+    return Math.min(140, Math.max(25, raw));
+  }
+  _apCompactViewEnabled() {
+    return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
@@ -5416,6 +5457,34 @@ var UnifiDeviceCard = class extends HTMLElement {
         padding: 4px 14px;
       }
 
+      .ap-layout.compact {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: stretch;
+      }
+
+      .ap-layout.compact .frontpanel.ap-disc {
+        min-height: calc((180px * var(--udc-ap-scale)) + 12px);
+        border-bottom: none;
+        border-right: 1px solid var(--udc-border);
+      }
+
+      .ap-layout.compact .ap-device {
+        width: calc(180px * var(--udc-ap-scale));
+        height: calc(180px * var(--udc-ap-scale));
+      }
+
+      .ap-layout.compact .section {
+        display: grid;
+        align-content: center;
+      }
+
+      .ap-layout.compact .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 0;
+      }
+
       .ap-device {
         width: calc(225px * var(--udc-ap-scale));
         height: calc(225px * var(--udc-ap-scale));
@@ -5908,6 +5977,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
       const online = this._isDeviceOnline();
+      const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
       const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
       const apStatusClass = apStatusRaw === "connected" ? "online" : apStatusRaw === "disconnected" ? "offline" : "pending";
@@ -5919,7 +5989,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const headerTitle2 = this._title();
       const headerMetrics2 = this._headerMetrics();
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
@@ -5936,34 +6006,36 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>
           </div>
 
-          <div class="frontpanel ap-disc">
-            <div class="ap-device">
-              <div class="ap-ring ${ledEnabled ? "online" : "off"}">
-                <div class="ap-logo">u</div>
+          <div class="ap-layout ${compactApView ? "compact" : ""}">
+            <div class="frontpanel ap-disc">
+              <div class="ap-device">
+                <div class="ap-ring ${ledEnabled ? "online" : "off"}">
+                  <div class="ap-logo">u</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="section">
-            <div class="detail-title">${this._t("ap_status")}</div>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <div class="detail-label">${this._t("ap_status")}</div>
-                <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+            <div class="section">
+              <div class="detail-title">${this._t("ap_status")}</div>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("ap_status")}</div>
+                  <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uptime")}</div>
+                  <div class="detail-value">${uptime}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("clients")}</div>
+                  <div class="detail-value">${clients}</div>
+                </div>
+                ${apUplink ? `
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uplink")}</div>
+                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
+                </div>` : ""}
               </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("uptime")}</div>
-                <div class="detail-value">${uptime}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">${this._t("clients")}</div>
-                <div class="detail-value">${clients}</div>
-              </div>
-              ${apUplink ? `
-              <div class="detail-item">
-                <div class="detail-label">${this._t("uplink")}</div>
-                <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
-              </div>` : ""}
             </div>
           </div>
         </ha-card>`;
