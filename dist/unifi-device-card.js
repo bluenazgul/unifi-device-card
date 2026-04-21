@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.075b403 */
+/* UniFi Device Card 0.0.0-dev.a4f5643 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4211,7 +4211,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.075b403";
+var VERSION = "0.0.0-dev.a4f5643";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -6022,12 +6022,20 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>
 
             <div class="section">
-              <div class="detail-title">${this._t("ap_status")}</div>
               <div class="detail-grid">
                 <div class="detail-item">
                   <div class="detail-label">${this._t("ap_status")}</div>
                   <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
                 </div>
+                ${compactApView ? `
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("clients")}</div>
+                  <div class="detail-value">${clients}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uptime")}</div>
+                  <div class="detail-value">${uptime}</div>
+                </div>` : `
                 <div class="detail-item">
                   <div class="detail-label">${this._t("uptime")}</div>
                   <div class="detail-value">${uptime}</div>
@@ -6035,7 +6043,7 @@ var UnifiDeviceCard = class extends HTMLElement {
                 <div class="detail-item">
                   <div class="detail-label">${this._t("clients")}</div>
                   <div class="detail-value">${clients}</div>
-                </div>
+                </div>`}
                 ${apUplink ? `
                 <div class="detail-item">
                   <div class="detail-label">${this._t("uplink")}</div>

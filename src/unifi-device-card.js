@@ -2110,12 +2110,20 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
 
             <div class="section">
-              <div class="detail-title">${this._t("ap_status")}</div>
               <div class="detail-grid">
                 <div class="detail-item">
                   <div class="detail-label">${this._t("ap_status")}</div>
                   <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
                 </div>
+                ${compactApView ? `
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("clients")}</div>
+                  <div class="detail-value">${clients}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">${this._t("uptime")}</div>
+                  <div class="detail-value">${uptime}</div>
+                </div>` : `
                 <div class="detail-item">
                   <div class="detail-label">${this._t("uptime")}</div>
                   <div class="detail-value">${uptime}</div>
@@ -2123,7 +2131,7 @@ class UnifiDeviceCard extends HTMLElement {
                 <div class="detail-item">
                   <div class="detail-label">${this._t("clients")}</div>
                   <div class="detail-value">${clients}</div>
-                </div>
+                </div>`}
                 ${apUplink ? `
                 <div class="detail-item">
                   <div class="detail-label">${this._t("uplink")}</div>
