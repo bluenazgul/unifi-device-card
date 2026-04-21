@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6e36a75 */
+/* UniFi Device Card 0.0.0-dev.82ed81b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4175,7 +4175,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6e36a75";
+var VERSION = "0.0.0-dev.82ed81b";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5408,7 +5408,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       .frontpanel.ap-disc {
         --udc-ap-effective-scale: min(
           var(--udc-ap-scale),
-          max(0.6, calc((100% - 28px) / 225))
+          max(0.6, calc((100% - 28px) / 225px))
         );
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;

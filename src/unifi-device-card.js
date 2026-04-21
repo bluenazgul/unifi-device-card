@@ -1525,7 +1525,7 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel.ap-disc {
         --udc-ap-effective-scale: min(
           var(--udc-ap-scale),
-          max(0.6, calc((100% - 28px) / 225))
+          max(0.6, calc((100% - 28px) / 225px))
         );
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
