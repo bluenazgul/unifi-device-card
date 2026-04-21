@@ -1523,10 +1523,14 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .frontpanel.ap-disc {
+        --udc-ap-effective-scale: min(
+          var(--udc-ap-scale),
+          max(0.6, calc((100% - 28px) / 225))
+        );
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
         place-items: center;
-        min-height: calc((225px * var(--udc-ap-scale)) + 34px);
+        min-height: calc((225px * var(--udc-ap-effective-scale)) + 34px);
         border-bottom: 1px solid var(--udc-border);
         position: relative;
         overflow: hidden;
@@ -1534,8 +1538,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-device {
-        width: calc(225px * var(--udc-ap-scale));
-        height: calc(225px * var(--udc-ap-scale));
+        width: calc(225px * var(--udc-ap-effective-scale));
+        height: calc(225px * var(--udc-ap-effective-scale));
         border-radius: 50%;
         background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
         box-shadow:
@@ -1547,10 +1551,10 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-ring {
-        width: calc(92px * var(--udc-ap-scale));
-        height: calc(92px * var(--udc-ap-scale));
+        width: calc(92px * var(--udc-ap-effective-scale));
+        height: calc(92px * var(--udc-ap-effective-scale));
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
+        border: max(2px, calc(4px * var(--udc-ap-effective-scale))) solid var(--ap-ring-color, #a5adb8);
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -1571,7 +1575,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-logo {
         color: rgba(82, 89, 102, .55);
-        font-size: calc(42px * var(--udc-ap-scale));
+        font-size: calc(42px * var(--udc-ap-effective-scale));
         font-weight: 700;
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         line-height: 1;
