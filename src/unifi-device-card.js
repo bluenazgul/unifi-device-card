@@ -1547,14 +1547,13 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-layout.compact .frontpanel.ap-disc {
-        min-height: calc((180px * var(--udc-ap-scale)) + 12px);
+        min-height: 0;
         border-bottom: none;
         border-right: 1px solid var(--udc-border);
       }
 
       .ap-layout.compact .ap-device {
-        width: calc(180px * var(--udc-ap-scale));
-        height: calc(180px * var(--udc-ap-scale));
+        width: min(100%, calc(180px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -1570,7 +1569,9 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-device {
         width: calc(225px * var(--udc-ap-scale));
-        height: calc(225px * var(--udc-ap-scale));
+        height: auto;
+        aspect-ratio: 1 / 1;
+        max-width: 100%;
         border-radius: 50%;
         background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
         box-shadow:
@@ -1582,8 +1583,8 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-ring {
-        width: calc(92px * var(--udc-ap-scale));
-        height: calc(92px * var(--udc-ap-scale));
+        width: 41%;
+        height: 41%;
         border-radius: 50%;
         border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
         box-shadow: 0 0 11px rgba(165,173,184,.35);

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.6.3-dev */
+/* UniFi Device Card 0.0.0-dev.0cdf2f6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4210,7 +4210,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.6.3-dev";
+var VERSION = "0.0.0-dev.0cdf2f6";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5464,14 +5464,13 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-layout.compact .frontpanel.ap-disc {
-        min-height: calc((180px * var(--udc-ap-scale)) + 12px);
+        min-height: 0;
         border-bottom: none;
         border-right: 1px solid var(--udc-border);
       }
 
       .ap-layout.compact .ap-device {
-        width: calc(180px * var(--udc-ap-scale));
-        height: calc(180px * var(--udc-ap-scale));
+        width: min(100%, calc(180px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -5487,7 +5486,9 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .ap-device {
         width: calc(225px * var(--udc-ap-scale));
-        height: calc(225px * var(--udc-ap-scale));
+        height: auto;
+        aspect-ratio: 1 / 1;
+        max-width: 100%;
         border-radius: 50%;
         background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
         box-shadow:
@@ -5499,8 +5500,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-ring {
-        width: calc(92px * var(--udc-ap-scale));
-        height: calc(92px * var(--udc-ap-scale));
+        width: 41%;
+        height: 41%;
         border-radius: 50%;
         border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
         box-shadow: 0 0 11px rgba(165,173,184,.35);
