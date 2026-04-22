@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### ✨ Improvements
+- Improved editor/card responsiveness during create/edit/save by increasing short-lived registry/device-context cache windows, reducing repeated reload delays.
+
 ## [v0.6.6] - 2026-04-21
 
 ### 🐛 Bug Fixes
