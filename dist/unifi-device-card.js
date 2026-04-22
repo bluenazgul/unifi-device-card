@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.68bbddd */
+/* UniFi Device Card 0.0.0-dev.206448a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1518,10 +1518,10 @@ async function safeCallWS(hass, msg, fallback = []) {
     return fallback;
   }
 }
-var REGISTRY_CACHE_TTL = 2500;
+var REGISTRY_CACHE_TTL = 3e4;
 var _registryCache = /* @__PURE__ */ new WeakMap();
 var _registryInflight = /* @__PURE__ */ new WeakMap();
-var DEVICE_CONTEXT_CACHE_TTL = 1500;
+var DEVICE_CONTEXT_CACHE_TTL = 3e4;
 var _deviceContextCache = /* @__PURE__ */ new WeakMap();
 var _deviceContextInflight = /* @__PURE__ */ new WeakMap();
 function normalizePortsPerRowForCache(cardConfig) {
@@ -4294,7 +4294,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.68bbddd";
+var VERSION = "0.0.0-dev.206448a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
