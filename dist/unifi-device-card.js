@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.fd9055a */
+/* UniFi Device Card 0.0.0-dev.68bbddd */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2739,7 +2739,7 @@ var TRANSLATIONS = {
     editor_panel_toggle_text: "Show front panel hardware view",
     editor_panel_toggle_hint: "Enabled by default. Disable to hide the visual front panel.",
     editor_ports_per_row_label: "Ports per row (optional)",
-    editor_ports_per_row_hint: "Leave empty for automatic layout. Set a number (for example 4, 6, 8, 12).",
+    editor_ports_per_row_hint: "Only for switches. Leave empty for automatic layout, or set a number (for example 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Force sequential ports",
     editor_force_sequential_ports_hint: "Disable odd/even port layout and keep ports in natural numeric order.",
     editor_edit_special_ports_toggle: "Edit special ports",
@@ -2753,6 +2753,9 @@ var TRANSLATIONS = {
     editor_ap_compact_toggle_label: "AP layout",
     editor_ap_compact_toggle_text: "Use compact AP layout",
     editor_ap_compact_toggle_hint: "Only for access points. Places AP image and status details side by side.",
+    editor_ap_compact_header_telemetry_label: "AP compact header",
+    editor_ap_compact_header_telemetry_text: "Show telemetry in compact header",
+    editor_ap_compact_header_telemetry_hint: "Only visible in compact AP layout. Adds utilization and temperature to the header.",
     editor_no_devices: "No UniFi switches, gateways, or access points found in Home Assistant.",
     editor_hint: "Only devices from the UniFi Network Integration are shown.",
     editor_error: "Failed to load UniFi devices.",
@@ -2866,7 +2869,7 @@ var TRANSLATIONS = {
     editor_panel_toggle_text: "Hardware-Frontpanel anzeigen",
     editor_panel_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
-    editor_ports_per_row_hint: "Leer lassen f\xFCr automatisches Layout. Zahl setzen (z. B. 4, 6, 8, 12).",
+    editor_ports_per_row_hint: "Nur f\xFCr Switches. Leer lassen f\xFCr automatisches Layout oder Zahl setzen (z. B. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Ports fortlaufend erzwingen",
     editor_force_sequential_ports_hint: "Deaktiviert odd/even-Portlayout und zeigt Ports in nat\xFCrlicher Reihenfolge.",
     editor_edit_special_ports_toggle: "Spezial-Ports bearbeiten",
@@ -2880,6 +2883,9 @@ var TRANSLATIONS = {
     editor_ap_compact_toggle_label: "AP-Layout",
     editor_ap_compact_toggle_text: "Kompakte AP-Ansicht verwenden",
     editor_ap_compact_toggle_hint: "Nur f\xFCr Access Points. Zeigt AP-Bild und Statusdetails nebeneinander an.",
+    editor_ap_compact_header_telemetry_label: "Kompakter AP-Header",
+    editor_ap_compact_header_telemetry_text: "Telemetrie im kompakten Header anzeigen",
+    editor_ap_compact_header_telemetry_hint: "Nur in der kompakten AP-Ansicht sichtbar. F\xFCgt Auslastung und Temperatur im Header hinzu.",
     editor_no_devices: "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
     editor_hint: "Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.",
     editor_error: "UniFi-Ger\xE4te konnten nicht geladen werden.",
@@ -2993,7 +2999,7 @@ var TRANSLATIONS = {
     editor_panel_toggle_text: "Hardware-frontpaneel tonen",
     editor_panel_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
-    editor_ports_per_row_hint: "Leeg laten voor automatische layout. Stel een getal in (bijv. 4, 6, 8, 12).",
+    editor_ports_per_row_hint: "Alleen voor switches. Leeg laten voor automatische layout of een getal instellen (bijv. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Opeenvolgende poorten forceren",
     editor_force_sequential_ports_hint: "Schakelt odd/even-poortindeling uit en houdt poorten in natuurlijke volgorde.",
     editor_edit_special_ports_toggle: "Speciale poorten bewerken",
@@ -3007,6 +3013,9 @@ var TRANSLATIONS = {
     editor_ap_compact_toggle_label: "AP-indeling",
     editor_ap_compact_toggle_text: "Compacte AP-weergave gebruiken",
     editor_ap_compact_toggle_hint: "Alleen voor access points. Toont AP-afbeelding en statusdetails naast elkaar.",
+    editor_ap_compact_header_telemetry_label: "Compacte AP-header",
+    editor_ap_compact_header_telemetry_text: "Telemetrie in compacte header tonen",
+    editor_ap_compact_header_telemetry_hint: "Alleen zichtbaar in compacte AP-weergave. Voegt gebruik en temperatuur toe aan de header.",
     editor_no_devices: "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
     editor_hint: "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error: "UniFi-apparaten konden niet worden geladen.",
@@ -3117,7 +3126,7 @@ var TRANSLATIONS = {
     editor_panel_toggle_text: "Afficher la vue mat\xE9rielle du panneau avant",
     editor_panel_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer la vue visuelle des ports.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
-    editor_ports_per_row_hint: "Laissez vide pour la mise en page automatique. D\xE9finissez un nombre (ex. 4, 6, 8, 12).",
+    editor_ports_per_row_hint: "Uniquement pour les switches. Laissez vide pour la mise en page automatique ou d\xE9finissez un nombre (ex. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forcer l\u2019ordre s\xE9quentiel des ports",
     editor_force_sequential_ports_hint: "D\xE9sactive l\u2019affichage impair/pair et conserve l\u2019ordre num\xE9rique naturel des ports.",
     editor_edit_special_ports_toggle: "Modifier les ports sp\xE9ciaux",
@@ -3131,6 +3140,9 @@ var TRANSLATIONS = {
     editor_ap_compact_toggle_label: "Disposition AP",
     editor_ap_compact_toggle_text: "Utiliser la vue AP compacte",
     editor_ap_compact_toggle_hint: "Uniquement pour les points d\u2019acc\xE8s. Affiche l\u2019image AP et les d\xE9tails d\u2019\xE9tat c\xF4te \xE0 c\xF4te.",
+    editor_ap_compact_header_telemetry_label: "En-t\xEAte AP compact",
+    editor_ap_compact_header_telemetry_text: "Afficher la t\xE9l\xE9m\xE9trie dans l\u2019en-t\xEAte compact",
+    editor_ap_compact_header_telemetry_hint: "Visible uniquement en vue AP compacte. Ajoute l\u2019utilisation et la temp\xE9rature dans l\u2019en-t\xEAte.",
     editor_no_devices: "Aucun switch, gateway ou point d\u2019acc\xE8s UniFi trouv\xE9 dans Home Assistant.",
     editor_hint: "Seuls les appareils de l'int\xE9gration UniFi Network sont affich\xE9s.",
     editor_error: "Impossible de charger les appareils UniFi.",
@@ -3241,7 +3253,7 @@ var TRANSLATIONS = {
     editor_panel_toggle_text: "Mostrar vista de hardware del panel frontal",
     editor_panel_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar la vista visual del panel.",
     editor_ports_per_row_label: "Puertos por fila (opcional)",
-    editor_ports_per_row_hint: "D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico. Define un n\xFAmero (p. ej. 4, 6, 8, 12).",
+    editor_ports_per_row_hint: "Solo para switches. D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico o define un n\xFAmero (p. ej. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forzar puertos secuenciales",
     editor_force_sequential_ports_hint: "Desactiva la distribuci\xF3n impar/par y mantiene el orden num\xE9rico natural de puertos.",
     editor_edit_special_ports_toggle: "Editar puertos especiales",
@@ -3255,6 +3267,9 @@ var TRANSLATIONS = {
     editor_ap_compact_toggle_label: "Dise\xF1o AP",
     editor_ap_compact_toggle_text: "Usar vista AP compacta",
     editor_ap_compact_toggle_hint: "Solo para puntos de acceso. Muestra la imagen del AP y los detalles de estado lado a lado.",
+    editor_ap_compact_header_telemetry_label: "Encabezado AP compacto",
+    editor_ap_compact_header_telemetry_text: "Mostrar telemetr\xEDa en el encabezado compacto",
+    editor_ap_compact_header_telemetry_hint: "Solo visible en vista AP compacta. A\xF1ade uso y temperatura en el encabezado.",
     editor_no_devices: "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
     editor_hint: "Solo se muestran dispositivos de la integraci\xF3n UniFi Network.",
     editor_error: "No se pudieron cargar los dispositivos UniFi.",
@@ -3365,7 +3380,7 @@ var TRANSLATIONS = {
     editor_panel_toggle_text: "Mostra la vista hardware del pannello frontale",
     editor_panel_toggle_hint: "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
     editor_ports_per_row_label: "Porte per riga (opzionale)",
-    editor_ports_per_row_hint: "Lascia vuoto per layout automatico. Imposta un numero (es. 4, 6, 8, 12).",
+    editor_ports_per_row_hint: "Solo per switch. Lascia vuoto per layout automatico o imposta un numero (es. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forza porte sequenziali",
     editor_force_sequential_ports_hint: "Disattiva il layout dispari/pari e mantiene le porte nell\u2019ordine numerico naturale.",
     editor_edit_special_ports_toggle: "Modifica porte speciali",
@@ -3379,6 +3394,9 @@ var TRANSLATIONS = {
     editor_ap_compact_toggle_label: "Layout AP",
     editor_ap_compact_toggle_text: "Usa vista AP compatta",
     editor_ap_compact_toggle_hint: "Solo per access point. Mostra immagine AP e dettagli di stato affiancati.",
+    editor_ap_compact_header_telemetry_label: "Header AP compatto",
+    editor_ap_compact_header_telemetry_text: "Mostra telemetria nell\u2019header compatto",
+    editor_ap_compact_header_telemetry_hint: "Visibile solo nella vista AP compatta. Aggiunge utilizzo e temperatura nell\u2019header.",
     editor_no_devices: "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
     editor_hint: "Vengono mostrati solo i dispositivi dell\u2019integrazione UniFi Network.",
     editor_error: "Impossibile caricare i dispositivi UniFi.",
@@ -3720,6 +3738,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
+    if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
       bubbles: true,
@@ -3738,7 +3757,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       wan2_port: void 0,
       custom_special_ports: void 0,
       special_ports: void 0,
-      edit_special_ports: void 0
+      edit_special_ports: void 0,
+      ports_per_row: nextDevice?.type === "gateway" ? void 0 : this._config?.ports_per_row
     };
     if (!deviceId) {
       nextConfig.name = void 0;
@@ -3779,7 +3799,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _onApCompactViewChange(ev) {
     const checked = !!ev.target.checked;
-    this._emitConfig({ ap_compact_view: checked ? true : void 0 });
+    this._emitConfig({
+      ap_compact_view: checked ? true : void 0,
+      ap_compact_show_header_telemetry: checked ? this._config?.ap_compact_show_header_telemetry : void 0
+    });
+  }
+  _onApCompactHeaderTelemetryChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ ap_compact_show_header_telemetry: checked ? true : void 0 });
   }
   _onWanPortChange(ev) {
     const nextValue = ev.target.value || "auto";
@@ -4081,7 +4108,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const selectedDevice = this._devices.find((d) => d.id === deviceValue) || null;
     const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
     const isApDevice = selectedType === "access_point";
-    const isSwitchOrGateway = selectedType === "switch" || selectedType === "gateway";
+    const isSwitchDevice = selectedType === "switch";
+    const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
@@ -4092,6 +4120,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
     const apCompactView = this._config?.ap_compact_view === true;
+    const apCompactShowHeaderTelemetry = this._config?.ap_compact_show_header_telemetry === true;
     const editSpecialPorts = this._config?.edit_special_ports === true || !!this._config?.wan_port || !!this._config?.wan2_port;
     const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
     const discoveredPorts = availablePortSlots.map((slot) => slot?.port).filter((port) => Number.isInteger(port) && port > 0);
@@ -4139,8 +4168,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             <span>${this._t("editor_panel_toggle_text")}</span>
           </label>
           <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
-        </div>
+        </div>` : ""}
 
+        ${isSwitchDevice ? `
         <div class="field">
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
@@ -4163,6 +4193,16 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           </label>
           <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
         </div>
+
+        ${apCompactView ? `
+        <div class="field">
+          <label>${this._t("editor_ap_compact_header_telemetry_label")}</label>
+          <label class="checkbox-row">
+            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
+            <span>${this._t("editor_ap_compact_header_telemetry_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_ap_compact_header_telemetry_hint")}</div>
+        </div>` : ""}
 
         ${!apCompactView ? `
         <div class="field">
@@ -4231,6 +4271,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("port_size")?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")?.addEventListener("input", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
+    this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
     this.shadowRoot.getElementById("background_color")?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
@@ -4253,7 +4294,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.fd9055a";
+var VERSION = "0.0.0-dev.68bbddd";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
