@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.6.7 */
+/* UniFi Device Card 0.0.0-dev.a93169f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -18,7 +18,7 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2", "U5O"];
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
 var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 function modelStartsWith(device, prefixes) {
@@ -1414,8 +1414,11 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
   const modelKey = resolveModelKey(device || identity || {});
   if (modelKey) {
-    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
       return "gateway";
+    }
+    if (modelKey.startsWith("UAP") || modelKey.startsWith("U6") || modelKey.startsWith("U7") || modelKey === "E7") {
+      return "access_point";
     }
     if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
       return "switch";
@@ -4294,7 +4297,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.6.7";
+var VERSION = "0.0.0-dev.a93169f";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
