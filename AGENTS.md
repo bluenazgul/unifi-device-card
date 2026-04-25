@@ -10,6 +10,16 @@ Preserve existing behavior where practical and avoid unnecessary breaking change
 - If repository rules and the current task appear to conflict, prefer the explicit user request.
 - Do not assume permission for destructive, generated, or asset-related changes.
 
+## Issue analysis guidelines
+- Classify issues as exactly one of: bug, enhancement, question.
+- Never comment on GitHub issues.
+- Never edit, close, assign, or label issues unless explicitly allowed by the workflow.
+- For bug/enhancement issues, provide a ready-to-copy Codex Cloud prompt.
+- Prefer small, backwards-compatible changes.
+- Prefer /src changes.
+- Do not touch /dist unless explicitly requested.
+- Do not touch screenshots unless explicitly requested.
+
 ## Branch policy
 - Use `develop` as the Codex working branch by default.
 - Do not open, target, or base Codex changes on `main` unless explicitly requested by the user.
