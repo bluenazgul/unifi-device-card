@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+- Classify `USG-XG-8` (`USGXG8` → `UGWXG`) reliably as gateway in fallback type detection.
+- Classify legacy `U5O` alias (`UAP-Outdoor5`) reliably as access point in fallback type detection.
+
 ## [v0.6.7]
 
 ### ✨ Improvements
