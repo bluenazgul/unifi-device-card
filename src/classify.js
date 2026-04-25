@@ -47,7 +47,7 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
 
   const modelKey = resolveModelKey(device || identity || {});
   if (modelKey) {
-    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
       return "gateway";
     }
     if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {

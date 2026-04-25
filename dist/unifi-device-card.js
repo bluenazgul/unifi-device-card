@@ -18,9 +18,9 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2", "U5O"];
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
@@ -1414,7 +1414,7 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
   const modelKey = resolveModelKey(device || identity || {});
   if (modelKey) {
-    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
       return "gateway";
     }
     if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
