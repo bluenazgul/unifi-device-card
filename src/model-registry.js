@@ -172,6 +172,11 @@ export const MODEL_REGISTRY = {
     poePortRange: [],
     specialSlots: [],
   },
+  US8: {
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
+    portCount: 8, displayModel: "US 8", theme: "silver",
+    specialSlots: [],
+  },
   
   // US 8 60W  — 8× 1G RJ45, PoE on ports 5-8
   US8P60: {
@@ -698,6 +703,14 @@ export const MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP 2", port: 6 },
     ],
   },
+  UGWXG: {
+    kind: "gateway", frontStyle: "gateway-rack", rows: [range(2, 8)],
+    portCount: 9, displayModel: "USG XG 8", theme: "silver",
+    specialSlots: [
+      { key: "wan2", label: "WAN 2", port: 1 },
+      { key: "wan", label: "WAN", port: 9 },
+    ],
+  },
 };
 
 export function validateModelLayoutEntry(key, entry) {
@@ -770,6 +783,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("BZ2LR"))              return "UAPLR";
     if (candidate.includes("BZ2LZ"))              return "UAPLR";
     if (candidate.includes("BZ2"))                return "UAP";
+    if (candidate === "U5O")                      return "UAPOUTDOOR5";
     if (candidate.includes("UAPLR"))              return "UAPLR";
     if (candidate.includes("UAPPRO"))             return "UAPPRO";
     if (candidate.includes("UAPACMESH"))          return "UAPACM";
@@ -837,6 +851,8 @@ export function resolveModelKey(device) {
     if (candidate === "UGW4")                     return "UGW4";
     if (candidate.includes("USGPRO4"))            return "UGW4";
     if (candidate.includes("USG4"))               return "UGW4";
+    if (candidate === "UGWXG")                    return "UGWXG";
+    if (candidate.includes("USGXG8"))             return "UGWXG";
 
     if (candidate === "USAGGPRO")                 return "USAGGPRO";
     if (candidate.includes("PROAGGREGATION"))     return "USAGGPRO";
@@ -908,14 +924,21 @@ export function resolveModelKey(device) {
     if (candidate.includes("LITE8"))              return "USL8LPB";
     if (candidate.includes("LITE") && candidate.includes("8")) return "USL8LPB";
 
+    if (candidate === "US8")                      return "US8";
     if (candidate.includes("USC8"))               return "USC8";
     if (candidate.includes("US8P60"))             return "US8P60";
     if (candidate.includes("US860W"))             return "US8P60";
     if (candidate.includes("US8P150"))            return "US8P150";
     if (candidate.includes("US8150W"))            return "US8P150";
+    if (candidate.includes("S28150"))             return "US8P150";
     if (candidate.includes("US16P150"))           return "US16P150";
     if (candidate.includes("US16POE150"))         return "US16P150";
     if (candidate.includes("US16150W"))           return "US16P150";
+    if (candidate.includes("S216150"))            return "US16P150";
+    if (candidate.includes("S224250"))            return "USL24P";
+    if (candidate.includes("S224500"))            return "USL24P";
+    if (candidate.includes("S248500"))            return "USL48P";
+    if (candidate.includes("S248750"))            return "USL48P";
 
     if (candidate.includes("USMINI"))             return "USMINI";
     if (candidate.includes("FLEXMINI"))           return "USMINI";
@@ -995,7 +1018,9 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UCGMAX")   || text.includes("CLOUDGATEWAYMAX"))                 return 5;
   if (text.includes("UXGPRO"))                                                        return 4;
   if (text.includes("UXGL"))                                                          return 2;
+  if (text.includes("UGWXG") || text.includes("USGXG8"))                             return 9;
   if (text.includes("UGW4"))                                                          return 6;
+  if (text.includes("UGWHD4"))                                                        return 4;
   if (text.includes("UGW3"))                                                          return 3;
 
   if (text.includes("USAGGPRO") || text.includes("PROAGGREGATION"))                  return 32;
@@ -1004,13 +1029,16 @@ export function inferPortCountFromModel(device) {
   if (text.includes("USL16LPB") || text.includes("USL16LP") || text.includes("USWLITE16POE") || text.includes("LITE16")) return 16;
   if (text.includes("USL8LPB")  || text.includes("USL8LP")  || text.includes("USWLITE8POE")  || text.includes("LITE8"))  return 8;
   if (text.includes("US8P60")   || text.includes("US860W")  || text.includes("USC8")) return 8;
+  if (text === "US8")                                                                 return 8;
   if (text.includes("US8P150"))                                                       return 10;
+  if (text.includes("S28150"))                                                        return 10;
   if (text.includes("USMINI")   || text.includes("FLEXMINI"))                        return 5;
   if (text.includes("USWFLEX25G5") || text.includes("USWED35") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P")    || text.includes("USWFLEX"))                         return 5;
 
   if (text.includes("US16P150") || text.includes("US16P"))                           return 18;
+  if (text.includes("S216150"))                                                       return 18;
   if (text.includes("USL16P"))                                                        return 18;
 
   if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24") || text.includes("SWITCHPRO24")) return 26;
@@ -1027,6 +1055,8 @@ export function inferPortCountFromModel(device) {
 
   if (text.includes("USL48P")   || text.includes("USL48"))                           return 52;
   if (text.includes("USL24P")   || text.includes("USL24"))                           return 26;
+  if (text.includes("S224250") || text.includes("S224500"))                          return 26;
+  if (text.includes("S248500") || text.includes("S248750"))                          return 52;
 
   if (text.includes("USWULTRA"))                                                      return 8;
 

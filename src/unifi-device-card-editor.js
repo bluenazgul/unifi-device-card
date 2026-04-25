@@ -330,6 +330,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
+    if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
 
     this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: next },
@@ -352,6 +353,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       custom_special_ports: undefined,
       special_ports: undefined,
       edit_special_ports: undefined,
+      ports_per_row: nextDevice?.type === "gateway" ? undefined : this._config?.ports_per_row,
     };
 
     if (!deviceId) {
@@ -404,7 +406,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onApCompactViewChange(ev) {
     const checked = !!ev.target.checked;
-    this._emitConfig({ ap_compact_view: checked ? true : undefined });
+    this._emitConfig({
+      ap_compact_view: checked ? true : undefined,
+      ap_compact_show_header_telemetry: checked
+        ? this._config?.ap_compact_show_header_telemetry
+        : undefined,
+    });
+  }
+
+  _onApCompactHeaderTelemetryChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ ap_compact_show_header_telemetry: checked ? true : undefined });
   }
 
   _onWanPortChange(ev) {
@@ -775,7 +787,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selectedDevice = this._devices.find((d) => d.id === deviceValue) || null;
     const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
     const isApDevice = selectedType === "access_point";
-    const isSwitchOrGateway = selectedType === "switch" || selectedType === "gateway";
+    const isSwitchDevice = selectedType === "switch";
+    const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
@@ -786,6 +799,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
     const apCompactView = this._config?.ap_compact_view === true;
+    const apCompactShowHeaderTelemetry = this._config?.ap_compact_show_header_telemetry === true;
     const editSpecialPorts =
       this._config?.edit_special_ports === true ||
       !!this._config?.wan_port ||
@@ -850,8 +864,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <span>${this._t("editor_panel_toggle_text")}</span>
           </label>
           <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
-        </div>
+        </div>` : ""}
 
+        ${isSwitchDevice ? `
         <div class="field">
           <label>${this._t("editor_ports_per_row_label")}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
@@ -874,6 +889,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
           </label>
           <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
         </div>
+
+        ${apCompactView ? `
+        <div class="field">
+          <label>${this._t("editor_ap_compact_header_telemetry_label")}</label>
+          <label class="checkbox-row">
+            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
+            <span>${this._t("editor_ap_compact_header_telemetry_text")}</span>
+          </label>
+          <div class="hint">${this._t("editor_ap_compact_header_telemetry_hint")}</div>
+        </div>` : ""}
 
         ${!apCompactView ? `
         <div class="field">
@@ -956,6 +981,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
+    this.shadowRoot.getElementById("ap_compact_show_header_telemetry")
+      ?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
 
     this.shadowRoot.getElementById("background_color")
       ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));

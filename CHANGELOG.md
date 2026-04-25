@@ -1,5 +1,28 @@
 # Changelog
 
+## [v0.6.7]
+
+### ✨ Improvements
+- Improved editor/card responsiveness during create/edit/save by increasing short-lived registry/device-context cache windows, reducing repeated reload delays.
+- add AP compact header telemetry toggle to UI Editor
+
+### 🐛 Bug Fixes
+- Improve detection of legacy Switches and AccessPoints
+
+
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [v0.6.6] - 2026-04-21
 
 ### 🐛 Bug Fixes

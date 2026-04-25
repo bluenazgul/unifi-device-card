@@ -187,10 +187,10 @@ async function safeCallWS(hass, msg, fallback = []) {
   }
 }
 
-const REGISTRY_CACHE_TTL = 2500;
+const REGISTRY_CACHE_TTL = 30000;
 const _registryCache = new WeakMap();
 const _registryInflight = new WeakMap();
-const DEVICE_CONTEXT_CACHE_TTL = 1500;
+const DEVICE_CONTEXT_CACHE_TTL = 30000;
 const _deviceContextCache = new WeakMap();
 const _deviceContextInflight = new WeakMap();
 
