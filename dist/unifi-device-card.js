@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.65e2eaa */
+/* UniFi Device Card 0.0.0-dev.a3a0933 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -18,7 +18,7 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2", "U5O"];
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
 var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
 function modelStartsWith(device, prefixes) {
@@ -4297,7 +4297,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.65e2eaa";
+var VERSION = "0.0.0-dev.a3a0933";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
