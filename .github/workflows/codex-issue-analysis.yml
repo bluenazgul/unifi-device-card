@@ -25,11 +25,19 @@ jobs:
           fetch-depth: 0
 
       - name: Create Codex issue analysis prompt
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           mkdir -p .github/codex/runtime
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
 
-          cat > .github/codex/runtime/issue-analysis-prompt.md <<'EOF'
-          You are analyzing a GitHub issue for the repository bluenazgul/unifi-device-card.
+          content = """You are analyzing a GitHub issue for the repository bluenazgul/unifi-device-card.
 
           Repository:
           bluenazgul/unifi-device-card
@@ -38,19 +46,19 @@ jobs:
           develop
 
           Issue number:
-          #${{ github.event.issue.number }}
+          #""" + os.environ.get("ISSUE_NUMBER", "") + """
 
           Issue title:
-          ${{ github.event.issue.title }}
+          """ + os.environ.get("ISSUE_TITLE", "") + """
 
           Issue URL:
-          ${{ github.event.issue.html_url }}
+          """ + os.environ.get("ISSUE_URL", "") + """
 
           Issue author:
-          ${{ github.event.issue.user.login }}
+          """ + os.environ.get("ISSUE_AUTHOR", "") + """
 
           Issue body:
-          ${{ github.event.issue.body }}
+          """ + os.environ.get("ISSUE_BODY", "") + """
 
           Before doing the analysis:
           - Read and follow the repository AGENTS.md file if it exists.
@@ -142,7 +150,10 @@ jobs:
           - Do not push anything.
           - Do not modify repository files.
           - Only produce this analysis report.
-          EOF
+          """
+
+          Path(".github/codex/runtime/issue-analysis-prompt.md").write_text(content, encoding="utf-8")
+          PY
 
       - name: Run Codex analysis
         id: run_codex
@@ -156,14 +167,18 @@ jobs:
 
       - name: Add analysis to workflow summary
         if: always()
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          echo "# Codex Issue Analysis" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Repository: \`${{ github.repository }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Base branch: \`develop\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Issue: [#${{ github.event.issue.number }}](${{ github.event.issue.html_url }})" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Title: ${{ github.event.issue.title }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            printf '# Codex Issue Analysis\n\n'
+            printf -- '- Repository: `%s`\n' "${{ github.repository }}"
+            printf -- '- Base branch: `develop`\n'
+            printf -- '- Issue: [#%s](%s)\n' "$ISSUE_NUMBER" "$ISSUE_URL"
+            printf -- '- Title: %s\n\n' "$ISSUE_TITLE"
+          } >> "$GITHUB_STEP_SUMMARY"
 
           if [ -f codex-issue-analysis.md ]; then
             cat codex-issue-analysis.md >> "$GITHUB_STEP_SUMMARY"
