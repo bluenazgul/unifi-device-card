@@ -1418,4 +1418,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+if (!customElements.get("unifi-device-card-editor")) {
+  customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+}
