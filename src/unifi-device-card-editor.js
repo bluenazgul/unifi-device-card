@@ -561,14 +561,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
     const hex = String(ev.target.value || "").trim().toLowerCase();
     this._setDraftColor(slotKey, hex);
-    this._render();
   }
 
   _onDraftColorRawInput(ev) {
     const slotKey = this._activeColorSlot;
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
     this._setDraftColor(slotKey, String(ev.target.value || "").trim());
-    this._render();
   }
 
 
@@ -1349,16 +1347,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this.shadowRoot.getElementById("force_sequential_ports")
       ?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("port_size")
-      ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
+      ?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
-      ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
+      ?.addEventListener("change", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")
       ?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
 
     this.shadowRoot.getElementById("background_opacity")
-      ?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
+      ?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
 
     this.shadowRoot.getElementById("wan_port")
       ?.addEventListener("change", (ev) => this._onWanPortChange(ev));
@@ -1385,9 +1383,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this.shadowRoot.getElementById("close_color_picker")
       ?.addEventListener("click", () => this._onCloseColorDialog());
     this.shadowRoot.getElementById("color_picker_hex")
-      ?.addEventListener("input", (ev) => this._onDraftColorHexInput(ev));
+      ?.addEventListener("change", (ev) => this._onDraftColorHexInput(ev));
     this.shadowRoot.getElementById("color_picker_raw")
-      ?.addEventListener("input", (ev) => this._onDraftColorRawInput(ev));
+      ?.addEventListener("change", (ev) => this._onDraftColorRawInput(ev));
     this.shadowRoot.getElementById("reset_color_slot")
       ?.addEventListener("click", () => this._onResetSlotColor());
 

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.77f862f */
+/* UniFi Device Card 0.0.0-dev.1248d41 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4066,13 +4066,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
     const hex = String(ev.target.value || "").trim().toLowerCase();
     this._setDraftColor(slotKey, hex);
-    this._render();
   }
   _onDraftColorRawInput(ev) {
     const slotKey = this._activeColorSlot;
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
     this._setDraftColor(slotKey, String(ev.target.value || "").trim());
-    this._render();
   }
   _onResetSlotColor() {
     const slotKey = this._activeColorSlot;
@@ -4740,11 +4738,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
     this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
-    this.shadowRoot.getElementById("port_size")?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
-    this.shadowRoot.getElementById("ap_scale")?.addEventListener("input", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("port_size")?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
+    this.shadowRoot.getElementById("ap_scale")?.addEventListener("change", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
-    this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
+    this.shadowRoot.getElementById("background_opacity")?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
     this.shadowRoot.getElementById("edit_special_ports")?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
@@ -4756,8 +4754,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.querySelectorAll(".color-slot-btn").forEach((btn) => btn.addEventListener("click", (ev) => this._onOpenColorDialog(ev)));
     this.shadowRoot.getElementById("close_color_dialog")?.addEventListener("click", () => this._onCloseColorDialog());
     this.shadowRoot.getElementById("close_color_picker")?.addEventListener("click", () => this._onCloseColorDialog());
-    this.shadowRoot.getElementById("color_picker_hex")?.addEventListener("input", (ev) => this._onDraftColorHexInput(ev));
-    this.shadowRoot.getElementById("color_picker_raw")?.addEventListener("input", (ev) => this._onDraftColorRawInput(ev));
+    this.shadowRoot.getElementById("color_picker_hex")?.addEventListener("change", (ev) => this._onDraftColorHexInput(ev));
+    this.shadowRoot.getElementById("color_picker_raw")?.addEventListener("change", (ev) => this._onDraftColorRawInput(ev));
     this.shadowRoot.getElementById("reset_color_slot")?.addEventListener("click", () => this._onResetSlotColor());
     this._restoreFocusState(focusState);
   }
@@ -4775,7 +4773,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.77f862f";
+var VERSION = "0.0.0-dev.1248d41";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

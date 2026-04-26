@@ -10,6 +10,7 @@
 - Remove AP body color option from the editor and keep only AP LED color fallback control.
 
 ### 🐛 Bug Fixes
+- Improve editor range/color input usability by committing on `change` (prevents picker/slider interruption while dragging or typing).
 - Fix gateway classification for `USG-XG-8` / `UGWXG` aliases so gateway-specific behavior is applied reliably even without gateway-like names.
 - Fix AP classification for legacy `U5O` (`UAP-Outdoor5`) aliases so these devices remain visible in the editor when capability signals are limited.
 - Harden dynamic template rendering in card/editor by consistently escaping interpolated HTML text and attribute values (including warnings, gateway option labels, header/detail metrics, and entity-derived values).
