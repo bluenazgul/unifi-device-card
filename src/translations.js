@@ -127,7 +127,7 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Background color (optional)",
     editor_bg_hint:  "Default: var(--card-background-color)",
-    editor_bg_opacity_label: "Background transparency",
+    editor_bg_opacity_label: "Card transparency",
     editor_bg_opacity_hint:  "0% = fully transparent, 100% = fully opaque",
     editor_colors_open: "Change colors",
     editor_colors_open_hint: "Open advanced color editor with live preview and per-area color pickers.",
@@ -290,7 +290,7 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Hintergrundfarbe (optional)",
     editor_bg_hint:  "Standard: var(--card-background-color)",
-    editor_bg_opacity_label: "Hintergrund-Transparenz",
+    editor_bg_opacity_label: "Karten-Transparenz",
     editor_bg_opacity_hint:  "0% = vollständig transparent, 100% = vollständig deckend",
     editor_colors_open: "Farben ändern",
     editor_colors_open_hint: "Öffnet den erweiterten Farb-Editor mit Live-Vorschau und Bereichs-Pickern.",
@@ -453,7 +453,7 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint:  "Standaard: var(--card-background-color)",
-    editor_bg_opacity_label: "Achtergrondtransparantie",
+    editor_bg_opacity_label: "Kaarttransparantie",
     editor_bg_opacity_hint:  "0% = volledig transparant, 100% = volledig ondoorzichtig",
     editor_colors_open: "Kleuren wijzigen",
     editor_colors_open_hint: "Open geavanceerde kleureneditor met live preview en kleurkiezers per onderdeel.",
@@ -612,7 +612,7 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint:  "Défaut : var(--card-background-color)",
-    editor_bg_opacity_label: "Transparence de fond",
+    editor_bg_opacity_label: "Transparence de la carte",
     editor_bg_opacity_hint:  "0 % = entièrement transparent, 100 % = entièrement opaque",
     editor_colors_open: "Modifier les couleurs",
     editor_colors_open_hint: "Ouvre l’éditeur avancé avec aperçu en direct et sélecteurs par zone.",
@@ -771,7 +771,7 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Color de fondo (opcional)",
     editor_bg_hint:  "Predeterminado: var(--card-background-color)",
-    editor_bg_opacity_label: "Transparencia del fondo",
+    editor_bg_opacity_label: "Transparencia de la tarjeta",
     editor_bg_opacity_hint:  "0% = totalmente transparente, 100% = totalmente opaco",
     editor_colors_open: "Cambiar colores",
     editor_colors_open_hint: "Abre el editor avanzado con vista previa en vivo y selectores por zona.",
@@ -930,7 +930,7 @@ const TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Colore sfondo (opzionale)",
     editor_bg_hint:  "Predefinito: var(--card-background-color)",
-    editor_bg_opacity_label: "Trasparenza sfondo",
+    editor_bg_opacity_label: "Trasparenza scheda",
     editor_bg_opacity_hint:  "0% = completamente trasparente, 100% = completamente opaco",
     editor_colors_open: "Cambia colori",
     editor_colors_open_hint: "Apre l’editor avanzato con anteprima live e picker per area.",

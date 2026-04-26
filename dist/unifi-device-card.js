@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.800be27 */
+/* UniFi Device Card 0.0.0-dev.80e0111 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2794,7 +2794,7 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Background color (optional)",
     editor_bg_hint: "Default: var(--card-background-color)",
-    editor_bg_opacity_label: "Background transparency",
+    editor_bg_opacity_label: "Card transparency",
     editor_bg_opacity_hint: "0% = fully transparent, 100% = fully opaque",
     editor_colors_open: "Change colors",
     editor_colors_open_hint: "Open advanced color editor with live preview and per-area color pickers.",
@@ -2942,7 +2942,7 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Hintergrundfarbe (optional)",
     editor_bg_hint: "Standard: var(--card-background-color)",
-    editor_bg_opacity_label: "Hintergrund-Transparenz",
+    editor_bg_opacity_label: "Karten-Transparenz",
     editor_bg_opacity_hint: "0% = vollst\xE4ndig transparent, 100% = vollst\xE4ndig deckend",
     editor_colors_open: "Farben \xE4ndern",
     editor_colors_open_hint: "\xD6ffnet den erweiterten Farb-Editor mit Live-Vorschau und Bereichs-Pickern.",
@@ -3090,7 +3090,7 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint: "Standaard: var(--card-background-color)",
-    editor_bg_opacity_label: "Achtergrondtransparantie",
+    editor_bg_opacity_label: "Kaarttransparantie",
     editor_bg_opacity_hint: "0% = volledig transparant, 100% = volledig ondoorzichtig",
     editor_colors_open: "Kleuren wijzigen",
     editor_colors_open_hint: "Open geavanceerde kleureneditor met live preview en kleurkiezers per onderdeel.",
@@ -3235,7 +3235,7 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint: "D\xE9faut : var(--card-background-color)",
-    editor_bg_opacity_label: "Transparence de fond",
+    editor_bg_opacity_label: "Transparence de la carte",
     editor_bg_opacity_hint: "0 % = enti\xE8rement transparent, 100 % = enti\xE8rement opaque",
     editor_colors_open: "Modifier les couleurs",
     editor_colors_open_hint: "Ouvre l\u2019\xE9diteur avanc\xE9 avec aper\xE7u en direct et s\xE9lecteurs par zone.",
@@ -3380,7 +3380,7 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Color de fondo (opcional)",
     editor_bg_hint: "Predeterminado: var(--card-background-color)",
-    editor_bg_opacity_label: "Transparencia del fondo",
+    editor_bg_opacity_label: "Transparencia de la tarjeta",
     editor_bg_opacity_hint: "0% = totalmente transparente, 100% = totalmente opaco",
     editor_colors_open: "Cambiar colores",
     editor_colors_open_hint: "Abre el editor avanzado con vista previa en vivo y selectores por zona.",
@@ -3525,7 +3525,7 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Colore sfondo (opzionale)",
     editor_bg_hint: "Predefinito: var(--card-background-color)",
-    editor_bg_opacity_label: "Trasparenza sfondo",
+    editor_bg_opacity_label: "Trasparenza scheda",
     editor_bg_opacity_hint: "0% = completamente trasparente, 100% = completamente opaco",
     editor_colors_open: "Cambia colori",
     editor_colors_open_hint: "Apre l\u2019editor avanzato con anteprima live e picker per area.",
@@ -4274,6 +4274,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         justify-content: flex-end;
       }
 
+      .opacity-field {
+        margin-bottom: 8px;
+      }
+
       label {
         font-weight: 600;
       }
@@ -4632,14 +4636,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             <button type="button" class="nav-btn danger" id="reset_all_colors">${escapeHtml(this._t("editor_colors_reset_all"))}</button>
           </div>
           <div class="hint">${escapeHtml(this._t("editor_colors_step_hint"))}</div>
-          <div class="field">
-            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
-            <button type="button" class="color-slot-btn" data-slot="background_color">
-              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
-              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
-            </button>
-          </div>
-          <div class="field">
+          <div class="field opacity-field">
             <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
             <input
               id="background_opacity"
@@ -4650,6 +4647,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
               value="${escapeAttr(backgroundOpacity)}"
             >
             <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
+            <button type="button" class="color-slot-btn" data-slot="background_color">
+              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
+              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
+            </button>
           </div>
           <div class="color-grid">
             ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
@@ -4721,7 +4725,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.800be27";
+var VERSION = "0.0.0-dev.80e0111";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

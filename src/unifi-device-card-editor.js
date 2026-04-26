@@ -861,6 +861,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
         justify-content: flex-end;
       }
 
+      .opacity-field {
+        margin-bottom: 8px;
+      }
+
       label {
         font-weight: 600;
       }
@@ -1255,14 +1259,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <button type="button" class="nav-btn danger" id="reset_all_colors">${escapeHtml(this._t("editor_colors_reset_all"))}</button>
           </div>
           <div class="hint">${escapeHtml(this._t("editor_colors_step_hint"))}</div>
-          <div class="field">
-            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
-            <button type="button" class="color-slot-btn" data-slot="background_color">
-              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
-              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
-            </button>
-          </div>
-          <div class="field">
+          <div class="field opacity-field">
             <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
             <input
               id="background_opacity"
@@ -1273,6 +1270,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
               value="${escapeAttr(backgroundOpacity)}"
             >
             <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
+            <button type="button" class="color-slot-btn" data-slot="background_color">
+              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
+              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
+            </button>
           </div>
           <div class="color-grid">
             ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
