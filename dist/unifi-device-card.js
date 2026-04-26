@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e938f82 */
+/* UniFi Device Card 0.0.0-dev.77f862f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3862,6 +3862,20 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const raw = String(this._hass.states?.[ledColorEntity]?.state || "").trim().toLowerCase();
     return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) || /^rgb\(/i.test(raw);
   }
+  _resolveSlotPickerHex(slot) {
+    if (!slot) return "#1f2937";
+    const draft = parseColorWithAlpha(this._draftColors[slot.key] || "")?.hex;
+    if (draft) return draft;
+    const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
+    if (fallback) return fallback;
+    if (slot.key === "background_color" && typeof getComputedStyle === "function") {
+      const fromHost = getComputedStyle(this).getPropertyValue("--card-background-color");
+      const fromRoot = getComputedStyle(document.documentElement).getPropertyValue("--card-background-color");
+      const resolved = parseColorWithAlpha(String(fromHost || fromRoot || "").trim())?.hex;
+      if (resolved) return resolved;
+    }
+    return "#1f2937";
+  }
   async _loadDevices() {
     if (!this._hass) return;
     this._loading = true;
@@ -4052,6 +4066,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
     const hex = String(ev.target.value || "").trim().toLowerCase();
     this._setDraftColor(slotKey, hex);
+    this._render();
+  }
+  _onDraftColorRawInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._setDraftColor(slotKey, String(ev.target.value || "").trim());
     this._render();
   }
   _onResetSlotColor() {
@@ -4516,6 +4536,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const colorStepOpen = this._editorStep === "colors";
     const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
     const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
+    const activeRawColorValue = activeColorSlot ? this._draftColors[activeColorSlot.key] || activeColorSlot.fallback || "" : "";
+    const activePickerHex = this._resolveSlotPickerHex(activeColorSlot);
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
@@ -4701,7 +4723,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             <div class="color-modal-backdrop" id="close_color_dialog"></div>
             <div class="color-modal">
               <div class="section-title">${escapeHtml(colorSlotLabel((k) => this._t(k), activeColorSlot.key))}</div>
-              <input id="color_picker_hex" type="color" value="${escapeAttr(activeParsedColor?.hex || "#1f2937")}">
+              <input id="color_picker_hex" type="color" value="${escapeAttr(activePickerHex)}">
+              <input id="color_picker_raw" type="text" value="${escapeAttr(activeRawColorValue)}">
               <div class="step-header">
                 <button type="button" class="nav-btn secondary" id="reset_color_slot">${escapeHtml(this._t("editor_colors_reset_slot"))}</button>
                 <button type="button" class="nav-btn" id="close_color_picker">${escapeHtml(this._t("editor_colors_done"))}</button>
@@ -4734,6 +4757,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("close_color_dialog")?.addEventListener("click", () => this._onCloseColorDialog());
     this.shadowRoot.getElementById("close_color_picker")?.addEventListener("click", () => this._onCloseColorDialog());
     this.shadowRoot.getElementById("color_picker_hex")?.addEventListener("input", (ev) => this._onDraftColorHexInput(ev));
+    this.shadowRoot.getElementById("color_picker_raw")?.addEventListener("input", (ev) => this._onDraftColorRawInput(ev));
     this.shadowRoot.getElementById("reset_color_slot")?.addEventListener("click", () => this._onResetSlotColor());
     this._restoreFocusState(focusState);
   }
@@ -4751,7 +4775,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e938f82";
+var VERSION = "0.0.0-dev.77f862f";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

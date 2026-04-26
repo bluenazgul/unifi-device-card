@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### ✨ Improvements
-- Add a dedicated “Change colors” editor step with live card preview, simple per-color picker, per-slot reset, and global reset-all action.
+- Add a dedicated “Change colors” editor step with live card preview, simple per-color picker plus manual value input, per-slot reset, and global reset-all action.
 - Add optional YAML color keys for `title_color`, `telemetry_color`, `label_color`, `value_color`, `meta_color`, and `port_label_color`.
 - Add color slot/key `special_port_label_color` to style special port labels (for example WAN) and special-port detail titles.
 - Improve color-step layout: move card transparency control above background color and add extra spacing for better readability.
