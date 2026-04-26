@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e0a10c0 */
+/* UniFi Device Card 0.0.0-dev.e938f82 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3715,15 +3715,6 @@ function colorSlotLabel(tFn, key) {
   if (!slot) return key;
   return tFn(`editor_color_slot_${slot.token}`);
 }
-function parseHexColor(hex) {
-  const value = String(hex || "").trim().replace(/^#/, "");
-  if (!/^[\da-f]{6}$/i.test(value)) return null;
-  return {
-    r: Number.parseInt(value.slice(0, 2), 16),
-    g: Number.parseInt(value.slice(2, 4), 16),
-    b: Number.parseInt(value.slice(4, 6), 16)
-  };
-}
 function parseColorWithAlpha(raw) {
   const value = String(raw || "").trim();
   if (!value) return null;
@@ -3754,13 +3745,6 @@ function parseColorWithAlpha(raw) {
     }
   }
   return null;
-}
-function stringifyColorWithAlpha(hex, alpha) {
-  const rgb = parseHexColor(hex);
-  if (!rgb) return "";
-  const clamped = clampOpacity(alpha);
-  if (clamped >= 100) return hex.toLowerCase();
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${(clamped / 100).toFixed(2)})`;
 }
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
@@ -4067,21 +4051,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const slotKey = this._activeColorSlot;
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
     const hex = String(ev.target.value || "").trim().toLowerCase();
-    const parsed = parseColorWithAlpha(this._draftColors[slotKey]) || { alpha: 100 };
-    this._setDraftColor(slotKey, stringifyColorWithAlpha(hex, parsed.alpha));
-    this._render();
-  }
-  _onDraftColorAlphaInput(ev) {
-    const slotKey = this._activeColorSlot;
-    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
-    const parsed = parseColorWithAlpha(this._draftColors[slotKey]) || { hex: "#1f2937" };
-    this._setDraftColor(slotKey, stringifyColorWithAlpha(parsed.hex, ev.target.value));
-    this._render();
-  }
-  _onDraftColorRawInput(ev) {
-    const slotKey = this._activeColorSlot;
-    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
-    this._setDraftColor(slotKey, String(ev.target.value || "").trim());
+    this._setDraftColor(slotKey, hex);
     this._render();
   }
   _onResetSlotColor() {
@@ -4546,7 +4516,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const colorStepOpen = this._editorStep === "colors";
     const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
     const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
-    const activeRawColorValue = activeColorSlot ? this._draftColors[activeColorSlot.key] || activeColorSlot.fallback || "" : "";
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
@@ -4733,9 +4702,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             <div class="color-modal">
               <div class="section-title">${escapeHtml(colorSlotLabel((k) => this._t(k), activeColorSlot.key))}</div>
               <input id="color_picker_hex" type="color" value="${escapeAttr(activeParsedColor?.hex || "#1f2937")}">
-              <label>${escapeHtml(this._t("editor_colors_alpha_label"))}: ${escapeHtml(activeParsedColor?.alpha ?? 100)}%</label>
-              <input id="color_picker_alpha" type="range" min="0" max="100" step="1" value="${escapeAttr(activeParsedColor?.alpha ?? 100)}">
-              <input id="color_picker_raw" type="text" value="${escapeAttr(activeRawColorValue)}" placeholder="#RRGGBB / rgba(...)">
               <div class="step-header">
                 <button type="button" class="nav-btn secondary" id="reset_color_slot">${escapeHtml(this._t("editor_colors_reset_slot"))}</button>
                 <button type="button" class="nav-btn" id="close_color_picker">${escapeHtml(this._t("editor_colors_done"))}</button>
@@ -4768,8 +4734,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("close_color_dialog")?.addEventListener("click", () => this._onCloseColorDialog());
     this.shadowRoot.getElementById("close_color_picker")?.addEventListener("click", () => this._onCloseColorDialog());
     this.shadowRoot.getElementById("color_picker_hex")?.addEventListener("input", (ev) => this._onDraftColorHexInput(ev));
-    this.shadowRoot.getElementById("color_picker_alpha")?.addEventListener("input", (ev) => this._onDraftColorAlphaInput(ev));
-    this.shadowRoot.getElementById("color_picker_raw")?.addEventListener("input", (ev) => this._onDraftColorRawInput(ev));
     this.shadowRoot.getElementById("reset_color_slot")?.addEventListener("click", () => this._onResetSlotColor());
     this._restoreFocusState(focusState);
   }
@@ -4787,7 +4751,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e0a10c0";
+var VERSION = "0.0.0-dev.e938f82";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
