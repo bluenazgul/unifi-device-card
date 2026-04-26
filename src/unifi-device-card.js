@@ -301,6 +301,7 @@ class UnifiDeviceCard extends HTMLElement {
       ["value_color", "--udc-value-color"],
       ["meta_color", "--udc-meta-color"],
       ["port_label_color", "--udc-port-label-color"],
+      ["special_port_label_color", "--udc-special-port-label-color"],
     ];
     for (const [configKey, cssVar] of pairs) {
       const value = this._config?.[configKey];
@@ -1955,6 +1956,10 @@ class UnifiDeviceCard extends HTMLElement {
         max-width: calc(var(--udc-port-size) - 2px);
       }
 
+      .port.special .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #646a76));
+      }
+
       .port-num {
         font-size: 7px;
         font-weight: 800;
@@ -1971,9 +1976,17 @@ class UnifiDeviceCard extends HTMLElement {
         opacity: .6;
       }
 
+      .port.special.down .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #4c5260));
+      }
+
       .port.up .port-num {
         color: var(--udc-port-label-color, #414957);
         opacity: 1;
+      }
+
+      .port.special.up .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #414957));
       }
 
       .port:hover .port-num,
@@ -1996,7 +2009,7 @@ class UnifiDeviceCard extends HTMLElement {
         font-size: 0.8rem;
         font-weight: 700;
         margin-bottom: 8px;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-grid {

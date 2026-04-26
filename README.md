@@ -209,6 +209,7 @@ label_color: "#9ca3af"        # optional
 value_color: "#f3f4f6"        # optional
 meta_color: "#94a3b8"         # optional (model + firmware line)
 port_label_color: "#6b7280"   # optional
+special_port_label_color: "#60a5fa" # optional (special/WAN label + detail headline)
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
 show_panel: true              # optional (default: true)
@@ -241,6 +242,7 @@ wan2_port: none               # optional (gateway only)
 | `value_color` | string | theme default | Optional detail value color (except fixed link-status state colors). |
 | `meta_color` | string | theme default | Optional model/firmware subtitle color. |
 | `port_label_color` | string | theme default | Optional front-panel port number label color. |
+| `special_port_label_color` | string | theme default | Optional special-port label color (for special row labels like WAN and the selected special port headline). |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |

@@ -5,6 +5,7 @@
 ### ✨ Improvements
 - Add a dedicated “Change colors” editor step with live card preview, per-color popup picker (including alpha), per-slot reset, and global reset-all action.
 - Add optional YAML color keys for `title_color`, `telemetry_color`, `label_color`, `value_color`, `meta_color`, and `port_label_color`.
+- Add color slot/key `special_port_label_color` to style special port labels (for example WAN) and special-port detail titles.
 
 ### 🐛 Bug Fixes
 - Fix gateway classification for `USG-XG-8` / `UGWXG` aliases so gateway-specific behavior is applied reliably even without gateway-like names.

@@ -146,6 +146,7 @@ const TRANSLATIONS = {
     editor_color_slot_value: "Values",
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Port labels",
+    editor_color_slot_special_port_label: "Special port label",
 
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities…",
@@ -308,6 +309,7 @@ const TRANSLATIONS = {
     editor_color_slot_value: "Werte",
     editor_color_slot_meta: "Modell/Firmware",
     editor_color_slot_port_label: "Port-Beschriftung",
+    editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
 
     // Entity warning — loading hint
     warning_checking: "Ausgewähltes Gerät auf deaktivierte oder versteckte UniFi-Entities prüfen…",
@@ -470,6 +472,7 @@ const TRANSLATIONS = {
     editor_color_slot_value: "Waarden",
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Poortlabels",
+    editor_color_slot_special_port_label: "Speciale poortlabels",
 
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten…",
@@ -628,6 +631,7 @@ const TRANSLATIONS = {
     editor_color_slot_value: "Valeurs",
     editor_color_slot_meta: "Modèle/Firmware",
     editor_color_slot_port_label: "Étiquettes de port",
+    editor_color_slot_special_port_label: "Étiquette port spécial",
 
     // Entity warning
     warning_checking: "Vérification des entités UniFi désactivées ou masquées pour l'appareil sélectionné…",
@@ -786,6 +790,7 @@ const TRANSLATIONS = {
     editor_color_slot_value: "Valores",
     editor_color_slot_meta: "Modelo/Firmware",
     editor_color_slot_port_label: "Etiquetas de puerto",
+    editor_color_slot_special_port_label: "Etiqueta de puerto especial",
 
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado…",
@@ -944,6 +949,7 @@ const TRANSLATIONS = {
     editor_color_slot_value: "Valori",
     editor_color_slot_meta: "Modello/Firmware",
     editor_color_slot_port_label: "Etichette porte",
+    editor_color_slot_special_port_label: "Etichetta porta speciale",
 
     // Entity warning
     warning_checking: "Controllo entità UniFi disabilitate o nascoste per il dispositivo selezionato…",

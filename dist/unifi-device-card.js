@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9995d77 */
+/* UniFi Device Card 0.0.0-dev.800be27 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2813,6 +2813,7 @@ var TRANSLATIONS = {
     editor_color_slot_value: "Values",
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Port labels",
+    editor_color_slot_special_port_label: "Special port label",
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities\u2026",
     // Entity warning — content
@@ -2960,6 +2961,7 @@ var TRANSLATIONS = {
     editor_color_slot_value: "Werte",
     editor_color_slot_meta: "Modell/Firmware",
     editor_color_slot_port_label: "Port-Beschriftung",
+    editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
     // Entity warning — loading hint
     warning_checking: "Ausgew\xE4hltes Ger\xE4t auf deaktivierte oder versteckte UniFi-Entities pr\xFCfen\u2026",
     // Entity warning — content
@@ -3107,6 +3109,7 @@ var TRANSLATIONS = {
     editor_color_slot_value: "Waarden",
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Poortlabels",
+    editor_color_slot_special_port_label: "Speciale poortlabels",
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
     warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
@@ -3251,6 +3254,7 @@ var TRANSLATIONS = {
     editor_color_slot_value: "Valeurs",
     editor_color_slot_meta: "Mod\xE8le/Firmware",
     editor_color_slot_port_label: "\xC9tiquettes de port",
+    editor_color_slot_special_port_label: "\xC9tiquette port sp\xE9cial",
     // Entity warning
     warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
     warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
@@ -3395,6 +3399,7 @@ var TRANSLATIONS = {
     editor_color_slot_value: "Valores",
     editor_color_slot_meta: "Modelo/Firmware",
     editor_color_slot_port_label: "Etiquetas de puerto",
+    editor_color_slot_special_port_label: "Etiqueta de puerto especial",
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado\u2026",
     warning_title: "Se detectaron entidades UniFi deshabilitadas u ocultas",
@@ -3539,6 +3544,7 @@ var TRANSLATIONS = {
     editor_color_slot_value: "Valori",
     editor_color_slot_meta: "Modello/Firmware",
     editor_color_slot_port_label: "Etichette porte",
+    editor_color_slot_special_port_label: "Etichetta porta speciale",
     // Entity warning
     warning_checking: "Controllo entit\xE0 UniFi disabilitate o nascoste per il dispositivo selezionato\u2026",
     warning_title: "Rilevate entit\xE0 UniFi disabilitate o nascoste",
@@ -3669,7 +3675,8 @@ var COLOR_SLOTS = [
   { key: "label_color", token: "label", cssVar: "--udc-label-color", fallback: "var(--secondary-text-color, #6f7d90)" },
   { key: "value_color", token: "value", cssVar: "--udc-value-color", fallback: "var(--primary-text-color, #e2e8f0)" },
   { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
-  { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" }
+  { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
+  { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" }
 ];
 var COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
 function colorSlotLabel(tFn, key) {
@@ -4714,7 +4721,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9995d77";
+var VERSION = "0.0.0-dev.800be27";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4947,7 +4954,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       ["label_color", "--udc-label-color"],
       ["value_color", "--udc-value-color"],
       ["meta_color", "--udc-meta-color"],
-      ["port_label_color", "--udc-port-label-color"]
+      ["port_label_color", "--udc-port-label-color"],
+      ["special_port_label_color", "--udc-special-port-label-color"]
     ];
     for (const [configKey, cssVar] of pairs) {
       const value = this._config?.[configKey];
@@ -6368,6 +6376,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         max-width: calc(var(--udc-port-size) - 2px);
       }
 
+      .port.special .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #646a76));
+      }
+
       .port-num {
         font-size: 7px;
         font-weight: 800;
@@ -6384,9 +6396,17 @@ var UnifiDeviceCard = class extends HTMLElement {
         opacity: .6;
       }
 
+      .port.special.down .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #4c5260));
+      }
+
       .port.up .port-num {
         color: var(--udc-port-label-color, #414957);
         opacity: 1;
+      }
+
+      .port.special.up .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #414957));
       }
 
       .port:hover .port-num,
@@ -6409,7 +6429,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         font-size: 0.8rem;
         font-weight: 700;
         margin-bottom: 8px;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-grid {
