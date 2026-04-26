@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.6.7 */
+/* UniFi Device Card 0.0.0-dev.10d2a16 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3554,6 +3554,12 @@ function clampApScale(value) {
   if (!Number.isFinite(num)) return 100;
   return Math.min(140, Math.max(25, num));
 }
+function escapeHtml(value) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
   const normalized = value.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
@@ -3876,7 +3882,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _warningHTML() {
     if (this._entityHintLoading && !this._entityHint) {
-      return `<div class="warn loading">${this._t("warning_checking")}</div>`;
+      return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
     if (!this._entityHint) return "";
     const disabled = this._entityHint?.disabledCount || 0;
@@ -3884,17 +3890,17 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const items = this._warningItems();
     const summary = this._t("warning_status").replace("{disabled}", String(disabled)).replace("{hidden}", String(hidden));
     const list = items.length ? `<ul>${items.map(
-      (item) => `<li><strong>${item.count}</strong> ${this._t(`warning_entity_${item.key}`)}</li>`
+      (item) => `<li><strong>${escapeHtml(item.count)}</strong> ${escapeHtml(this._t(`warning_entity_${item.key}`))}</li>`
     ).join("")}</ul>` : "";
     return `
       <div class="warn">
-        <div class="warn-title">${this._t("warning_title")}</div>
-        <div class="warn-body">${this._t("warning_body")}</div>
-        <div class="warn-status">${summary}</div>
+        <div class="warn-title">${escapeHtml(this._t("warning_title"))}</div>
+        <div class="warn-body">${escapeHtml(this._t("warning_body"))}</div>
+        <div class="warn-status">${escapeHtml(summary)}</div>
         ${list}
         <div class="warn-path">
-          <strong>${this._t("warning_check_in")}</strong><br>
-          ${this._t("warning_ha_path")}
+          <strong>${escapeHtml(this._t("warning_check_in"))}</strong><br>
+          ${escapeHtml(this._t("warning_ha_path"))}
         </div>
       </div>
     `;
@@ -3909,19 +3915,19 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!layout) {
       return `
         <div class="field">
-          <label>${this._t("editor_wan_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
           <select id="wan_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_wan2_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
           <select id="wan2_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
         </div>
       `;
     }
@@ -3934,24 +3940,24 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     return `
       <div class="field">
-        <label>${this._t("editor_wan_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
         <select id="wan_port">
           ${wanOptions.map(
-      (opt) => `<option value="${opt.value}" ${opt.value === selectedWan ? "selected" : ""}>${opt.label}</option>`
+      (opt) => `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan ? "selected" : ""}>${escapeHtml(opt.label)}</option>`
     ).join("")}
         </select>
-        <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
       </div>
 
       <div class="field">
-        <label>${this._t("editor_wan2_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
         <select id="wan2_port">
           ${wan2Options.map((opt) => {
       const disabled = opt.value !== "auto" && opt.value !== "none" && roleSelectionsConflict(selectedWan, "wan", opt.value, "wan2", layout);
-      return `<option value="${opt.value}" ${opt.value === selectedWan2 ? "selected" : ""} ${disabled ? "disabled" : ""}>${opt.label}</option>`;
+      return `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan2 ? "selected" : ""} ${disabled ? "disabled" : ""}>${escapeHtml(opt.label)}</option>`;
     }).join("")}
         </select>
-        <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
       </div>
     `;
   }
@@ -4132,131 +4138,131 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
-        <div class="section-title">${this._t("editor_device_title")}</div>
+        <div class="section-title">${escapeHtml(this._t("editor_device_title"))}</div>
 
         <div class="field">
-          <label>${this._t("editor_device_label")}</label>
+          <label>${escapeHtml(this._t("editor_device_label"))}</label>
           <select id="device_id">
-            <option value="">${this._t("editor_device_select")}</option>
+            <option value="">${escapeHtml(this._t("editor_device_select"))}</option>
             ${this._devices.map(
-      (device) => `<option value="${device.id}" ${device.id === deviceValue ? "selected" : ""}>${device.label}</option>`
+      (device) => `<option value="${escapeAttr(device.id)}" ${device.id === deviceValue ? "selected" : ""}>${escapeHtml(device.label)}</option>`
     ).join("")}
           </select>
-          <div class="hint">${this._loading ? this._t("editor_device_loading") : this._devices.length ? this._t("editor_hint") : this._error || this._t("editor_no_devices")}</div>
+          <div class="hint">${this._loading ? escapeHtml(this._t("editor_device_loading")) : this._devices.length ? escapeHtml(this._t("editor_hint")) : escapeHtml(this._error || this._t("editor_no_devices"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_name_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_name" type="checkbox" ${showName ? "checked" : ""}>
-            <span>${this._t("editor_name_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_name_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_name_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_name_toggle_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_label")}</label>
-          <input id="name" type="text" value="${nameValue}" ${showName ? "" : "disabled"}>
-          <div class="hint">${this._t("editor_name_hint")}</div>
+          <label>${escapeHtml(this._t("editor_name_label"))}</label>
+          <input id="name" type="text" value="${escapeAttr(nameValue)}" ${showName ? "" : "disabled"}>
+          <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_panel_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
-            <span>${this._t("editor_panel_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchDevice ? `
         <div class="field">
-          <label>${this._t("editor_ports_per_row_label")}</label>
-          <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
-          <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
+          <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
+          <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
-          <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
-          <div class="hint">${this._t("editor_port_size_hint")}</div>
+          <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
+          <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
+          <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
         </div>` : ""}
 
         ${isApDevice ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_view" type="checkbox" ${apCompactView ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_toggle_hint"))}</div>
         </div>
 
         ${apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_header_telemetry_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_header_telemetry_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_header_telemetry_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
         </div>` : ""}
 
         ${!apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
-          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${apScale}">
-          <div class="hint">${this._t("editor_ap_scale_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ap_scale_label"))}: ${escapeHtml(apScale)}%</label>
+          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${escapeAttr(apScale)}">
+          <div class="hint">${escapeHtml(this._t("editor_ap_scale_hint"))}</div>
         </div>` : ""}` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
           <label class="checkbox-row">
             <input id="edit_special_ports" type="checkbox" ${editSpecialPorts ? "checked" : ""}>
-            <span>${this._t("editor_edit_special_ports_toggle")}</span>
+            <span>${escapeHtml(this._t("editor_edit_special_ports_toggle"))}</span>
           </label>
-          <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_edit_special_ports_toggle_hint"))}</div>
         </div>
 
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
         <div class="field">
-          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
-            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${port}">Port ${port}</button>`).join("")}
+            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`).join("")}
           </div>
-          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
         </div>` : ""}
 
         <div class="field">
           <label class="checkbox-row">
             <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
-            <span>${this._t("editor_force_sequential_ports_label")}</span>
+            <span>${escapeHtml(this._t("editor_force_sequential_ports_label"))}</span>
           </label>
-          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_force_sequential_ports_hint"))}</div>
         </div>
         ` : ""}
 
         <div class="field">
-          <label>${this._t("editor_bg_label")}</label>
-          <input id="background_color" type="text" value="${backgroundValue}">
-          <div class="hint">${this._t("editor_bg_hint")}</div>
+          <label>${escapeHtml(this._t("editor_bg_label"))}</label>
+          <input id="background_color" type="text" value="${escapeAttr(backgroundValue)}">
+          <div class="hint">${escapeHtml(this._t("editor_bg_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_bg_opacity_label")}: ${backgroundOpacity}%</label>
+          <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
           <input
             id="background_opacity"
             type="range"
             min="0"
             max="100"
             step="1"
-            value="${backgroundOpacity}"
+            value="${escapeAttr(backgroundOpacity)}"
           >
-          <div class="hint">${this._t("editor_bg_opacity_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
@@ -4294,7 +4300,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.6.7";
+var VERSION = "0.0.0-dev.10d2a16";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4681,7 +4687,15 @@ var UnifiDeviceCard = class extends HTMLElement {
     return deviceLabel || null;
   }
   _escapeAttr(value) {
-    return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
+  }
+  _escapeHtml(value) {
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  _safeClassToken(value, fallback = "") {
+    const token = String(value ?? "").trim();
+    if (!token) return fallback;
+    return /^[a-z0-9_-]+$/i.test(token) ? token : fallback;
   }
   _apUplinkTooltip(uplink) {
     if (!uplink) return "";
@@ -5251,7 +5265,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       "port",
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
-      `media-${mediaType}`,
+      `media-${this._safeClassToken(mediaType, "rj45")}`,
       this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
       oddEvenTopRow && !isSpecial && !isSfp ? "odd-even-top" : "",
@@ -5283,11 +5297,11 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="rj45-floor"></div>
         </div>
       `;
-    return `<button class="${classes}" data-key="${slot.key}" title="${this._escapeAttr(tooltip)}">
+    return `<button class="${this._escapeAttr(classes)}" data-key="${this._escapeAttr(slot.key)}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
       </div>
-      <div class="port-num">${slot.label}</div>
+      <div class="port-num">${this._escapeHtml(slot.label)}</div>
     </button>`;
   }
   _styles() {
@@ -6077,20 +6091,22 @@ var UnifiDeviceCard = class extends HTMLElement {
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
       const headerMetrics2 = compactApView && !this._apCompactHeaderTelemetryEnabled() ? [] : this._headerMetrics();
+      const escapedHeaderTitle2 = this._escapeHtml(headerTitle2);
+      const escapedSubtitle2 = this._escapeHtml(this._subtitle());
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
             <div class="header-info">
-              ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${headerTitle2 ? `<div class="title">${escapedHeaderTitle2}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle2}</div>
               ${headerMetrics2.length ? `<div class="meta-list">${headerMetrics2.map((item) => `
                 <div class="meta-row">
-                  <div class="meta-label">${item.label}:</div>
-                  <div class="meta-value">${item.value}</div>
+                  <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+                  <div class="meta-value">${this._escapeHtml(item.value)}</div>
                 </div>`).join("")}</div>` : ""}
             </div>
             <div class="header-actions">
-              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
+              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
               ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
@@ -6107,30 +6123,30 @@ var UnifiDeviceCard = class extends HTMLElement {
             <div class="section">
               <div class="detail-grid">
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("ap_status")}</div>
-                  <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("ap_status"))}</div>
+                  <div class="detail-value ${apStatusClass}">${this._escapeHtml(apStatus || (online ? this._t("state_connected") : this._t("state_disconnected")))}</div>
                 </div>
                 ${compactApView ? `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("clients")}</div>
-                  <div class="detail-value">${clients}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("clients"))}</div>
+                  <div class="detail-value">${this._escapeHtml(clients)}</div>
                 </div>
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uptime")}</div>
-                  <div class="detail-value">${uptime}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uptime"))}</div>
+                  <div class="detail-value">${this._escapeHtml(uptime)}</div>
                 </div>` : `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uptime")}</div>
-                  <div class="detail-value">${uptime}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uptime"))}</div>
+                  <div class="detail-value">${this._escapeHtml(uptime)}</div>
                 </div>
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("clients")}</div>
-                  <div class="detail-value">${clients}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("clients"))}</div>
+                  <div class="detail-value">${this._escapeHtml(clients)}</div>
                 </div>`}
                 ${apUplink ? `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uplink")}</div>
-                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uplink"))}</div>
+                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${this._escapeHtml(apUplink)}</div>
                 </div>` : ""}
               </div>
             </div>
@@ -6150,7 +6166,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const layoutTheme = ctx?.layout?.theme;
-    const theme = layoutTheme || "dark";
+    const theme = this._safeClassToken(layoutTheme || "dark", "dark");
+    const frontStyle = this._safeClassToken(ctx?.layout?.frontStyle || "single-row", "single-row");
     const showPanel = this._config?.show_panel !== false && !!layoutTheme;
     const specialPortsInUse = new Set(
       allSpecials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
@@ -6172,8 +6189,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     }).filter(Boolean);
     const panelRowsHtml = layoutRows.join("");
     const panelPortsHtml = reverseFrontpanel ? `${panelRowsHtml}${specialRow}` : `${specialRow}${panelRowsHtml}`;
-    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
-    let detail = `<div class="muted">${this._t("no_ports")}</div>`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`;
+    let detail = `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
     if (selected) {
       const linkUp = this._isPortConnected(selected);
       const linkText = getPortLinkText(this._hass, selected);
@@ -6186,77 +6203,79 @@ var UnifiDeviceCard = class extends HTMLElement {
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
       const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
       detail = `
-        <div class="detail-title">${portTitle}</div>
+        <div class="detail-title">${this._escapeHtml(portTitle)}</div>
         <div class="detail-grid">
           <div class="detail-item">
-            <div class="detail-label">${this._t("link_status")}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
+              ${this._escapeHtml(this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link")))}
             </div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText || "\u2014"}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("speed"))}</div>
+            <div class="detail-value">${this._escapeHtml(speedText || "\u2014")}</div>
           </div>
           ${hasPoe ? `
           <div class="detail-item">
-            <div class="detail-label">${this._t("poe")}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("poe"))}</div>
             <div class="detail-value ${poeOn ? "online" : "offline"}">
-              ${poeOn ? this._t("state_on") : this._t("state_off")}
+              ${this._escapeHtml(poeOn ? this._t("state_on") : this._t("state_off"))}
             </div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower || "\u2014"}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("poe_power"))}</div>
+            <div class="detail-value">${this._escapeHtml(poePower || "\u2014")}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
             <div class="detail-label">RX</div>
-            <div class="detail-value">${rxVal}</div>
+            <div class="detail-value">${this._escapeHtml(rxVal)}</div>
           </div>` : ""}
           ${txVal != null ? `
           <div class="detail-item">
             <div class="detail-label">TX</div>
-            <div class="detail-value">${txVal}</div>
+            <div class="detail-value">${this._escapeHtml(txVal)}</div>
           </div>` : ""}
         </div>
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
         const enabled = isOn(this._hass, selected.port_switch_entity);
-        return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-              ${enabled ? this._t("port_disable") : this._t("port_enable")}
+        return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}">
+              ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
             </button>`;
       })() : ""}
-          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            \u26A1 ${this._t("poe")}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${this._escapeAttr(selected.poe_switch_entity)}">
+            \u26A1 ${this._escapeHtml(this._t("poe"))}
           </button>` : ""}
-          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-            \u21BA ${this._t("power_cycle")}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${this._escapeAttr(selected.power_cycle_entity)}">
+            \u21BA ${this._escapeHtml(this._t("power_cycle"))}
           </button>` : ""}
         </div>`;
     }
     const headerTitle = this._title();
     const headerMetrics = this._headerMetrics();
+    const escapedHeaderTitle = this._escapeHtml(headerTitle);
+    const escapedSubtitle = this._escapeHtml(this._subtitle());
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
         <div class="header">
           <div class="header-info">
-            ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
-            <div class="subtitle">${this._subtitle()}</div>
+            ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
+            <div class="subtitle">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
-                <div class="meta-label">${item.label}:</div>
-                <div class="meta-value">${item.value}</div>
+                <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+                <div class="meta-value">${this._escapeHtml(item.value)}</div>
               </div>`).join("")}</div>` : ""}
           </div>
           <div class="header-actions">
-            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
-            <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>
           </div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
-          <div class="panel-label">${this._t("front_panel")}</div>
+        <div class="frontpanel ${frontStyle} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
           ${panelContentHtml}
         </div>
 
@@ -6270,16 +6289,18 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _render() {
     const title = this._title();
+    const escapedTitle = this._escapeHtml(title);
+    const escapedSubtitle = this._escapeHtml(this._subtitle());
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="empty-state">${this._t("select_device")}</div>
+          <div class="empty-state">${this._escapeHtml(this._t("select_device"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
@@ -6289,11 +6310,11 @@ var UnifiDeviceCard = class extends HTMLElement {
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
+          <div class="loading-state"><div class="spinner"></div>${this._escapeHtml(this._t("loading"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
@@ -6303,11 +6324,11 @@ var UnifiDeviceCard = class extends HTMLElement {
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="empty-state">${this._t("no_data")}</div>
+          <div class="empty-state">${this._escapeHtml(this._t("no_data"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
