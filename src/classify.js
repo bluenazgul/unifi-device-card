@@ -24,6 +24,16 @@ function fromModel(model) {
   return null;
 }
 
+const GATEWAY_MODEL_KEYS = new Set(["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"]);
+const SWITCH_MODEL_KEYS = new Set(["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"]);
+
+function fromModelKey(modelKey) {
+  if (!modelKey) return null;
+  if (GATEWAY_MODEL_KEYS.has(modelKey)) return "gateway";
+  if (SWITCH_MODEL_KEYS.has(modelKey) || modelKey.startsWith("US")) return "switch";
+  return null;
+}
+
 export function classifyDeviceType(identity, capabilities, entities = [], device = null) {
   const model = normalizeModel(identity?.model || identity?.hw_version || "");
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
@@ -43,14 +53,8 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     name.includes("router");
   if (gatewaySignals) return "gateway";
 
-  if (modelKey) {
-    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
-      return "gateway";
-    }
-    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
-      return "switch";
-    }
-  }
+  const modelKeyType = fromModelKey(modelKey);
+  if (modelKeyType) return modelKeyType;
 
   if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
   if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
