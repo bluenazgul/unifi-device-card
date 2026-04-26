@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.970b161 */
+/* UniFi Device Card 0.0.0-dev.9995d77 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3774,6 +3774,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._editorStep = "main";
     this._draftColors = {};
     this._activeColorSlot = "";
+    this._colorStepBaseConfig = null;
   }
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
@@ -3881,6 +3882,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._deviceCtxLoading = false;
     this._patchFields();
   }
+  _dispatchConfig(config) {
+    this.dispatchEvent(new CustomEvent("config-changed", {
+      detail: { config },
+      bubbles: true,
+      composed: true
+    }));
+  }
   _emitConfig(partial) {
     const next = { ...this._config, ...partial };
     const hadExplicitSpecialPorts = hasExplicitSpecialPorts(this._config);
@@ -3923,11 +3931,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
-    this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config: next },
-      bubbles: true,
-      composed: true
-    }));
+    this._dispatchConfig(next);
+  }
+  _emitDraftPreviewConfig() {
+    const base = { ...this._colorStepBaseConfig || this._config || {} };
+    for (const slot of COLOR_SLOTS) {
+      base[slot.key] = this._draftColors[slot.key] || void 0;
+    }
+    this._dispatchConfig(base);
   }
   _onDeviceChange(ev) {
     const deviceId = ev.target.value || "";
@@ -3965,6 +3976,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
   }
   _onOpenColorStep() {
+    this._colorStepBaseConfig = { ...this._config || {} };
     this._syncDraftColors();
     this._activeColorSlot = "";
     this._editorStep = "colors";
@@ -3973,6 +3985,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _onBackFromColorStep() {
     this._activeColorSlot = "";
     this._editorStep = "main";
+    if (this._colorStepBaseConfig) {
+      this._dispatchConfig({ ...this._colorStepBaseConfig });
+    }
+    this._colorStepBaseConfig = null;
     this._syncDraftColors();
     this._render();
   }
@@ -3993,6 +4009,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     } else {
       this._draftColors[slotKey] = value;
     }
+    this._emitDraftPreviewConfig();
   }
   _onDraftColorHexInput(ev) {
     const slotKey = this._activeColorSlot;
@@ -4018,11 +4035,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _onResetSlotColor() {
     const slotKey = this._activeColorSlot;
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
-    delete this._draftColors[slotKey];
+    this._setDraftColor(slotKey, "");
     this._render();
   }
   _onResetAllColors() {
     for (const slot of COLOR_SLOTS) delete this._draftColors[slot.key];
+    this._emitDraftPreviewConfig();
     this._render();
   }
   _onApplyDraftColors() {
@@ -4033,6 +4051,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._emitConfig(payload);
     this._activeColorSlot = "";
     this._editorStep = "main";
+    this._colorStepBaseConfig = null;
     this._render();
   }
   _onShowPanelChange(ev) {
@@ -4695,7 +4714,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.970b161";
+var VERSION = "0.0.0-dev.9995d77";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
