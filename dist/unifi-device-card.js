@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ce71cfc */
+/* UniFi Device Card 0.0.0-dev.970b161 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4462,7 +4462,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
-    const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
     const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
@@ -4594,27 +4593,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         ` : ""}
 
         <div class="field">
-          <label>${escapeHtml(this._t("editor_bg_label"))}</label>
-          <input id="background_color" type="text" value="${escapeAttr(backgroundValue)}">
-          <div class="hint">${escapeHtml(this._t("editor_bg_hint"))}</div>
-        </div>
-
-        <div class="field">
           <button type="button" class="nav-btn" id="open_color_editor">${escapeHtml(this._t("editor_colors_open"))}</button>
           <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
-        </div>
-
-        <div class="field">
-          <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
-          <input
-            id="background_opacity"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value="${escapeAttr(backgroundOpacity)}"
-          >
-          <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
@@ -4632,6 +4612,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
               <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
               <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
             </button>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
+            <input
+              id="background_opacity"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="${escapeAttr(backgroundOpacity)}"
+            >
+            <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
           </div>
           <div class="color-grid">
             ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
@@ -4671,7 +4663,6 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("ap_scale")?.addEventListener("input", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
-    this.shadowRoot.getElementById("background_color")?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
@@ -4704,7 +4695,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ce71cfc";
+var VERSION = "0.0.0-dev.970b161";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

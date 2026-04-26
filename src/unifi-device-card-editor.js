@@ -1068,7 +1068,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
-    const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
     const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
@@ -1221,27 +1220,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
         ` : ""}
 
         <div class="field">
-          <label>${escapeHtml(this._t("editor_bg_label"))}</label>
-          <input id="background_color" type="text" value="${escapeAttr(backgroundValue)}">
-          <div class="hint">${escapeHtml(this._t("editor_bg_hint"))}</div>
-        </div>
-
-        <div class="field">
           <button type="button" class="nav-btn" id="open_color_editor">${escapeHtml(this._t("editor_colors_open"))}</button>
           <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
-        </div>
-
-        <div class="field">
-          <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
-          <input
-            id="background_opacity"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value="${escapeAttr(backgroundOpacity)}"
-          >
-          <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
@@ -1259,6 +1239,18 @@ class UnifiDeviceCardEditor extends HTMLElement {
               <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
               <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
             </button>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
+            <input
+              id="background_opacity"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="${escapeAttr(backgroundOpacity)}"
+            >
+            <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
           </div>
           <div class="color-grid">
             ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
@@ -1312,8 +1304,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")
       ?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
 
-    this.shadowRoot.getElementById("background_color")
-      ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
     this.shadowRoot.getElementById("background_opacity")
       ?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
 
