@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.7d5adf7 */
+/* UniFi Device Card 0.0.0-dev.56c0607 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3594,6 +3594,54 @@ var TRANSLATIONS = {
     type_access_point: "Access Point"
   }
 };
+TRANSLATIONS.sv = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "\xC4ndra f\xE4rger",
+  editor_colors_back: "Tillbaka till editorn",
+  editor_colors_apply: "Anv\xE4nd f\xE4rger",
+  editor_colors_reset_all: "\xC5terst\xE4ll alla f\xE4rger",
+  editor_bg_opacity_label: "Kortets transparens"
+};
+TRANSLATIONS.da = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Skift farver",
+  editor_colors_back: "Tilbage til editor",
+  editor_colors_apply: "Anvend farver",
+  editor_colors_reset_all: "Nulstil alle farver",
+  editor_bg_opacity_label: "Korttransparens"
+};
+TRANSLATIONS.no = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Endre farger",
+  editor_colors_back: "Tilbake til editor",
+  editor_colors_apply: "Bruk farger",
+  editor_colors_reset_all: "Tilbakestill alle farger",
+  editor_bg_opacity_label: "Kortgjennomsiktighet"
+};
+TRANSLATIONS.fi = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Vaihda v\xE4rej\xE4",
+  editor_colors_back: "Takaisin editoriin",
+  editor_colors_apply: "K\xE4yt\xE4 v\xE4rit",
+  editor_colors_reset_all: "Nollaa kaikki v\xE4rit",
+  editor_bg_opacity_label: "Kortin l\xE4pin\xE4kyvyys"
+};
+TRANSLATIONS.pl = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Zmie\u0144 kolory",
+  editor_colors_back: "Wr\xF3\u0107 do edytora",
+  editor_colors_apply: "Zastosuj kolory",
+  editor_colors_reset_all: "Resetuj wszystkie kolory",
+  editor_bg_opacity_label: "Przezroczysto\u015B\u0107 karty"
+};
+TRANSLATIONS.cs = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Zm\u011Bnit barvy",
+  editor_colors_back: "Zp\u011Bt do editoru",
+  editor_colors_apply: "Pou\u017E\xEDt barvy",
+  editor_colors_reset_all: "Resetovat v\u0161echny barvy",
+  editor_bg_opacity_label: "Pr\u016Fhlednost karty"
+};
 function getTranslations(lang) {
   if (!lang) return TRANSLATIONS.en;
   const short = String(lang).split("-")[0].toLowerCase();
@@ -4785,7 +4833,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.7d5adf7";
+var VERSION = "0.0.0-dev.56c0607";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

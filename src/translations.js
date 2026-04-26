@@ -1003,6 +1003,60 @@ const TRANSLATIONS = {
   },
 };
 
+TRANSLATIONS.sv = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Ändra färger",
+  editor_colors_back: "Tillbaka till editorn",
+  editor_colors_apply: "Använd färger",
+  editor_colors_reset_all: "Återställ alla färger",
+  editor_bg_opacity_label: "Kortets transparens",
+};
+
+TRANSLATIONS.da = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Skift farver",
+  editor_colors_back: "Tilbage til editor",
+  editor_colors_apply: "Anvend farver",
+  editor_colors_reset_all: "Nulstil alle farver",
+  editor_bg_opacity_label: "Korttransparens",
+};
+
+TRANSLATIONS.no = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Endre farger",
+  editor_colors_back: "Tilbake til editor",
+  editor_colors_apply: "Bruk farger",
+  editor_colors_reset_all: "Tilbakestill alle farger",
+  editor_bg_opacity_label: "Kortgjennomsiktighet",
+};
+
+TRANSLATIONS.fi = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Vaihda värejä",
+  editor_colors_back: "Takaisin editoriin",
+  editor_colors_apply: "Käytä värit",
+  editor_colors_reset_all: "Nollaa kaikki värit",
+  editor_bg_opacity_label: "Kortin läpinäkyvyys",
+};
+
+TRANSLATIONS.pl = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Zmień kolory",
+  editor_colors_back: "Wróć do edytora",
+  editor_colors_apply: "Zastosuj kolory",
+  editor_colors_reset_all: "Resetuj wszystkie kolory",
+  editor_bg_opacity_label: "Przezroczystość karty",
+};
+
+TRANSLATIONS.cs = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Změnit barvy",
+  editor_colors_back: "Zpět do editoru",
+  editor_colors_apply: "Použít barvy",
+  editor_colors_reset_all: "Resetovat všechny barvy",
+  editor_bg_opacity_label: "Průhlednost karty",
+};
+
 /**
  * Get translations for the given language code.
  * Falls back to "en" for any unsupported language.

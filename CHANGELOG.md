@@ -8,6 +8,7 @@
 - Improve color-step layout: move card transparency control above background color and add extra spacing for better readability.
 - Remove AP body color option from the editor and keep only AP LED color fallback control.
 - Add AP LED color fallback control `ap_led_color` (only enabled if non RGB LED).
+- Add language coverage for Scandinavian locales (`sv`, `da`, `no`, `fi`) plus Polish (`pl`) and Czech (`cs`).
 
 ### 🐛 Bug Fixes
 - Improve editor range/color input usability by committing on `change` (prevents picker/slider interruption while dragging or typing).
