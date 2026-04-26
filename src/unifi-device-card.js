@@ -2428,16 +2428,20 @@ class UnifiDeviceCard extends HTMLElement {
   }
 }
 
-customElements.define("unifi-device-card", UnifiDeviceCard);
+if (!customElements.get("unifi-device-card")) {
+  customElements.define("unifi-device-card", UnifiDeviceCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "unifi-device-card",
-  name: "UniFi Device Card",
-  description: `Lovelace card for UniFi devices (v${VERSION}).`,
-  preview: true,
-  documentationURL: "https://github.com/bluenazgul/unifi-device-card",
-});
+if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
+  window.customCards.push({
+    type: "unifi-device-card",
+    name: "UniFi Device Card",
+    description: `Lovelace card for UniFi devices (v${VERSION}).`,
+    preview: true,
+    documentationURL: "https://github.com/bluenazgul/unifi-device-card",
+  });
+}
 
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;
