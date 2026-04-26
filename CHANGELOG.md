@@ -6,6 +6,7 @@
 - Fix gateway classification for `USG-XG-8` / `UGWXG` aliases so gateway-specific behavior is applied reliably even without gateway-like names.
 - Fix AP classification for legacy `U5O` (`UAP-Outdoor5`) aliases so these devices remain visible in the editor when capability signals are limited.
 - Harden dynamic template rendering in card/editor by consistently escaping interpolated HTML text and attribute values (including warnings, gateway option labels, header/detail metrics, and entity-derived values).
+- Guard custom element registration and Home Assistant `customCards` registration to prevent duplicate-definition errors and duplicate card-list entries when resources are loaded more than once.
 
 
 
