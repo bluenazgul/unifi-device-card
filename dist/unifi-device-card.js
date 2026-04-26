@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.936ae2c */
+/* UniFi Device Card 0.0.0-dev.2f73de8 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1414,16 +1414,19 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || name.includes("gateway") || name.includes("router");
   if (gatewaySignals) return "gateway";
   const modelKey = resolveModelKey(device || identity || {});
+  const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"];
+  const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
+  if (modelKey && gatewayModelKeys.includes(modelKey) && hasPortSignals) return "gateway";
+  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
+  if (hasPortSignals) return "switch";
   if (modelKey) {
-    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+    if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
     if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
       return "switch";
     }
   }
-  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
-  if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
   if (manufacturer.includes("ubiquiti") || manufacturer.includes("unifi")) {
     if (name.includes("switch")) return "switch";
     if (name.includes("access point") || name.includes(" ap")) return "access_point";
@@ -4833,10 +4836,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
   }
 };
-customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+if (!customElements.get("unifi-device-card-editor")) {
+  customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+}
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.936ae2c";
+var VERSION = "0.0.0-dev.2f73de8";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
