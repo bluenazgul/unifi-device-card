@@ -901,12 +901,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
         background: var(--error-color);
       }
 
-      .color-preview-card {
-        border: 1px solid var(--divider-color);
-        border-radius: 12px;
-        overflow: hidden;
-      }
-
       .color-grid {
         display: grid;
         gap: 8px;
@@ -1077,7 +1071,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
-    const previewConfig = { ...this._config, ...this._draftColors };
     const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
     const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
     const portsPerRow = this._config?.ports_per_row || "";
@@ -1257,9 +1250,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <button type="button" class="nav-btn danger" id="reset_all_colors">${escapeHtml(this._t("editor_colors_reset_all"))}</button>
           </div>
           <div class="hint">${escapeHtml(this._t("editor_colors_step_hint"))}</div>
-          <div class="color-preview-card">
-            <unifi-device-card id="editor_preview_card"></unifi-device-card>
-          </div>
           <div class="field">
             <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
             <button type="button" class="color-slot-btn" data-slot="background_color">
@@ -1356,12 +1346,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("input", (ev) => this._onDraftColorRawInput(ev));
     this.shadowRoot.getElementById("reset_color_slot")
       ?.addEventListener("click", () => this._onResetSlotColor());
-
-    const previewCard = this.shadowRoot.getElementById("editor_preview_card");
-    if (previewCard) {
-      previewCard.hass = this._hass;
-      previewCard.setConfig(previewConfig);
-    }
 
     this._restoreFocusState(focusState);
   }
