@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.5f1f23a */
+/* UniFi Device Card 0.0.0-dev.e0a10c0 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3707,7 +3707,6 @@ var COLOR_SLOTS = [
   { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
   { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
   { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
-  { key: "ap_color", token: "ap_color", cssVar: "--udc-ap-color", fallback: "#dbe2ec" },
   { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" }
 ];
 var COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
@@ -4567,7 +4566,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       if (isApDevice) {
         return !["port_label_color", "special_port_label_color"].includes(slot.key);
       }
-      return !["ap_color", "ap_led_color"].includes(slot.key);
+      return slot.key !== "ap_led_color";
     });
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -4788,7 +4787,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.5f1f23a";
+var VERSION = "0.0.0-dev.e0a10c0";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
