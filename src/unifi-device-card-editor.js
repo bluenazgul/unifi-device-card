@@ -109,6 +109,83 @@ function clampApScale(value) {
   return Math.min(140, Math.max(25, num));
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const COLOR_SLOTS = [
+  { key: "background_color", token: "background", cssVar: "--udc-card-bg", fallback: "var(--card-background-color)" },
+  { key: "title_color", token: "title", cssVar: "--udc-title-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "telemetry_color", token: "telemetry", cssVar: "--udc-telemetry-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "label_color", token: "label", cssVar: "--udc-label-color", fallback: "var(--secondary-text-color, #6f7d90)" },
+  { key: "value_color", token: "value", cssVar: "--udc-value-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
+  { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
+  { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
+  { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" },
+];
+
+const COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
+
+function colorSlotLabel(tFn, key) {
+  const slot = COLOR_SLOT_BY_KEY[key];
+  if (!slot) return key;
+  return tFn(`editor_color_slot_${slot.token}`);
+}
+
+function parseColorWithAlpha(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+
+  const hex8 = value.match(/^#([\da-f]{8})$/i);
+  if (hex8) {
+    const part = hex8[1];
+    return {
+      hex: `#${part.slice(0, 6).toLowerCase()}`,
+      alpha: Math.round((Number.parseInt(part.slice(6, 8), 16) / 255) * 100),
+    };
+  }
+
+  const hex6 = value.match(/^#([\da-f]{6})$/i);
+  if (hex6) return { hex: `#${hex6[1].toLowerCase()}`, alpha: 100 };
+
+  const rgba = value.match(/^rgba?\((.+)\)$/i);
+  if (rgba) {
+    const parts = rgba[1].split(",").map((part) => part.trim());
+    if (parts.length >= 3) {
+      const r = Math.min(255, Math.max(0, Number.parseFloat(parts[0]) || 0));
+      const g = Math.min(255, Math.max(0, Number.parseFloat(parts[1]) || 0));
+      const b = Math.min(255, Math.max(0, Number.parseFloat(parts[2]) || 0));
+      const aRaw = parts[3] != null ? Number.parseFloat(parts[3]) : 1;
+      const a = Number.isFinite(aRaw) ? Math.min(1, Math.max(0, aRaw)) : 1;
+      const toHex = (num) => num.toString(16).padStart(2, "0");
+      return {
+        hex: `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`,
+        alpha: Math.round(a * 100),
+      };
+    }
+  }
+
+  return null;
+}
+
+function normalizeHexColor(value) {
+  const hex = String(value || "").trim().toLowerCase();
+  if (!/^#([\da-f]{3}|[\da-f]{6})$/i.test(hex)) return null;
+  if (hex.length === 7) return hex;
+  const [r, g, b] = hex.slice(1).split("");
+  return `#${r}${r}${g}${g}${b}${b}`;
+}
+
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
 
@@ -169,11 +246,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._deviceCtxToken = 0;
     this._lastHintDeviceId = null;
     this._lastCtxDeviceId = null;
+    this._editorStep = "main";
+    this._draftColors = {};
+    this._activeColorSlot = "";
+    this._colorStepBaseConfig = null;
   }
 
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
     this._config = config || {};
+    this._syncDraftColors();
 
     const nextDeviceId = this._config?.device_id || "";
     if (this._hass && nextDeviceId) {
@@ -217,6 +299,53 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _t(key) {
     return t(this._hass, key);
+  }
+
+  _syncDraftColors() {
+    const nextDraft = {};
+    for (const slot of COLOR_SLOTS) {
+      if (this._config?.[slot.key]) nextDraft[slot.key] = this._config[slot.key];
+    }
+    this._draftColors = nextDraft;
+  }
+
+  _apHasRgbLedControl() {
+    if (!this._hass?.states) return false;
+    const ledSwitchEntity = this._deviceCtx?.led_switch_entity;
+    const ledColorEntity = this._deviceCtx?.led_color_entity;
+    if (!ledSwitchEntity && !ledColorEntity) return false;
+
+    const candidates = [ledSwitchEntity, ledColorEntity].filter(Boolean);
+    const hasRgbAttr = candidates.some((entityId) =>
+      Array.isArray(this._hass?.states?.[entityId]?.attributes?.rgb_color)
+    );
+
+    if (hasRgbAttr) return true;
+    if (!ledColorEntity) return false;
+
+    const raw = String(this._hass.states?.[ledColorEntity]?.state || "").trim().toLowerCase();
+    return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) || /^rgb\(/i.test(raw);
+  }
+
+  _resolveSlotPickerHex(slot) {
+    if (!slot) return "#1f2937";
+    const draft = parseColorWithAlpha(this._draftColors[slot.key] || "")?.hex;
+    if (draft) return draft;
+
+    const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
+    if (fallback) return fallback;
+    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{6}|[\da-f]{3})/i);
+    const fallbackHex = normalizeHexColor(fallbackHexMatch ? `#${fallbackHexMatch[1]}` : "");
+    if (fallbackHex) return fallbackHex;
+
+    if (slot.key === "background_color" && typeof getComputedStyle === "function") {
+      const fromHost = getComputedStyle(this).getPropertyValue("--card-background-color");
+      const fromRoot = getComputedStyle(document.documentElement).getPropertyValue("--card-background-color");
+      const resolved = parseColorWithAlpha(String(fromHost || fromRoot || "").trim())?.hex;
+      if (resolved) return resolved;
+    }
+
+    return "#1f2937";
   }
 
   async _loadDevices() {
@@ -287,6 +416,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._patchFields();
   }
 
+  _dispatchConfig(config) {
+    this.dispatchEvent(new CustomEvent("config-changed", {
+      detail: { config },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
   _emitConfig(partial) {
     const next = { ...this._config, ...partial };
     const hadExplicitSpecialPorts = hasExplicitSpecialPorts(this._config);
@@ -295,6 +432,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
+    for (const slot of COLOR_SLOTS) {
+      if (!next[slot.key]) delete next[slot.key];
+    }
     next.background_opacity = clampOpacity(next.background_opacity);
     if (next.background_opacity === 100) delete next.background_opacity;
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
@@ -332,11 +472,15 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
 
-    this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config: next },
-      bubbles: true,
-      composed: true,
-    }));
+    this._dispatchConfig(next);
+  }
+
+  _emitDraftPreviewConfig() {
+    const base = { ...(this._colorStepBaseConfig || this._config || {}) };
+    for (const slot of COLOR_SLOTS) {
+      base[slot.key] = this._draftColors[slot.key] || undefined;
+    }
+    this._dispatchConfig(base);
   }
 
   _onDeviceChange(ev) {
@@ -380,6 +524,88 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onBackgroundOpacityInput(ev) {
     this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
+  }
+
+  _onOpenColorStep() {
+    this._colorStepBaseConfig = { ...(this._config || {}) };
+    this._syncDraftColors();
+    this._activeColorSlot = "";
+    this._editorStep = "colors";
+    this._render();
+  }
+
+  _onBackFromColorStep() {
+    this._activeColorSlot = "";
+    this._editorStep = "main";
+    if (this._colorStepBaseConfig) {
+      this._dispatchConfig({ ...this._colorStepBaseConfig });
+    }
+    this._colorStepBaseConfig = null;
+    this._syncDraftColors();
+    this._render();
+  }
+
+  _onOpenColorDialog(ev) {
+    const slotKey = ev.currentTarget?.dataset?.slot || "";
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._activeColorSlot = slotKey;
+    this._render();
+  }
+
+  _onCloseColorDialog() {
+    this._activeColorSlot = "";
+    this._render();
+  }
+
+  _setDraftColor(slotKey, value) {
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    const normalizedHex = normalizeHexColor(value);
+    const nextValue = normalizedHex || String(value || "").trim();
+    if (!nextValue) {
+      delete this._draftColors[slotKey];
+    } else {
+      this._draftColors[slotKey] = nextValue;
+    }
+    this._emitDraftPreviewConfig();
+  }
+
+  _onDraftColorHexInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    const hex = String(ev.target.value || "").trim().toLowerCase();
+    this._setDraftColor(slotKey, hex);
+  }
+
+  _onDraftColorRawInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._setDraftColor(slotKey, String(ev.target.value || "").trim());
+  }
+
+
+  _onResetSlotColor() {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._setDraftColor(slotKey, "");
+    this._render();
+  }
+
+  _onResetAllColors() {
+    for (const slot of COLOR_SLOTS) delete this._draftColors[slot.key];
+    this._emitDraftPreviewConfig();
+    this._render();
+  }
+
+  _onApplyDraftColors() {
+    const payload = {};
+    for (const slot of COLOR_SLOTS) {
+      payload[slot.key] = this._draftColors[slot.key] || undefined;
+    }
+    this._emitConfig(payload);
+    this._activeColorSlot = "";
+    this._editorStep = "main";
+    this._colorStepBaseConfig = null;
+    this._render();
   }
 
   _onShowPanelChange(ev) {
@@ -508,7 +734,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _warningHTML() {
     if (this._entityHintLoading && !this._entityHint) {
-      return `<div class="warn loading">${this._t("warning_checking")}</div>`;
+      return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
 
     if (!this._entityHint) return "";
@@ -525,20 +751,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ? `<ul>${items
           .map(
             (item) =>
-              `<li><strong>${item.count}</strong> ${this._t(`warning_entity_${item.key}`)}</li>`
+              `<li><strong>${escapeHtml(item.count)}</strong> ${escapeHtml(this._t(`warning_entity_${item.key}`))}</li>`
           )
           .join("")}</ul>`
       : "";
 
     return `
       <div class="warn">
-        <div class="warn-title">${this._t("warning_title")}</div>
-        <div class="warn-body">${this._t("warning_body")}</div>
-        <div class="warn-status">${summary}</div>
+        <div class="warn-title">${escapeHtml(this._t("warning_title"))}</div>
+        <div class="warn-body">${escapeHtml(this._t("warning_body"))}</div>
+        <div class="warn-status">${escapeHtml(summary)}</div>
         ${list}
         <div class="warn-path">
-          <strong>${this._t("warning_check_in")}</strong><br>
-          ${this._t("warning_ha_path")}
+          <strong>${escapeHtml(this._t("warning_check_in"))}</strong><br>
+          ${escapeHtml(this._t("warning_ha_path"))}
         </div>
       </div>
     `;
@@ -557,19 +783,19 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!layout) {
       return `
         <div class="field">
-          <label>${this._t("editor_wan_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
           <select id="wan_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_wan2_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
           <select id="wan2_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
         </div>
       `;
     }
@@ -586,20 +812,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     return `
       <div class="field">
-        <label>${this._t("editor_wan_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
         <select id="wan_port">
           ${wanOptions
             .map(
               (opt) =>
-                `<option value="${opt.value}" ${opt.value === selectedWan ? "selected" : ""}>${opt.label}</option>`
+                `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan ? "selected" : ""}>${escapeHtml(opt.label)}</option>`
             )
             .join("")}
         </select>
-        <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
       </div>
 
       <div class="field">
-        <label>${this._t("editor_wan2_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
         <select id="wan2_port">
           ${wan2Options
             .map((opt) => {
@@ -608,13 +834,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
                 opt.value !== "none" &&
                 roleSelectionsConflict(selectedWan, "wan", opt.value, "wan2", layout);
 
-              return `<option value="${opt.value}" ${opt.value === selectedWan2 ? "selected" : ""} ${
+              return `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan2 ? "selected" : ""} ${
                 disabled ? "disabled" : ""
-              }>${opt.label}</option>`;
+              }>${escapeHtml(opt.label)}</option>`;
             })
             .join("")}
         </select>
-        <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
       </div>
     `;
   }
@@ -630,6 +856,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
         gap: 14px;
       }
 
+      .hidden {
+        display: none;
+      }
+
       .section-title {
         font-size: 0.95rem;
         font-weight: 700;
@@ -639,6 +869,22 @@ class UnifiDeviceCardEditor extends HTMLElement {
       .field {
         display: grid;
         gap: 6px;
+      }
+
+      .step-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .step-footer {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .opacity-field {
+        margin-bottom: 8px;
       }
 
       label {
@@ -657,6 +903,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
         font: inherit;
       }
 
+      input[type="color"] {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 10px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+      }
+
       .checkbox-row {
         display: flex;
         align-items: center;
@@ -673,6 +927,80 @@ class UnifiDeviceCardEditor extends HTMLElement {
       .hint {
         color: var(--secondary-text-color);
         font-size: 0.82rem;
+      }
+
+      .nav-btn {
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: var(--primary-color);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .nav-btn.secondary {
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+      }
+
+      .nav-btn.danger {
+        background: var(--error-color);
+      }
+
+      .color-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .color-slot-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .color-slot-btn.disabled {
+        opacity: .55;
+        cursor: not-allowed;
+      }
+
+      .swatch {
+        width: 28px;
+        height: 18px;
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,.25);
+      }
+
+      .color-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        z-index: 999;
+      }
+
+      .color-modal {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(420px, calc(100vw - 30px));
+        z-index: 1000;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
       }
 
       .port-toggle-list {
@@ -793,8 +1121,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
-    const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
+    const colorStepOpen = this._editorStep === "colors";
+    const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
+    const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
+    const activeRawColorValue = activeColorSlot
+      ? (this._draftColors[activeColorSlot.key] || activeColorSlot.fallback || "")
+      : "";
+    const activePickerHex = this._resolveSlotPickerHex(activeColorSlot);
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
@@ -815,149 +1149,199 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selectedSpecialPorts = editSpecialPorts
       ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
+    const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
+    const visibleColorSlots = COLOR_SLOTS.filter((slot) => {
+      if (slot.key === "background_color") return true;
+      if (isApDevice) {
+        return !["port_label_color", "special_port_label_color"].includes(slot.key);
+      }
+      return slot.key !== "ap_led_color";
+    });
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
-        <div class="section-title">${this._t("editor_device_title")}</div>
+        <div class="main-step ${colorStepOpen ? "hidden" : ""}">
+        <div class="section-title">${escapeHtml(this._t("editor_device_title"))}</div>
 
         <div class="field">
-          <label>${this._t("editor_device_label")}</label>
+          <label>${escapeHtml(this._t("editor_device_label"))}</label>
           <select id="device_id">
-            <option value="">${this._t("editor_device_select")}</option>
+            <option value="">${escapeHtml(this._t("editor_device_select"))}</option>
             ${this._devices
               .map(
                 (device) =>
-                  `<option value="${device.id}" ${device.id === deviceValue ? "selected" : ""}>${device.label}</option>`
+                  `<option value="${escapeAttr(device.id)}" ${device.id === deviceValue ? "selected" : ""}>${escapeHtml(device.label)}</option>`
               )
               .join("")}
           </select>
           <div class="hint">${
             this._loading
-              ? this._t("editor_device_loading")
+              ? escapeHtml(this._t("editor_device_loading"))
               : this._devices.length
-              ? this._t("editor_hint")
-              : this._error || this._t("editor_no_devices")
+              ? escapeHtml(this._t("editor_hint"))
+              : escapeHtml(this._error || this._t("editor_no_devices"))
           }</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_name_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_name" type="checkbox" ${showName ? "checked" : ""}>
-            <span>${this._t("editor_name_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_name_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_name_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_name_toggle_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_label")}</label>
-          <input id="name" type="text" value="${nameValue}" ${showName ? "" : "disabled"}>
-          <div class="hint">${this._t("editor_name_hint")}</div>
+          <label>${escapeHtml(this._t("editor_name_label"))}</label>
+          <input id="name" type="text" value="${escapeAttr(nameValue)}" ${showName ? "" : "disabled"}>
+          <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_panel_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
-            <span>${this._t("editor_panel_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchDevice ? `
         <div class="field">
-          <label>${this._t("editor_ports_per_row_label")}</label>
-          <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
-          <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
+          <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
+          <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
-          <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
-          <div class="hint">${this._t("editor_port_size_hint")}</div>
+          <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
+          <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
+          <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
         </div>` : ""}
 
         ${isApDevice ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_view" type="checkbox" ${apCompactView ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_toggle_hint"))}</div>
         </div>
 
         ${apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_header_telemetry_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_header_telemetry_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_header_telemetry_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
         </div>` : ""}
 
         ${!apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
-          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${apScale}">
-          <div class="hint">${this._t("editor_ap_scale_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ap_scale_label"))}: ${escapeHtml(apScale)}%</label>
+          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${escapeAttr(apScale)}">
+          <div class="hint">${escapeHtml(this._t("editor_ap_scale_hint"))}</div>
         </div>` : ""}` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
           <label class="checkbox-row">
             <input id="edit_special_ports" type="checkbox" ${editSpecialPorts ? "checked" : ""}>
-            <span>${this._t("editor_edit_special_ports_toggle")}</span>
+            <span>${escapeHtml(this._t("editor_edit_special_ports_toggle"))}</span>
           </label>
-          <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_edit_special_ports_toggle_hint"))}</div>
         </div>
 
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
         <div class="field">
-          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
             ${selectableSpecialPorts
-              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${port}">Port ${port}</button>`)
+              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`)
               .join("")}
           </div>
-          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
         </div>` : ""}
 
         <div class="field">
           <label class="checkbox-row">
             <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
-            <span>${this._t("editor_force_sequential_ports_label")}</span>
+            <span>${escapeHtml(this._t("editor_force_sequential_ports_label"))}</span>
           </label>
-          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_force_sequential_ports_hint"))}</div>
         </div>
         ` : ""}
 
         <div class="field">
-          <label>${this._t("editor_bg_label")}</label>
-          <input id="background_color" type="text" value="${backgroundValue}">
-          <div class="hint">${this._t("editor_bg_hint")}</div>
-        </div>
-
-        <div class="field">
-          <label>${this._t("editor_bg_opacity_label")}: ${backgroundOpacity}%</label>
-          <input
-            id="background_opacity"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value="${backgroundOpacity}"
-          >
-          <div class="hint">${this._t("editor_bg_opacity_hint")}</div>
+          <button type="button" class="nav-btn" id="open_color_editor">${escapeHtml(this._t("editor_colors_open"))}</button>
+          <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
+        </div>
+
+        <div class="color-step ${colorStepOpen ? "" : "hidden"}">
+          <div class="step-header">
+            <button type="button" class="nav-btn secondary" id="back_from_color_editor">← ${escapeHtml(this._t("editor_colors_back"))}</button>
+            <button type="button" class="nav-btn danger" id="reset_all_colors">${escapeHtml(this._t("editor_colors_reset_all"))}</button>
+          </div>
+          <div class="hint">${escapeHtml(this._t("editor_colors_step_hint"))}</div>
+          <div class="field opacity-field">
+            <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
+            <input
+              id="background_opacity"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="${escapeAttr(backgroundOpacity)}"
+            >
+            <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
+            <button type="button" class="color-slot-btn" data-slot="background_color">
+              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
+              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
+            </button>
+          </div>
+          <div class="color-grid">
+            ${visibleColorSlots.filter((slot) => slot.key !== "background_color").map((slot) => {
+              const disabled = slot.key === "ap_led_color" && apLedColorDisabled;
+              return `
+              <button type="button" class="color-slot-btn ${disabled ? "disabled" : ""}" data-slot="${escapeAttr(slot.key)}" ${disabled ? "disabled" : ""}>
+                <span>${escapeHtml(colorSlotLabel((k) => this._t(k), slot.key))}</span>
+                <span class="swatch" style="background:${escapeAttr(this._draftColors[slot.key] || slot.fallback)}"></span>
+              </button>
+              ${disabled ? `<span class="hint">${escapeHtml(this._t("editor_ap_led_color_disabled_hint"))}</span>` : ""}
+            `;
+            }).join("")}
+          </div>
+          <div class="step-footer">
+            <button type="button" class="nav-btn" id="apply_color_editor">${escapeHtml(this._t("editor_colors_apply"))}</button>
+          </div>
+          ${activeColorSlot ? `
+            <div class="color-modal-backdrop" id="close_color_dialog"></div>
+            <div class="color-modal">
+              <div class="section-title">${escapeHtml(colorSlotLabel((k) => this._t(k), activeColorSlot.key))}</div>
+              <input id="color_picker_hex" type="color" value="${escapeAttr(activePickerHex)}">
+              <input id="color_picker_raw" type="text" value="${escapeAttr(activeRawColorValue)}">
+              <div class="step-header">
+                <button type="button" class="nav-btn secondary" id="reset_color_slot">${escapeHtml(this._t("editor_colors_reset_slot"))}</button>
+                <button type="button" class="nav-btn" id="close_color_picker">${escapeHtml(this._t("editor_colors_done"))}</button>
+              </div>
+            </div>
+          ` : ""}
+        </div>
       </div>
     `;
 
@@ -976,18 +1360,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this.shadowRoot.getElementById("force_sequential_ports")
       ?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("port_size")
-      ?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
+      ?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
-      ?.addEventListener("input", (ev) => this._onApScaleInput(ev));
+      ?.addEventListener("change", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")
       ?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
 
-    this.shadowRoot.getElementById("background_color")
-      ?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
     this.shadowRoot.getElementById("background_opacity")
-      ?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
+      ?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
 
     this.shadowRoot.getElementById("wan_port")
       ?.addEventListener("change", (ev) => this._onWanPortChange(ev));
@@ -998,6 +1380,27 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
     this.shadowRoot.getElementById("special_ports_list")
       ?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
+
+    this.shadowRoot.getElementById("open_color_editor")
+      ?.addEventListener("click", () => this._onOpenColorStep());
+    this.shadowRoot.getElementById("back_from_color_editor")
+      ?.addEventListener("click", () => this._onBackFromColorStep());
+    this.shadowRoot.getElementById("reset_all_colors")
+      ?.addEventListener("click", () => this._onResetAllColors());
+    this.shadowRoot.getElementById("apply_color_editor")
+      ?.addEventListener("click", () => this._onApplyDraftColors());
+    this.shadowRoot.querySelectorAll(".color-slot-btn")
+      .forEach((btn) => btn.addEventListener("click", (ev) => this._onOpenColorDialog(ev)));
+    this.shadowRoot.getElementById("close_color_dialog")
+      ?.addEventListener("click", () => this._onCloseColorDialog());
+    this.shadowRoot.getElementById("close_color_picker")
+      ?.addEventListener("click", () => this._onCloseColorDialog());
+    this.shadowRoot.getElementById("color_picker_hex")
+      ?.addEventListener("change", (ev) => this._onDraftColorHexInput(ev));
+    this.shadowRoot.getElementById("color_picker_raw")
+      ?.addEventListener("change", (ev) => this._onDraftColorRawInput(ev));
+    this.shadowRoot.getElementById("reset_color_slot")
+      ?.addEventListener("click", () => this._onResetSlotColor());
 
     this._restoreFocusState(focusState);
   }
@@ -1015,4 +1418,6 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+if (!customElements.get("unifi-device-card-editor")) {
+  customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+}

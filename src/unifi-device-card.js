@@ -292,6 +292,27 @@ class UnifiDeviceCard extends HTMLElement {
     return this._cardBgStyle();
   }
 
+  _customColorVars() {
+    const vars = [];
+    const pairs = [
+      ["title_color", "--udc-title-color"],
+      ["telemetry_color", "--udc-telemetry-color"],
+      ["label_color", "--udc-label-color"],
+      ["value_color", "--udc-value-color"],
+      ["meta_color", "--udc-meta-color"],
+      ["port_label_color", "--udc-port-label-color"],
+      ["special_port_label_color", "--udc-special-port-label-color"],
+      ["ap_color", "--udc-ap-color"],
+      ["ap_ring_color", "--udc-ap-ring-color"],
+      ["ap_inner_color", "--udc-ap-inner-color"],
+    ];
+    for (const [configKey, cssVar] of pairs) {
+      const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    return vars.length ? `; ${vars.join("; ")}` : "";
+  }
+
   _portSize() {
     const raw = Number.parseInt(this._config?.port_size, 10);
     if (!Number.isFinite(raw)) return 36;
@@ -477,7 +498,7 @@ class UnifiDeviceCard extends HTMLElement {
   _apLedState() {
     const ledEntity = this._ctx?.led_switch_entity;
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
-    const defaultColor = this._ctx?.layout?.apLedDefaultColor ?? "#0000ff";
+    const defaultColor = this._config?.ap_led_color || this._ctx?.layout?.apLedDefaultColor || "#0000ff";
     const ringColor = ledEnabled ? (this._apLedColorValue() || defaultColor) : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
   }
@@ -493,7 +514,21 @@ class UnifiDeviceCard extends HTMLElement {
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/'/g, "&#39;");
+  }
+
+  _escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
+  }
+
+  _safeClassToken(value, fallback = "") {
+    const token = String(value ?? "").trim();
+    if (!token) return fallback;
+    return /^[a-z0-9_-]+$/i.test(token) ? token : fallback;
   }
 
   _apUplinkTooltip(uplink) {
@@ -1245,7 +1280,7 @@ class UnifiDeviceCard extends HTMLElement {
       "port",
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
-      `media-${mediaType}`,
+      `media-${this._safeClassToken(mediaType, "rj45")}`,
       this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
       oddEvenTopRow && !isSpecial && !isSfp ? "odd-even-top" : "",
@@ -1282,11 +1317,11 @@ class UnifiDeviceCard extends HTMLElement {
         </div>
       `;
 
-    return `<button class="${classes}" data-key="${slot.key}" title="${this._escapeAttr(tooltip)}">
+    return `<button class="${this._escapeAttr(classes)}" data-key="${this._escapeAttr(slot.key)}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
       </div>
-      <div class="port-num">${slot.label}</div>
+      <div class="port-num">${this._escapeHtml(slot.label)}</div>
     </button>`;
   }
 
@@ -1348,11 +1383,12 @@ class UnifiDeviceCard extends HTMLElement {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: var(--udc-title-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .subtitle {
         font-size: 0.73rem;
-        color: var(--udc-muted);
+        color: var(--udc-meta-color, var(--udc-muted));
       }
 
       .meta-list {
@@ -1367,16 +1403,17 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: baseline;
         font-size: 0.73rem;
         min-width: 0;
+        color: var(--udc-telemetry-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .meta-label {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         white-space: nowrap;
         font-weight: 500;
       }
 
       .meta-value {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         font-weight: 600;
         min-width: 0;
         overflow: hidden;
@@ -1455,7 +1492,7 @@ class UnifiDeviceCard extends HTMLElement {
         letter-spacing: .1em;
         text-transform: uppercase;
         margin-bottom: 2px;
-        color: #7c818b;
+        color: var(--udc-label-color, #7c818b);
       }
 
       .special-row {
@@ -1578,7 +1615,7 @@ class UnifiDeviceCard extends HTMLElement {
         aspect-ratio: 1 / 1;
         max-width: 100%;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
+        background: var(--udc-ap-inner-color, var(--udc-ap-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%)));
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -1591,7 +1628,7 @@ class UnifiDeviceCard extends HTMLElement {
         width: 41%;
         height: 41%;
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
+        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, #a5adb8)));
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -1599,10 +1636,10 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: var(--ap-ring-color, rgb(0, 0, 255));
+        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255))));
         box-shadow:
-          0 0 12px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 55%, transparent),
-          0 0 24px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 32%, transparent);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 32%, transparent);
       }
 
       .ap-ring.off {
@@ -1922,6 +1959,10 @@ class UnifiDeviceCard extends HTMLElement {
         max-width: calc(var(--udc-port-size) - 2px);
       }
 
+      .port.special .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #646a76));
+      }
+
       .port-num {
         font-size: 7px;
         font-weight: 800;
@@ -1929,18 +1970,26 @@ class UnifiDeviceCard extends HTMLElement {
         margin-top: 1px;
         letter-spacing: 0;
         user-select: none;
-        color: #646a76;
+        color: var(--udc-port-label-color, #646a76);
         transition: color .15s ease, opacity .15s ease;
       }
 
       .port.down .port-num {
-        color: #4c5260;
+        color: var(--udc-port-label-color, #4c5260);
         opacity: .6;
       }
 
+      .port.special.down .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #4c5260));
+      }
+
       .port.up .port-num {
-        color: #414957;
+        color: var(--udc-port-label-color, #414957);
         opacity: 1;
+      }
+
+      .port.special.up .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #414957));
       }
 
       .port:hover .port-num,
@@ -1963,7 +2012,7 @@ class UnifiDeviceCard extends HTMLElement {
         font-size: 0.8rem;
         font-weight: 700;
         margin-bottom: 8px;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-grid {
@@ -1983,13 +2032,13 @@ class UnifiDeviceCard extends HTMLElement {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: var(--secondary-text-color, var(--udc-muted));
+        color: var(--udc-label-color, var(--secondary-text-color, var(--udc-muted)));
       }
 
       .detail-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-value-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-value.online { color: var(--udc-green); }
@@ -2082,20 +2131,22 @@ class UnifiDeviceCard extends HTMLElement {
         ? []
         : this._headerMetrics();
 
+      const escapedHeaderTitle = this._escapeHtml(headerTitle);
+      const escapedSubtitle = this._escapeHtml(this._subtitle());
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
               ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
                 <div class="meta-row">
-                  <div class="meta-label">${item.label}:</div>
-                  <div class="meta-value">${item.value}</div>
+                  <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+                  <div class="meta-value">${this._escapeHtml(item.value)}</div>
                 </div>`).join("")}</div>` : ""}
             </div>
             <div class="header-actions">
-              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
+              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
               ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
@@ -2112,30 +2163,30 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="section">
               <div class="detail-grid">
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("ap_status")}</div>
-                  <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("ap_status"))}</div>
+                  <div class="detail-value ${apStatusClass}">${this._escapeHtml(apStatus || (online ? this._t("state_connected") : this._t("state_disconnected")))}</div>
                 </div>
                 ${compactApView ? `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("clients")}</div>
-                  <div class="detail-value">${clients}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("clients"))}</div>
+                  <div class="detail-value">${this._escapeHtml(clients)}</div>
                 </div>
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uptime")}</div>
-                  <div class="detail-value">${uptime}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uptime"))}</div>
+                  <div class="detail-value">${this._escapeHtml(uptime)}</div>
                 </div>` : `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uptime")}</div>
-                  <div class="detail-value">${uptime}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uptime"))}</div>
+                  <div class="detail-value">${this._escapeHtml(uptime)}</div>
                 </div>
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("clients")}</div>
-                  <div class="detail-value">${clients}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("clients"))}</div>
+                  <div class="detail-value">${this._escapeHtml(clients)}</div>
                 </div>`}
                 ${apUplink ? `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uplink")}</div>
-                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uplink"))}</div>
+                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${this._escapeHtml(apUplink)}</div>
                 </div>` : ""}
               </div>
             </div>
@@ -2161,7 +2212,8 @@ class UnifiDeviceCard extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const layoutTheme = ctx?.layout?.theme;
-    const theme = layoutTheme || "dark";
+    const theme = this._safeClassToken(layoutTheme || "dark", "dark");
+    const frontStyle = this._safeClassToken(ctx?.layout?.frontStyle || "single-row", "single-row");
     const showPanel = this._config?.show_panel !== false && !!layoutTheme;
 
     const specialPortsInUse = new Set(
@@ -2205,9 +2257,9 @@ class UnifiDeviceCard extends HTMLElement {
     const panelPortsHtml = reverseFrontpanel
       ? `${panelRowsHtml}${specialRow}`
       : `${specialRow}${panelRowsHtml}`;
-    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`;
 
-    let detail = `<div class="muted">${this._t("no_ports")}</div>`;
+    let detail = `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
 
     if (selected) {
       const linkUp = this._isPortConnected(selected);
@@ -2224,52 +2276,52 @@ class UnifiDeviceCard extends HTMLElement {
         || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
 
       detail = `
-        <div class="detail-title">${portTitle}</div>
+        <div class="detail-title">${this._escapeHtml(portTitle)}</div>
         <div class="detail-grid">
           <div class="detail-item">
-            <div class="detail-label">${this._t("link_status")}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
+              ${this._escapeHtml(this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link")))}
             </div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText || "—"}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("speed"))}</div>
+            <div class="detail-value">${this._escapeHtml(speedText || "—")}</div>
           </div>
           ${hasPoe ? `
           <div class="detail-item">
-            <div class="detail-label">${this._t("poe")}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("poe"))}</div>
             <div class="detail-value ${poeOn ? "online" : "offline"}">
-              ${poeOn ? this._t("state_on") : this._t("state_off")}
+              ${this._escapeHtml(poeOn ? this._t("state_on") : this._t("state_off"))}
             </div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower || "—"}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("poe_power"))}</div>
+            <div class="detail-value">${this._escapeHtml(poePower || "—")}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
             <div class="detail-label">RX</div>
-            <div class="detail-value">${rxVal}</div>
+            <div class="detail-value">${this._escapeHtml(rxVal)}</div>
           </div>` : ""}
           ${txVal != null ? `
           <div class="detail-item">
             <div class="detail-label">TX</div>
-            <div class="detail-value">${txVal}</div>
+            <div class="detail-value">${this._escapeHtml(txVal)}</div>
           </div>` : ""}
         </div>
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
             const enabled = isOn(this._hass, selected.port_switch_entity);
-            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-              ${enabled ? this._t("port_disable") : this._t("port_enable")}
+            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}">
+              ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
             </button>`;
           })() : ""}
-          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            ⚡ ${this._t("poe")}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${this._escapeAttr(selected.poe_switch_entity)}">
+            ⚡ ${this._escapeHtml(this._t("poe"))}
           </button>` : ""}
-          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-            ↺ ${this._t("power_cycle")}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${this._escapeAttr(selected.power_cycle_entity)}">
+            ↺ ${this._escapeHtml(this._t("power_cycle"))}
           </button>` : ""}
         </div>`;
     }
@@ -2277,26 +2329,28 @@ class UnifiDeviceCard extends HTMLElement {
     const headerTitle = this._title();
     const headerMetrics = this._headerMetrics();
 
+    const escapedHeaderTitle = this._escapeHtml(headerTitle);
+    const escapedSubtitle = this._escapeHtml(this._subtitle());
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
-            ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
-            <div class="subtitle">${this._subtitle()}</div>
+            ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
+            <div class="subtitle">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
-                <div class="meta-label">${item.label}:</div>
-                <div class="meta-value">${item.value}</div>
+                <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+                <div class="meta-value">${this._escapeHtml(item.value)}</div>
               </div>`).join("")}</div>` : ""}
           </div>
           <div class="header-actions">
-            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._t("reboot")}</button>` : ""}
-            <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>
           </div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
-          <div class="panel-label">${this._t("front_panel")}</div>
+        <div class="frontpanel ${frontStyle} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
           ${panelContentHtml}
         </div>
 
@@ -2321,17 +2375,19 @@ class UnifiDeviceCard extends HTMLElement {
 
   _render() {
     const title = this._title();
+    const escapedTitle = this._escapeHtml(title);
+    const escapedSubtitle = this._escapeHtml(this._subtitle());
 
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="empty-state">${this._t("select_device")}</div>
+          <div class="empty-state">${this._escapeHtml(this._t("select_device"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
@@ -2339,14 +2395,14 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
+          <div class="loading-state"><div class="spinner"></div>${this._escapeHtml(this._t("loading"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
@@ -2354,14 +2410,14 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="empty-state">${this._t("no_data")}</div>
+          <div class="empty-state">${this._escapeHtml(this._t("no_data"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
@@ -2372,16 +2428,20 @@ class UnifiDeviceCard extends HTMLElement {
   }
 }
 
-customElements.define("unifi-device-card", UnifiDeviceCard);
+if (!customElements.get("unifi-device-card")) {
+  customElements.define("unifi-device-card", UnifiDeviceCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "unifi-device-card",
-  name: "UniFi Device Card",
-  description: `Lovelace card for UniFi devices (v${VERSION}).`,
-  preview: true,
-  documentationURL: "https://github.com/bluenazgul/unifi-device-card",
-});
+if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
+  window.customCards.push({
+    type: "unifi-device-card",
+    name: "UniFi Device Card",
+    description: `Lovelace card for UniFi devices (v${VERSION}).`,
+    preview: true,
+    documentationURL: "https://github.com/bluenazgul/unifi-device-card",
+  });
+}
 
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;

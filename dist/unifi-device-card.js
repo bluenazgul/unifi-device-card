@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ed5ff8f */
+/* UniFi Device Card 0.0.0-dev.2f73de8 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -843,6 +843,8 @@ function resolveModelKey(device) {
     if (MODEL_REGISTRY[candidate]) return candidate;
     if (candidate.includes("UDMPROSE")) return "UDMPROSE";
     if (candidate.includes("UDMSE")) return "UDMPROSE";
+    if (candidate.includes("DREAMMACHINESE")) return "UDMPROSE";
+    if (candidate.includes("DREAMMACHINEPROSE")) return "UDMPROSE";
     if (candidate.includes("UDMPRO")) return "UDMPRO";
     if (candidate === "UAP") return "UAP";
     if (candidate.includes("BZ2LR")) return "UAPLR";
@@ -1052,6 +1054,7 @@ function inferPortCountFromModel(device) {
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
+  if (text.includes("DREAMMACHINESE") || text.includes("DREAMMACHINEPROSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
   if (text === "UDM" || text.includes("DREAMMACHINE")) return 5;
   if (text === "UDR" || text.includes("DREAMROUTER")) return 5;
@@ -1410,11 +1413,14 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   if (registryType) return registryType;
   const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || name.includes("gateway") || name.includes("router");
   if (gatewaySignals) return "gateway";
-  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
-  if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
   const modelKey = resolveModelKey(device || identity || {});
+  const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"];
+  const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
+  if (modelKey && gatewayModelKeys.includes(modelKey) && hasPortSignals) return "gateway";
+  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
+  if (hasPortSignals) return "switch";
   if (modelKey) {
-    if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
+    if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
     if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
@@ -2794,8 +2800,31 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Background color (optional)",
     editor_bg_hint: "Default: var(--card-background-color)",
-    editor_bg_opacity_label: "Background transparency",
+    editor_bg_opacity_label: "Card transparency",
     editor_bg_opacity_hint: "0% = fully transparent, 100% = fully opaque",
+    editor_colors_open: "Change colors",
+    editor_colors_open_hint: "Open advanced color editor with live preview and per-area color pickers.",
+    editor_colors_back: "Back to editor",
+    editor_colors_apply: "Apply colors",
+    editor_colors_step_hint: "Tip: Click any area to open the color picker dialog.",
+    editor_colors_reset_slot: "Reset this color",
+    editor_colors_reset_all: "Reset all colors",
+    editor_colors_done: "Done",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Default",
+    editor_color_slot_background: "Background",
+    editor_color_slot_title: "Title",
+    editor_color_slot_telemetry: "Telemetry",
+    editor_color_slot_label: "Labels",
+    editor_color_slot_value: "Values",
+    editor_color_slot_meta: "Model/Firmware",
+    editor_color_slot_port_label: "Port labels",
+    editor_color_slot_special_port_label: "Special port label",
+    editor_color_slot_ap_ring: "AP outer ring",
+    editor_color_slot_ap_inner: "AP inner circle",
+    editor_color_slot_ap_color: "AP color",
+    editor_color_slot_ap_led: "AP LED fallback",
+    editor_ap_led_color_disabled_hint: "Disabled because RGB LED control is available.",
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities\u2026",
     // Entity warning — content
@@ -2924,8 +2953,31 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Hintergrundfarbe (optional)",
     editor_bg_hint: "Standard: var(--card-background-color)",
-    editor_bg_opacity_label: "Hintergrund-Transparenz",
+    editor_bg_opacity_label: "Karten-Transparenz",
     editor_bg_opacity_hint: "0% = vollst\xE4ndig transparent, 100% = vollst\xE4ndig deckend",
+    editor_colors_open: "Farben \xE4ndern",
+    editor_colors_open_hint: "\xD6ffnet den erweiterten Farb-Editor mit Live-Vorschau und Bereichs-Pickern.",
+    editor_colors_back: "Zur\xFCck zum Editor",
+    editor_colors_apply: "Farben \xFCbernehmen",
+    editor_colors_step_hint: "Tipp: Klicke auf einen Bereich, um den Color-Picker zu \xF6ffnen.",
+    editor_colors_reset_slot: "Diese Farbe zur\xFCcksetzen",
+    editor_colors_reset_all: "Alle Farben zur\xFCcksetzen",
+    editor_colors_done: "Fertig",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Standard",
+    editor_color_slot_background: "Hintergrund",
+    editor_color_slot_title: "Titel",
+    editor_color_slot_telemetry: "Telemetrie",
+    editor_color_slot_label: "Labels",
+    editor_color_slot_value: "Werte",
+    editor_color_slot_meta: "Modell/Firmware",
+    editor_color_slot_port_label: "Port-Beschriftung",
+    editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
+    editor_color_slot_ap_ring: "AP Au\xDFenring",
+    editor_color_slot_ap_inner: "AP Innenkreis",
+    editor_color_slot_ap_color: "AP Farbe",
+    editor_color_slot_ap_led: "AP LED-Fallback",
+    editor_ap_led_color_disabled_hint: "Durch RGB-LED-Steuerung deaktiviert.",
     // Entity warning — loading hint
     warning_checking: "Ausgew\xE4hltes Ger\xE4t auf deaktivierte oder versteckte UniFi-Entities pr\xFCfen\u2026",
     // Entity warning — content
@@ -3054,8 +3106,31 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Achtergrondkleur (optioneel)",
     editor_bg_hint: "Standaard: var(--card-background-color)",
-    editor_bg_opacity_label: "Achtergrondtransparantie",
+    editor_bg_opacity_label: "Kaarttransparantie",
     editor_bg_opacity_hint: "0% = volledig transparant, 100% = volledig ondoorzichtig",
+    editor_colors_open: "Kleuren wijzigen",
+    editor_colors_open_hint: "Open geavanceerde kleureneditor met live preview en kleurkiezers per onderdeel.",
+    editor_colors_back: "Terug naar editor",
+    editor_colors_apply: "Kleuren toepassen",
+    editor_colors_step_hint: "Tip: Klik op een onderdeel om de kleurkiezer te openen.",
+    editor_colors_reset_slot: "Deze kleur resetten",
+    editor_colors_reset_all: "Alle kleuren resetten",
+    editor_colors_done: "Klaar",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Standaard",
+    editor_color_slot_background: "Achtergrond",
+    editor_color_slot_title: "Titel",
+    editor_color_slot_telemetry: "Telemetrie",
+    editor_color_slot_label: "Labels",
+    editor_color_slot_value: "Waarden",
+    editor_color_slot_meta: "Model/Firmware",
+    editor_color_slot_port_label: "Poortlabels",
+    editor_color_slot_special_port_label: "Speciale poortlabels",
+    editor_color_slot_ap_ring: "AP buitenring",
+    editor_color_slot_ap_inner: "AP binnencirkel",
+    editor_color_slot_ap_color: "AP kleur",
+    editor_color_slot_ap_led: "AP LED fallback",
+    editor_ap_led_color_disabled_hint: "Uitgeschakeld omdat RGB-ledbediening beschikbaar is.",
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
     warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
@@ -3181,8 +3256,31 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Couleur de fond (optionnel)",
     editor_bg_hint: "D\xE9faut : var(--card-background-color)",
-    editor_bg_opacity_label: "Transparence de fond",
+    editor_bg_opacity_label: "Transparence de la carte",
     editor_bg_opacity_hint: "0 % = enti\xE8rement transparent, 100 % = enti\xE8rement opaque",
+    editor_colors_open: "Modifier les couleurs",
+    editor_colors_open_hint: "Ouvre l\u2019\xE9diteur avanc\xE9 avec aper\xE7u en direct et s\xE9lecteurs par zone.",
+    editor_colors_back: "Retour \xE0 l\u2019\xE9diteur",
+    editor_colors_apply: "Appliquer les couleurs",
+    editor_colors_step_hint: "Astuce : cliquez sur une zone pour ouvrir le s\xE9lecteur.",
+    editor_colors_reset_slot: "R\xE9initialiser cette couleur",
+    editor_colors_reset_all: "R\xE9initialiser toutes les couleurs",
+    editor_colors_done: "Termin\xE9",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Par d\xE9faut",
+    editor_color_slot_background: "Arri\xE8re-plan",
+    editor_color_slot_title: "Titre",
+    editor_color_slot_telemetry: "T\xE9l\xE9m\xE9trie",
+    editor_color_slot_label: "Libell\xE9s",
+    editor_color_slot_value: "Valeurs",
+    editor_color_slot_meta: "Mod\xE8le/Firmware",
+    editor_color_slot_port_label: "\xC9tiquettes de port",
+    editor_color_slot_special_port_label: "\xC9tiquette port sp\xE9cial",
+    editor_color_slot_ap_ring: "Anneau externe AP",
+    editor_color_slot_ap_inner: "Cercle interne AP",
+    editor_color_slot_ap_color: "Couleur AP",
+    editor_color_slot_ap_led: "LED AP (secours)",
+    editor_ap_led_color_disabled_hint: "D\xE9sactiv\xE9 car le contr\xF4le LED RGB est disponible.",
     // Entity warning
     warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
     warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
@@ -3308,8 +3406,31 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Color de fondo (opcional)",
     editor_bg_hint: "Predeterminado: var(--card-background-color)",
-    editor_bg_opacity_label: "Transparencia del fondo",
+    editor_bg_opacity_label: "Transparencia de la tarjeta",
     editor_bg_opacity_hint: "0% = totalmente transparente, 100% = totalmente opaco",
+    editor_colors_open: "Cambiar colores",
+    editor_colors_open_hint: "Abre el editor avanzado con vista previa en vivo y selectores por zona.",
+    editor_colors_back: "Volver al editor",
+    editor_colors_apply: "Aplicar colores",
+    editor_colors_step_hint: "Consejo: haz clic en una zona para abrir el selector de color.",
+    editor_colors_reset_slot: "Restablecer este color",
+    editor_colors_reset_all: "Restablecer todos los colores",
+    editor_colors_done: "Listo",
+    editor_colors_alpha_label: "Alfa",
+    editor_colors_default_value: "Predeterminado",
+    editor_color_slot_background: "Fondo",
+    editor_color_slot_title: "T\xEDtulo",
+    editor_color_slot_telemetry: "Telemetr\xEDa",
+    editor_color_slot_label: "Etiquetas",
+    editor_color_slot_value: "Valores",
+    editor_color_slot_meta: "Modelo/Firmware",
+    editor_color_slot_port_label: "Etiquetas de puerto",
+    editor_color_slot_special_port_label: "Etiqueta de puerto especial",
+    editor_color_slot_ap_ring: "Anillo exterior AP",
+    editor_color_slot_ap_inner: "C\xEDrculo interior AP",
+    editor_color_slot_ap_color: "Color AP",
+    editor_color_slot_ap_led: "LED AP (respaldo)",
+    editor_ap_led_color_disabled_hint: "Desactivado porque hay control RGB LED disponible.",
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado\u2026",
     warning_title: "Se detectaron entidades UniFi deshabilitadas u ocultas",
@@ -3435,8 +3556,31 @@ var TRANSLATIONS = {
     // Background color field (editor)
     editor_bg_label: "Colore sfondo (opzionale)",
     editor_bg_hint: "Predefinito: var(--card-background-color)",
-    editor_bg_opacity_label: "Trasparenza sfondo",
+    editor_bg_opacity_label: "Trasparenza scheda",
     editor_bg_opacity_hint: "0% = completamente trasparente, 100% = completamente opaco",
+    editor_colors_open: "Cambia colori",
+    editor_colors_open_hint: "Apre l\u2019editor avanzato con anteprima live e picker per area.",
+    editor_colors_back: "Torna all\u2019editor",
+    editor_colors_apply: "Applica colori",
+    editor_colors_step_hint: "Suggerimento: clicca un\u2019area per aprire il color picker.",
+    editor_colors_reset_slot: "Reimposta questo colore",
+    editor_colors_reset_all: "Reimposta tutti i colori",
+    editor_colors_done: "Fatto",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Predefinito",
+    editor_color_slot_background: "Sfondo",
+    editor_color_slot_title: "Titolo",
+    editor_color_slot_telemetry: "Telemetria",
+    editor_color_slot_label: "Etichette",
+    editor_color_slot_value: "Valori",
+    editor_color_slot_meta: "Modello/Firmware",
+    editor_color_slot_port_label: "Etichette porte",
+    editor_color_slot_special_port_label: "Etichetta porta speciale",
+    editor_color_slot_ap_ring: "Anello esterno AP",
+    editor_color_slot_ap_inner: "Cerchio interno AP",
+    editor_color_slot_ap_color: "Colore AP",
+    editor_color_slot_ap_led: "LED AP (fallback)",
+    editor_ap_led_color_disabled_hint: "Disattivato perch\xE9 \xE8 disponibile il controllo LED RGB.",
     // Entity warning
     warning_checking: "Controllo entit\xE0 UniFi disabilitate o nascoste per il dispositivo selezionato\u2026",
     warning_title: "Rilevate entit\xE0 UniFi disabilitate o nascoste",
@@ -3455,6 +3599,54 @@ var TRANSLATIONS = {
     type_gateway: "Gateway",
     type_access_point: "Access Point"
   }
+};
+TRANSLATIONS.sv = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "\xC4ndra f\xE4rger",
+  editor_colors_back: "Tillbaka till editorn",
+  editor_colors_apply: "Anv\xE4nd f\xE4rger",
+  editor_colors_reset_all: "\xC5terst\xE4ll alla f\xE4rger",
+  editor_bg_opacity_label: "Kortets transparens"
+};
+TRANSLATIONS.da = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Skift farver",
+  editor_colors_back: "Tilbage til editor",
+  editor_colors_apply: "Anvend farver",
+  editor_colors_reset_all: "Nulstil alle farver",
+  editor_bg_opacity_label: "Korttransparens"
+};
+TRANSLATIONS.no = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Endre farger",
+  editor_colors_back: "Tilbake til editor",
+  editor_colors_apply: "Bruk farger",
+  editor_colors_reset_all: "Tilbakestill alle farger",
+  editor_bg_opacity_label: "Kortgjennomsiktighet"
+};
+TRANSLATIONS.fi = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Vaihda v\xE4rej\xE4",
+  editor_colors_back: "Takaisin editoriin",
+  editor_colors_apply: "K\xE4yt\xE4 v\xE4rit",
+  editor_colors_reset_all: "Nollaa kaikki v\xE4rit",
+  editor_bg_opacity_label: "Kortin l\xE4pin\xE4kyvyys"
+};
+TRANSLATIONS.pl = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Zmie\u0144 kolory",
+  editor_colors_back: "Wr\xF3\u0107 do edytora",
+  editor_colors_apply: "Zastosuj kolory",
+  editor_colors_reset_all: "Resetuj wszystkie kolory",
+  editor_bg_opacity_label: "Przezroczysto\u015B\u0107 karty"
+};
+TRANSLATIONS.cs = {
+  ...TRANSLATIONS.en,
+  editor_colors_open: "Zm\u011Bnit barvy",
+  editor_colors_back: "Zp\u011Bt do editoru",
+  editor_colors_apply: "Pou\u017E\xEDt barvy",
+  editor_colors_reset_all: "Resetovat v\u0161echny barvy",
+  editor_bg_opacity_label: "Pr\u016Fhlednost karty"
 };
 function getTranslations(lang) {
   if (!lang) return TRANSLATIONS.en;
@@ -3554,6 +3746,67 @@ function clampApScale(value) {
   if (!Number.isFinite(num)) return 100;
   return Math.min(140, Math.max(25, num));
 }
+function escapeHtml(value) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+var COLOR_SLOTS = [
+  { key: "background_color", token: "background", cssVar: "--udc-card-bg", fallback: "var(--card-background-color)" },
+  { key: "title_color", token: "title", cssVar: "--udc-title-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "telemetry_color", token: "telemetry", cssVar: "--udc-telemetry-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "label_color", token: "label", cssVar: "--udc-label-color", fallback: "var(--secondary-text-color, #6f7d90)" },
+  { key: "value_color", token: "value", cssVar: "--udc-value-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
+  { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
+  { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
+  { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" }
+];
+var COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
+function colorSlotLabel(tFn, key) {
+  const slot = COLOR_SLOT_BY_KEY[key];
+  if (!slot) return key;
+  return tFn(`editor_color_slot_${slot.token}`);
+}
+function parseColorWithAlpha(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const hex8 = value.match(/^#([\da-f]{8})$/i);
+  if (hex8) {
+    const part = hex8[1];
+    return {
+      hex: `#${part.slice(0, 6).toLowerCase()}`,
+      alpha: Math.round(Number.parseInt(part.slice(6, 8), 16) / 255 * 100)
+    };
+  }
+  const hex6 = value.match(/^#([\da-f]{6})$/i);
+  if (hex6) return { hex: `#${hex6[1].toLowerCase()}`, alpha: 100 };
+  const rgba = value.match(/^rgba?\((.+)\)$/i);
+  if (rgba) {
+    const parts = rgba[1].split(",").map((part) => part.trim());
+    if (parts.length >= 3) {
+      const r = Math.min(255, Math.max(0, Number.parseFloat(parts[0]) || 0));
+      const g = Math.min(255, Math.max(0, Number.parseFloat(parts[1]) || 0));
+      const b = Math.min(255, Math.max(0, Number.parseFloat(parts[2]) || 0));
+      const aRaw = parts[3] != null ? Number.parseFloat(parts[3]) : 1;
+      const a = Number.isFinite(aRaw) ? Math.min(1, Math.max(0, aRaw)) : 1;
+      const toHex = (num) => num.toString(16).padStart(2, "0");
+      return {
+        hex: `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`,
+        alpha: Math.round(a * 100)
+      };
+    }
+  }
+  return null;
+}
+function normalizeHexColor(value) {
+  const hex = String(value || "").trim().toLowerCase();
+  if (!/^#([\da-f]{3}|[\da-f]{6})$/i.test(hex)) return null;
+  if (hex.length === 7) return hex;
+  const [r, g, b] = hex.slice(1).split("");
+  return `#${r}${r}${g}${g}${b}${b}`;
+}
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
   const normalized = value.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
@@ -3601,10 +3854,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._deviceCtxToken = 0;
     this._lastHintDeviceId = null;
     this._lastCtxDeviceId = null;
+    this._editorStep = "main";
+    this._draftColors = {};
+    this._activeColorSlot = "";
+    this._colorStepBaseConfig = null;
   }
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
     this._config = config || {};
+    this._syncDraftColors();
     const nextDeviceId = this._config?.device_id || "";
     if (this._hass && nextDeviceId) {
       if (nextDeviceId !== prevDeviceId) {
@@ -3643,6 +3901,44 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _t(key) {
     return t(this._hass, key);
+  }
+  _syncDraftColors() {
+    const nextDraft = {};
+    for (const slot of COLOR_SLOTS) {
+      if (this._config?.[slot.key]) nextDraft[slot.key] = this._config[slot.key];
+    }
+    this._draftColors = nextDraft;
+  }
+  _apHasRgbLedControl() {
+    if (!this._hass?.states) return false;
+    const ledSwitchEntity = this._deviceCtx?.led_switch_entity;
+    const ledColorEntity = this._deviceCtx?.led_color_entity;
+    if (!ledSwitchEntity && !ledColorEntity) return false;
+    const candidates = [ledSwitchEntity, ledColorEntity].filter(Boolean);
+    const hasRgbAttr = candidates.some(
+      (entityId) => Array.isArray(this._hass?.states?.[entityId]?.attributes?.rgb_color)
+    );
+    if (hasRgbAttr) return true;
+    if (!ledColorEntity) return false;
+    const raw = String(this._hass.states?.[ledColorEntity]?.state || "").trim().toLowerCase();
+    return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) || /^rgb\(/i.test(raw);
+  }
+  _resolveSlotPickerHex(slot) {
+    if (!slot) return "#1f2937";
+    const draft = parseColorWithAlpha(this._draftColors[slot.key] || "")?.hex;
+    if (draft) return draft;
+    const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
+    if (fallback) return fallback;
+    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{6}|[\da-f]{3})/i);
+    const fallbackHex = normalizeHexColor(fallbackHexMatch ? `#${fallbackHexMatch[1]}` : "");
+    if (fallbackHex) return fallbackHex;
+    if (slot.key === "background_color" && typeof getComputedStyle === "function") {
+      const fromHost = getComputedStyle(this).getPropertyValue("--card-background-color");
+      const fromRoot = getComputedStyle(document.documentElement).getPropertyValue("--card-background-color");
+      const resolved = parseColorWithAlpha(String(fromHost || fromRoot || "").trim())?.hex;
+      if (resolved) return resolved;
+    }
+    return "#1f2937";
   }
   async _loadDevices() {
     if (!this._hass) return;
@@ -3700,6 +3996,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._deviceCtxLoading = false;
     this._patchFields();
   }
+  _dispatchConfig(config) {
+    this.dispatchEvent(new CustomEvent("config-changed", {
+      detail: { config },
+      bubbles: true,
+      composed: true
+    }));
+  }
   _emitConfig(partial) {
     const next = { ...this._config, ...partial };
     const hadExplicitSpecialPorts = hasExplicitSpecialPorts(this._config);
@@ -3707,6 +4010,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const keepExplicitSpecialPorts = hasIncomingSpecialPorts || hadExplicitSpecialPorts;
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
+    for (const slot of COLOR_SLOTS) {
+      if (!next[slot.key]) delete next[slot.key];
+    }
     next.background_opacity = clampOpacity(next.background_opacity);
     if (next.background_opacity === 100) delete next.background_opacity;
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
@@ -3739,11 +4045,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
-    this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config: next },
-      bubbles: true,
-      composed: true
-    }));
+    this._dispatchConfig(next);
+  }
+  _emitDraftPreviewConfig() {
+    const base = { ...this._colorStepBaseConfig || this._config || {} };
+    for (const slot of COLOR_SLOTS) {
+      base[slot.key] = this._draftColors[slot.key] || void 0;
+    }
+    this._dispatchConfig(base);
   }
   _onDeviceChange(ev) {
     const deviceId = ev.target.value || "";
@@ -3779,6 +4088,77 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _onBackgroundOpacityInput(ev) {
     this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
+  }
+  _onOpenColorStep() {
+    this._colorStepBaseConfig = { ...this._config || {} };
+    this._syncDraftColors();
+    this._activeColorSlot = "";
+    this._editorStep = "colors";
+    this._render();
+  }
+  _onBackFromColorStep() {
+    this._activeColorSlot = "";
+    this._editorStep = "main";
+    if (this._colorStepBaseConfig) {
+      this._dispatchConfig({ ...this._colorStepBaseConfig });
+    }
+    this._colorStepBaseConfig = null;
+    this._syncDraftColors();
+    this._render();
+  }
+  _onOpenColorDialog(ev) {
+    const slotKey = ev.currentTarget?.dataset?.slot || "";
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._activeColorSlot = slotKey;
+    this._render();
+  }
+  _onCloseColorDialog() {
+    this._activeColorSlot = "";
+    this._render();
+  }
+  _setDraftColor(slotKey, value) {
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    const normalizedHex = normalizeHexColor(value);
+    const nextValue = normalizedHex || String(value || "").trim();
+    if (!nextValue) {
+      delete this._draftColors[slotKey];
+    } else {
+      this._draftColors[slotKey] = nextValue;
+    }
+    this._emitDraftPreviewConfig();
+  }
+  _onDraftColorHexInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    const hex = String(ev.target.value || "").trim().toLowerCase();
+    this._setDraftColor(slotKey, hex);
+  }
+  _onDraftColorRawInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._setDraftColor(slotKey, String(ev.target.value || "").trim());
+  }
+  _onResetSlotColor() {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._setDraftColor(slotKey, "");
+    this._render();
+  }
+  _onResetAllColors() {
+    for (const slot of COLOR_SLOTS) delete this._draftColors[slot.key];
+    this._emitDraftPreviewConfig();
+    this._render();
+  }
+  _onApplyDraftColors() {
+    const payload = {};
+    for (const slot of COLOR_SLOTS) {
+      payload[slot.key] = this._draftColors[slot.key] || void 0;
+    }
+    this._emitConfig(payload);
+    this._activeColorSlot = "";
+    this._editorStep = "main";
+    this._colorStepBaseConfig = null;
+    this._render();
   }
   _onShowPanelChange(ev) {
     const checked = !!ev.target.checked;
@@ -3876,7 +4256,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _warningHTML() {
     if (this._entityHintLoading && !this._entityHint) {
-      return `<div class="warn loading">${this._t("warning_checking")}</div>`;
+      return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
     if (!this._entityHint) return "";
     const disabled = this._entityHint?.disabledCount || 0;
@@ -3884,17 +4264,17 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const items = this._warningItems();
     const summary = this._t("warning_status").replace("{disabled}", String(disabled)).replace("{hidden}", String(hidden));
     const list = items.length ? `<ul>${items.map(
-      (item) => `<li><strong>${item.count}</strong> ${this._t(`warning_entity_${item.key}`)}</li>`
+      (item) => `<li><strong>${escapeHtml(item.count)}</strong> ${escapeHtml(this._t(`warning_entity_${item.key}`))}</li>`
     ).join("")}</ul>` : "";
     return `
       <div class="warn">
-        <div class="warn-title">${this._t("warning_title")}</div>
-        <div class="warn-body">${this._t("warning_body")}</div>
-        <div class="warn-status">${summary}</div>
+        <div class="warn-title">${escapeHtml(this._t("warning_title"))}</div>
+        <div class="warn-body">${escapeHtml(this._t("warning_body"))}</div>
+        <div class="warn-status">${escapeHtml(summary)}</div>
         ${list}
         <div class="warn-path">
-          <strong>${this._t("warning_check_in")}</strong><br>
-          ${this._t("warning_ha_path")}
+          <strong>${escapeHtml(this._t("warning_check_in"))}</strong><br>
+          ${escapeHtml(this._t("warning_ha_path"))}
         </div>
       </div>
     `;
@@ -3909,19 +4289,19 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!layout) {
       return `
         <div class="field">
-          <label>${this._t("editor_wan_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
           <select id="wan_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_wan2_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
           <select id="wan2_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
         </div>
       `;
     }
@@ -3934,24 +4314,24 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     return `
       <div class="field">
-        <label>${this._t("editor_wan_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
         <select id="wan_port">
           ${wanOptions.map(
-      (opt) => `<option value="${opt.value}" ${opt.value === selectedWan ? "selected" : ""}>${opt.label}</option>`
+      (opt) => `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan ? "selected" : ""}>${escapeHtml(opt.label)}</option>`
     ).join("")}
         </select>
-        <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
       </div>
 
       <div class="field">
-        <label>${this._t("editor_wan2_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
         <select id="wan2_port">
           ${wan2Options.map((opt) => {
       const disabled = opt.value !== "auto" && opt.value !== "none" && roleSelectionsConflict(selectedWan, "wan", opt.value, "wan2", layout);
-      return `<option value="${opt.value}" ${opt.value === selectedWan2 ? "selected" : ""} ${disabled ? "disabled" : ""}>${opt.label}</option>`;
+      return `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan2 ? "selected" : ""} ${disabled ? "disabled" : ""}>${escapeHtml(opt.label)}</option>`;
     }).join("")}
         </select>
-        <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
       </div>
     `;
   }
@@ -3966,6 +4346,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         gap: 14px;
       }
 
+      .hidden {
+        display: none;
+      }
+
       .section-title {
         font-size: 0.95rem;
         font-weight: 700;
@@ -3975,6 +4359,22 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       .field {
         display: grid;
         gap: 6px;
+      }
+
+      .step-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .step-footer {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .opacity-field {
+        margin-bottom: 8px;
       }
 
       label {
@@ -3993,6 +4393,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         font: inherit;
       }
 
+      input[type="color"] {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 10px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+      }
+
       .checkbox-row {
         display: flex;
         align-items: center;
@@ -4009,6 +4417,80 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       .hint {
         color: var(--secondary-text-color);
         font-size: 0.82rem;
+      }
+
+      .nav-btn {
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: var(--primary-color);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .nav-btn.secondary {
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+      }
+
+      .nav-btn.danger {
+        background: var(--error-color);
+      }
+
+      .color-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .color-slot-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .color-slot-btn.disabled {
+        opacity: .55;
+        cursor: not-allowed;
+      }
+
+      .swatch {
+        width: 28px;
+        height: 18px;
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,.25);
+      }
+
+      .color-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        z-index: 999;
+      }
+
+      .color-modal {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(420px, calc(100vw - 30px));
+        z-index: 1000;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
       }
 
       .port-toggle-list {
@@ -4114,8 +4596,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const showName = this._config?.show_name !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
-    const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
+    const colorStepOpen = this._editorStep === "colors";
+    const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
+    const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
+    const activeRawColorValue = activeColorSlot ? this._draftColors[activeColorSlot.key] || activeColorSlot.fallback || "" : "";
+    const activePickerHex = this._resolveSlotPickerHex(activeColorSlot);
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
@@ -4129,137 +4615,187 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     ).sort((a, b) => a - b);
     const customSpecialPortOptions = selectableSpecialPorts;
     const selectedSpecialPorts = editSpecialPorts ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout) : [];
+    const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
+    const visibleColorSlots = COLOR_SLOTS.filter((slot) => {
+      if (slot.key === "background_color") return true;
+      if (isApDevice) {
+        return !["port_label_color", "special_port_label_color"].includes(slot.key);
+      }
+      return slot.key !== "ap_led_color";
+    });
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
-        <div class="section-title">${this._t("editor_device_title")}</div>
+        <div class="main-step ${colorStepOpen ? "hidden" : ""}">
+        <div class="section-title">${escapeHtml(this._t("editor_device_title"))}</div>
 
         <div class="field">
-          <label>${this._t("editor_device_label")}</label>
+          <label>${escapeHtml(this._t("editor_device_label"))}</label>
           <select id="device_id">
-            <option value="">${this._t("editor_device_select")}</option>
+            <option value="">${escapeHtml(this._t("editor_device_select"))}</option>
             ${this._devices.map(
-      (device) => `<option value="${device.id}" ${device.id === deviceValue ? "selected" : ""}>${device.label}</option>`
+      (device) => `<option value="${escapeAttr(device.id)}" ${device.id === deviceValue ? "selected" : ""}>${escapeHtml(device.label)}</option>`
     ).join("")}
           </select>
-          <div class="hint">${this._loading ? this._t("editor_device_loading") : this._devices.length ? this._t("editor_hint") : this._error || this._t("editor_no_devices")}</div>
+          <div class="hint">${this._loading ? escapeHtml(this._t("editor_device_loading")) : this._devices.length ? escapeHtml(this._t("editor_hint")) : escapeHtml(this._error || this._t("editor_no_devices"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_name_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_name" type="checkbox" ${showName ? "checked" : ""}>
-            <span>${this._t("editor_name_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_name_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_name_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_name_toggle_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_label")}</label>
-          <input id="name" type="text" value="${nameValue}" ${showName ? "" : "disabled"}>
-          <div class="hint">${this._t("editor_name_hint")}</div>
+          <label>${escapeHtml(this._t("editor_name_label"))}</label>
+          <input id="name" type="text" value="${escapeAttr(nameValue)}" ${showName ? "" : "disabled"}>
+          <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_panel_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
-            <span>${this._t("editor_panel_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchDevice ? `
         <div class="field">
-          <label>${this._t("editor_ports_per_row_label")}</label>
-          <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
-          <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
+          <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
+          <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
-          <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
-          <div class="hint">${this._t("editor_port_size_hint")}</div>
+          <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
+          <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
+          <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
         </div>` : ""}
 
         ${isApDevice ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_view" type="checkbox" ${apCompactView ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_toggle_hint"))}</div>
         </div>
 
         ${apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_header_telemetry_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_header_telemetry_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_header_telemetry_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
         </div>` : ""}
 
         ${!apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
-          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${apScale}">
-          <div class="hint">${this._t("editor_ap_scale_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ap_scale_label"))}: ${escapeHtml(apScale)}%</label>
+          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${escapeAttr(apScale)}">
+          <div class="hint">${escapeHtml(this._t("editor_ap_scale_hint"))}</div>
         </div>` : ""}` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
           <label class="checkbox-row">
             <input id="edit_special_ports" type="checkbox" ${editSpecialPorts ? "checked" : ""}>
-            <span>${this._t("editor_edit_special_ports_toggle")}</span>
+            <span>${escapeHtml(this._t("editor_edit_special_ports_toggle"))}</span>
           </label>
-          <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_edit_special_ports_toggle_hint"))}</div>
         </div>
 
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
         <div class="field">
-          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
-            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${port}">Port ${port}</button>`).join("")}
+            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`).join("")}
           </div>
-          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
         </div>` : ""}
 
         <div class="field">
           <label class="checkbox-row">
             <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
-            <span>${this._t("editor_force_sequential_ports_label")}</span>
+            <span>${escapeHtml(this._t("editor_force_sequential_ports_label"))}</span>
           </label>
-          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_force_sequential_ports_hint"))}</div>
         </div>
         ` : ""}
 
         <div class="field">
-          <label>${this._t("editor_bg_label")}</label>
-          <input id="background_color" type="text" value="${backgroundValue}">
-          <div class="hint">${this._t("editor_bg_hint")}</div>
-        </div>
-
-        <div class="field">
-          <label>${this._t("editor_bg_opacity_label")}: ${backgroundOpacity}%</label>
-          <input
-            id="background_opacity"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value="${backgroundOpacity}"
-          >
-          <div class="hint">${this._t("editor_bg_opacity_hint")}</div>
+          <button type="button" class="nav-btn" id="open_color_editor">${escapeHtml(this._t("editor_colors_open"))}</button>
+          <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
+        </div>
+
+        <div class="color-step ${colorStepOpen ? "" : "hidden"}">
+          <div class="step-header">
+            <button type="button" class="nav-btn secondary" id="back_from_color_editor">\u2190 ${escapeHtml(this._t("editor_colors_back"))}</button>
+            <button type="button" class="nav-btn danger" id="reset_all_colors">${escapeHtml(this._t("editor_colors_reset_all"))}</button>
+          </div>
+          <div class="hint">${escapeHtml(this._t("editor_colors_step_hint"))}</div>
+          <div class="field opacity-field">
+            <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
+            <input
+              id="background_opacity"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="${escapeAttr(backgroundOpacity)}"
+            >
+            <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
+            <button type="button" class="color-slot-btn" data-slot="background_color">
+              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
+              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
+            </button>
+          </div>
+          <div class="color-grid">
+            ${visibleColorSlots.filter((slot) => slot.key !== "background_color").map((slot) => {
+      const disabled = slot.key === "ap_led_color" && apLedColorDisabled;
+      return `
+              <button type="button" class="color-slot-btn ${disabled ? "disabled" : ""}" data-slot="${escapeAttr(slot.key)}" ${disabled ? "disabled" : ""}>
+                <span>${escapeHtml(colorSlotLabel((k) => this._t(k), slot.key))}</span>
+                <span class="swatch" style="background:${escapeAttr(this._draftColors[slot.key] || slot.fallback)}"></span>
+              </button>
+              ${disabled ? `<span class="hint">${escapeHtml(this._t("editor_ap_led_color_disabled_hint"))}</span>` : ""}
+            `;
+    }).join("")}
+          </div>
+          <div class="step-footer">
+            <button type="button" class="nav-btn" id="apply_color_editor">${escapeHtml(this._t("editor_colors_apply"))}</button>
+          </div>
+          ${activeColorSlot ? `
+            <div class="color-modal-backdrop" id="close_color_dialog"></div>
+            <div class="color-modal">
+              <div class="section-title">${escapeHtml(colorSlotLabel((k) => this._t(k), activeColorSlot.key))}</div>
+              <input id="color_picker_hex" type="color" value="${escapeAttr(activePickerHex)}">
+              <input id="color_picker_raw" type="text" value="${escapeAttr(activeRawColorValue)}">
+              <div class="step-header">
+                <button type="button" class="nav-btn secondary" id="reset_color_slot">${escapeHtml(this._t("editor_colors_reset_slot"))}</button>
+                <button type="button" class="nav-btn" id="close_color_picker">${escapeHtml(this._t("editor_colors_done"))}</button>
+              </div>
+            </div>
+          ` : ""}
+        </div>
       </div>
     `;
     this.shadowRoot.getElementById("device_id")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
@@ -4268,16 +4804,25 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
     this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
-    this.shadowRoot.getElementById("port_size")?.addEventListener("input", (ev) => this._onPortSizeInput(ev));
-    this.shadowRoot.getElementById("ap_scale")?.addEventListener("input", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("port_size")?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
+    this.shadowRoot.getElementById("ap_scale")?.addEventListener("change", (ev) => this._onApScaleInput(ev));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
-    this.shadowRoot.getElementById("background_color")?.addEventListener("input", (ev) => this._onBackgroundInput(ev));
-    this.shadowRoot.getElementById("background_opacity")?.addEventListener("input", (ev) => this._onBackgroundOpacityInput(ev));
+    this.shadowRoot.getElementById("background_opacity")?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
     this.shadowRoot.getElementById("wan_port")?.addEventListener("change", (ev) => this._onWanPortChange(ev));
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
     this.shadowRoot.getElementById("edit_special_ports")?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
     this.shadowRoot.getElementById("special_ports_list")?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
+    this.shadowRoot.getElementById("open_color_editor")?.addEventListener("click", () => this._onOpenColorStep());
+    this.shadowRoot.getElementById("back_from_color_editor")?.addEventListener("click", () => this._onBackFromColorStep());
+    this.shadowRoot.getElementById("reset_all_colors")?.addEventListener("click", () => this._onResetAllColors());
+    this.shadowRoot.getElementById("apply_color_editor")?.addEventListener("click", () => this._onApplyDraftColors());
+    this.shadowRoot.querySelectorAll(".color-slot-btn").forEach((btn) => btn.addEventListener("click", (ev) => this._onOpenColorDialog(ev)));
+    this.shadowRoot.getElementById("close_color_dialog")?.addEventListener("click", () => this._onCloseColorDialog());
+    this.shadowRoot.getElementById("close_color_picker")?.addEventListener("click", () => this._onCloseColorDialog());
+    this.shadowRoot.getElementById("color_picker_hex")?.addEventListener("change", (ev) => this._onDraftColorHexInput(ev));
+    this.shadowRoot.getElementById("color_picker_raw")?.addEventListener("change", (ev) => this._onDraftColorRawInput(ev));
+    this.shadowRoot.getElementById("reset_color_slot")?.addEventListener("click", () => this._onResetSlotColor());
     this._restoreFocusState(focusState);
   }
   _patchWarning() {
@@ -4291,10 +4836,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
   }
 };
-customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+if (!customElements.get("unifi-device-card-editor")) {
+  customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+}
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ed5ff8f";
+var VERSION = "0.0.0-dev.2f73de8";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4519,6 +5066,26 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     return this._cardBgStyle();
   }
+  _customColorVars() {
+    const vars = [];
+    const pairs = [
+      ["title_color", "--udc-title-color"],
+      ["telemetry_color", "--udc-telemetry-color"],
+      ["label_color", "--udc-label-color"],
+      ["value_color", "--udc-value-color"],
+      ["meta_color", "--udc-meta-color"],
+      ["port_label_color", "--udc-port-label-color"],
+      ["special_port_label_color", "--udc-special-port-label-color"],
+      ["ap_color", "--udc-ap-color"],
+      ["ap_ring_color", "--udc-ap-ring-color"],
+      ["ap_inner_color", "--udc-ap-inner-color"]
+    ];
+    for (const [configKey, cssVar] of pairs) {
+      const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    return vars.length ? `; ${vars.join("; ")}` : "";
+  }
   _portSize() {
     const raw = Number.parseInt(this._config?.port_size, 10);
     if (!Number.isFinite(raw)) return 36;
@@ -4671,7 +5238,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apLedState() {
     const ledEntity = this._ctx?.led_switch_entity;
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
-    const defaultColor = this._ctx?.layout?.apLedDefaultColor ?? "#0000ff";
+    const defaultColor = this._config?.ap_led_color || this._ctx?.layout?.apLedDefaultColor || "#0000ff";
     const ringColor = ledEnabled ? this._apLedColorValue() || defaultColor : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
   }
@@ -4681,7 +5248,15 @@ var UnifiDeviceCard = class extends HTMLElement {
     return deviceLabel || null;
   }
   _escapeAttr(value) {
-    return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
+  }
+  _escapeHtml(value) {
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  _safeClassToken(value, fallback = "") {
+    const token = String(value ?? "").trim();
+    if (!token) return fallback;
+    return /^[a-z0-9_-]+$/i.test(token) ? token : fallback;
   }
   _apUplinkTooltip(uplink) {
     if (!uplink) return "";
@@ -5251,7 +5826,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       "port",
       isSpecial ? "special" : "",
       isSfp ? "is-sfp" : "is-rj45",
-      `media-${mediaType}`,
+      `media-${this._safeClassToken(mediaType, "rj45")}`,
       this._rotate180Enabled(this._ctx) ? "rotated180" : "",
       isWan ? "is-wan" : "",
       oddEvenTopRow && !isSpecial && !isSfp ? "odd-even-top" : "",
@@ -5283,11 +5858,11 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="rj45-floor"></div>
         </div>
       `;
-    return `<button class="${classes}" data-key="${slot.key}" title="${this._escapeAttr(tooltip)}">
+    return `<button class="${this._escapeAttr(classes)}" data-key="${this._escapeAttr(slot.key)}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
       </div>
-      <div class="port-num">${slot.label}</div>
+      <div class="port-num">${this._escapeHtml(slot.label)}</div>
     </button>`;
   }
   _styles() {
@@ -5348,11 +5923,12 @@ var UnifiDeviceCard = class extends HTMLElement {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: var(--udc-title-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .subtitle {
         font-size: 0.73rem;
-        color: var(--udc-muted);
+        color: var(--udc-meta-color, var(--udc-muted));
       }
 
       .meta-list {
@@ -5367,16 +5943,17 @@ var UnifiDeviceCard = class extends HTMLElement {
         align-items: baseline;
         font-size: 0.73rem;
         min-width: 0;
+        color: var(--udc-telemetry-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .meta-label {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         white-space: nowrap;
         font-weight: 500;
       }
 
       .meta-value {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         font-weight: 600;
         min-width: 0;
         overflow: hidden;
@@ -5455,7 +6032,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         letter-spacing: .1em;
         text-transform: uppercase;
         margin-bottom: 2px;
-        color: #7c818b;
+        color: var(--udc-label-color, #7c818b);
       }
 
       .special-row {
@@ -5578,7 +6155,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         aspect-ratio: 1 / 1;
         max-width: 100%;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
+        background: var(--udc-ap-inner-color, var(--udc-ap-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%)));
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -5591,7 +6168,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         width: 41%;
         height: 41%;
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
+        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, #a5adb8)));
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -5599,10 +6176,10 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: var(--ap-ring-color, rgb(0, 0, 255));
+        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255))));
         box-shadow:
-          0 0 12px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 55%, transparent),
-          0 0 24px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 32%, transparent);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 32%, transparent);
       }
 
       .ap-ring.off {
@@ -5922,6 +6499,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         max-width: calc(var(--udc-port-size) - 2px);
       }
 
+      .port.special .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #646a76));
+      }
+
       .port-num {
         font-size: 7px;
         font-weight: 800;
@@ -5929,18 +6510,26 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-top: 1px;
         letter-spacing: 0;
         user-select: none;
-        color: #646a76;
+        color: var(--udc-port-label-color, #646a76);
         transition: color .15s ease, opacity .15s ease;
       }
 
       .port.down .port-num {
-        color: #4c5260;
+        color: var(--udc-port-label-color, #4c5260);
         opacity: .6;
       }
 
+      .port.special.down .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #4c5260));
+      }
+
       .port.up .port-num {
-        color: #414957;
+        color: var(--udc-port-label-color, #414957);
         opacity: 1;
+      }
+
+      .port.special.up .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #414957));
       }
 
       .port:hover .port-num,
@@ -5963,7 +6552,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         font-size: 0.8rem;
         font-weight: 700;
         margin-bottom: 8px;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-grid {
@@ -5983,13 +6572,13 @@ var UnifiDeviceCard = class extends HTMLElement {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: var(--secondary-text-color, var(--udc-muted));
+        color: var(--udc-label-color, var(--secondary-text-color, var(--udc-muted)));
       }
 
       .detail-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-value-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-value.online { color: var(--udc-green); }
@@ -6077,20 +6666,22 @@ var UnifiDeviceCard = class extends HTMLElement {
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const headerTitle2 = this._title();
       const headerMetrics2 = compactApView && !this._apCompactHeaderTelemetryEnabled() ? [] : this._headerMetrics();
+      const escapedHeaderTitle2 = this._escapeHtml(headerTitle2);
+      const escapedSubtitle2 = this._escapeHtml(this._subtitle());
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${headerTitle2 ? `<div class="title">${headerTitle2}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${headerTitle2 ? `<div class="title">${escapedHeaderTitle2}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle2}</div>
               ${headerMetrics2.length ? `<div class="meta-list">${headerMetrics2.map((item) => `
                 <div class="meta-row">
-                  <div class="meta-label">${item.label}:</div>
-                  <div class="meta-value">${item.value}</div>
+                  <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+                  <div class="meta-value">${this._escapeHtml(item.value)}</div>
                 </div>`).join("")}</div>` : ""}
             </div>
             <div class="header-actions">
-              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
+              ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
               ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
             </div>
           </div>
@@ -6107,30 +6698,30 @@ var UnifiDeviceCard = class extends HTMLElement {
             <div class="section">
               <div class="detail-grid">
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("ap_status")}</div>
-                  <div class="detail-value ${apStatusClass}">${apStatus || (online ? this._t("state_connected") : this._t("state_disconnected"))}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("ap_status"))}</div>
+                  <div class="detail-value ${apStatusClass}">${this._escapeHtml(apStatus || (online ? this._t("state_connected") : this._t("state_disconnected")))}</div>
                 </div>
                 ${compactApView ? `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("clients")}</div>
-                  <div class="detail-value">${clients}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("clients"))}</div>
+                  <div class="detail-value">${this._escapeHtml(clients)}</div>
                 </div>
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uptime")}</div>
-                  <div class="detail-value">${uptime}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uptime"))}</div>
+                  <div class="detail-value">${this._escapeHtml(uptime)}</div>
                 </div>` : `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uptime")}</div>
-                  <div class="detail-value">${uptime}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uptime"))}</div>
+                  <div class="detail-value">${this._escapeHtml(uptime)}</div>
                 </div>
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("clients")}</div>
-                  <div class="detail-value">${clients}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("clients"))}</div>
+                  <div class="detail-value">${this._escapeHtml(clients)}</div>
                 </div>`}
                 ${apUplink ? `
                 <div class="detail-item">
-                  <div class="detail-label">${this._t("uplink")}</div>
-                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${apUplink}</div>
+                  <div class="detail-label">${this._escapeHtml(this._t("uplink"))}</div>
+                  <div class="detail-value" title="${this._escapeAttr(apUplinkTooltip)}">${this._escapeHtml(apUplink)}</div>
                 </div>` : ""}
               </div>
             </div>
@@ -6150,7 +6741,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
     const connected = this._connectedCount(allSlots);
     const layoutTheme = ctx?.layout?.theme;
-    const theme = layoutTheme || "dark";
+    const theme = this._safeClassToken(layoutTheme || "dark", "dark");
+    const frontStyle = this._safeClassToken(ctx?.layout?.frontStyle || "single-row", "single-row");
     const showPanel = this._config?.show_panel !== false && !!layoutTheme;
     const specialPortsInUse = new Set(
       allSpecials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
@@ -6172,8 +6764,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     }).filter(Boolean);
     const panelRowsHtml = layoutRows.join("");
     const panelPortsHtml = reverseFrontpanel ? `${panelRowsHtml}${specialRow}` : `${specialRow}${panelRowsHtml}`;
-    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._t("no_ports")}</div>`;
-    let detail = `<div class="muted">${this._t("no_ports")}</div>`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`;
+    let detail = `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
     if (selected) {
       const linkUp = this._isPortConnected(selected);
       const linkText = getPortLinkText(this._hass, selected);
@@ -6186,77 +6778,79 @@ var UnifiDeviceCard = class extends HTMLElement {
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
       const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
       detail = `
-        <div class="detail-title">${portTitle}</div>
+        <div class="detail-title">${this._escapeHtml(portTitle)}</div>
         <div class="detail-grid">
           <div class="detail-item">
-            <div class="detail-label">${this._t("link_status")}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
             <div class="detail-value ${linkUp ? "online" : "offline"}">
-              ${this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link"))}
+              ${this._escapeHtml(this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link")))}
             </div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">${this._t("speed")}</div>
-            <div class="detail-value">${speedText || "\u2014"}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("speed"))}</div>
+            <div class="detail-value">${this._escapeHtml(speedText || "\u2014")}</div>
           </div>
           ${hasPoe ? `
           <div class="detail-item">
-            <div class="detail-label">${this._t("poe")}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("poe"))}</div>
             <div class="detail-value ${poeOn ? "online" : "offline"}">
-              ${poeOn ? this._t("state_on") : this._t("state_off")}
+              ${this._escapeHtml(poeOn ? this._t("state_on") : this._t("state_off"))}
             </div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">${this._t("poe_power")}</div>
-            <div class="detail-value">${poePower || "\u2014"}</div>
+            <div class="detail-label">${this._escapeHtml(this._t("poe_power"))}</div>
+            <div class="detail-value">${this._escapeHtml(poePower || "\u2014")}</div>
           </div>` : ""}
           ${rxVal != null ? `
           <div class="detail-item">
             <div class="detail-label">RX</div>
-            <div class="detail-value">${rxVal}</div>
+            <div class="detail-value">${this._escapeHtml(rxVal)}</div>
           </div>` : ""}
           ${txVal != null ? `
           <div class="detail-item">
             <div class="detail-label">TX</div>
-            <div class="detail-value">${txVal}</div>
+            <div class="detail-value">${this._escapeHtml(txVal)}</div>
           </div>` : ""}
         </div>
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
         const enabled = isOn(this._hass, selected.port_switch_entity);
-        return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${selected.port_switch_entity}">
-              ${enabled ? this._t("port_disable") : this._t("port_enable")}
+        return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}">
+              ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
             </button>`;
       })() : ""}
-          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
-            \u26A1 ${this._t("poe")}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${this._escapeAttr(selected.poe_switch_entity)}">
+            \u26A1 ${this._escapeHtml(this._t("poe"))}
           </button>` : ""}
-          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
-            \u21BA ${this._t("power_cycle")}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${this._escapeAttr(selected.power_cycle_entity)}">
+            \u21BA ${this._escapeHtml(this._t("power_cycle"))}
           </button>` : ""}
         </div>`;
     }
     const headerTitle = this._title();
     const headerMetrics = this._headerMetrics();
+    const escapedHeaderTitle = this._escapeHtml(headerTitle);
+    const escapedSubtitle = this._escapeHtml(this._subtitle());
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
-            ${headerTitle ? `<div class="title">${headerTitle}</div>` : ""}
-            <div class="subtitle">${this._subtitle()}</div>
+            ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
+            <div class="subtitle">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
-                <div class="meta-label">${item.label}:</div>
-                <div class="meta-value">${item.value}</div>
+                <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+                <div class="meta-value">${this._escapeHtml(item.value)}</div>
               </div>`).join("")}</div>` : ""}
           </div>
           <div class="header-actions">
-            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._t("reboot")}</button>` : ""}
-            <div class="chip"><div class="dot"></div>${connected}/${allSlots.length}</div>
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>
           </div>
         </div>
 
-        <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
-          <div class="panel-label">${this._t("front_panel")}</div>
+        <div class="frontpanel ${frontStyle} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
           ${panelContentHtml}
         </div>
 
@@ -6270,44 +6864,46 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _render() {
     const title = this._title();
+    const escapedTitle = this._escapeHtml(title);
+    const escapedSubtitle = this._escapeHtml(this._subtitle());
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="empty-state">${this._t("select_device")}</div>
+          <div class="empty-state">${this._escapeHtml(this._t("select_device"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
     }
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="loading-state"><div class="spinner"></div>${this._t("loading")}</div>
+          <div class="loading-state"><div class="spinner"></div>${this._escapeHtml(this._t("loading"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
     }
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
-              ${title ? `<div class="title">${title}</div>` : ""}
-              <div class="subtitle">${this._subtitle()}</div>
+              ${title ? `<div class="title">${escapedTitle}</div>` : ""}
+              <div class="subtitle">${escapedSubtitle}</div>
             </div>
           </div>
-          <div class="empty-state">${this._t("no_data")}</div>
+          <div class="empty-state">${this._escapeHtml(this._t("no_data"))}</div>
         </ha-card>`;
       this._finalizeRender();
       return;
@@ -6316,15 +6912,19 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._finalizeRender();
   }
 };
-customElements.define("unifi-device-card", UnifiDeviceCard);
+if (!customElements.get("unifi-device-card")) {
+  customElements.define("unifi-device-card", UnifiDeviceCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "unifi-device-card",
-  name: "UniFi Device Card",
-  description: `Lovelace card for UniFi devices (v${VERSION}).`,
-  preview: true,
-  documentationURL: "https://github.com/bluenazgul/unifi-device-card"
-});
+if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
+  window.customCards.push({
+    type: "unifi-device-card",
+    name: "UniFi Device Card",
+    description: `Lovelace card for UniFi devices (v${VERSION}).`,
+    preview: true,
+    documentationURL: "https://github.com/bluenazgul/unifi-device-card"
+  });
+}
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;
   console.log(
