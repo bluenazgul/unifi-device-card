@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [v0.7.0]
 
 ### ✨ Improvements
 - Add a dedicated “Change colors” editor step with live card preview, simple per-color picker plus manual value input, per-slot reset, and global reset-all action.
@@ -15,6 +15,7 @@
 - Fix AP classification for legacy `U5O` (`UAP-Outdoor5`) aliases so these devices remain visible in the editor when capability signals are limited.
 - Harden dynamic template rendering in card/editor by consistently escaping interpolated HTML text and attribute values (including warnings, gateway option labels, header/detail metrics, and entity-derived values).
 - Guard custom element registration and Home Assistant `customCards` registration to prevent duplicate-definition errors and duplicate card-list entries when resources are loaded more than once.
+- Fix correct detection of `UDM-SE` and more Gateways/Switches - this should fix false detection as AP 
 
 
 
