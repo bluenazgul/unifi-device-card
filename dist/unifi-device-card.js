@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4af4f4e */
+/* UniFi Device Card 0.0.0-dev.3cb27c1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2796,6 +2796,23 @@ var TRANSLATIONS = {
     editor_bg_hint: "Default: var(--card-background-color)",
     editor_bg_opacity_label: "Background transparency",
     editor_bg_opacity_hint: "0% = fully transparent, 100% = fully opaque",
+    editor_colors_open: "Change colors",
+    editor_colors_open_hint: "Open advanced color editor with live preview and per-area color pickers.",
+    editor_colors_back: "Back to editor",
+    editor_colors_apply: "Apply colors",
+    editor_colors_step_hint: "Tip: Click any area to open the color picker dialog.",
+    editor_colors_reset_slot: "Reset this color",
+    editor_colors_reset_all: "Reset all colors",
+    editor_colors_done: "Done",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Default",
+    editor_color_slot_background: "Background",
+    editor_color_slot_title: "Title",
+    editor_color_slot_telemetry: "Telemetry",
+    editor_color_slot_label: "Labels",
+    editor_color_slot_value: "Values",
+    editor_color_slot_meta: "Model/Firmware",
+    editor_color_slot_port_label: "Port labels",
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities\u2026",
     // Entity warning — content
@@ -2926,6 +2943,23 @@ var TRANSLATIONS = {
     editor_bg_hint: "Standard: var(--card-background-color)",
     editor_bg_opacity_label: "Hintergrund-Transparenz",
     editor_bg_opacity_hint: "0% = vollst\xE4ndig transparent, 100% = vollst\xE4ndig deckend",
+    editor_colors_open: "Farben \xE4ndern",
+    editor_colors_open_hint: "\xD6ffnet den erweiterten Farb-Editor mit Live-Vorschau und Bereichs-Pickern.",
+    editor_colors_back: "Zur\xFCck zum Editor",
+    editor_colors_apply: "Farben \xFCbernehmen",
+    editor_colors_step_hint: "Tipp: Klicke auf einen Bereich, um den Color-Picker zu \xF6ffnen.",
+    editor_colors_reset_slot: "Diese Farbe zur\xFCcksetzen",
+    editor_colors_reset_all: "Alle Farben zur\xFCcksetzen",
+    editor_colors_done: "Fertig",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Standard",
+    editor_color_slot_background: "Hintergrund",
+    editor_color_slot_title: "Titel",
+    editor_color_slot_telemetry: "Telemetrie",
+    editor_color_slot_label: "Labels",
+    editor_color_slot_value: "Werte",
+    editor_color_slot_meta: "Modell/Firmware",
+    editor_color_slot_port_label: "Port-Beschriftung",
     // Entity warning — loading hint
     warning_checking: "Ausgew\xE4hltes Ger\xE4t auf deaktivierte oder versteckte UniFi-Entities pr\xFCfen\u2026",
     // Entity warning — content
@@ -3056,6 +3090,23 @@ var TRANSLATIONS = {
     editor_bg_hint: "Standaard: var(--card-background-color)",
     editor_bg_opacity_label: "Achtergrondtransparantie",
     editor_bg_opacity_hint: "0% = volledig transparant, 100% = volledig ondoorzichtig",
+    editor_colors_open: "Kleuren wijzigen",
+    editor_colors_open_hint: "Open geavanceerde kleureneditor met live preview en kleurkiezers per onderdeel.",
+    editor_colors_back: "Terug naar editor",
+    editor_colors_apply: "Kleuren toepassen",
+    editor_colors_step_hint: "Tip: Klik op een onderdeel om de kleurkiezer te openen.",
+    editor_colors_reset_slot: "Deze kleur resetten",
+    editor_colors_reset_all: "Alle kleuren resetten",
+    editor_colors_done: "Klaar",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Standaard",
+    editor_color_slot_background: "Achtergrond",
+    editor_color_slot_title: "Titel",
+    editor_color_slot_telemetry: "Telemetrie",
+    editor_color_slot_label: "Labels",
+    editor_color_slot_value: "Waarden",
+    editor_color_slot_meta: "Model/Firmware",
+    editor_color_slot_port_label: "Poortlabels",
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
     warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
@@ -3183,6 +3234,23 @@ var TRANSLATIONS = {
     editor_bg_hint: "D\xE9faut : var(--card-background-color)",
     editor_bg_opacity_label: "Transparence de fond",
     editor_bg_opacity_hint: "0 % = enti\xE8rement transparent, 100 % = enti\xE8rement opaque",
+    editor_colors_open: "Modifier les couleurs",
+    editor_colors_open_hint: "Ouvre l\u2019\xE9diteur avanc\xE9 avec aper\xE7u en direct et s\xE9lecteurs par zone.",
+    editor_colors_back: "Retour \xE0 l\u2019\xE9diteur",
+    editor_colors_apply: "Appliquer les couleurs",
+    editor_colors_step_hint: "Astuce : cliquez sur une zone pour ouvrir le s\xE9lecteur.",
+    editor_colors_reset_slot: "R\xE9initialiser cette couleur",
+    editor_colors_reset_all: "R\xE9initialiser toutes les couleurs",
+    editor_colors_done: "Termin\xE9",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Par d\xE9faut",
+    editor_color_slot_background: "Arri\xE8re-plan",
+    editor_color_slot_title: "Titre",
+    editor_color_slot_telemetry: "T\xE9l\xE9m\xE9trie",
+    editor_color_slot_label: "Libell\xE9s",
+    editor_color_slot_value: "Valeurs",
+    editor_color_slot_meta: "Mod\xE8le/Firmware",
+    editor_color_slot_port_label: "\xC9tiquettes de port",
     // Entity warning
     warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
     warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
@@ -3310,6 +3378,23 @@ var TRANSLATIONS = {
     editor_bg_hint: "Predeterminado: var(--card-background-color)",
     editor_bg_opacity_label: "Transparencia del fondo",
     editor_bg_opacity_hint: "0% = totalmente transparente, 100% = totalmente opaco",
+    editor_colors_open: "Cambiar colores",
+    editor_colors_open_hint: "Abre el editor avanzado con vista previa en vivo y selectores por zona.",
+    editor_colors_back: "Volver al editor",
+    editor_colors_apply: "Aplicar colores",
+    editor_colors_step_hint: "Consejo: haz clic en una zona para abrir el selector de color.",
+    editor_colors_reset_slot: "Restablecer este color",
+    editor_colors_reset_all: "Restablecer todos los colores",
+    editor_colors_done: "Listo",
+    editor_colors_alpha_label: "Alfa",
+    editor_colors_default_value: "Predeterminado",
+    editor_color_slot_background: "Fondo",
+    editor_color_slot_title: "T\xEDtulo",
+    editor_color_slot_telemetry: "Telemetr\xEDa",
+    editor_color_slot_label: "Etiquetas",
+    editor_color_slot_value: "Valores",
+    editor_color_slot_meta: "Modelo/Firmware",
+    editor_color_slot_port_label: "Etiquetas de puerto",
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado\u2026",
     warning_title: "Se detectaron entidades UniFi deshabilitadas u ocultas",
@@ -3437,6 +3522,23 @@ var TRANSLATIONS = {
     editor_bg_hint: "Predefinito: var(--card-background-color)",
     editor_bg_opacity_label: "Trasparenza sfondo",
     editor_bg_opacity_hint: "0% = completamente trasparente, 100% = completamente opaco",
+    editor_colors_open: "Cambia colori",
+    editor_colors_open_hint: "Apre l\u2019editor avanzato con anteprima live e picker per area.",
+    editor_colors_back: "Torna all\u2019editor",
+    editor_colors_apply: "Applica colori",
+    editor_colors_step_hint: "Suggerimento: clicca un\u2019area per aprire il color picker.",
+    editor_colors_reset_slot: "Reimposta questo colore",
+    editor_colors_reset_all: "Reimposta tutti i colori",
+    editor_colors_done: "Fatto",
+    editor_colors_alpha_label: "Alpha",
+    editor_colors_default_value: "Predefinito",
+    editor_color_slot_background: "Sfondo",
+    editor_color_slot_title: "Titolo",
+    editor_color_slot_telemetry: "Telemetria",
+    editor_color_slot_label: "Etichette",
+    editor_color_slot_value: "Valori",
+    editor_color_slot_meta: "Modello/Firmware",
+    editor_color_slot_port_label: "Etichette porte",
     // Entity warning
     warning_checking: "Controllo entit\xE0 UniFi disabilitate o nascoste per il dispositivo selezionato\u2026",
     warning_title: "Rilevate entit\xE0 UniFi disabilitate o nascoste",
@@ -3560,6 +3662,68 @@ function escapeHtml(value) {
 function escapeAttr(value) {
   return escapeHtml(value).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+var COLOR_SLOTS = [
+  { key: "background_color", token: "background", cssVar: "--udc-card-bg", fallback: "var(--card-background-color)" },
+  { key: "title_color", token: "title", cssVar: "--udc-title-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "telemetry_color", token: "telemetry", cssVar: "--udc-telemetry-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "label_color", token: "label", cssVar: "--udc-label-color", fallback: "var(--secondary-text-color, #6f7d90)" },
+  { key: "value_color", token: "value", cssVar: "--udc-value-color", fallback: "var(--primary-text-color, #e2e8f0)" },
+  { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
+  { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" }
+];
+var COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
+function colorSlotLabel(tFn, key) {
+  const slot = COLOR_SLOT_BY_KEY[key];
+  if (!slot) return key;
+  return tFn(`editor_color_slot_${slot.token}`);
+}
+function parseHexColor(hex) {
+  const value = String(hex || "").trim().replace(/^#/, "");
+  if (!/^[\da-f]{6}$/i.test(value)) return null;
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16)
+  };
+}
+function parseColorWithAlpha(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const hex8 = value.match(/^#([\da-f]{8})$/i);
+  if (hex8) {
+    const part = hex8[1];
+    return {
+      hex: `#${part.slice(0, 6).toLowerCase()}`,
+      alpha: Math.round(Number.parseInt(part.slice(6, 8), 16) / 255 * 100)
+    };
+  }
+  const hex6 = value.match(/^#([\da-f]{6})$/i);
+  if (hex6) return { hex: `#${hex6[1].toLowerCase()}`, alpha: 100 };
+  const rgba = value.match(/^rgba?\((.+)\)$/i);
+  if (rgba) {
+    const parts = rgba[1].split(",").map((part) => part.trim());
+    if (parts.length >= 3) {
+      const r = Math.min(255, Math.max(0, Number.parseFloat(parts[0]) || 0));
+      const g = Math.min(255, Math.max(0, Number.parseFloat(parts[1]) || 0));
+      const b = Math.min(255, Math.max(0, Number.parseFloat(parts[2]) || 0));
+      const aRaw = parts[3] != null ? Number.parseFloat(parts[3]) : 1;
+      const a = Number.isFinite(aRaw) ? Math.min(1, Math.max(0, aRaw)) : 1;
+      const toHex = (num) => num.toString(16).padStart(2, "0");
+      return {
+        hex: `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`,
+        alpha: Math.round(a * 100)
+      };
+    }
+  }
+  return null;
+}
+function stringifyColorWithAlpha(hex, alpha) {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return "";
+  const clamped = clampOpacity(alpha);
+  if (clamped >= 100) return hex.toLowerCase();
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${(clamped / 100).toFixed(2)})`;
+}
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
   const normalized = value.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
@@ -3607,10 +3771,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._deviceCtxToken = 0;
     this._lastHintDeviceId = null;
     this._lastCtxDeviceId = null;
+    this._editorStep = "main";
+    this._draftColors = {};
+    this._activeColorSlot = "";
   }
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
     this._config = config || {};
+    this._syncDraftColors();
     const nextDeviceId = this._config?.device_id || "";
     if (this._hass && nextDeviceId) {
       if (nextDeviceId !== prevDeviceId) {
@@ -3649,6 +3817,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _t(key) {
     return t(this._hass, key);
+  }
+  _syncDraftColors() {
+    const nextDraft = {};
+    for (const slot of COLOR_SLOTS) {
+      if (this._config?.[slot.key]) nextDraft[slot.key] = this._config[slot.key];
+    }
+    this._draftColors = nextDraft;
   }
   async _loadDevices() {
     if (!this._hass) return;
@@ -3713,6 +3888,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const keepExplicitSpecialPorts = hasIncomingSpecialPorts || hadExplicitSpecialPorts;
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
+    for (const slot of COLOR_SLOTS) {
+      if (!next[slot.key]) delete next[slot.key];
+    }
     next.background_opacity = clampOpacity(next.background_opacity);
     if (next.background_opacity === 100) delete next.background_opacity;
     if (!next.wan_port || next.wan_port === "auto") delete next.wan_port;
@@ -3785,6 +3963,77 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _onBackgroundOpacityInput(ev) {
     this._emitConfig({ background_opacity: clampOpacity(ev.target.value) });
+  }
+  _onOpenColorStep() {
+    this._syncDraftColors();
+    this._activeColorSlot = "";
+    this._editorStep = "colors";
+    this._render();
+  }
+  _onBackFromColorStep() {
+    this._activeColorSlot = "";
+    this._editorStep = "main";
+    this._syncDraftColors();
+    this._render();
+  }
+  _onOpenColorDialog(ev) {
+    const slotKey = ev.currentTarget?.dataset?.slot || "";
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._activeColorSlot = slotKey;
+    this._render();
+  }
+  _onCloseColorDialog() {
+    this._activeColorSlot = "";
+    this._render();
+  }
+  _setDraftColor(slotKey, value) {
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    if (!value) {
+      delete this._draftColors[slotKey];
+    } else {
+      this._draftColors[slotKey] = value;
+    }
+  }
+  _onDraftColorHexInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    const hex = String(ev.target.value || "").trim().toLowerCase();
+    const parsed = parseColorWithAlpha(this._draftColors[slotKey]) || { alpha: 100 };
+    this._setDraftColor(slotKey, stringifyColorWithAlpha(hex, parsed.alpha));
+    this._render();
+  }
+  _onDraftColorAlphaInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    const parsed = parseColorWithAlpha(this._draftColors[slotKey]) || { hex: "#1f2937" };
+    this._setDraftColor(slotKey, stringifyColorWithAlpha(parsed.hex, ev.target.value));
+    this._render();
+  }
+  _onDraftColorRawInput(ev) {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    this._setDraftColor(slotKey, String(ev.target.value || "").trim());
+    this._render();
+  }
+  _onResetSlotColor() {
+    const slotKey = this._activeColorSlot;
+    if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    delete this._draftColors[slotKey];
+    this._render();
+  }
+  _onResetAllColors() {
+    for (const slot of COLOR_SLOTS) delete this._draftColors[slot.key];
+    this._render();
+  }
+  _onApplyDraftColors() {
+    const payload = {};
+    for (const slot of COLOR_SLOTS) {
+      payload[slot.key] = this._draftColors[slot.key] || void 0;
+    }
+    this._emitConfig(payload);
+    this._activeColorSlot = "";
+    this._editorStep = "main";
+    this._render();
   }
   _onShowPanelChange(ev) {
     const checked = !!ev.target.checked;
@@ -3972,6 +4221,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         gap: 14px;
       }
 
+      .hidden {
+        display: none;
+      }
+
       .section-title {
         font-size: 0.95rem;
         font-weight: 700;
@@ -3981,6 +4234,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       .field {
         display: grid;
         gap: 6px;
+      }
+
+      .step-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .step-footer {
+        display: flex;
+        justify-content: flex-end;
       }
 
       label {
@@ -3999,6 +4264,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         font: inherit;
       }
 
+      input[type="color"] {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 10px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+      }
+
       .checkbox-row {
         display: flex;
         align-items: center;
@@ -4015,6 +4288,81 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       .hint {
         color: var(--secondary-text-color);
         font-size: 0.82rem;
+      }
+
+      .nav-btn {
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: var(--primary-color);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .nav-btn.secondary {
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+      }
+
+      .nav-btn.danger {
+        background: var(--error-color);
+      }
+
+      .color-preview-card {
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .color-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .color-slot-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .swatch {
+        width: 28px;
+        height: 18px;
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,.25);
+      }
+
+      .color-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        z-index: 999;
+      }
+
+      .color-modal {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(420px, calc(100vw - 30px));
+        z-index: 1000;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
       }
 
       .port-toggle-list {
@@ -4122,6 +4470,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundValue = this._config?.background_color || "";
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
+    const colorStepOpen = this._editorStep === "colors";
+    const previewConfig = { ...this._config, ...this._draftColors };
+    const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
+    const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
@@ -4138,6 +4490,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
+        <div class="main-step ${colorStepOpen ? "hidden" : ""}">
         <div class="section-title">${escapeHtml(this._t("editor_device_title"))}</div>
 
         <div class="field">
@@ -4253,6 +4606,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
 
         <div class="field">
+          <button type="button" class="nav-btn" id="open_color_editor">${escapeHtml(this._t("editor_colors_open"))}</button>
+          <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
+        </div>
+
+        <div class="field">
           <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
           <input
             id="background_opacity"
@@ -4266,6 +4624,50 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
+        </div>
+
+        <div class="color-step ${colorStepOpen ? "" : "hidden"}">
+          <div class="step-header">
+            <button type="button" class="nav-btn secondary" id="back_from_color_editor">\u2190 ${escapeHtml(this._t("editor_colors_back"))}</button>
+            <button type="button" class="nav-btn danger" id="reset_all_colors">${escapeHtml(this._t("editor_colors_reset_all"))}</button>
+          </div>
+          <div class="hint">${escapeHtml(this._t("editor_colors_step_hint"))}</div>
+          <div class="color-preview-card">
+            <unifi-device-card id="editor_preview_card"></unifi-device-card>
+          </div>
+          <div class="field">
+            <label>${escapeHtml(this._t("editor_color_slot_background"))}</label>
+            <button type="button" class="color-slot-btn" data-slot="background_color">
+              <span class="swatch" style="background:${escapeAttr(this._draftColors.background_color || "var(--card-background-color)")}"></span>
+              <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
+            </button>
+          </div>
+          <div class="color-grid">
+            ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
+              <button type="button" class="color-slot-btn" data-slot="${escapeAttr(slot.key)}">
+                <span>${escapeHtml(colorSlotLabel((k) => this._t(k), slot.key))}</span>
+                <span class="swatch" style="background:${escapeAttr(this._draftColors[slot.key] || slot.fallback)}"></span>
+              </button>
+            `).join("")}
+          </div>
+          <div class="step-footer">
+            <button type="button" class="nav-btn" id="apply_color_editor">${escapeHtml(this._t("editor_colors_apply"))}</button>
+          </div>
+          ${activeColorSlot ? `
+            <div class="color-modal-backdrop" id="close_color_dialog"></div>
+            <div class="color-modal">
+              <div class="section-title">${escapeHtml(colorSlotLabel((k) => this._t(k), activeColorSlot.key))}</div>
+              <input id="color_picker_hex" type="color" value="${escapeAttr(activeParsedColor?.hex || "#1f2937")}">
+              <label>${escapeHtml(this._t("editor_colors_alpha_label"))}: ${escapeHtml(activeParsedColor?.alpha ?? 100)}%</label>
+              <input id="color_picker_alpha" type="range" min="0" max="100" step="1" value="${escapeAttr(activeParsedColor?.alpha ?? 100)}">
+              <input id="color_picker_raw" type="text" value="${escapeAttr(this._draftColors[activeColorSlot.key] || "")}" placeholder="#RRGGBB / rgba(...)">
+              <div class="step-header">
+                <button type="button" class="nav-btn secondary" id="reset_color_slot">${escapeHtml(this._t("editor_colors_reset_slot"))}</button>
+                <button type="button" class="nav-btn" id="close_color_picker">${escapeHtml(this._t("editor_colors_done"))}</button>
+              </div>
+            </div>
+          ` : ""}
+        </div>
       </div>
     `;
     this.shadowRoot.getElementById("device_id")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
@@ -4284,6 +4686,22 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
     this.shadowRoot.getElementById("edit_special_ports")?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
     this.shadowRoot.getElementById("special_ports_list")?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
+    this.shadowRoot.getElementById("open_color_editor")?.addEventListener("click", () => this._onOpenColorStep());
+    this.shadowRoot.getElementById("back_from_color_editor")?.addEventListener("click", () => this._onBackFromColorStep());
+    this.shadowRoot.getElementById("reset_all_colors")?.addEventListener("click", () => this._onResetAllColors());
+    this.shadowRoot.getElementById("apply_color_editor")?.addEventListener("click", () => this._onApplyDraftColors());
+    this.shadowRoot.querySelectorAll(".color-slot-btn").forEach((btn) => btn.addEventListener("click", (ev) => this._onOpenColorDialog(ev)));
+    this.shadowRoot.getElementById("close_color_dialog")?.addEventListener("click", () => this._onCloseColorDialog());
+    this.shadowRoot.getElementById("close_color_picker")?.addEventListener("click", () => this._onCloseColorDialog());
+    this.shadowRoot.getElementById("color_picker_hex")?.addEventListener("input", (ev) => this._onDraftColorHexInput(ev));
+    this.shadowRoot.getElementById("color_picker_alpha")?.addEventListener("input", (ev) => this._onDraftColorAlphaInput(ev));
+    this.shadowRoot.getElementById("color_picker_raw")?.addEventListener("input", (ev) => this._onDraftColorRawInput(ev));
+    this.shadowRoot.getElementById("reset_color_slot")?.addEventListener("click", () => this._onResetSlotColor());
+    const previewCard = this.shadowRoot.getElementById("editor_preview_card");
+    if (previewCard) {
+      previewCard.hass = this._hass;
+      previewCard.setConfig(previewConfig);
+    }
     this._restoreFocusState(focusState);
   }
   _patchWarning() {
@@ -4300,7 +4718,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4af4f4e";
+var VERSION = "0.0.0-dev.3cb27c1";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4524,6 +4942,22 @@ var UnifiDeviceCard = class extends HTMLElement {
       return this._cardBgStyle();
     }
     return this._cardBgStyle();
+  }
+  _customColorVars() {
+    const vars = [];
+    const pairs = [
+      ["title_color", "--udc-title-color"],
+      ["telemetry_color", "--udc-telemetry-color"],
+      ["label_color", "--udc-label-color"],
+      ["value_color", "--udc-value-color"],
+      ["meta_color", "--udc-meta-color"],
+      ["port_label_color", "--udc-port-label-color"]
+    ];
+    for (const [configKey, cssVar] of pairs) {
+      const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    return vars.length ? `; ${vars.join("; ")}` : "";
   }
   _portSize() {
     const raw = Number.parseInt(this._config?.port_size, 10);
@@ -5362,11 +5796,12 @@ var UnifiDeviceCard = class extends HTMLElement {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: var(--udc-title-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .subtitle {
         font-size: 0.73rem;
-        color: var(--udc-muted);
+        color: var(--udc-meta-color, var(--udc-muted));
       }
 
       .meta-list {
@@ -5381,16 +5816,17 @@ var UnifiDeviceCard = class extends HTMLElement {
         align-items: baseline;
         font-size: 0.73rem;
         min-width: 0;
+        color: var(--udc-telemetry-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .meta-label {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         white-space: nowrap;
         font-weight: 500;
       }
 
       .meta-value {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         font-weight: 600;
         min-width: 0;
         overflow: hidden;
@@ -5469,7 +5905,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         letter-spacing: .1em;
         text-transform: uppercase;
         margin-bottom: 2px;
-        color: #7c818b;
+        color: var(--udc-label-color, #7c818b);
       }
 
       .special-row {
@@ -5943,17 +6379,17 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-top: 1px;
         letter-spacing: 0;
         user-select: none;
-        color: #646a76;
+        color: var(--udc-port-label-color, #646a76);
         transition: color .15s ease, opacity .15s ease;
       }
 
       .port.down .port-num {
-        color: #4c5260;
+        color: var(--udc-port-label-color, #4c5260);
         opacity: .6;
       }
 
       .port.up .port-num {
-        color: #414957;
+        color: var(--udc-port-label-color, #414957);
         opacity: 1;
       }
 
@@ -5997,13 +6433,13 @@ var UnifiDeviceCard = class extends HTMLElement {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: var(--secondary-text-color, var(--udc-muted));
+        color: var(--udc-label-color, var(--secondary-text-color, var(--udc-muted)));
       }
 
       .detail-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-value-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-value.online { color: var(--udc-green); }
@@ -6094,7 +6530,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const escapedHeaderTitle2 = this._escapeHtml(headerTitle2);
       const escapedSubtitle2 = this._escapeHtml(this._subtitle());
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${escapedHeaderTitle2}</div>` : ""}
@@ -6257,7 +6693,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const escapedHeaderTitle = this._escapeHtml(headerTitle);
     const escapedSubtitle = this._escapeHtml(this._subtitle());
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
@@ -6293,7 +6729,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const escapedSubtitle = this._escapeHtml(this._subtitle());
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${escapedTitle}</div>` : ""}
@@ -6307,7 +6743,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${escapedTitle}</div>` : ""}
@@ -6321,7 +6757,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${escapedTitle}</div>` : ""}

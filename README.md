@@ -78,6 +78,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
 - **Smarter link detection** — falls back to speed, PoE power, and RX/TX traffic when direct port link entities are missing
 - **Optional card background color** — use the default Home Assistant card background or override it with your own color
+- **Advanced color editor step** — configure background/title/telemetry/labels/values/model+firmware/port labels with live preview and per-slot reset
 - **AP-native card background behavior** — AP cards can stay transparent like native Home Assistant cards unless a custom background color is configured
 
 ---
@@ -202,6 +203,12 @@ type: custom:unifi-device-card
 device_id: YOUR_DEVICE_ID
 name: My Switch
 background_color: "#1f2937"   # optional
+title_color: "#ffffff"        # optional
+telemetry_color: "#d1d5db"    # optional
+label_color: "#9ca3af"        # optional
+value_color: "#f3f4f6"        # optional
+meta_color: "#94a3b8"         # optional (model + firmware line)
+port_label_color: "#6b7280"   # optional
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
 show_panel: true              # optional (default: true)
@@ -228,6 +235,12 @@ wan2_port: none               # optional (gateway only)
 | `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
 | `show_name` | boolean | `true` | Show/hide the header title line. |
 | `background_color` | string | `var(--card-background-color)` | Any valid CSS color/token. |
+| `title_color` | string | theme default | Optional title text color. |
+| `telemetry_color` | string | theme default | Optional header telemetry color (CPU, memory, temperature values/labels). |
+| `label_color` | string | theme default | Optional detail/panel label color. |
+| `value_color` | string | theme default | Optional detail value color (except fixed link-status state colors). |
+| `meta_color` | string | theme default | Optional model/firmware subtitle color. |
+| `port_label_color` | string | theme default | Optional front-panel port number label color. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
