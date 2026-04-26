@@ -131,8 +131,7 @@ const COLOR_SLOTS = [
   { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
   { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
   { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
-  { key: "ap_ring_color", token: "ap_ring", cssVar: "--udc-ap-ring-color", fallback: "#0000ff" },
-  { key: "ap_inner_color", token: "ap_inner", cssVar: "--udc-ap-inner-color", fallback: "transparent" },
+  { key: "ap_color", token: "ap_color", cssVar: "--udc-ap-color", fallback: "#0000ff" },
   { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" },
 ];
 
@@ -1153,7 +1152,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       if (isApDevice) {
         return !["port_label_color", "special_port_label_color"].includes(slot.key);
       }
-      return !["ap_ring_color", "ap_inner_color", "ap_led_color"].includes(slot.key);
+      return !["ap_color", "ap_led_color"].includes(slot.key);
     });
 
     this.shadowRoot.innerHTML = `

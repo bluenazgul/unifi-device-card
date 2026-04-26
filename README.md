@@ -210,8 +210,7 @@ value_color: "#f3f4f6"        # optional
 meta_color: "#94a3b8"         # optional (model + firmware line)
 port_label_color: "#6b7280"   # optional
 special_port_label_color: "#60a5fa" # optional (special/WAN label + detail headline)
-ap_ring_color: "#2563eb"      # optional (AP only; outer AP ring color)
-ap_inner_color: "transparent" # optional (AP only; inner AP device circle/background)
+ap_color: "#2563eb"           # optional (AP only; combined AP color for ring/inner circle)
 ap_led_color: "#2563eb"       # optional fallback (AP only; used if RGB LED color is not available)
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
@@ -246,8 +245,7 @@ wan2_port: none               # optional (gateway only)
 | `meta_color` | string | theme default | Optional model/firmware subtitle color. |
 | `port_label_color` | string | theme default | Optional front-panel port number label color. |
 | `special_port_label_color` | string | theme default | Optional special-port label color (for special row labels like WAN and the selected special port headline). |
-| `ap_ring_color` | string | theme default | AP only: optional outer AP ring color. |
-| `ap_inner_color` | string | theme default | AP only: optional inner AP circle/device color (supports gradients/tokens). |
+| `ap_color` | string | theme default | AP only: combined AP color for ring and inner AP circle. |
 | `ap_led_color` | string | model default | AP only: optional LED fallback color used when no RGB LED color is provided by entities. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |

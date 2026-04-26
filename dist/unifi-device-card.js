@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.db37ddc */
+/* UniFi Device Card 0.0.0-dev.7745fac */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2816,6 +2816,7 @@ var TRANSLATIONS = {
     editor_color_slot_special_port_label: "Special port label",
     editor_color_slot_ap_ring: "AP outer ring",
     editor_color_slot_ap_inner: "AP inner circle",
+    editor_color_slot_ap_color: "AP color",
     editor_color_slot_ap_led: "AP LED fallback",
     editor_ap_led_color_disabled_hint: "Disabled because RGB LED control is available.",
     // Entity warning — loading hint
@@ -2968,6 +2969,7 @@ var TRANSLATIONS = {
     editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
     editor_color_slot_ap_ring: "AP Au\xDFenring",
     editor_color_slot_ap_inner: "AP Innenkreis",
+    editor_color_slot_ap_color: "AP Farbe",
     editor_color_slot_ap_led: "AP LED-Fallback",
     editor_ap_led_color_disabled_hint: "Durch RGB-LED-Steuerung deaktiviert.",
     // Entity warning — loading hint
@@ -3120,6 +3122,7 @@ var TRANSLATIONS = {
     editor_color_slot_special_port_label: "Speciale poortlabels",
     editor_color_slot_ap_ring: "AP buitenring",
     editor_color_slot_ap_inner: "AP binnencirkel",
+    editor_color_slot_ap_color: "AP kleur",
     editor_color_slot_ap_led: "AP LED fallback",
     editor_ap_led_color_disabled_hint: "Uitgeschakeld omdat RGB-ledbediening beschikbaar is.",
     // Entity warning
@@ -3269,6 +3272,7 @@ var TRANSLATIONS = {
     editor_color_slot_special_port_label: "\xC9tiquette port sp\xE9cial",
     editor_color_slot_ap_ring: "Anneau externe AP",
     editor_color_slot_ap_inner: "Cercle interne AP",
+    editor_color_slot_ap_color: "Couleur AP",
     editor_color_slot_ap_led: "LED AP (secours)",
     editor_ap_led_color_disabled_hint: "D\xE9sactiv\xE9 car le contr\xF4le LED RGB est disponible.",
     // Entity warning
@@ -3418,6 +3422,7 @@ var TRANSLATIONS = {
     editor_color_slot_special_port_label: "Etiqueta de puerto especial",
     editor_color_slot_ap_ring: "Anillo exterior AP",
     editor_color_slot_ap_inner: "C\xEDrculo interior AP",
+    editor_color_slot_ap_color: "Color AP",
     editor_color_slot_ap_led: "LED AP (respaldo)",
     editor_ap_led_color_disabled_hint: "Desactivado porque hay control RGB LED disponible.",
     // Entity warning
@@ -3567,6 +3572,7 @@ var TRANSLATIONS = {
     editor_color_slot_special_port_label: "Etichetta porta speciale",
     editor_color_slot_ap_ring: "Anello esterno AP",
     editor_color_slot_ap_inner: "Cerchio interno AP",
+    editor_color_slot_ap_color: "Colore AP",
     editor_color_slot_ap_led: "LED AP (fallback)",
     editor_ap_led_color_disabled_hint: "Disattivato perch\xE9 \xE8 disponibile il controllo LED RGB.",
     // Entity warning
@@ -3701,8 +3707,7 @@ var COLOR_SLOTS = [
   { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
   { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
   { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
-  { key: "ap_ring_color", token: "ap_ring", cssVar: "--udc-ap-ring-color", fallback: "#0000ff" },
-  { key: "ap_inner_color", token: "ap_inner", cssVar: "--udc-ap-inner-color", fallback: "transparent" },
+  { key: "ap_color", token: "ap_color", cssVar: "--udc-ap-color", fallback: "#0000ff" },
   { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" }
 ];
 var COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
@@ -4562,7 +4567,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       if (isApDevice) {
         return !["port_label_color", "special_port_label_color"].includes(slot.key);
       }
-      return !["ap_ring_color", "ap_inner_color", "ap_led_color"].includes(slot.key);
+      return !["ap_color", "ap_led_color"].includes(slot.key);
     });
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -4783,7 +4788,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.db37ddc";
+var VERSION = "0.0.0-dev.7745fac";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5018,6 +5023,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       ["meta_color", "--udc-meta-color"],
       ["port_label_color", "--udc-port-label-color"],
       ["special_port_label_color", "--udc-special-port-label-color"],
+      ["ap_color", "--udc-ap-color"],
       ["ap_ring_color", "--udc-ap-ring-color"],
       ["ap_inner_color", "--udc-ap-inner-color"]
     ];
@@ -6096,7 +6102,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         aspect-ratio: 1 / 1;
         max-width: 100%;
         border-radius: 50%;
-        background: var(--udc-ap-inner-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%));
+        background: var(--udc-ap-inner-color, var(--udc-ap-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%)));
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -6109,7 +6115,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         width: 41%;
         height: 41%;
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, #a5adb8));
+        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, #a5adb8)));
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -6117,10 +6123,10 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255)));
+        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255))));
         box-shadow:
-          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255))) 55%, transparent),
-          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255))) 32%, transparent);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 32%, transparent);
       }
 
       .ap-ring.off {

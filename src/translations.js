@@ -149,6 +149,7 @@ const TRANSLATIONS = {
     editor_color_slot_special_port_label: "Special port label",
     editor_color_slot_ap_ring: "AP outer ring",
     editor_color_slot_ap_inner: "AP inner circle",
+    editor_color_slot_ap_color: "AP color",
     editor_color_slot_ap_led: "AP LED fallback",
     editor_ap_led_color_disabled_hint: "Disabled because RGB LED control is available.",
 
@@ -316,6 +317,7 @@ const TRANSLATIONS = {
     editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
     editor_color_slot_ap_ring: "AP Außenring",
     editor_color_slot_ap_inner: "AP Innenkreis",
+    editor_color_slot_ap_color: "AP Farbe",
     editor_color_slot_ap_led: "AP LED-Fallback",
     editor_ap_led_color_disabled_hint: "Durch RGB-LED-Steuerung deaktiviert.",
 
@@ -483,6 +485,7 @@ const TRANSLATIONS = {
     editor_color_slot_special_port_label: "Speciale poortlabels",
     editor_color_slot_ap_ring: "AP buitenring",
     editor_color_slot_ap_inner: "AP binnencirkel",
+    editor_color_slot_ap_color: "AP kleur",
     editor_color_slot_ap_led: "AP LED fallback",
     editor_ap_led_color_disabled_hint: "Uitgeschakeld omdat RGB-ledbediening beschikbaar is.",
 
@@ -646,6 +649,7 @@ const TRANSLATIONS = {
     editor_color_slot_special_port_label: "Étiquette port spécial",
     editor_color_slot_ap_ring: "Anneau externe AP",
     editor_color_slot_ap_inner: "Cercle interne AP",
+    editor_color_slot_ap_color: "Couleur AP",
     editor_color_slot_ap_led: "LED AP (secours)",
     editor_ap_led_color_disabled_hint: "Désactivé car le contrôle LED RGB est disponible.",
 
@@ -809,6 +813,7 @@ const TRANSLATIONS = {
     editor_color_slot_special_port_label: "Etiqueta de puerto especial",
     editor_color_slot_ap_ring: "Anillo exterior AP",
     editor_color_slot_ap_inner: "Círculo interior AP",
+    editor_color_slot_ap_color: "Color AP",
     editor_color_slot_ap_led: "LED AP (respaldo)",
     editor_ap_led_color_disabled_hint: "Desactivado porque hay control RGB LED disponible.",
 
@@ -972,6 +977,7 @@ const TRANSLATIONS = {
     editor_color_slot_special_port_label: "Etichetta porta speciale",
     editor_color_slot_ap_ring: "Anello esterno AP",
     editor_color_slot_ap_inner: "Cerchio interno AP",
+    editor_color_slot_ap_color: "Colore AP",
     editor_color_slot_ap_led: "LED AP (fallback)",
     editor_ap_led_color_disabled_hint: "Disattivato perché è disponibile il controllo LED RGB.",
 

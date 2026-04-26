@@ -302,6 +302,7 @@ class UnifiDeviceCard extends HTMLElement {
       ["meta_color", "--udc-meta-color"],
       ["port_label_color", "--udc-port-label-color"],
       ["special_port_label_color", "--udc-special-port-label-color"],
+      ["ap_color", "--udc-ap-color"],
       ["ap_ring_color", "--udc-ap-ring-color"],
       ["ap_inner_color", "--udc-ap-inner-color"],
     ];
@@ -1614,7 +1615,7 @@ class UnifiDeviceCard extends HTMLElement {
         aspect-ratio: 1 / 1;
         max-width: 100%;
         border-radius: 50%;
-        background: var(--udc-ap-inner-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%));
+        background: var(--udc-ap-inner-color, var(--udc-ap-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%)));
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -1627,7 +1628,7 @@ class UnifiDeviceCard extends HTMLElement {
         width: 41%;
         height: 41%;
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, #a5adb8));
+        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, #a5adb8)));
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -1635,10 +1636,10 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255)));
+        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255))));
         box-shadow:
-          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255))) 55%, transparent),
-          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255))) 32%, transparent);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 32%, transparent);
       }
 
       .ap-ring.off {

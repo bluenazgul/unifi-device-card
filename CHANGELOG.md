@@ -8,6 +8,7 @@
 - Add color slot/key `special_port_label_color` to style special port labels (for example WAN) and special-port detail titles.
 - Improve color-step layout: move card transparency control above background color and add extra spacing for better readability.
 - Add AP-specific color slots for outer ring and inner circle, plus LED fallback color (auto-disabled in editor when RGB LED control is available).
+- Simplify AP color editing by merging outer-ring and inner-circle controls into one `ap_color` option.
 
 ### 🐛 Bug Fixes
 - Fix gateway classification for `USG-XG-8` / `UGWXG` aliases so gateway-specific behavior is applied reliably even without gateway-like names.
