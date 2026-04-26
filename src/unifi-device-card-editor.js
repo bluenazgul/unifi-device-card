@@ -334,7 +334,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
     if (fallback) return fallback;
-    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{3}|[\da-f]{6})/i);
+    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{6}|[\da-f]{3})/i);
     const fallbackHex = normalizeHexColor(fallbackHexMatch ? `#${fallbackHexMatch[1]}` : "");
     if (fallbackHex) return fallbackHex;
 

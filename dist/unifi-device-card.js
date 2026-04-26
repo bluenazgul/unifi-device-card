@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.151857a */
+/* UniFi Device Card 0.0.0-dev.ca90ddf */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3875,7 +3875,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (draft) return draft;
     const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
     if (fallback) return fallback;
-    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{3}|[\da-f]{6})/i);
+    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{6}|[\da-f]{3})/i);
     const fallbackHex = normalizeHexColor(fallbackHexMatch ? `#${fallbackHexMatch[1]}` : "");
     if (fallbackHex) return fallbackHex;
     if (slot.key === "background_color" && typeof getComputedStyle === "function") {
@@ -4783,7 +4783,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.151857a";
+var VERSION = "0.0.0-dev.ca90ddf";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
