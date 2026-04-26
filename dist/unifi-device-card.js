@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.2f73de8 */
+/* UniFi Device Card 0.0.0-dev.7999b4f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1416,9 +1416,6 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const modelKey = resolveModelKey(device || identity || {});
   const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
-  if (modelKey && gatewayModelKeys.includes(modelKey) && hasPortSignals) return "gateway";
-  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
-  if (hasPortSignals) return "switch";
   if (modelKey) {
     if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
@@ -1427,6 +1424,8 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
       return "switch";
     }
   }
+  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
+  if (hasPortSignals) return "switch";
   if (manufacturer.includes("ubiquiti") || manufacturer.includes("unifi")) {
     if (name.includes("switch")) return "switch";
     if (name.includes("access point") || name.includes(" ap")) return "access_point";
@@ -4841,7 +4840,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.2f73de8";
+var VERSION = "0.0.0-dev.7999b4f";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
