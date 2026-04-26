@@ -42,9 +42,6 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     name.includes("router");
   if (gatewaySignals) return "gateway";
 
-  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
-  if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
-
   const modelKey = resolveModelKey(device || identity || {});
   if (modelKey) {
     if (["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"].includes(modelKey)) {
@@ -54,6 +51,9 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
       return "switch";
     }
   }
+
+  if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
+  if (capabilities?.ports || capabilities?.port_control || capabilities?.poe_power) return "switch";
 
   if (manufacturer.includes("ubiquiti") || manufacturer.includes("unifi")) {
     if (name.includes("switch")) return "switch";
