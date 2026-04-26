@@ -1073,6 +1073,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const colorStepOpen = this._editorStep === "colors";
     const activeColorSlot = COLOR_SLOT_BY_KEY[this._activeColorSlot] || null;
     const activeParsedColor = parseColorWithAlpha(this._draftColors[this._activeColorSlot] || "") || null;
+    const activeRawColorValue = activeColorSlot
+      ? (this._draftColors[activeColorSlot.key] || activeColorSlot.fallback || "")
+      : "";
     const portsPerRow = this._config?.ports_per_row || "";
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
@@ -1275,7 +1278,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
               <input id="color_picker_hex" type="color" value="${escapeAttr(activeParsedColor?.hex || "#1f2937")}">
               <label>${escapeHtml(this._t("editor_colors_alpha_label"))}: ${escapeHtml(activeParsedColor?.alpha ?? 100)}%</label>
               <input id="color_picker_alpha" type="range" min="0" max="100" step="1" value="${escapeAttr(activeParsedColor?.alpha ?? 100)}">
-              <input id="color_picker_raw" type="text" value="${escapeAttr(this._draftColors[activeColorSlot.key] || "")}" placeholder="#RRGGBB / rgba(...)">
+              <input id="color_picker_raw" type="text" value="${escapeAttr(activeRawColorValue)}" placeholder="#RRGGBB / rgba(...)">
               <div class="step-header">
                 <button type="button" class="nav-btn secondary" id="reset_color_slot">${escapeHtml(this._t("editor_colors_reset_slot"))}</button>
                 <button type="button" class="nav-btn" id="close_color_picker">${escapeHtml(this._t("editor_colors_done"))}</button>
