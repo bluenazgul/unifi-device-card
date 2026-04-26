@@ -292,6 +292,27 @@ class UnifiDeviceCard extends HTMLElement {
     return this._cardBgStyle();
   }
 
+  _customColorVars() {
+    const vars = [];
+    const pairs = [
+      ["title_color", "--udc-title-color"],
+      ["telemetry_color", "--udc-telemetry-color"],
+      ["label_color", "--udc-label-color"],
+      ["value_color", "--udc-value-color"],
+      ["meta_color", "--udc-meta-color"],
+      ["port_label_color", "--udc-port-label-color"],
+      ["special_port_label_color", "--udc-special-port-label-color"],
+      ["ap_color", "--udc-ap-color"],
+      ["ap_ring_color", "--udc-ap-ring-color"],
+      ["ap_inner_color", "--udc-ap-inner-color"],
+    ];
+    for (const [configKey, cssVar] of pairs) {
+      const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    return vars.length ? `; ${vars.join("; ")}` : "";
+  }
+
   _portSize() {
     const raw = Number.parseInt(this._config?.port_size, 10);
     if (!Number.isFinite(raw)) return 36;
@@ -477,7 +498,7 @@ class UnifiDeviceCard extends HTMLElement {
   _apLedState() {
     const ledEntity = this._ctx?.led_switch_entity;
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
-    const defaultColor = this._ctx?.layout?.apLedDefaultColor ?? "#0000ff";
+    const defaultColor = this._config?.ap_led_color || this._ctx?.layout?.apLedDefaultColor || "#0000ff";
     const ringColor = ledEnabled ? (this._apLedColorValue() || defaultColor) : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
   }
@@ -1362,11 +1383,12 @@ class UnifiDeviceCard extends HTMLElement {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: var(--udc-title-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .subtitle {
         font-size: 0.73rem;
-        color: var(--udc-muted);
+        color: var(--udc-meta-color, var(--udc-muted));
       }
 
       .meta-list {
@@ -1381,16 +1403,17 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: baseline;
         font-size: 0.73rem;
         min-width: 0;
+        color: var(--udc-telemetry-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .meta-label {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         white-space: nowrap;
         font-weight: 500;
       }
 
       .meta-value {
-        color: var(--primary-text-color, var(--udc-text));
+        color: inherit;
         font-weight: 600;
         min-width: 0;
         overflow: hidden;
@@ -1469,7 +1492,7 @@ class UnifiDeviceCard extends HTMLElement {
         letter-spacing: .1em;
         text-transform: uppercase;
         margin-bottom: 2px;
-        color: #7c818b;
+        color: var(--udc-label-color, #7c818b);
       }
 
       .special-row {
@@ -1592,7 +1615,7 @@ class UnifiDeviceCard extends HTMLElement {
         aspect-ratio: 1 / 1;
         max-width: 100%;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
+        background: var(--udc-ap-inner-color, var(--udc-ap-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%)));
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -1605,7 +1628,7 @@ class UnifiDeviceCard extends HTMLElement {
         width: 41%;
         height: 41%;
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
+        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, #a5adb8)));
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -1613,10 +1636,10 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: var(--ap-ring-color, rgb(0, 0, 255));
+        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255))));
         box-shadow:
-          0 0 12px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 55%, transparent),
-          0 0 24px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 32%, transparent);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, var(--udc-ap-color, rgb(0, 0, 255)))) 32%, transparent);
       }
 
       .ap-ring.off {
@@ -1936,6 +1959,10 @@ class UnifiDeviceCard extends HTMLElement {
         max-width: calc(var(--udc-port-size) - 2px);
       }
 
+      .port.special .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #646a76));
+      }
+
       .port-num {
         font-size: 7px;
         font-weight: 800;
@@ -1943,18 +1970,26 @@ class UnifiDeviceCard extends HTMLElement {
         margin-top: 1px;
         letter-spacing: 0;
         user-select: none;
-        color: #646a76;
+        color: var(--udc-port-label-color, #646a76);
         transition: color .15s ease, opacity .15s ease;
       }
 
       .port.down .port-num {
-        color: #4c5260;
+        color: var(--udc-port-label-color, #4c5260);
         opacity: .6;
       }
 
+      .port.special.down .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #4c5260));
+      }
+
       .port.up .port-num {
-        color: #414957;
+        color: var(--udc-port-label-color, #414957);
         opacity: 1;
+      }
+
+      .port.special.up .port-num {
+        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #414957));
       }
 
       .port:hover .port-num,
@@ -1977,7 +2012,7 @@ class UnifiDeviceCard extends HTMLElement {
         font-size: 0.8rem;
         font-weight: 700;
         margin-bottom: 8px;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-grid {
@@ -1997,13 +2032,13 @@ class UnifiDeviceCard extends HTMLElement {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: var(--secondary-text-color, var(--udc-muted));
+        color: var(--udc-label-color, var(--secondary-text-color, var(--udc-muted)));
       }
 
       .detail-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--primary-text-color, var(--udc-text));
+        color: var(--udc-value-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .detail-value.online { color: var(--udc-green); }
@@ -2099,7 +2134,7 @@ class UnifiDeviceCard extends HTMLElement {
       const escapedHeaderTitle = this._escapeHtml(headerTitle);
       const escapedSubtitle = this._escapeHtml(this._subtitle());
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
@@ -2297,7 +2332,7 @@ class UnifiDeviceCard extends HTMLElement {
     const escapedHeaderTitle = this._escapeHtml(headerTitle);
     const escapedSubtitle = this._escapeHtml(this._subtitle());
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
@@ -2345,7 +2380,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${escapedTitle}</div>` : ""}
@@ -2360,7 +2395,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${escapedTitle}</div>` : ""}
@@ -2375,7 +2410,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}">
+        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${title ? `<div class="title">${escapedTitle}</div>` : ""}
