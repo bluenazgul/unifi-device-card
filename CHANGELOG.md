@@ -4,10 +4,10 @@
 
 ### ✨ Improvements
 - Add a dedicated “Change colors” editor step with live card preview, simple per-color picker plus manual value input, per-slot reset, and global reset-all action.
-- Add optional YAML color keys for `title_color`, `telemetry_color`, `label_color`, `value_color`, `meta_color`, and `port_label_color`.
-- Add color slot/key `special_port_label_color` to style special port labels (for example WAN) and special-port detail titles.
+- Add optional YAML color keys for `title_color`, `telemetry_color`, `label_color`, `value_color`, `meta_color`, `port_label_color` and `special_port_label_color` to style special port labels (for example WAN and special-port detail titles).
 - Improve color-step layout: move card transparency control above background color and add extra spacing for better readability.
 - Remove AP body color option from the editor and keep only AP LED color fallback control.
+- Add AP LED color fallback control `ap_led_color` (only enabled if non RGB LED).
 
 ### 🐛 Bug Fixes
 - Improve editor range/color input usability by committing on `change` (prevents picker/slider interruption while dragging or typing).
