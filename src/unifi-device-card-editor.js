@@ -109,6 +109,19 @@ function clampApScale(value) {
   return Math.min(140, Math.max(25, num));
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
 
@@ -508,7 +521,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _warningHTML() {
     if (this._entityHintLoading && !this._entityHint) {
-      return `<div class="warn loading">${this._t("warning_checking")}</div>`;
+      return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
 
     if (!this._entityHint) return "";
@@ -525,20 +538,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ? `<ul>${items
           .map(
             (item) =>
-              `<li><strong>${item.count}</strong> ${this._t(`warning_entity_${item.key}`)}</li>`
+              `<li><strong>${escapeHtml(item.count)}</strong> ${escapeHtml(this._t(`warning_entity_${item.key}`))}</li>`
           )
           .join("")}</ul>`
       : "";
 
     return `
       <div class="warn">
-        <div class="warn-title">${this._t("warning_title")}</div>
-        <div class="warn-body">${this._t("warning_body")}</div>
-        <div class="warn-status">${summary}</div>
+        <div class="warn-title">${escapeHtml(this._t("warning_title"))}</div>
+        <div class="warn-body">${escapeHtml(this._t("warning_body"))}</div>
+        <div class="warn-status">${escapeHtml(summary)}</div>
         ${list}
         <div class="warn-path">
-          <strong>${this._t("warning_check_in")}</strong><br>
-          ${this._t("warning_ha_path")}
+          <strong>${escapeHtml(this._t("warning_check_in"))}</strong><br>
+          ${escapeHtml(this._t("warning_ha_path"))}
         </div>
       </div>
     `;
@@ -557,19 +570,19 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!layout) {
       return `
         <div class="field">
-          <label>${this._t("editor_wan_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
           <select id="wan_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_wan2_port_label")}</label>
+          <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
           <select id="wan2_port" disabled>
-            <option value="auto">${this._t("editor_device_loading")}</option>
+            <option value="auto">${escapeHtml(this._t("editor_device_loading"))}</option>
           </select>
-          <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
         </div>
       `;
     }
@@ -586,20 +599,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     return `
       <div class="field">
-        <label>${this._t("editor_wan_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan_port_label"))}</label>
         <select id="wan_port">
           ${wanOptions
             .map(
               (opt) =>
-                `<option value="${opt.value}" ${opt.value === selectedWan ? "selected" : ""}>${opt.label}</option>`
+                `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan ? "selected" : ""}>${escapeHtml(opt.label)}</option>`
             )
             .join("")}
         </select>
-        <div class="hint">${this._t("editor_wan_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan_port_hint"))}</div>
       </div>
 
       <div class="field">
-        <label>${this._t("editor_wan2_port_label")}</label>
+        <label>${escapeHtml(this._t("editor_wan2_port_label"))}</label>
         <select id="wan2_port">
           ${wan2Options
             .map((opt) => {
@@ -608,13 +621,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
                 opt.value !== "none" &&
                 roleSelectionsConflict(selectedWan, "wan", opt.value, "wan2", layout);
 
-              return `<option value="${opt.value}" ${opt.value === selectedWan2 ? "selected" : ""} ${
+              return `<option value="${escapeAttr(opt.value)}" ${opt.value === selectedWan2 ? "selected" : ""} ${
                 disabled ? "disabled" : ""
-              }>${opt.label}</option>`;
+              }>${escapeHtml(opt.label)}</option>`;
             })
             .join("")}
         </select>
-        <div class="hint">${this._t("editor_wan2_port_hint")}</div>
+        <div class="hint">${escapeHtml(this._t("editor_wan2_port_hint"))}</div>
       </div>
     `;
   }
@@ -819,142 +832,142 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
-        <div class="section-title">${this._t("editor_device_title")}</div>
+        <div class="section-title">${escapeHtml(this._t("editor_device_title"))}</div>
 
         <div class="field">
-          <label>${this._t("editor_device_label")}</label>
+          <label>${escapeHtml(this._t("editor_device_label"))}</label>
           <select id="device_id">
-            <option value="">${this._t("editor_device_select")}</option>
+            <option value="">${escapeHtml(this._t("editor_device_select"))}</option>
             ${this._devices
               .map(
                 (device) =>
-                  `<option value="${device.id}" ${device.id === deviceValue ? "selected" : ""}>${device.label}</option>`
+                  `<option value="${escapeAttr(device.id)}" ${device.id === deviceValue ? "selected" : ""}>${escapeHtml(device.label)}</option>`
               )
               .join("")}
           </select>
           <div class="hint">${
             this._loading
-              ? this._t("editor_device_loading")
+              ? escapeHtml(this._t("editor_device_loading"))
               : this._devices.length
-              ? this._t("editor_hint")
-              : this._error || this._t("editor_no_devices")
+              ? escapeHtml(this._t("editor_hint"))
+              : escapeHtml(this._error || this._t("editor_no_devices"))
           }</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_name_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_name" type="checkbox" ${showName ? "checked" : ""}>
-            <span>${this._t("editor_name_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_name_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_name_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_name_toggle_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_name_label")}</label>
-          <input id="name" type="text" value="${nameValue}" ${showName ? "" : "disabled"}>
-          <div class="hint">${this._t("editor_name_hint")}</div>
+          <label>${escapeHtml(this._t("editor_name_label"))}</label>
+          <input id="name" type="text" value="${escapeAttr(nameValue)}" ${showName ? "" : "disabled"}>
+          <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_panel_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
-            <span>${this._t("editor_panel_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_panel_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchDevice ? `
         <div class="field">
-          <label>${this._t("editor_ports_per_row_label")}</label>
-          <input id="ports_per_row" type="text" inputmode="numeric" value="${portsPerRow}">
-          <div class="hint">${this._t("editor_ports_per_row_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
+          <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
+          <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
-          <label>${this._t("editor_port_size_label")}: ${portSize}px</label>
-          <input id="port_size" type="range" min="24" max="52" step="1" value="${portSize}">
-          <div class="hint">${this._t("editor_port_size_hint")}</div>
+          <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
+          <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
+          <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
         </div>` : ""}
 
         ${isApDevice ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_toggle_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_view" type="checkbox" ${apCompactView ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_toggle_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_toggle_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_toggle_hint"))}</div>
         </div>
 
         ${apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_compact_header_telemetry_label")}</label>
+          <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
             <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
-            <span>${this._t("editor_ap_compact_header_telemetry_text")}</span>
+            <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
-          <div class="hint">${this._t("editor_ap_compact_header_telemetry_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
         </div>` : ""}
 
         ${!apCompactView ? `
         <div class="field">
-          <label>${this._t("editor_ap_scale_label")}: ${apScale}%</label>
-          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${apScale}">
-          <div class="hint">${this._t("editor_ap_scale_hint")}</div>
+          <label>${escapeHtml(this._t("editor_ap_scale_label"))}: ${escapeHtml(apScale)}%</label>
+          <input id="ap_scale" type="range" min="25" max="140" step="1" value="${escapeAttr(apScale)}">
+          <div class="hint">${escapeHtml(this._t("editor_ap_scale_hint"))}</div>
         </div>` : ""}` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
           <label class="checkbox-row">
             <input id="edit_special_ports" type="checkbox" ${editSpecialPorts ? "checked" : ""}>
-            <span>${this._t("editor_edit_special_ports_toggle")}</span>
+            <span>${escapeHtml(this._t("editor_edit_special_ports_toggle"))}</span>
           </label>
-          <div class="hint">${this._t("editor_edit_special_ports_toggle_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_edit_special_ports_toggle_hint"))}</div>
         </div>
 
         ${editSpecialPorts ? `
         ${this._gatewayControlsHTML(true)}
 
         <div class="field">
-          <label>${this._t("editor_custom_special_ports_label")}</label>
+          <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
             ${selectableSpecialPorts
-              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${port}">Port ${port}</button>`)
+              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`)
               .join("")}
           </div>
-          <div class="hint">${this._t("editor_custom_special_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
         </div>` : ""}
 
         <div class="field">
           <label class="checkbox-row">
             <input id="force_sequential_ports" type="checkbox" ${forceSequentialPorts ? "checked" : ""}>
-            <span>${this._t("editor_force_sequential_ports_label")}</span>
+            <span>${escapeHtml(this._t("editor_force_sequential_ports_label"))}</span>
           </label>
-          <div class="hint">${this._t("editor_force_sequential_ports_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_force_sequential_ports_hint"))}</div>
         </div>
         ` : ""}
 
         <div class="field">
-          <label>${this._t("editor_bg_label")}</label>
-          <input id="background_color" type="text" value="${backgroundValue}">
-          <div class="hint">${this._t("editor_bg_hint")}</div>
+          <label>${escapeHtml(this._t("editor_bg_label"))}</label>
+          <input id="background_color" type="text" value="${escapeAttr(backgroundValue)}">
+          <div class="hint">${escapeHtml(this._t("editor_bg_hint"))}</div>
         </div>
 
         <div class="field">
-          <label>${this._t("editor_bg_opacity_label")}: ${backgroundOpacity}%</label>
+          <label>${escapeHtml(this._t("editor_bg_opacity_label"))}: ${escapeHtml(backgroundOpacity)}%</label>
           <input
             id="background_opacity"
             type="range"
             min="0"
             max="100"
             step="1"
-            value="${backgroundOpacity}"
+            value="${escapeAttr(backgroundOpacity)}"
           >
-          <div class="hint">${this._t("editor_bg_opacity_hint")}</div>
+          <div class="hint">${escapeHtml(this._t("editor_bg_opacity_hint"))}</div>
         </div>
 
         <div id="warning_slot">${this._warningHTML()}</div>
