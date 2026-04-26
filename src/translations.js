@@ -147,6 +147,10 @@ const TRANSLATIONS = {
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Port labels",
     editor_color_slot_special_port_label: "Special port label",
+    editor_color_slot_ap_ring: "AP outer ring",
+    editor_color_slot_ap_inner: "AP inner circle",
+    editor_color_slot_ap_led: "AP LED fallback",
+    editor_ap_led_color_disabled_hint: "Disabled because RGB LED control is available.",
 
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities…",
@@ -310,6 +314,10 @@ const TRANSLATIONS = {
     editor_color_slot_meta: "Modell/Firmware",
     editor_color_slot_port_label: "Port-Beschriftung",
     editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
+    editor_color_slot_ap_ring: "AP Außenring",
+    editor_color_slot_ap_inner: "AP Innenkreis",
+    editor_color_slot_ap_led: "AP LED-Fallback",
+    editor_ap_led_color_disabled_hint: "Durch RGB-LED-Steuerung deaktiviert.",
 
     // Entity warning — loading hint
     warning_checking: "Ausgewähltes Gerät auf deaktivierte oder versteckte UniFi-Entities prüfen…",
@@ -473,6 +481,10 @@ const TRANSLATIONS = {
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Poortlabels",
     editor_color_slot_special_port_label: "Speciale poortlabels",
+    editor_color_slot_ap_ring: "AP buitenring",
+    editor_color_slot_ap_inner: "AP binnencirkel",
+    editor_color_slot_ap_led: "AP LED fallback",
+    editor_ap_led_color_disabled_hint: "Uitgeschakeld omdat RGB-ledbediening beschikbaar is.",
 
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten…",
@@ -632,6 +644,10 @@ const TRANSLATIONS = {
     editor_color_slot_meta: "Modèle/Firmware",
     editor_color_slot_port_label: "Étiquettes de port",
     editor_color_slot_special_port_label: "Étiquette port spécial",
+    editor_color_slot_ap_ring: "Anneau externe AP",
+    editor_color_slot_ap_inner: "Cercle interne AP",
+    editor_color_slot_ap_led: "LED AP (secours)",
+    editor_ap_led_color_disabled_hint: "Désactivé car le contrôle LED RGB est disponible.",
 
     // Entity warning
     warning_checking: "Vérification des entités UniFi désactivées ou masquées pour l'appareil sélectionné…",
@@ -791,6 +807,10 @@ const TRANSLATIONS = {
     editor_color_slot_meta: "Modelo/Firmware",
     editor_color_slot_port_label: "Etiquetas de puerto",
     editor_color_slot_special_port_label: "Etiqueta de puerto especial",
+    editor_color_slot_ap_ring: "Anillo exterior AP",
+    editor_color_slot_ap_inner: "Círculo interior AP",
+    editor_color_slot_ap_led: "LED AP (respaldo)",
+    editor_ap_led_color_disabled_hint: "Desactivado porque hay control RGB LED disponible.",
 
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado…",
@@ -950,6 +970,10 @@ const TRANSLATIONS = {
     editor_color_slot_meta: "Modello/Firmware",
     editor_color_slot_port_label: "Etichette porte",
     editor_color_slot_special_port_label: "Etichetta porta speciale",
+    editor_color_slot_ap_ring: "Anello esterno AP",
+    editor_color_slot_ap_inner: "Cerchio interno AP",
+    editor_color_slot_ap_led: "LED AP (fallback)",
+    editor_ap_led_color_disabled_hint: "Disattivato perché è disponibile il controllo LED RGB.",
 
     // Entity warning
     warning_checking: "Controllo entità UniFi disabilitate o nascoste per il dispositivo selezionato…",

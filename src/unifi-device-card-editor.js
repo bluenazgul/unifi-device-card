@@ -131,6 +131,9 @@ const COLOR_SLOTS = [
   { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
   { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
   { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
+  { key: "ap_ring_color", token: "ap_ring", cssVar: "--udc-ap-ring-color", fallback: "#0000ff" },
+  { key: "ap_inner_color", token: "ap_inner", cssVar: "--udc-ap-inner-color", fallback: "transparent" },
+  { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" },
 ];
 
 const COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
@@ -316,6 +319,24 @@ class UnifiDeviceCardEditor extends HTMLElement {
       if (this._config?.[slot.key]) nextDraft[slot.key] = this._config[slot.key];
     }
     this._draftColors = nextDraft;
+  }
+
+  _apHasRgbLedControl() {
+    if (!this._hass?.states) return false;
+    const ledSwitchEntity = this._deviceCtx?.led_switch_entity;
+    const ledColorEntity = this._deviceCtx?.led_color_entity;
+    if (!ledSwitchEntity && !ledColorEntity) return false;
+
+    const candidates = [ledSwitchEntity, ledColorEntity].filter(Boolean);
+    const hasRgbAttr = candidates.some((entityId) =>
+      Array.isArray(this._hass?.states?.[entityId]?.attributes?.rgb_color)
+    );
+
+    if (hasRgbAttr) return true;
+    if (!ledColorEntity) return false;
+
+    const raw = String(this._hass.states?.[ledColorEntity]?.state || "").trim().toLowerCase();
+    return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) || /^rgb\(/i.test(raw);
   }
 
   async _loadDevices() {
@@ -946,6 +967,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
         cursor: pointer;
       }
 
+      .color-slot-btn.disabled {
+        opacity: .55;
+        cursor: not-allowed;
+      }
+
       .swatch {
         width: 28px;
         height: 18px;
@@ -1121,6 +1147,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selectedSpecialPorts = editSpecialPorts
       ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
+    const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
+    const visibleColorSlots = COLOR_SLOTS.filter((slot) => {
+      if (slot.key === "background_color") return true;
+      if (isApDevice) {
+        return !["port_label_color", "special_port_label_color"].includes(slot.key);
+      }
+      return !["ap_ring_color", "ap_inner_color", "ap_led_color"].includes(slot.key);
+    });
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -1279,12 +1313,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
             </button>
           </div>
           <div class="color-grid">
-            ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
-              <button type="button" class="color-slot-btn" data-slot="${escapeAttr(slot.key)}">
+            ${visibleColorSlots.filter((slot) => slot.key !== "background_color").map((slot) => {
+              const disabled = slot.key === "ap_led_color" && apLedColorDisabled;
+              return `
+              <button type="button" class="color-slot-btn ${disabled ? "disabled" : ""}" data-slot="${escapeAttr(slot.key)}" ${disabled ? "disabled" : ""}>
                 <span>${escapeHtml(colorSlotLabel((k) => this._t(k), slot.key))}</span>
                 <span class="swatch" style="background:${escapeAttr(this._draftColors[slot.key] || slot.fallback)}"></span>
               </button>
-            `).join("")}
+              ${disabled ? `<span class="hint">${escapeHtml(this._t("editor_ap_led_color_disabled_hint"))}</span>` : ""}
+            `;
+            }).join("")}
           </div>
           <div class="step-footer">
             <button type="button" class="nav-btn" id="apply_color_editor">${escapeHtml(this._t("editor_colors_apply"))}</button>

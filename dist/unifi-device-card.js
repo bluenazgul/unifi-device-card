@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.80e0111 */
+/* UniFi Device Card 0.0.0-dev.db37ddc */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2814,6 +2814,10 @@ var TRANSLATIONS = {
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Port labels",
     editor_color_slot_special_port_label: "Special port label",
+    editor_color_slot_ap_ring: "AP outer ring",
+    editor_color_slot_ap_inner: "AP inner circle",
+    editor_color_slot_ap_led: "AP LED fallback",
+    editor_ap_led_color_disabled_hint: "Disabled because RGB LED control is available.",
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities\u2026",
     // Entity warning — content
@@ -2962,6 +2966,10 @@ var TRANSLATIONS = {
     editor_color_slot_meta: "Modell/Firmware",
     editor_color_slot_port_label: "Port-Beschriftung",
     editor_color_slot_special_port_label: "Spezial-Port-Beschriftung",
+    editor_color_slot_ap_ring: "AP Au\xDFenring",
+    editor_color_slot_ap_inner: "AP Innenkreis",
+    editor_color_slot_ap_led: "AP LED-Fallback",
+    editor_ap_led_color_disabled_hint: "Durch RGB-LED-Steuerung deaktiviert.",
     // Entity warning — loading hint
     warning_checking: "Ausgew\xE4hltes Ger\xE4t auf deaktivierte oder versteckte UniFi-Entities pr\xFCfen\u2026",
     // Entity warning — content
@@ -3110,6 +3118,10 @@ var TRANSLATIONS = {
     editor_color_slot_meta: "Model/Firmware",
     editor_color_slot_port_label: "Poortlabels",
     editor_color_slot_special_port_label: "Speciale poortlabels",
+    editor_color_slot_ap_ring: "AP buitenring",
+    editor_color_slot_ap_inner: "AP binnencirkel",
+    editor_color_slot_ap_led: "AP LED fallback",
+    editor_ap_led_color_disabled_hint: "Uitgeschakeld omdat RGB-ledbediening beschikbaar is.",
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
     warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
@@ -3255,6 +3267,10 @@ var TRANSLATIONS = {
     editor_color_slot_meta: "Mod\xE8le/Firmware",
     editor_color_slot_port_label: "\xC9tiquettes de port",
     editor_color_slot_special_port_label: "\xC9tiquette port sp\xE9cial",
+    editor_color_slot_ap_ring: "Anneau externe AP",
+    editor_color_slot_ap_inner: "Cercle interne AP",
+    editor_color_slot_ap_led: "LED AP (secours)",
+    editor_ap_led_color_disabled_hint: "D\xE9sactiv\xE9 car le contr\xF4le LED RGB est disponible.",
     // Entity warning
     warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
     warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
@@ -3400,6 +3416,10 @@ var TRANSLATIONS = {
     editor_color_slot_meta: "Modelo/Firmware",
     editor_color_slot_port_label: "Etiquetas de puerto",
     editor_color_slot_special_port_label: "Etiqueta de puerto especial",
+    editor_color_slot_ap_ring: "Anillo exterior AP",
+    editor_color_slot_ap_inner: "C\xEDrculo interior AP",
+    editor_color_slot_ap_led: "LED AP (respaldo)",
+    editor_ap_led_color_disabled_hint: "Desactivado porque hay control RGB LED disponible.",
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado\u2026",
     warning_title: "Se detectaron entidades UniFi deshabilitadas u ocultas",
@@ -3545,6 +3565,10 @@ var TRANSLATIONS = {
     editor_color_slot_meta: "Modello/Firmware",
     editor_color_slot_port_label: "Etichette porte",
     editor_color_slot_special_port_label: "Etichetta porta speciale",
+    editor_color_slot_ap_ring: "Anello esterno AP",
+    editor_color_slot_ap_inner: "Cerchio interno AP",
+    editor_color_slot_ap_led: "LED AP (fallback)",
+    editor_ap_led_color_disabled_hint: "Disattivato perch\xE9 \xE8 disponibile il controllo LED RGB.",
     // Entity warning
     warning_checking: "Controllo entit\xE0 UniFi disabilitate o nascoste per il dispositivo selezionato\u2026",
     warning_title: "Rilevate entit\xE0 UniFi disabilitate o nascoste",
@@ -3676,7 +3700,10 @@ var COLOR_SLOTS = [
   { key: "value_color", token: "value", cssVar: "--udc-value-color", fallback: "var(--primary-text-color, #e2e8f0)" },
   { key: "meta_color", token: "meta", cssVar: "--udc-meta-color", fallback: "var(--udc-muted, #6f7d90)" },
   { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
-  { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" }
+  { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
+  { key: "ap_ring_color", token: "ap_ring", cssVar: "--udc-ap-ring-color", fallback: "#0000ff" },
+  { key: "ap_inner_color", token: "ap_inner", cssVar: "--udc-ap-inner-color", fallback: "transparent" },
+  { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" }
 ];
 var COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
 function colorSlotLabel(tFn, key) {
@@ -3832,6 +3859,20 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       if (this._config?.[slot.key]) nextDraft[slot.key] = this._config[slot.key];
     }
     this._draftColors = nextDraft;
+  }
+  _apHasRgbLedControl() {
+    if (!this._hass?.states) return false;
+    const ledSwitchEntity = this._deviceCtx?.led_switch_entity;
+    const ledColorEntity = this._deviceCtx?.led_color_entity;
+    if (!ledSwitchEntity && !ledColorEntity) return false;
+    const candidates = [ledSwitchEntity, ledColorEntity].filter(Boolean);
+    const hasRgbAttr = candidates.some(
+      (entityId) => Array.isArray(this._hass?.states?.[entityId]?.attributes?.rgb_color)
+    );
+    if (hasRgbAttr) return true;
+    if (!ledColorEntity) return false;
+    const raw = String(this._hass.states?.[ledColorEntity]?.state || "").trim().toLowerCase();
+    return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) || /^rgb\(/i.test(raw);
   }
   async _loadDevices() {
     if (!this._hass) return;
@@ -4359,6 +4400,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         cursor: pointer;
       }
 
+      .color-slot-btn.disabled {
+        opacity: .55;
+        cursor: not-allowed;
+      }
+
       .swatch {
         width: 28px;
         height: 18px;
@@ -4510,6 +4556,14 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     ).sort((a, b) => a - b);
     const customSpecialPortOptions = selectableSpecialPorts;
     const selectedSpecialPorts = editSpecialPorts ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout) : [];
+    const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
+    const visibleColorSlots = COLOR_SLOTS.filter((slot) => {
+      if (slot.key === "background_color") return true;
+      if (isApDevice) {
+        return !["port_label_color", "special_port_label_color"].includes(slot.key);
+      }
+      return !["ap_ring_color", "ap_inner_color", "ap_led_color"].includes(slot.key);
+    });
     this.shadowRoot.innerHTML = `
       ${this._styles()}
       <div class="wrap">
@@ -4656,12 +4710,16 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             </button>
           </div>
           <div class="color-grid">
-            ${COLOR_SLOTS.filter((slot) => slot.key !== "background_color").map((slot) => `
-              <button type="button" class="color-slot-btn" data-slot="${escapeAttr(slot.key)}">
+            ${visibleColorSlots.filter((slot) => slot.key !== "background_color").map((slot) => {
+      const disabled = slot.key === "ap_led_color" && apLedColorDisabled;
+      return `
+              <button type="button" class="color-slot-btn ${disabled ? "disabled" : ""}" data-slot="${escapeAttr(slot.key)}" ${disabled ? "disabled" : ""}>
                 <span>${escapeHtml(colorSlotLabel((k) => this._t(k), slot.key))}</span>
                 <span class="swatch" style="background:${escapeAttr(this._draftColors[slot.key] || slot.fallback)}"></span>
               </button>
-            `).join("")}
+              ${disabled ? `<span class="hint">${escapeHtml(this._t("editor_ap_led_color_disabled_hint"))}</span>` : ""}
+            `;
+    }).join("")}
           </div>
           <div class="step-footer">
             <button type="button" class="nav-btn" id="apply_color_editor">${escapeHtml(this._t("editor_colors_apply"))}</button>
@@ -4725,7 +4783,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.80e0111";
+var VERSION = "0.0.0-dev.db37ddc";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4959,7 +5017,9 @@ var UnifiDeviceCard = class extends HTMLElement {
       ["value_color", "--udc-value-color"],
       ["meta_color", "--udc-meta-color"],
       ["port_label_color", "--udc-port-label-color"],
-      ["special_port_label_color", "--udc-special-port-label-color"]
+      ["special_port_label_color", "--udc-special-port-label-color"],
+      ["ap_ring_color", "--udc-ap-ring-color"],
+      ["ap_inner_color", "--udc-ap-inner-color"]
     ];
     for (const [configKey, cssVar] of pairs) {
       const value = this._config?.[configKey];
@@ -5119,7 +5179,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apLedState() {
     const ledEntity = this._ctx?.led_switch_entity;
     const ledEnabled = ledEntity ? isOn(this._hass, ledEntity) : this._isDeviceOnline();
-    const defaultColor = this._ctx?.layout?.apLedDefaultColor ?? "#0000ff";
+    const defaultColor = this._config?.ap_led_color || this._ctx?.layout?.apLedDefaultColor || "#0000ff";
     const ringColor = ledEnabled ? this._apLedColorValue() || defaultColor : "#868b93";
     return { ledEntity, ledEnabled, ringColor };
   }
@@ -6036,7 +6096,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         aspect-ratio: 1 / 1;
         max-width: 100%;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%);
+        background: var(--udc-ap-inner-color, radial-gradient(circle at 30% 28%, #e9edf4 0%, #cfd5df 52%, #b6becb 100%));
         box-shadow:
           inset -8px -10px 16px rgba(0,0,0,.08),
           inset 9px 12px 17px rgba(255,255,255,.7),
@@ -6049,7 +6109,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         width: 41%;
         height: 41%;
         border-radius: 50%;
-        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, #a5adb8);
+        border: max(2px, calc(4px * var(--udc-ap-scale))) solid var(--ap-ring-color, var(--udc-ap-ring-color, #a5adb8));
         box-shadow: 0 0 11px rgba(165,173,184,.35);
         display: grid;
         place-items: center;
@@ -6057,10 +6117,10 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-ring.online {
-        border-color: var(--ap-ring-color, rgb(0, 0, 255));
+        border-color: var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255)));
         box-shadow:
-          0 0 12px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 55%, transparent),
-          0 0 24px color-mix(in srgb, var(--ap-ring-color, rgb(0, 0, 255)) 32%, transparent);
+          0 0 12px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255))) 55%, transparent),
+          0 0 24px color-mix(in srgb, var(--ap-ring-color, var(--udc-ap-ring-color, rgb(0, 0, 255))) 32%, transparent);
       }
 
       .ap-ring.off {
