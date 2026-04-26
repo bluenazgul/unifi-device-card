@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ca90ddf */
+/* UniFi Device Card 0.0.0-dev.7d5adf7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4064,10 +4064,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _setDraftColor(slotKey, value) {
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
-    if (!value) {
+    const normalizedHex = normalizeHexColor(value);
+    const nextValue = normalizedHex || String(value || "").trim();
+    if (!nextValue) {
       delete this._draftColors[slotKey];
     } else {
-      this._draftColors[slotKey] = value;
+      this._draftColors[slotKey] = nextValue;
     }
     this._emitDraftPreviewConfig();
   }
@@ -4783,7 +4785,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ca90ddf";
+var VERSION = "0.0.0-dev.7d5adf7";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {

@@ -559,10 +559,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _setDraftColor(slotKey, value) {
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
-    if (!value) {
+    const normalizedHex = normalizeHexColor(value);
+    const nextValue = normalizedHex || String(value || "").trim();
+    if (!nextValue) {
       delete this._draftColors[slotKey];
     } else {
-      this._draftColors[slotKey] = value;
+      this._draftColors[slotKey] = nextValue;
     }
     this._emitDraftPreviewConfig();
   }
