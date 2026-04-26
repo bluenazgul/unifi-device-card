@@ -778,6 +778,8 @@ export function resolveModelKey(device) {
 
     if (candidate.includes("UDMPROSE"))           return "UDMPROSE";
     if (candidate.includes("UDMSE"))              return "UDMPROSE";
+    if (candidate.includes("DREAMMACHINESE"))     return "UDMPROSE";
+    if (candidate.includes("DREAMMACHINEPROSE"))  return "UDMPROSE";
     if (candidate.includes("UDMPRO"))             return "UDMPRO";
     if (candidate === "UAP")                      return "UAP";
     if (candidate.includes("BZ2LR"))              return "UAPLR";
@@ -1008,6 +1010,7 @@ export function inferPortCountFromModel(device) {
   );
 
   if (text.includes("UDMPROSE") || text.includes("UDMSE"))                           return 11;
+  if (text.includes("DREAMMACHINESE") || text.includes("DREAMMACHINEPROSE"))         return 11;
   if (text.includes("UDMPRO"))                                                        return 11;
   if (text === "UDM" || text.includes("DREAMMACHINE"))                               return 5;
   if (text === "UDR" || text.includes("DREAMROUTER"))                                return 5;
