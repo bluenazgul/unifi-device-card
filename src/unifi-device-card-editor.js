@@ -178,6 +178,14 @@ function parseColorWithAlpha(raw) {
   return null;
 }
 
+function normalizeHexColor(value) {
+  const hex = String(value || "").trim().toLowerCase();
+  if (!/^#([\da-f]{3}|[\da-f]{6})$/i.test(hex)) return null;
+  if (hex.length === 7) return hex;
+  const [r, g, b] = hex.slice(1).split("");
+  return `#${r}${r}${g}${g}${b}${b}`;
+}
+
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
 
@@ -326,6 +334,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
     if (fallback) return fallback;
+    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{3}|[\da-f]{6})/i);
+    const fallbackHex = normalizeHexColor(fallbackHexMatch ? `#${fallbackHexMatch[1]}` : "");
+    if (fallbackHex) return fallbackHex;
 
     if (slot.key === "background_color" && typeof getComputedStyle === "function") {
       const fromHost = getComputedStyle(this).getPropertyValue("--card-background-color");

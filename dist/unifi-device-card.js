@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1248d41 */
+/* UniFi Device Card 0.0.0-dev.151857a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3746,6 +3746,13 @@ function parseColorWithAlpha(raw) {
   }
   return null;
 }
+function normalizeHexColor(value) {
+  const hex = String(value || "").trim().toLowerCase();
+  if (!/^#([\da-f]{3}|[\da-f]{6})$/i.test(hex)) return null;
+  if (hex.length === 7) return hex;
+  const [r, g, b] = hex.slice(1).split("");
+  return `#${r}${r}${g}${g}${b}${b}`;
+}
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
   const normalized = value.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
@@ -3868,6 +3875,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (draft) return draft;
     const fallback = parseColorWithAlpha(slot.fallback || "")?.hex;
     if (fallback) return fallback;
+    const fallbackHexMatch = String(slot.fallback || "").match(/#([\da-f]{3}|[\da-f]{6})/i);
+    const fallbackHex = normalizeHexColor(fallbackHexMatch ? `#${fallbackHexMatch[1]}` : "");
+    if (fallbackHex) return fallbackHex;
     if (slot.key === "background_color" && typeof getComputedStyle === "function") {
       const fromHost = getComputedStyle(this).getPropertyValue("--card-background-color");
       const fromRoot = getComputedStyle(document.documentElement).getPropertyValue("--card-background-color");
@@ -4773,7 +4783,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1248d41";
+var VERSION = "0.0.0-dev.151857a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
