@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4af4f4e */
+/* UniFi Device Card 0.0.0-dev.72afd6a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4297,10 +4297,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
   }
 };
-customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+if (!customElements.get("unifi-device-card-editor")) {
+  customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
+}
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4af4f4e";
+var VERSION = "0.0.0-dev.72afd6a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -6337,15 +6339,19 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._finalizeRender();
   }
 };
-customElements.define("unifi-device-card", UnifiDeviceCard);
+if (!customElements.get("unifi-device-card")) {
+  customElements.define("unifi-device-card", UnifiDeviceCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "unifi-device-card",
-  name: "UniFi Device Card",
-  description: `Lovelace card for UniFi devices (v${VERSION}).`,
-  preview: true,
-  documentationURL: "https://github.com/bluenazgul/unifi-device-card"
-});
+if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
+  window.customCards.push({
+    type: "unifi-device-card",
+    name: "UniFi Device Card",
+    description: `Lovelace card for UniFi devices (v${VERSION}).`,
+    preview: true,
+    documentationURL: "https://github.com/bluenazgul/unifi-device-card"
+  });
+}
 if (!window[DEV_LOG_FLAG]) {
   window[DEV_LOG_FLAG] = true;
   console.log(
