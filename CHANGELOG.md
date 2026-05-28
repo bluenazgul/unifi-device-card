@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.7.1]
+
+### 🐛 Bug Fixes
+- Map `USWED37` to the USW Flex 2.5G 8 PoE layout so ports 1-8 render as RJ45 and ports 9-10 render as special ports.
+
+
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [v0.7.0]
 
 ### ✨ Improvements
