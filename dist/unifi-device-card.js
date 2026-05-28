@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.0 */
+/* UniFi Device Card 0.0.0-dev.6e5e049 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -214,7 +214,7 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink", port: 5 }]
   },
-  // USW Flex 2.5G 8 PoE  — Port 9 Uplink/PoE-in, ports 1-8 LAN PoE-out, 1× SFP uplink
+  // USW Flex 2.5G 8 PoE  — Ports 1-8 2.5G RJ45 PoE-out, port 9 10G RJ45, port 10 SFP+
   USWFLEX25G8POE: {
     kind: "switch",
     frontStyle: "single-row",
@@ -224,8 +224,8 @@ var MODEL_REGISTRY = {
     theme: "white",
     poePortRange: [1, 8],
     specialSlots: [
-      { key: "uplink", label: "Uplink", port: 9 },
-      { key: "sfp_1", label: "SFP 1", port: 10 }
+      { key: "uplink", label: "10G RJ45", port: 9 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10 }
     ]
   },
   USWFLEX25G8: {
@@ -1001,6 +1001,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
     if (candidate === "USWFLEX25G5") return "USWFLEX25G5";
     if (candidate.includes("USWFLEX25G5")) return "USWFLEX25G5";
+    if (candidate.includes("USWED37")) return "USWFLEX25G8POE";
     if (candidate.includes("USWED35")) return "USWFLEX25G5";
     if (candidate.includes("FLEX25G5")) return "USWFLEX25G5";
     if (candidate.includes("SWITCHFLEXMINI25G")) return "USWFLEX25G5";
@@ -1078,6 +1079,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("US8P150")) return 10;
   if (text.includes("S28150")) return 10;
   if (text.includes("USMINI") || text.includes("FLEXMINI")) return 5;
+  if (text.includes("USWED37")) return 10;
   if (text.includes("USWFLEX25G5") || text.includes("USWED35") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P") || text.includes("USWFLEX")) return 5;
@@ -4840,7 +4842,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.0";
+var VERSION = "0.0.0-dev.6e5e049";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
