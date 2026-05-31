@@ -38,19 +38,23 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     model.startsWith("UDM") ||
     model.startsWith("UCG") ||
     model.startsWith("UGW") ||
+    model.startsWith("UX") ||
+    model.startsWith("UDW") ||
+    model.startsWith("EFG") ||
+    model.startsWith("UTR") ||
     name.includes("gateway") ||
     name.includes("router");
   if (gatewaySignals) return "gateway";
 
   const modelKey = resolveModelKey(device || identity || {});
-  const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"];
+  const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
 
   if (modelKey) {
     if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
-    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
+    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US") || modelKey.startsWith("ECS")) {
       return "switch";
     }
   }
