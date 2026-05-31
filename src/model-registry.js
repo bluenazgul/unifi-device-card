@@ -240,16 +240,17 @@ export const MODEL_REGISTRY = {
     portCount: 10, displayModel: "USW Flex 2.5G 8 PoE", theme: "white",
     poePortRange: [1, 8],
     specialSlots: [
-      { key: "uplink", label: "10G RJ45", port: 9 },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
+      { key: "uplink", label: "10G RJ45", port: 9, media: "rj45" },
+      { key: "sfp_1", label: "SFP+ 1", port: 10, media: "sfp_plus" },
     ],
   },
+  // USW Flex 2.5G 8  — Ports 1-8 2.5G RJ45, port 9 10G RJ45 PoE-in, port 10 10G SFP+
   USWFLEX25G8: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
     portCount: 10, displayModel: "USW Flex 2.5G 8", theme: "white",
     specialSlots: [
-      { key: "uplink", label: "Uplink", port: 9 },
-      { key: "sfp_1", label: "SFP 1", port: 10 },
+      { key: "uplink", label: "10G RJ45 PoE-In", port: 9, media: "rj45" },
+      { key: "sfp_1", label: "SFP+ 10G", port: 10, media: "sfp_plus" },
     ],
   },
 
@@ -948,6 +949,7 @@ export function resolveModelKey(device) {
     if (candidate === "USWFLEX25G5")              return "USWFLEX25G5";
     if (candidate.includes("USWFLEX25G5"))        return "USWFLEX25G5";
     if (candidate.includes("USWED37"))            return "USWFLEX25G8POE";
+    if (candidate.includes("USWED36"))            return "USWFLEX25G8";
     if (candidate.includes("USWED35"))            return "USWFLEX25G5";
     if (candidate.includes("FLEX25G5"))           return "USWFLEX25G5";
     if (candidate.includes("SWITCHFLEXMINI25G"))  return "USWFLEX25G5";
@@ -1037,7 +1039,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("US8P150"))                                                       return 10;
   if (text.includes("S28150"))                                                        return 10;
   if (text.includes("USMINI")   || text.includes("FLEXMINI"))                        return 5;
-  if (text.includes("USWED37"))                                                       return 10;
+  if (text.includes("USWED37") || text.includes("USWED36"))                           return 10;
   if (text.includes("USWFLEX25G5") || text.includes("USWED35") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P")    || text.includes("USWFLEX"))                         return 5;
