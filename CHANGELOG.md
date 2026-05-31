@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+- Improve UniFi model recognition and same-family fallbacks for current devices reported by UniFi Network / aiounifi:
+  - **Access points / bridges:** `G7LR`, `U7UKU`, `U6ENT`, `U6ENTIW`, `UAL6`, `UALR6`, `UAM6`, `UAP6`, `UAP6MP`, `U7-Pro-XG-Wall`, `U7-Pro-Outdoor`, `U7ENT` / `E7`, `E7-Campus`, `E7-Audience`, `UK-Ultra`, `UBB`, `UBB-XG`, `U-AirWire`, `UDB`, `UDB-IoT`, `UDB-Switch`, `UDB-Pro`, `UDB-Pro-Sector`.
+  - **Gateways / routers:** `UDMENT` / `EFG`, `UDM-Pro-Max`, `UDM-Beast`, `UCG-Industrial`, `UX`, `UEX`, `UX7`, `UXG`, `UXGB`, `UXG-Fiber`, `UTR`, `UDR7`, `UDR-5G-Max`, `UDW`, `UXG-Max`.
+  - **Switches:** `USWED35`, `USWED36`, `USWED37`, `USW-Flex-XG`, `US6XG150` / `US-XG-6POE`, `USW-WAN`, `USW-WAN-RJ45`, `USW-Mission-Critical`, `USW-Pro-XG-*`, `USW-Pro-HD-24*`, `ECS-*`.
+
 ## [v0.7.2]
 
 ### 🐛 Bug Fixes
