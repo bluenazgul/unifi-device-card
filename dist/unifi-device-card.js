@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6e5e049 */
+/* UniFi Device Card 0.0.0-dev.9e6d63c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -224,10 +224,11 @@ var MODEL_REGISTRY = {
     theme: "white",
     poePortRange: [1, 8],
     specialSlots: [
-      { key: "uplink", label: "10G RJ45", port: 9 },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 }
+      { key: "uplink", label: "10G RJ45", port: 9, media: "rj45" },
+      { key: "sfp_1", label: "SFP+ 1", port: 10, media: "sfp_plus" }
     ]
   },
+  // USW Flex 2.5G 8  — Ports 1-8 2.5G RJ45, port 9 10G RJ45 PoE-in, port 10 10G SFP+
   USWFLEX25G8: {
     kind: "switch",
     frontStyle: "single-row",
@@ -236,8 +237,8 @@ var MODEL_REGISTRY = {
     displayModel: "USW Flex 2.5G 8",
     theme: "white",
     specialSlots: [
-      { key: "uplink", label: "Uplink", port: 9 },
-      { key: "sfp_1", label: "SFP 1", port: 10 }
+      { key: "uplink", label: "10G RJ45 PoE-In", port: 9, media: "rj45" },
+      { key: "sfp_1", label: "SFP+ 10G", port: 10, media: "sfp_plus" }
     ]
   },
   // USW Lite 8 PoE  — 8× 1G RJ45, Ports 1-4 PoE+
@@ -1002,6 +1003,7 @@ function resolveModelKey(device) {
     if (candidate === "USWFLEX25G5") return "USWFLEX25G5";
     if (candidate.includes("USWFLEX25G5")) return "USWFLEX25G5";
     if (candidate.includes("USWED37")) return "USWFLEX25G8POE";
+    if (candidate.includes("USWED36")) return "USWFLEX25G8";
     if (candidate.includes("USWED35")) return "USWFLEX25G5";
     if (candidate.includes("FLEX25G5")) return "USWFLEX25G5";
     if (candidate.includes("SWITCHFLEXMINI25G")) return "USWFLEX25G5";
@@ -1079,7 +1081,7 @@ function inferPortCountFromModel(device) {
   if (text.includes("US8P150")) return 10;
   if (text.includes("S28150")) return 10;
   if (text.includes("USMINI") || text.includes("FLEXMINI")) return 5;
-  if (text.includes("USWED37")) return 10;
+  if (text.includes("USWED37") || text.includes("USWED36")) return 10;
   if (text.includes("USWFLEX25G5") || text.includes("USWED35") || text.includes("FLEX25G5") || text.includes("SWITCHFLEXMINI25G")) return 5;
   if (text.includes("USWFLEX25G8POE") || text.includes("FLEX25G8POE") || text.includes("USWFLEX25G8")) return 10;
   if (text.includes("USF5P") || text.includes("USWFLEX")) return 5;
@@ -2203,7 +2205,16 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
   const merged = layoutSpecials.map((slot) => {
     if (slot.port != null) {
       const portData = byPort.get(slot.port);
-      if (portData) return { ...portData, key: slot.key, physical_key: slot.key, label: slot.label, kind: "special" };
+      if (portData) {
+        return {
+          ...portData,
+          key: slot.key,
+          physical_key: slot.key,
+          label: slot.label,
+          media: slot.media ?? portData.media,
+          kind: "special"
+        };
+      }
     }
     const keyData = byKey.get(slot.key);
     if (keyData) {
@@ -2212,6 +2223,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
         key: slot.key,
         physical_key: slot.key,
         label: slot.label,
+        media: slot.media ?? keyData.media,
         kind: "special",
         port: slot.port ?? keyData.port ?? null
       };
@@ -2221,6 +2233,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
       physical_key: slot.key,
       port: slot.port ?? null,
       label: slot.label,
+      media: slot.media,
       kind: "special",
       link_entity: null,
       speed_entity: null,
@@ -2631,12 +2644,23 @@ function portObservedClientCount(hass, port) {
   }
   return bestCount;
 }
+function explicitPortMedia(port) {
+  const media = lower(port?.media || port?.media_type || "");
+  if (["rj45", "sfp", "sfp_plus", "sfp28"].includes(media)) return media;
+  return null;
+}
 function isSfpSpecialPort(port) {
   if (port?.kind !== "special") return false;
+  const media = explicitPortMedia(port);
+  if (media === "rj45") return false;
+  if (media) return media !== "rj45";
   const key = lower(port?.physical_key || port?.key || "");
   return key.startsWith("sfp_") || key.startsWith("sfp28_");
 }
 function isSfpLikePort(port) {
+  const media = explicitPortMedia(port);
+  if (media === "rj45") return false;
+  if (media) return media !== "rj45";
   if (isSfpSpecialPort(port)) return true;
   const text = [
     port?.key,
@@ -4842,7 +4866,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6e5e049";
+var VERSION = "0.0.0-dev.9e6d63c";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5771,11 +5795,15 @@ var UnifiDeviceCard = class extends HTMLElement {
     return poe.active ? "orange" : "off";
   }
   _portMediaType(slot) {
+    const explicitMedia = String(slot?.media || slot?.media_type || "").toLowerCase();
+    if (["rj45", "sfp", "sfp_plus", "sfp28"].includes(explicitMedia)) return explicitMedia;
     const label = String(slot?.label || "").toLowerCase();
     const key = String(slot?.key || "").toLowerCase();
     const physicalKey = String(slot?.physical_key || "").toLowerCase();
     const rawEntities = Array.isArray(slot?.raw_entities) ? slot.raw_entities.map((entityId) => String(entityId || "").toLowerCase()) : [];
     const layoutSlot = Number.isInteger(slot?.port) ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port) : null;
+    const layoutMedia = String(layoutSlot?.media || layoutSlot?.media_type || "").toLowerCase();
+    if (["rj45", "sfp", "sfp_plus", "sfp28"].includes(layoutMedia)) return layoutMedia;
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
     const allHints = [label, key, physicalKey, layoutKey, layoutLabel, ...rawEntities].join(" ");
