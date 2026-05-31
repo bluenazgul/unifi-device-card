@@ -1209,6 +1209,9 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _portMediaType(slot) {
+    const explicitMedia = String(slot?.media || slot?.media_type || "").toLowerCase();
+    if (["rj45", "sfp", "sfp_plus", "sfp28"].includes(explicitMedia)) return explicitMedia;
+
     const label = String(slot?.label || "").toLowerCase();
     const key = String(slot?.key || "").toLowerCase();
     const physicalKey = String(slot?.physical_key || "").toLowerCase();
@@ -1218,6 +1221,9 @@ class UnifiDeviceCard extends HTMLElement {
     const layoutSlot = Number.isInteger(slot?.port)
       ? (this._ctx?.layout?.specialSlots || []).find((s) => s.port === slot.port)
       : null;
+    const layoutMedia = String(layoutSlot?.media || layoutSlot?.media_type || "").toLowerCase();
+    if (["rj45", "sfp", "sfp_plus", "sfp28"].includes(layoutMedia)) return layoutMedia;
+
     const layoutKey = String(layoutSlot?.key || "").toLowerCase();
     const layoutLabel = String(layoutSlot?.label || "").toLowerCase();
     const allHints = [label, key, physicalKey, layoutKey, layoutLabel, ...rawEntities].join(" ");

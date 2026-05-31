@@ -1285,7 +1285,16 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
   const merged = layoutSpecials.map((slot) => {
     if (slot.port != null) {
       const portData = byPort.get(slot.port);
-      if (portData) return { ...portData, key: slot.key, physical_key: slot.key, label: slot.label, kind: "special" };
+      if (portData) {
+        return {
+          ...portData,
+          key: slot.key,
+          physical_key: slot.key,
+          label: slot.label,
+          media: slot.media ?? portData.media,
+          kind: "special",
+        };
+      }
     }
 
     const keyData = byKey.get(slot.key);
@@ -1295,6 +1304,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
         key: slot.key,
         physical_key: slot.key,
         label: slot.label,
+        media: slot.media ?? keyData.media,
         kind: "special",
         port: slot.port ?? keyData.port ?? null,
       };
@@ -1305,6 +1315,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
       physical_key: slot.key,
       port: slot.port ?? null,
       label: slot.label,
+      media: slot.media,
       kind: "special",
       link_entity: null,
       speed_entity: null,
@@ -1876,8 +1887,18 @@ function portObservedClientCount(hass, port) {
   return bestCount;
 }
 
+function explicitPortMedia(port) {
+  const media = lower(port?.media || port?.media_type || "");
+  if (["rj45", "sfp", "sfp_plus", "sfp28"].includes(media)) return media;
+  return null;
+}
+
 function isSfpSpecialPort(port) {
   if (port?.kind !== "special") return false;
+
+  const media = explicitPortMedia(port);
+  if (media === "rj45") return false;
+  if (media) return media !== "rj45";
 
   const key = lower(port?.physical_key || port?.key || "");
   return key.startsWith("sfp_") || key.startsWith("sfp28_");
@@ -1889,6 +1910,9 @@ function isSfpSpecialPort(port) {
  * "sfp_2" in their entity IDs rather than being declared as special slots.
  */
 export function isSfpLikePort(port) {
+  const media = explicitPortMedia(port);
+  if (media === "rj45") return false;
+  if (media) return media !== "rj45";
   if (isSfpSpecialPort(port)) return true;
   const text = [
     port?.key,
