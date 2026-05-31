@@ -576,19 +576,16 @@ export const MODEL_REGISTRY = {
   },
   USWWANRJ45: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 4)],
-    portCount: 5, displayModel: "USW WAN RJ45", theme: "silver",
-    specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
+    portCount: 4, displayModel: "USW WAN RJ45", theme: "silver",
+    specialSlots: [],
   },
 
-  // USW Mission Critical  — 8× RJ45 PoE, 2× SFP.
+  // USW Mission Critical  — 9× RJ45; ports 1-8 provide PoE, port 9 is uplink.
   USWMISSIONCRITICAL: {
-    kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
-    portCount: 10, displayModel: "USW Mission Critical", theme: "silver",
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 9)],
+    portCount: 9, displayModel: "USW Mission Critical", theme: "silver",
     poePortRange: [1, 8],
-    specialSlots: [
-      { key: "sfp_1", label: "SFP 1", port: 9 },
-      { key: "sfp_2", label: "SFP 2", port: 10 },
-    ],
+    specialSlots: [],
   },
 
   // USW Industrial  — 8× RJ45, 2× SFP+
@@ -843,10 +840,11 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
   UCGINDUSTRIAL: {
-    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[2, 3, 4]],
     portCount: 6, displayModel: "Cloud Gateway Industrial", theme: "white",
     specialSlots: [
-      { key: "wan", label: "10G RJ45 WAN", port: 5, media: "rj45" },
+      { key: "wan", label: "2.5G RJ45 WAN", port: 1, media: "rj45" },
+      { key: "wan2", label: "10G RJ45 WAN", port: 5, media: "rj45" },
       { key: "sfp_1", label: "SFP+ WAN", port: 6, media: "sfp_plus" },
     ],
   },
@@ -893,9 +891,9 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "wan", label: "WAN", port: 2 }],
   },
   UX7: {
-    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
-    portCount: 5, displayModel: "UniFi Express 7", theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1]],
+    portCount: 2, displayModel: "UniFi Express 7", theme: "white",
+    specialSlots: [{ key: "wan", label: "10G RJ45 WAN", port: 2, media: "rj45" }],
   },
   UDR5GMAX: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
@@ -1338,7 +1336,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UCGMAX")   || text.includes("CLOUDGATEWAYMAX"))                 return 5;
   if (text.includes("UCGINDUSTRIAL") || text.includes("CLOUDGATEWAYINDUSTRIAL"))      return 6;
   if (text.includes("UDR5GMAX"))                                                       return 5;
-  if (text === "UX7" || text.includes("UNIFIEXPRESS7"))                               return 5;
+  if (text === "UX7" || text.includes("UNIFIEXPRESS7"))                               return 2;
   if (text === "UX" || text.includes("UNIFIEXPRESS"))                                 return 2;
   if (text === "UTR" || text.includes("UNIFITRAVELROUTER"))                             return 2;
   if (text.includes("UXGMAX") || text.includes("UXGB"))                                    return 5;
@@ -1385,10 +1383,11 @@ export function inferPortCountFromModel(device) {
   if (text.includes("USWPROXG24") || text.includes("USWPROHD24"))                     return 26;
   if (text.includes("USWPROXG10POE"))                                                 return 12;
   if (text.includes("USWPROXG8POE"))                                                  return 10;
-  if (text.includes("USWWANRJ45") || text.includes("USWFLEXXG"))                     return 5;
+  if (text.includes("USWWANRJ45"))                                                     return 4;
+  if (text.includes("USWFLEXXG"))                                                       return 5;
   if (text.includes("USWWAN"))                                                        return 4;
   if (text.includes("US6XG150") || text.includes("USXG6POE") || text.includes("USX6POE")) return 6;
-  if (text.includes("MISSIONCRITICAL"))                                               return 10;
+  if (text.includes("MISSIONCRITICAL"))                                               return 9;
   if (text.includes("ECSAGGREGATION"))                                                return 32;
   if (text.includes("ECS48"))                                                         return 52;
   if (text.includes("ECS24"))                                                         return 28;
