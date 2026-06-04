@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### ✨ Improvements
+- Add Home Assistant 2026.6 Lovelace entity suggestions for likely UniFi entities and use Home Assistant entity-name formatting when available for visible client/device-tracker names.
+
 ### 🐛 Bug Fixes
 - Improve UniFi model recognition and same-family fallbacks for current devices reported by UniFi Network / aiounifi:
   - **Access points / bridges:** `G7LR`, `U7UKU`, `U6ENT`, `U6ENTIW`, `UAL6`, `UALR6`, `UAM6`, `UAP6`, `UAP6MP`, `U7-Pro-XG-Wall`, `U7-Pro-Outdoor`, `U7ENT` / `E7`, `E7-Campus`, `E7-Audience`, `UK-Ultra`, `UBB`, `UBB-XG`, `U-AirWire`, `UDB`, `UDB-IoT`, `UDB-Switch`, `UDB-Pro`, `UDB-Pro-Sector`.
