@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ef492c3 */
+/* UniFi Device Card 0.0.0-dev.4f4491c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -5318,7 +5318,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ef492c3";
+var VERSION = "0.0.0-dev.4f4491c";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5735,6 +5735,19 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (!token) return fallback;
     return /^[a-z0-9_-]+$/i.test(token) ? token : fallback;
   }
+  _formatEntityName(entityId, fallback = "") {
+    const fallbackName = String(fallback ?? "").trim();
+    const obj = entityId ? this._hass?.states?.[entityId] : null;
+    const formatter = this._hass?.formatEntityName;
+    if (obj && typeof formatter === "function") {
+      try {
+        const formatted = String(formatter(obj) ?? "").trim();
+        if (formatted) return formatted;
+      } catch (err) {
+      }
+    }
+    return fallbackName;
+  }
   _apUplinkTooltip(uplink) {
     if (!uplink) return "";
     const lines = [];
@@ -5809,9 +5822,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _extractClientNameFromStateObj(obj, entityId) {
     const attrs = obj?.attributes || {};
-    const friendly = String(attrs.friendly_name || "").trim();
-    if (friendly) return friendly;
-    return String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
+    const fallback = String(attrs.friendly_name || "").trim() || String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
+    return this._formatEntityName(entityId, fallback);
   }
   _extractPortFromAttributes(attrs, entityId = "") {
     const keys = [
@@ -7396,6 +7408,19 @@ var UnifiDeviceCard = class extends HTMLElement {
 if (!customElements.get("unifi-device-card")) {
   customElements.define("unifi-device-card", UnifiDeviceCard);
 }
+function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
+  const id = String(entityId || "").trim().toLowerCase();
+  if (!id || !id.includes(".")) return null;
+  const obj = hass?.states?.[entityId];
+  const attrs = obj?.attributes || {};
+  const friendly = String(attrs.friendly_name || "").toLowerCase();
+  const attribution = String(attrs.attribution || "").toLowerCase();
+  const hasUnifiHint = id.includes("unifi") || id.includes("ubiquiti") || friendly.includes("unifi") || friendly.includes("ubiquiti") || attribution.includes("unifi") || attribution.includes("ubiquiti");
+  const hasUniFiPrefix = /^(sensor|switch|button|binary_sensor|number|select|update|device_tracker)\.unifi_/i.test(id);
+  const hasUnifiPortPattern = /(?:^|[_-])(port(?:[_-]\d+)?|link[_-]speed|poe[_-]power|power[_-]cycle)(?:[_-]|$)/i.test(id);
+  if (!hasUniFiPrefix && !(hasUnifiHint && hasUnifiPortPattern)) return null;
+  return { type: "custom:unifi-device-card" };
+}
 window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
   window.customCards.push({
@@ -7403,7 +7428,8 @@ if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
     name: "UniFi Device Card",
     description: `Lovelace card for UniFi devices (v${VERSION}).`,
     preview: true,
-    documentationURL: "https://github.com/bluenazgul/unifi-device-card"
+    documentationURL: "https://github.com/bluenazgul/unifi-device-card",
+    getEntitySuggestion: getUnifiDeviceCardEntitySuggestion
   });
 }
 if (!window[DEV_LOG_FLAG]) {
