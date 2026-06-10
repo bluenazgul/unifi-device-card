@@ -8,6 +8,7 @@ import {
   getPortLinkText,
   getPortSpeedText,
   hasTraffic,
+  isUptimeTimestampState,
   isSfpLikePort,
   isOn,
   isPortConnected,
@@ -52,6 +53,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._resizeObserver = null;
+    this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
@@ -174,11 +176,13 @@ class UnifiDeviceCard extends HTMLElement {
       this._render();
     });
     this._resizeObserver.observe(this);
+    this._syncUptimeRefreshTimer();
   }
 
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._clearUptimeRefreshTimer();
   }
 
   setConfig(config) {
@@ -192,6 +196,7 @@ class UnifiDeviceCard extends HTMLElement {
     });
 
     if (oldDeviceId !== newDeviceId) {
+      this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
@@ -275,6 +280,38 @@ class UnifiDeviceCard extends HTMLElement {
     const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
     const translated = this._t(key);
     return translated === key ? raw : translated;
+  }
+
+  _clearUptimeRefreshTimer() {
+    if (!this._uptimeRefreshTimer) return;
+    clearTimeout(this._uptimeRefreshTimer);
+    this._uptimeRefreshTimer = null;
+  }
+
+  _isTimestampUptimeEntity(entityId) {
+    if (!entityId || !this._hass) return false;
+    return isUptimeTimestampState(stateObj(this._hass, entityId));
+  }
+
+  _syncUptimeRefreshTimer() {
+    const needsRefresh =
+      this.isConnected &&
+      this._ctx?.type === "access_point" &&
+      this._isTimestampUptimeEntity(this._ctx?.uptime_entity);
+    if (!needsRefresh) {
+      this._clearUptimeRefreshTimer();
+      return;
+    }
+
+    if (this._uptimeRefreshTimer) return;
+
+    const now = Date.now();
+    const nextMinuteDelay = 60000 - (now % 60000);
+    this._uptimeRefreshTimer = setTimeout(() => {
+      this._uptimeRefreshTimer = null;
+      if (!this.isConnected) return;
+      this._render();
+    }, nextMinuteDelay || 60000);
   }
 
   _cardBgStyle() {
@@ -2096,6 +2133,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
+      this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);

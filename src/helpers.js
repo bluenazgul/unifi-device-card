@@ -1840,12 +1840,8 @@ function looksLikeTimestamp(value) {
   return /^\d{4}-\d{2}-\d{2}(?:[T\s]|$)/.test(String(value || "").trim());
 }
 
-export function formatUptimeState(hass, entityId, now = Date.now()) {
-  const obj = stateObj(hass, entityId);
-  if (!obj) return "—";
-
-  const rawState = String(obj.state ?? "").trim();
-  if (!rawState || rawState === "unavailable" || rawState === "unknown") return "—";
+export function isUptimeTimestampState(obj) {
+  if (!obj) return false;
 
   const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
   const originalDeviceClass = String(obj.attributes?.original_device_class || "").toLowerCase().trim();
@@ -1854,8 +1850,20 @@ export function formatUptimeState(hass, entityId, now = Date.now()) {
     deviceClass === "timestamp" ||
     originalDeviceClass === "uptime" ||
     originalDeviceClass === "timestamp";
+  if (!isUptimeTimestamp) return false;
 
-  if (isUptimeTimestamp && looksLikeTimestamp(rawState)) {
+  const rawState = String(obj.state ?? "").trim();
+  return looksLikeTimestamp(rawState) && Number.isFinite(Date.parse(rawState));
+}
+
+export function formatUptimeState(hass, entityId, now = Date.now()) {
+  const obj = stateObj(hass, entityId);
+  if (!obj) return "—";
+
+  const rawState = String(obj.state ?? "").trim();
+  if (!rawState || rawState === "unavailable" || rawState === "unknown") return "—";
+
+  if (isUptimeTimestampState(obj)) {
     const parsedMs = Date.parse(rawState);
     const nowMs = Number(now);
     if (Number.isFinite(parsedMs) && Number.isFinite(nowMs)) {
