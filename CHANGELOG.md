@@ -6,10 +6,23 @@
 - Add Home Assistant 2026.6 Lovelace entity suggestions for likely UniFi entities and use Home Assistant entity-name formatting when available for visible client/device-tracker names.
 
 ### 🐛 Bug Fixes
+- Fix AP uptime rendering for Home Assistant `device_class: uptime` timestamp sensors so the card displays an elapsed duration instead of `2026.00`.
 - Improve UniFi model recognition and same-family fallbacks for current devices reported by UniFi Network / aiounifi:
   - **Access points / bridges:** `G7LR`, `U7UKU`, `U6ENT`, `U6ENTIW`, `UAL6`, `UALR6`, `UAM6`, `UAP6`, `UAP6MP`, `U7-Pro-XG-Wall`, `U7-Pro-Outdoor`, `U7ENT` / `E7`, `E7-Campus`, `E7-Audience`, `UK-Ultra`, `UBB`, `UBB-XG`, `U-AirWire`, `UDB`, `UDB-IoT`, `UDB-Switch`, `UDB-Pro`, `UDB-Pro-Sector`.
   - **Gateways / routers:** `UDMENT` / `EFG`, `UDM-Pro-Max`, `UDM-Beast`, `UCG-Industrial`, `UX`, `UEX`, `UX7`, `UXG`, `UXGB`, `UXG-Fiber`, `UTR`, `UDR7`, `UDR-5G-Max`, `UDW`, `UXG-Max`.
   - **Switches:** `USWED35`, `USWED36`, `USWED37`, `USW-Flex-XG`, `US6XG150` / `US-XG-6POE`, `USW-WAN`, `USW-WAN-RJ45`, `USW-Mission-Critical`, `USW-Pro-XG-*`, `USW-Pro-HD-24*`, `ECS-*`.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
 
 ## [v0.7.2]
 

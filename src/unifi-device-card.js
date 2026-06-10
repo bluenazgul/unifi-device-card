@@ -2,6 +2,7 @@ import {
   applyGatewayPortOverrides,
   discoverSpecialPorts,
   formatState,
+  formatUptimeState,
   getDeviceContext,
   getPoeStatus,
   getPortLinkText,
@@ -400,19 +401,6 @@ class UnifiDeviceCard extends HTMLElement {
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
 
-  _humanizeDurationSeconds(totalSeconds) {
-    const seconds = Math.max(0, Math.round(totalSeconds));
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours || days) parts.push(`${hours}h`);
-    parts.push(`${minutes}m`);
-    return parts.join(" ");
-  }
-
   _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "—";
     const obj = stateObj(this._hass, entityId);
@@ -427,39 +415,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _apUptimeState(entityId) {
     if (!entityId || !this._hass) return "—";
-    const obj = stateObj(this._hass, entityId);
-    if (!obj) return "—";
-
-    const rawState = String(obj.state ?? "").trim();
-    const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
-    if (deviceClass === "timestamp") {
-      const parsed = new Date(rawState);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(this._hass?.locale?.language || undefined, {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-    }
-
-    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
-    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
-
-    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
-    if (["s", "sec", "second", "seconds"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw);
-    }
-    if (["min", "mins", "minute", "minutes"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 60);
-    }
-    if (["h", "hr", "hour", "hours"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 3600);
-    }
-
-    return formatState(this._hass, entityId);
+    return formatUptimeState(this._hass, entityId);
   }
 
   _apLedColorValue() {
