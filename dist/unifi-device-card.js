@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.3-dev */
+/* UniFi Device Card 0.0.0-dev.9b9e2c0 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3045,6 +3045,58 @@ function formatState(hass, entityId) {
   if (!Number.isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
   return val;
 }
+function humanizeDurationSeconds(totalSeconds) {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor(seconds % 86400 / 3600);
+  const minutes = Math.floor(seconds % 3600 / 60);
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours || days) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
+function looksLikeTimestamp(value) {
+  return /^\d{4}-\d{2}-\d{2}(?:[T\s]|$)/.test(String(value || "").trim());
+}
+function isUptimeTimestampState(obj) {
+  if (!obj) return false;
+  const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
+  const originalDeviceClass = String(obj.attributes?.original_device_class || "").toLowerCase().trim();
+  const isUptimeTimestamp = deviceClass === "uptime" || deviceClass === "timestamp" || originalDeviceClass === "uptime" || originalDeviceClass === "timestamp";
+  if (!isUptimeTimestamp) return false;
+  const rawState = String(obj.state ?? "").trim();
+  return looksLikeTimestamp(rawState) && Number.isFinite(Date.parse(rawState));
+}
+function formatUptimeState(hass, entityId, now = Date.now()) {
+  const obj = stateObj(hass, entityId);
+  if (!obj) return "\u2014";
+  const rawState = String(obj.state ?? "").trim();
+  if (!rawState || rawState === "unavailable" || rawState === "unknown") return "\u2014";
+  if (isUptimeTimestampState(obj)) {
+    const parsedMs = Date.parse(rawState);
+    const nowMs = Number(now);
+    if (Number.isFinite(parsedMs) && Number.isFinite(nowMs)) {
+      return humanizeDurationSeconds((nowMs - parsedMs) / 1e3);
+    }
+  }
+  const raw = Number.parseFloat(rawState.replace(",", "."));
+  if (!Number.isFinite(raw)) return formatState(hass, entityId);
+  const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
+  if (["s", "sec", "second", "seconds"].includes(unit)) {
+    return humanizeDurationSeconds(raw);
+  }
+  if (["min", "mins", "minute", "minutes"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 60);
+  }
+  if (["h", "hr", "hour", "hours"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 3600);
+  }
+  if (["d", "day", "days"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 86400);
+  }
+  return formatState(hass, entityId);
+}
 function getPoeStatus(hass, port) {
   const sw = stateValue(hass, port.poe_switch_entity);
   const pwr = stateValue(hass, port.poe_power_entity);
@@ -5318,7 +5370,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.3-dev";
+var VERSION = "0.0.0-dev.9b9e2c0";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5347,6 +5399,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._resizeObserver = null;
+    this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
@@ -5446,10 +5499,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       this._render();
     });
     this._resizeObserver.observe(this);
+    this._syncUptimeRefreshTimer();
   }
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._clearUptimeRefreshTimer();
   }
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
@@ -5461,6 +5516,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       log_level: this._configuredLogLevel()
     });
     if (oldDeviceId !== newDeviceId) {
+      this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
@@ -5529,6 +5585,30 @@ var UnifiDeviceCard = class extends HTMLElement {
     const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
     const translated = this._t(key);
     return translated === key ? raw : translated;
+  }
+  _clearUptimeRefreshTimer() {
+    if (!this._uptimeRefreshTimer) return;
+    clearTimeout(this._uptimeRefreshTimer);
+    this._uptimeRefreshTimer = null;
+  }
+  _isTimestampUptimeEntity(entityId) {
+    if (!entityId || !this._hass) return false;
+    return isUptimeTimestampState(stateObj(this._hass, entityId));
+  }
+  _syncUptimeRefreshTimer() {
+    const needsRefresh = this.isConnected && this._ctx?.type === "access_point" && this._isTimestampUptimeEntity(this._ctx?.uptime_entity);
+    if (!needsRefresh) {
+      this._clearUptimeRefreshTimer();
+      return;
+    }
+    if (this._uptimeRefreshTimer) return;
+    const now = Date.now();
+    const nextMinuteDelay = 6e4 - now % 6e4;
+    this._uptimeRefreshTimer = setTimeout(() => {
+      this._uptimeRefreshTimer = null;
+      if (!this.isConnected) return;
+      this._render();
+    }, nextMinuteDelay || 6e4);
   }
   _cardBgStyle() {
     const color = this._config?.background_color || "var(--card-background-color)";
@@ -5629,17 +5709,6 @@ var UnifiDeviceCard = class extends HTMLElement {
     const intValue = Math.round(raw);
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
-  _humanizeDurationSeconds(totalSeconds) {
-    const seconds = Math.max(0, Math.round(totalSeconds));
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor(seconds % 86400 / 3600);
-    const minutes = Math.floor(seconds % 3600 / 60);
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours || days) parts.push(`${hours}h`);
-    parts.push(`${minutes}m`);
-    return parts.join(" ");
-  }
   _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "\u2014";
     const obj = stateObj(this._hass, entityId);
@@ -5652,35 +5721,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _apUptimeState(entityId) {
     if (!entityId || !this._hass) return "\u2014";
-    const obj = stateObj(this._hass, entityId);
-    if (!obj) return "\u2014";
-    const rawState = String(obj.state ?? "").trim();
-    const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
-    if (deviceClass === "timestamp") {
-      const parsed = new Date(rawState);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(this._hass?.locale?.language || void 0, {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit"
-        });
-      }
-    }
-    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
-    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
-    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
-    if (["s", "sec", "second", "seconds"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw);
-    }
-    if (["min", "mins", "minute", "minutes"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 60);
-    }
-    if (["h", "hr", "hour", "hours"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 3600);
-    }
-    return formatState(this._hass, entityId);
+    return formatUptimeState(this._hass, entityId);
   }
   _apLedColorValue() {
     const colorEntity = this._ctx?.led_color_entity;
@@ -7147,6 +7188,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
+      this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
