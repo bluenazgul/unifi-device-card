@@ -1823,6 +1823,74 @@ export function formatState(hass, entityId) {
   return val;
 }
 
+export function humanizeDurationSeconds(totalSeconds) {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours || days) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
+
+function looksLikeTimestamp(value) {
+  return /^\d{4}-\d{2}-\d{2}(?:[T\s]|$)/.test(String(value || "").trim());
+}
+
+export function isUptimeTimestampState(obj) {
+  if (!obj) return false;
+
+  const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
+  const originalDeviceClass = String(obj.attributes?.original_device_class || "").toLowerCase().trim();
+  const isUptimeTimestamp =
+    deviceClass === "uptime" ||
+    deviceClass === "timestamp" ||
+    originalDeviceClass === "uptime" ||
+    originalDeviceClass === "timestamp";
+  if (!isUptimeTimestamp) return false;
+
+  const rawState = String(obj.state ?? "").trim();
+  return looksLikeTimestamp(rawState) && Number.isFinite(Date.parse(rawState));
+}
+
+export function formatUptimeState(hass, entityId, now = Date.now()) {
+  const obj = stateObj(hass, entityId);
+  if (!obj) return "—";
+
+  const rawState = String(obj.state ?? "").trim();
+  if (!rawState || rawState === "unavailable" || rawState === "unknown") return "—";
+
+  if (isUptimeTimestampState(obj)) {
+    const parsedMs = Date.parse(rawState);
+    const nowMs = Number(now);
+    if (Number.isFinite(parsedMs) && Number.isFinite(nowMs)) {
+      return humanizeDurationSeconds((nowMs - parsedMs) / 1000);
+    }
+  }
+
+  const raw = Number.parseFloat(rawState.replace(",", "."));
+  if (!Number.isFinite(raw)) return formatState(hass, entityId);
+
+  const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
+  if (["s", "sec", "second", "seconds"].includes(unit)) {
+    return humanizeDurationSeconds(raw);
+  }
+  if (["min", "mins", "minute", "minutes"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 60);
+  }
+  if (["h", "hr", "hour", "hours"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 3600);
+  }
+  if (["d", "day", "days"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 86400);
+  }
+
+  return formatState(hass, entityId);
+}
+
 export function getPoeStatus(hass, port) {
   const sw = stateValue(hass, port.poe_switch_entity);
   const pwr = stateValue(hass, port.poe_power_entity);

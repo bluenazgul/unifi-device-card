@@ -2,11 +2,13 @@ import {
   applyGatewayPortOverrides,
   discoverSpecialPorts,
   formatState,
+  formatUptimeState,
   getDeviceContext,
   getPoeStatus,
   getPortLinkText,
   getPortSpeedText,
   hasTraffic,
+  isUptimeTimestampState,
   isSfpLikePort,
   isOn,
   isPortConnected,
@@ -51,6 +53,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._resizeObserver = null;
+    this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
@@ -173,11 +176,13 @@ class UnifiDeviceCard extends HTMLElement {
       this._render();
     });
     this._resizeObserver.observe(this);
+    this._syncUptimeRefreshTimer();
   }
 
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._clearUptimeRefreshTimer();
   }
 
   setConfig(config) {
@@ -191,6 +196,7 @@ class UnifiDeviceCard extends HTMLElement {
     });
 
     if (oldDeviceId !== newDeviceId) {
+      this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
@@ -274,6 +280,38 @@ class UnifiDeviceCard extends HTMLElement {
     const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
     const translated = this._t(key);
     return translated === key ? raw : translated;
+  }
+
+  _clearUptimeRefreshTimer() {
+    if (!this._uptimeRefreshTimer) return;
+    clearTimeout(this._uptimeRefreshTimer);
+    this._uptimeRefreshTimer = null;
+  }
+
+  _isTimestampUptimeEntity(entityId) {
+    if (!entityId || !this._hass) return false;
+    return isUptimeTimestampState(stateObj(this._hass, entityId));
+  }
+
+  _syncUptimeRefreshTimer() {
+    const needsRefresh =
+      this.isConnected &&
+      this._ctx?.type === "access_point" &&
+      this._isTimestampUptimeEntity(this._ctx?.uptime_entity);
+    if (!needsRefresh) {
+      this._clearUptimeRefreshTimer();
+      return;
+    }
+
+    if (this._uptimeRefreshTimer) return;
+
+    const now = Date.now();
+    const nextMinuteDelay = 60000 - (now % 60000);
+    this._uptimeRefreshTimer = setTimeout(() => {
+      this._uptimeRefreshTimer = null;
+      if (!this.isConnected) return;
+      this._render();
+    }, nextMinuteDelay || 60000);
   }
 
   _cardBgStyle() {
@@ -400,19 +438,6 @@ class UnifiDeviceCard extends HTMLElement {
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
 
-  _humanizeDurationSeconds(totalSeconds) {
-    const seconds = Math.max(0, Math.round(totalSeconds));
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours || days) parts.push(`${hours}h`);
-    parts.push(`${minutes}m`);
-    return parts.join(" ");
-  }
-
   _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "—";
     const obj = stateObj(this._hass, entityId);
@@ -427,39 +452,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _apUptimeState(entityId) {
     if (!entityId || !this._hass) return "—";
-    const obj = stateObj(this._hass, entityId);
-    if (!obj) return "—";
-
-    const rawState = String(obj.state ?? "").trim();
-    const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
-    if (deviceClass === "timestamp") {
-      const parsed = new Date(rawState);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(this._hass?.locale?.language || undefined, {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-    }
-
-    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
-    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
-
-    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
-    if (["s", "sec", "second", "seconds"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw);
-    }
-    if (["min", "mins", "minute", "minutes"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 60);
-    }
-    if (["h", "hr", "hour", "hours"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 3600);
-    }
-
-    return formatState(this._hass, entityId);
+    return formatUptimeState(this._hass, entityId);
   }
 
   _apLedColorValue() {
@@ -2140,6 +2133,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
+      this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
