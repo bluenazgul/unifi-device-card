@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.5-dev */
+/* UniFi Device Card 0.0.0-dev.f6e02c3 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2142,24 +2142,6 @@ function isPortLevelTelemetrySensor(entity) {
   const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return hasIndexedPortId(text) || text.includes("_wan_") || text.includes("link_speed") || text.includes("port_link_speed") || text.includes("port_bandwidth") || text.includes("poe_power") || text.includes("_rx") || text.includes("_tx") || text.includes("throughput");
 }
-function findDeviceUniqueIdTelemetryEntity(entities, features = []) {
-  const allowed = new Set(features);
-  for (const entity of entities || []) {
-    if (!isSensorEntity(entity)) continue;
-    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
-    if (parsed?.feature && allowed.has(parsed.feature)) return entity.entity_id;
-  }
-  return null;
-}
-function findCoreDeviceTelemetryEntity(entities, matchFn) {
-  for (const entity of entities || []) {
-    if (!isSensorEntity(entity)) continue;
-    const text = entityText(entity);
-    if (isPortLevelTelemetrySensor(entity) && !matchFn(entity, text)) continue;
-    if (matchFn(entity, text)) return entity.entity_id;
-  }
-  return null;
-}
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
@@ -2171,23 +2153,85 @@ function findSystemStatEntity(entities, includePatterns = [], excludePatterns = 
   }
   return null;
 }
+var HEADER_TELEMETRY_MATCHERS = {
+  cpu_utilization: {
+    features: /* @__PURE__ */ new Set(["cpu_utilization"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_cpu_utilization"]),
+    uniqueIdPrefixes: ["cpu_utilization-"]
+  },
+  cpu_temperature: {
+    features: /* @__PURE__ */ new Set(["sub_temperature"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_sub_temperature"]),
+    uniqueIdPrefixes: ["temperature-cpu-"],
+    textPatterns: ["cpu", "processor", "temperature-cpu"]
+  },
+  memory_utilization: {
+    features: /* @__PURE__ */ new Set(["memory_utilization"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_memory_utilization"]),
+    uniqueIdPrefixes: ["memory_utilization-"]
+  },
+  temperature: {
+    features: /* @__PURE__ */ new Set(["temperature"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_temperature"]),
+    uniqueIdPrefixes: ["device_temperature-"]
+  },
+  sub_temperature: {
+    features: /* @__PURE__ */ new Set(["sub_temperature"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_sub_temperature"])
+  }
+};
+function matchesHeaderTelemetryTarget(entity, target) {
+  if (!isSensorEntity(entity)) return false;
+  const matcher = HEADER_TELEMETRY_MATCHERS[target];
+  if (!matcher) return false;
+  const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+  if (parsed?.feature && matcher.features?.has(parsed.feature)) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+  const uid = lower(entity?.unique_id);
+  if (uid && matcher.uniqueIdPrefixes?.some((prefix) => uid.startsWith(prefix))) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+  const tk = lower(entity?.translation_key);
+  if (matcher.translationKeys?.has(tk)) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+  return false;
+}
+function findHeaderTelemetryEntity(entities, target) {
+  for (const entity of entities || []) {
+    if (matchesHeaderTelemetryTarget(entity, target)) return entity.entity_id;
+  }
+  return null;
+}
+function findFallbackSubTemperatureEntity(entities) {
+  for (const entity of entities || []) {
+    if (!matchesHeaderTelemetryTarget(entity, "sub_temperature")) continue;
+    const text = entityText(entity);
+    if (text.includes("cpu") || text.includes("processor")) continue;
+    return entity.entity_id;
+  }
+  return null;
+}
+function classifyHeaderTelemetryWarningType(entity) {
+  if (matchesHeaderTelemetryTarget(entity, "cpu_utilization")) return "header_cpu";
+  if (matchesHeaderTelemetryTarget(entity, "memory_utilization")) return "header_memory";
+  if (matchesHeaderTelemetryTarget(entity, "cpu_temperature")) return "header_cpu_temperature";
+  if (matchesHeaderTelemetryTarget(entity, "temperature")) return "header_temperature";
+  if (matchesHeaderTelemetryTarget(entity, "sub_temperature")) return "header_temperature";
+  return null;
+}
 function getDeviceTelemetry(entities) {
-  const coreCpuUtilization = findDeviceUniqueIdTelemetryEntity(entities, ["cpu_utilization"]) || findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("device_cpu_utilization-")
-  );
-  const coreCpuTemperature = findDeviceUniqueIdTelemetryEntity(entities, ["sub_temperature"]) || findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => text.includes("temperature-cpu-") || entity.translation_key === "device_sub_temperature" && text.includes("cpu")
-  );
-  const coreMemoryUtilization = findDeviceUniqueIdTelemetryEntity(entities, ["memory_utilization"]) || findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("device_memory_utilization-")
-  );
-  const coreDeviceTemperature = findDeviceUniqueIdTelemetryEntity(entities, ["temperature"]) || findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => entity.translation_key === "device_temperature" || text.includes("device_temperature-")
-  );
+  const coreCpuUtilization = findHeaderTelemetryEntity(entities, "cpu_utilization");
+  const coreCpuTemperature = findHeaderTelemetryEntity(entities, "cpu_temperature");
+  const coreMemoryUtilization = findHeaderTelemetryEntity(entities, "memory_utilization");
+  const coreDeviceTemperature = findHeaderTelemetryEntity(entities, "temperature") || findFallbackSubTemperatureEntity(entities);
   return {
     cpu_utilization_entity: coreCpuUtilization || findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
     cpu_temperature_entity: coreCpuTemperature || findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
@@ -2400,6 +2444,8 @@ async function getUnifiDevices(hass) {
   );
 }
 function classifyRelevantEntityType(entity) {
+  const headerTelemetryType = classifyHeaderTelemetryWarningType(entity);
+  if (headerTelemetryType) return headerTelemetryType;
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
   const tk = lower(entity.translation_key || "");
@@ -2448,7 +2494,11 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     link_speed: [],
     rx_tx: [],
     power_cycle: [],
-    link: []
+    link: [],
+    header_cpu: [],
+    header_memory: [],
+    header_cpu_temperature: [],
+    header_temperature: []
   };
   const hidden = {
     port_switch: [],
@@ -2457,7 +2507,11 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     link_speed: [],
     rx_tx: [],
     power_cycle: [],
-    link: []
+    link: [],
+    header_cpu: [],
+    header_memory: [],
+    header_cpu_temperature: [],
+    header_temperature: []
   };
   for (const entity of allForDevice) {
     const type = classifyRelevantEntityType(entity);
@@ -3435,6 +3489,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "RX/TX sensors",
     warning_entity_power_cycle: "power cycle buttons",
     warning_entity_link: "link entities",
+    warning_entity_header_cpu: "header CPU sensors",
+    warning_entity_header_memory: "header memory sensors",
+    warning_entity_header_cpu_temperature: "header CPU temperature sensors",
+    warning_entity_header_temperature: "header temperature sensors",
     // Device type labels (used in device selector)
     type_switch: "Switch",
     type_gateway: "Gateway",
@@ -3591,6 +3649,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "RX/TX-Sensoren",
     warning_entity_power_cycle: "Power-Cycle-Buttons",
     warning_entity_link: "Link-Entities",
+    warning_entity_header_cpu: "Header-CPU-Sensoren",
+    warning_entity_header_memory: "Header-Speichersensoren",
+    warning_entity_header_cpu_temperature: "Header-CPU-Temperatursensoren",
+    warning_entity_header_temperature: "Header-Temperatursensoren",
     // Device type labels
     type_switch: "Switch",
     type_gateway: "Gateway",
@@ -4879,7 +4941,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       "link_speed",
       "rx_tx",
       "power_cycle",
-      "link"
+      "link",
+      "header_cpu",
+      "header_memory",
+      "header_cpu_temperature",
+      "header_temperature"
     ];
     return order.map((key) => ({
       key,
@@ -5484,7 +5550,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.5-dev";
+var VERSION = "0.0.0-dev.f6e02c3";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
