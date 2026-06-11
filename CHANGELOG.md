@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [v0.7.5]
 
 ### ✨ Improvements
 - Add Home Assistant 2026.6 Lovelace entity suggestions for likely UniFi entities and use Home Assistant entity-name formatting when available for visible client/device-tracker names.
@@ -15,6 +15,10 @@
   - **Access points / bridges:** `G7LR`, `U7UKU`, `U6ENT`, `U6ENTIW`, `UAL6`, `UALR6`, `UAM6`, `UAP6`, `UAP6MP`, `U7-Pro-XG-Wall`, `U7-Pro-Outdoor`, `U7ENT` / `E7`, `E7-Campus`, `E7-Audience`, `UK-Ultra`, `UBB`, `UBB-XG`, `U-AirWire`, `UDB`, `UDB-IoT`, `UDB-Switch`, `UDB-Pro`, `UDB-Pro-Sector`.
   - **Gateways / routers:** `UDMENT` / `EFG`, `UDM-Pro-Max`, `UDM-Beast`, `UCG-Industrial`, `UX`, `UEX`, `UX7`, `UXG`, `UXGB`, `UXG-Fiber`, `UTR`, `UDR7`, `UDR-5G-Max`, `UDW`, `UXG-Max`.
   - **Switches:** `USWED35`, `USWED36`, `USWED37`, `USW-Flex-XG`, `US6XG150` / `US-XG-6POE`, `USW-WAN`, `USW-WAN-RJ45`, `USW-Mission-Critical`, `USW-Pro-XG-*`, `USW-Pro-HD-24*`, `ECS-*`.
+ 
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
