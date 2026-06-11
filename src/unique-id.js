@@ -18,6 +18,10 @@ const PORT_FEATURE_PREFIXES = {
 
 const DEVICE_FEATURE_PREFIXES = {
   device_restart: "restart",
+  device_cpu_utilization: "cpu_utilization",
+  device_memory_utilization: "memory_utilization",
+  device_temperature: "temperature",
+  device_sub_temperature: "sub_temperature",
   device_uplink_mac: "uplink_mac",
   rx: "client_rx",
   tx: "client_tx",

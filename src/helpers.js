@@ -14,7 +14,7 @@ import {
 import { buildNormalizedDeviceIdentity, extractFirstMac, findDeviceByMac } from "./identity.js";
 import { buildDeviceCapabilities } from "./capabilities.js";
 import { classifyDeviceType } from "./classify.js";
-import { parseUnifiPortUniqueId } from "./unique-id.js";
+import { parseUnifiDeviceUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
 
 // ─────────────────────────────────────────────────
 // String utilities
@@ -398,10 +398,22 @@ function isPortLevelTelemetrySensor(entity) {
   );
 }
 
+function findDeviceUniqueIdTelemetryEntity(entities, features = []) {
+  const allowed = new Set(features);
+
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+    if (parsed?.feature && allowed.has(parsed.feature)) return entity.entity_id;
+  }
+  return null;
+}
+
 function findCoreDeviceTelemetryEntity(entities, matchFn) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
     const text = entityText(entity);
+    if (isPortLevelTelemetrySensor(entity) && !matchFn(entity, text)) continue;
     if (matchFn(entity, text)) return entity.entity_id;
   }
   return null;
@@ -420,24 +432,32 @@ function findSystemStatEntity(entities, includePatterns = [], excludePatterns = 
 }
 
 export function getDeviceTelemetry(entities) {
-  const coreCpuUtilization = findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("cpu_utilization-")
-  );
-  const coreCpuTemperature = findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) =>
-      text.includes("temperature-cpu-") ||
-      (entity.translation_key === "device_sub_temperature" && text.includes("cpu"))
-  );
-  const coreMemoryUtilization = findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("memory_utilization-")
-  );
-  const coreDeviceTemperature = findCoreDeviceTelemetryEntity(
-    entities,
-    (entity, text) => entity.translation_key === "device_temperature" || text.includes("device_temperature-")
-  );
+  const coreCpuUtilization =
+    findDeviceUniqueIdTelemetryEntity(entities, ["cpu_utilization"]) ||
+    findCoreDeviceTelemetryEntity(
+      entities,
+      (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("device_cpu_utilization-")
+    );
+  const coreCpuTemperature =
+    findDeviceUniqueIdTelemetryEntity(entities, ["sub_temperature"]) ||
+    findCoreDeviceTelemetryEntity(
+      entities,
+      (entity, text) =>
+        text.includes("temperature-cpu-") ||
+        (entity.translation_key === "device_sub_temperature" && text.includes("cpu"))
+    );
+  const coreMemoryUtilization =
+    findDeviceUniqueIdTelemetryEntity(entities, ["memory_utilization"]) ||
+    findCoreDeviceTelemetryEntity(
+      entities,
+      (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("device_memory_utilization-")
+    );
+  const coreDeviceTemperature =
+    findDeviceUniqueIdTelemetryEntity(entities, ["temperature"]) ||
+    findCoreDeviceTelemetryEntity(
+      entities,
+      (entity, text) => entity.translation_key === "device_temperature" || text.includes("device_temperature-")
+    );
 
   return {
     cpu_utilization_entity:
