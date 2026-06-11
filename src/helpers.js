@@ -401,8 +401,8 @@ function isPortLevelTelemetrySensor(entity) {
 function findCoreDeviceTelemetryEntity(entities, matchFn) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
-    if (isPortLevelTelemetrySensor(entity)) continue;
-    if (matchFn(entity, entityText(entity))) return entity.entity_id;
+    const text = entityText(entity);
+    if (matchFn(entity, text)) return entity.entity_id;
   }
   return null;
 }
