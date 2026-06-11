@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.5-dev */
+/* UniFi Device Card 0.0.0-dev.36f1715 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1710,6 +1710,14 @@ var PORT_FEATURE_PREFIXES = {
 };
 var DEVICE_FEATURE_PREFIXES = {
   device_restart: "restart",
+  cpu_utilization: "cpu_utilization",
+  memory_utilization: "memory_utilization",
+  temperature: "temperature",
+  "temperature-cpu": "sub_temperature",
+  device_cpu_utilization: "cpu_utilization",
+  device_memory_utilization: "memory_utilization",
+  device_temperature: "temperature",
+  device_sub_temperature: "sub_temperature",
   device_uplink_mac: "uplink_mac",
   rx: "client_rx",
   tx: "client_tx",
@@ -1730,7 +1738,7 @@ function parseUnifiPortUniqueId(uniqueId) {
 function parseUnifiDeviceUniqueId(uniqueId) {
   const raw = String(uniqueId ?? "").trim().toLowerCase();
   if (!raw) return null;
-  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
+  const match = raw.match(/^([a-z0-9_-]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
   if (!match) return null;
   const [, prefix, macRaw] = match;
   const feature = DEVICE_FEATURE_PREFIXES[prefix] || null;
@@ -2134,10 +2142,20 @@ function isPortLevelTelemetrySensor(entity) {
   const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return hasIndexedPortId(text) || text.includes("_wan_") || text.includes("link_speed") || text.includes("port_link_speed") || text.includes("port_bandwidth") || text.includes("poe_power") || text.includes("_rx") || text.includes("_tx") || text.includes("throughput");
 }
+function findDeviceUniqueIdTelemetryEntity(entities, features = []) {
+  const allowed = new Set(features);
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+    if (parsed?.feature && allowed.has(parsed.feature)) return entity.entity_id;
+  }
+  return null;
+}
 function findCoreDeviceTelemetryEntity(entities, matchFn) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
     const text = entityText(entity);
+    if (isPortLevelTelemetrySensor(entity) && !matchFn(entity, text)) continue;
     if (matchFn(entity, text)) return entity.entity_id;
   }
   return null;
@@ -2154,19 +2172,19 @@ function findSystemStatEntity(entities, includePatterns = [], excludePatterns = 
   return null;
 }
 function getDeviceTelemetry(entities) {
-  const coreCpuUtilization = findCoreDeviceTelemetryEntity(
+  const coreCpuUtilization = findDeviceUniqueIdTelemetryEntity(entities, ["cpu_utilization"]) || findCoreDeviceTelemetryEntity(
     entities,
-    (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("cpu_utilization-")
+    (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("device_cpu_utilization-")
   );
-  const coreCpuTemperature = findCoreDeviceTelemetryEntity(
+  const coreCpuTemperature = findDeviceUniqueIdTelemetryEntity(entities, ["sub_temperature"]) || findCoreDeviceTelemetryEntity(
     entities,
     (entity, text) => text.includes("temperature-cpu-") || entity.translation_key === "device_sub_temperature" && text.includes("cpu")
   );
-  const coreMemoryUtilization = findCoreDeviceTelemetryEntity(
+  const coreMemoryUtilization = findDeviceUniqueIdTelemetryEntity(entities, ["memory_utilization"]) || findCoreDeviceTelemetryEntity(
     entities,
-    (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("memory_utilization-")
+    (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("device_memory_utilization-")
   );
-  const coreDeviceTemperature = findCoreDeviceTelemetryEntity(
+  const coreDeviceTemperature = findDeviceUniqueIdTelemetryEntity(entities, ["temperature"]) || findCoreDeviceTelemetryEntity(
     entities,
     (entity, text) => entity.translation_key === "device_temperature" || text.includes("device_temperature-")
   );
@@ -5466,7 +5484,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.5-dev";
+var VERSION = "0.0.0-dev.36f1715";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
