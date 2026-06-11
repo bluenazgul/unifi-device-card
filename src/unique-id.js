@@ -18,6 +18,14 @@ const PORT_FEATURE_PREFIXES = {
 
 const DEVICE_FEATURE_PREFIXES = {
   device_restart: "restart",
+  cpu_utilization: "cpu_utilization",
+  memory_utilization: "memory_utilization",
+  temperature: "temperature",
+  "temperature-cpu": "sub_temperature",
+  device_cpu_utilization: "cpu_utilization",
+  device_memory_utilization: "memory_utilization",
+  device_temperature: "temperature",
+  device_sub_temperature: "sub_temperature",
   device_uplink_mac: "uplink_mac",
   rx: "client_rx",
   tx: "client_tx",
@@ -44,7 +52,7 @@ export function parseUnifiDeviceUniqueId(uniqueId) {
   const raw = String(uniqueId ?? "").trim().toLowerCase();
   if (!raw) return null;
 
-  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
+  const match = raw.match(/^([a-z0-9_-]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
   if (!match) return null;
 
   const [, prefix, macRaw] = match;

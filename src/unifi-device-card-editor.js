@@ -461,6 +461,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     }
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.show_name !== false) delete next.show_name;
+    if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -516,6 +517,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _onShowNameChange(ev) {
     const checked = !!ev.target.checked;
     this._emitConfig({ show_name: checked ? undefined : false });
+  }
+
+  _onShowTelemetryChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_telemetry: checked ? undefined : false });
   }
 
   _onBackgroundInput(ev) {
@@ -722,6 +728,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
       "rx_tx",
       "power_cycle",
       "link",
+      "header_cpu",
+      "header_memory",
+      "header_cpu_temperature",
+      "header_temperature",
     ];
 
     return order
@@ -1119,6 +1129,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
+    const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
@@ -1133,7 +1144,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
     const apCompactView = this._config?.ap_compact_view === true;
-    const apCompactShowHeaderTelemetry = this._config?.ap_compact_show_header_telemetry === true;
+    const apCompactShowHeaderTelemetry = showTelemetry && this._config?.ap_compact_show_header_telemetry === true;
     const editSpecialPorts =
       this._config?.edit_special_ports === true ||
       !!this._config?.wan_port ||
@@ -1199,6 +1210,15 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_telemetry_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_telemetry_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
+        </div>
+
         ${isSwitchOrGateway ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
@@ -1237,7 +1257,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
         <div class="field">
           <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
-            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
+            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""} ${showTelemetry ? "" : "disabled"}>
             <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
@@ -1350,6 +1370,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("show_name")
       ?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    this.shadowRoot.getElementById("show_telemetry")
+      ?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")
       ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
 

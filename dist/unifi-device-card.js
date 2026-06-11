@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.2 */
+/* UniFi Device Card 0.7.5-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -18,9 +18,9 @@ function apModel(displayModel) {
     specialSlots: []
   };
 }
-var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "BZ2", "U5O"];
-var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE"];
+var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
+var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
@@ -104,6 +104,7 @@ var MODEL_REGISTRY = {
   U6MESH: apModel("U6 Mesh"),
   U6IW: apModel("U6 In-Wall"),
   U6ENTERPRISE: apModel("U6 Enterprise"),
+  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall"),
   U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
@@ -115,8 +116,22 @@ var MODEL_REGISTRY = {
   U7OUTDOOR: apModel("U7 Outdoor"),
   U7PROXG: apModel("U7 Pro XG"),
   U7PROXGS: apModel("U7 Pro XGS"),
+  U7PROXGWALL: apModel("U7 Pro XG Wall"),
+  U7PROOUTDOOR: apModel("U7 Pro Outdoor"),
   U6MESHPRO: apModel("U6 Mesh Pro"),
   E7: apModel("E7"),
+  U7ENTERPRISE: apModel("U7 Enterprise"),
+  E7CAMPUS: apModel("E7 Campus"),
+  E7AUDIENCE: apModel("E7 Audience"),
+  UKULTRA: apModel("UK Ultra"),
+  UBB: apModel("UBB"),
+  UBBXG: apModel("UBB XG"),
+  UAIRWIRE: apModel("U-AirWire"),
+  UDB: apModel("Device Bridge"),
+  UDBIOT: apModel("Device Bridge IoT"),
+  UDBSWITCH: apModel("Device Bridge Switch"),
+  UDBPRO: apModel("Device Bridge Pro"),
+  UDBPROSECTOR: apModel("Device Bridge Pro Sector"),
   UWBXG: apModel("UWB-XG"),
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
@@ -129,7 +144,6 @@ var MODEL_REGISTRY = {
     portCount: 8,
     displayModel: "USC 8",
     theme: "silver",
-    poePortRange: [],
     specialSlots: []
   },
   US8: {
@@ -580,6 +594,63 @@ var MODEL_REGISTRY = {
       { key: "sfp_2", label: "SFP+ 2", port: 26 }
     ]
   },
+  // USW Flex XG  — 4× 10G RJ45, 1× 1G RJ45 PoE-in/uplink
+  USWFLEXXG: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 4)],
+    portCount: 5,
+    displayModel: "USW Flex XG",
+    theme: "white",
+    specialSlots: [{ key: "uplink", label: "1G PoE-In", port: 5, media: "rj45" }]
+  },
+  // US XG 6 PoE  — 4× RJ45 PoE, 2× SFP+
+  USXG6POE: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 4)],
+    portCount: 6,
+    displayModel: "US XG 6 PoE",
+    theme: "silver",
+    poePortRange: [1, 4],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 5 },
+      { key: "sfp_2", label: "SFP+ 2", port: 6 }
+    ]
+  },
+  // USW WAN  — WAN/LAN utility switch; keep WAN ports explicit.
+  USWWAN: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 2)],
+    portCount: 4,
+    displayModel: "USW WAN",
+    theme: "silver",
+    specialSlots: [
+      { key: "wan", label: "WAN 1", port: 3 },
+      { key: "wan2", label: "WAN 2", port: 4 }
+    ]
+  },
+  USWWANRJ45: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 4)],
+    portCount: 4,
+    displayModel: "USW WAN RJ45",
+    theme: "silver",
+    specialSlots: []
+  },
+  // USW Mission Critical  — 9× RJ45; ports 1-8 provide PoE, port 9 is uplink.
+  USWMISSIONCRITICAL: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 9)],
+    portCount: 9,
+    displayModel: "USW Mission Critical",
+    theme: "silver",
+    poePortRange: [1, 8],
+    specialSlots: []
+  },
   // USW Industrial  — 8× RJ45, 2× SFP+
   USWINDUSTRIAL: {
     kind: "switch",
@@ -665,8 +736,209 @@ var MODEL_REGISTRY = {
     specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }]
   },
   // ══════════════════════════════════════════════════════════════════════════
+  // SWITCHES — Current high-density / campus families
+  // ══════════════════════════════════════════════════════════════════════════
+  USWPROXG8POE: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 10,
+    displayModel: "USW Pro XG 8 PoE",
+    theme: "silver",
+    poePortRange: [1, 8],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 9 },
+      { key: "sfp_2", label: "SFP+ 2", port: 10 }
+    ]
+  },
+  USWPROXG10POE: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 10)],
+    portCount: 12,
+    displayModel: "USW Pro XG 10 PoE",
+    theme: "silver",
+    poePortRange: [1, 10],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 11 },
+      { key: "sfp_2", label: "SFP+ 2", port: 12 }
+    ]
+  },
+  USWPROXG24: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "USW Pro XG 24",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  USWPROXG24POE: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "USW Pro XG 24 PoE",
+    theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  USWPROXG48: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 52,
+    displayModel: "USW Pro XG 48",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 49 },
+      { key: "sfp_2", label: "SFP+ 2", port: 50 },
+      { key: "sfp_3", label: "SFP+ 3", port: 51 },
+      { key: "sfp_4", label: "SFP+ 4", port: 52 }
+    ]
+  },
+  USWPROXG48POE: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 52,
+    displayModel: "USW Pro XG 48 PoE",
+    theme: "silver",
+    poePortRange: [1, 48],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 49 },
+      { key: "sfp_2", label: "SFP+ 2", port: 50 },
+      { key: "sfp_3", label: "SFP+ 3", port: 51 },
+      { key: "sfp_4", label: "SFP+ 4", port: 52 }
+    ]
+  },
+  USWPROHD24: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "USW Pro HD 24",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  USWPROHD24POE: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "USW Pro HD 24 PoE",
+    theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+    ]
+  },
+  ECS24POE: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 28,
+    displayModel: "ECS 24 PoE",
+    theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: range(25, 28).map((p, i) => ({ key: `sfp_${i + 1}`, label: `SFP+ ${i + 1}`, port: p }))
+  },
+  ECS24SPOE: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 28,
+    displayModel: "ECS 24S PoE",
+    theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: range(25, 28).map((p, i) => ({ key: `sfp_${i + 1}`, label: `SFP+ ${i + 1}`, port: p }))
+  },
+  ECS48POE: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 52,
+    displayModel: "ECS 48 PoE",
+    theme: "silver",
+    poePortRange: [1, 48],
+    specialSlots: range(49, 52).map((p, i) => ({ key: `sfp_${i + 1}`, label: `SFP+ ${i + 1}`, port: p }))
+  },
+  ECS48SPOE: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    portCount: 52,
+    displayModel: "ECS 48S PoE",
+    theme: "silver",
+    poePortRange: [1, 48],
+    specialSlots: range(49, 52).map((p, i) => ({ key: `sfp_${i + 1}`, label: `SFP+ ${i + 1}`, port: p }))
+  },
+  ECSAGGREGATION: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [],
+    portCount: 32,
+    displayModel: "ECS Aggregation",
+    theme: "silver",
+    specialSlots: [
+      ...range(1, 28).map((p) => ({ key: `sfp_${p}`, label: `SFP+ ${p}`, port: p })),
+      ...range(29, 32).map((p, i) => ({ key: `sfp28_${i + 1}`, label: `25G ${i + 1}`, port: p }))
+    ]
+  },
+  // ══════════════════════════════════════════════════════════════════════════
   // GATEWAYS
   // ══════════════════════════════════════════════════════════════════════════
+  EFG: {
+    kind: "gateway",
+    frontStyle: "gateway-rack",
+    rows: [[1]],
+    portCount: 6,
+    displayModel: "Enterprise Fortress Gateway",
+    theme: "silver",
+    specialSlots: [
+      { key: "wan", label: "2.5G WAN", port: 2, media: "rj45" },
+      { key: "sfp_1", label: "SFP+ 1", port: 3 },
+      { key: "sfp_2", label: "SFP+ 2", port: 4 },
+      { key: "wan2", label: "25G WAN", port: 5, media: "sfp28" },
+      { key: "sfp28_2", label: "25G 2", port: 6, media: "sfp28" }
+    ]
+  },
+  UDMPROMAX: {
+    kind: "gateway",
+    frontStyle: "gateway-rack",
+    rows: [range(1, 8)],
+    portCount: 11,
+    displayModel: "UDM Pro Max",
+    theme: "silver",
+    specialSlots: [
+      { key: "wan", label: "WAN", port: 9 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11 }
+    ]
+  },
+  UDMBEAST: {
+    kind: "gateway",
+    frontStyle: "gateway-rack",
+    rows: [range(1, 8)],
+    portCount: 11,
+    displayModel: "UDM Beast",
+    theme: "silver",
+    specialSlots: [
+      { key: "wan", label: "WAN", port: 9 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11 }
+    ]
+  },
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
@@ -718,6 +990,19 @@ var MODEL_REGISTRY = {
     displayModel: "Cloud Gateway Max",
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+  },
+  UCGINDUSTRIAL: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[2, 3, 4]],
+    portCount: 6,
+    displayModel: "Cloud Gateway Industrial",
+    theme: "white",
+    specialSlots: [
+      { key: "wan", label: "2.5G RJ45 WAN", port: 1, media: "rj45" },
+      { key: "wan2", label: "10G RJ45 WAN", port: 5, media: "rj45" },
+      { key: "sfp_1", label: "SFP+ WAN", port: 6, media: "sfp_plus" }
+    ]
   },
   UCGFIBER: {
     kind: "gateway",
@@ -775,6 +1060,65 @@ var MODEL_REGISTRY = {
       { key: "sfp_1", label: "SFP+ 1", port: 10 },
       { key: "sfp_2", label: "SFP+ 2", port: 11 }
     ]
+  },
+  UX: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1]],
+    portCount: 2,
+    displayModel: "UniFi Express",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 2 }]
+  },
+  UX7: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1]],
+    portCount: 2,
+    displayModel: "UniFi Express 7",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "10G RJ45 WAN", port: 2, media: "rj45" }]
+  },
+  UDR5GMAX: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 5,
+    displayModel: "UDR 5G Max",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+  },
+  UDW: {
+    kind: "gateway",
+    frontStyle: "gateway-rack",
+    rows: [range(1, 16), [18]],
+    portCount: 20,
+    displayModel: "Dream Wall",
+    theme: "white",
+    poePortRange: [1, 12],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ LAN", port: 17, media: "sfp_plus" },
+      { key: "wan", label: "2.5G WAN", port: 19, media: "rj45" },
+      { key: "sfp_2", label: "SFP+ WAN", port: 20, media: "sfp_plus" }
+    ]
+  },
+  UXGMAX: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 5,
+    displayModel: "UXG Max",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
+  },
+  UTR: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[2]],
+    portCount: 2,
+    displayModel: "UniFi Travel Router",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 1 }]
   },
   UXGPRO: {
     kind: "gateway",
@@ -843,6 +1187,11 @@ function resolveModelKey(device) {
     if (!candidate) continue;
     if (MODEL_REGISTRY[candidate]) return candidate;
     if (candidate.includes("UDMPROSE")) return "UDMPROSE";
+    if (candidate.includes("UDMPROMAX")) return "UDMPROMAX";
+    if (candidate.includes("DREAMMACHINEPROMAX")) return "UDMPROMAX";
+    if (candidate.includes("UDMBEAST")) return "UDMBEAST";
+    if (candidate.includes("DREAMMACHINEBEAST")) return "UDMBEAST";
+    if (candidate === "EFG" || candidate.includes("UDMENT") || candidate.includes("ENTERPRISEFORTRESSGATEWAY")) return "EFG";
     if (candidate.includes("UDMSE")) return "UDMPROSE";
     if (candidate.includes("DREAMMACHINESE")) return "UDMPROSE";
     if (candidate.includes("DREAMMACHINEPROSE")) return "UDMPROSE";
@@ -868,7 +1217,10 @@ function resolveModelKey(device) {
     if (candidate.includes("UAPSHD")) return "UAPSHD";
     if (candidate.includes("UAPXG")) return "UAPXG";
     if (candidate.includes("UAPHD")) return "UAPHD";
+    if (candidate.includes("U6ENTERPRISEIW")) return "U6ENTERPRISEIW";
+    if (candidate.includes("U6ENTIW")) return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTERPRISE")) return "U6ENTERPRISE";
+    if (candidate.includes("U6ENT")) return "U6ENTERPRISE";
     if (candidate.includes("U6MESH")) return "U6MESH";
     if (candidate.includes("U6PLUS")) return "U6PLUS";
     if (candidate.includes("U6PRO")) return "U6PRO";
@@ -877,37 +1229,69 @@ function resolveModelKey(device) {
     if (candidate.includes("U6IW")) return "U6IW";
     if (candidate.includes("U6EXTENDER")) return "U6EXTENDER";
     if (candidate.includes("U6EXT")) return "U6EXTENDER";
+    if (candidate.includes("UAP6MP")) return "U6PRO";
+    if (candidate.includes("UAP6")) return "U6LR";
+    if (candidate.includes("UALR6")) return "U6LR";
+    if (candidate.includes("UAL6")) return "U6LITE";
+    if (candidate.includes("UAM6")) return "U6MESH";
     if (candidate.includes("U6MESHPRO")) return "U6MESHPRO";
     if (candidate.includes("U7IW")) return "U7IW";
     if (candidate.includes("U7INWALL")) return "U7IW";
+    if (candidate.includes("G7LR")) return "U7LR";
     if (candidate.includes("U7LR")) return "U7LR";
     if (candidate.includes("U7MSH")) return "U7MSH";
     if (candidate.includes("U7MESH")) return "U7MSH";
     if (candidate.includes("U7LITE")) return "U7LITE";
     if (candidate.includes("U7ULTRA")) return "U7LITE";
+    if (candidate.includes("U7UKU")) return "UKULTRA";
+    if (candidate.includes("U7ENT")) return "U7ENTERPRISE";
+    if (candidate.includes("U7PROXGWALL")) return "U7PROXGWALL";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
     if (candidate.includes("U7PROXGS")) return "U7PROXGS";
     if (candidate.includes("U7PROXG")) return "U7PROXG";
     if (candidate.includes("U7PROMAX")) return "U7PROMAX";
+    if (candidate.includes("U7PROOUTDOOR")) return "U7PROOUTDOOR";
     if (candidate.includes("U7PRO")) return "U7PRO";
     if (candidate.includes("U7OUTDOOR")) return "U7OUTDOOR";
     if (candidate.includes("UWBXG")) return "UWBXG";
+    if (candidate.includes("E7CAMPUS")) return "E7CAMPUS";
+    if (candidate.includes("E7AUDIENCE")) return "E7AUDIENCE";
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
+    if (candidate.includes("UKULTRA")) return "UKULTRA";
+    if (candidate.includes("UBBXG")) return "UBBXG";
+    if (candidate === "UBB" || candidate.includes("BUILDINGBRIDGE")) return "UBB";
+    if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
+    if (candidate.includes("UDBPROSECTOR")) return "UDBPROSECTOR";
+    if (candidate.includes("UDBPRO")) return "UDBPRO";
+    if (candidate.includes("UDBSWITCH")) return "UDBSWITCH";
+    if (candidate.includes("UDBIOT")) return "UDBIOT";
+    if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
     if (candidate === "UDM") return "UDM";
     if (candidate.includes("DREAMMACHINE")) return "UDM";
-    if (candidate === "UDR") return "UDR";
-    if (candidate.includes("DREAMROUTER")) return "UDR";
     if (candidate.includes("UDM67AUDR7")) return "UDR7";
     if (candidate.includes("UDR7")) return "UDR7";
     if (candidate.includes("DREAMROUTER7")) return "UDR7";
+    if (candidate.includes("UDR5GMAX")) return "UDR5GMAX";
+    if (candidate.includes("DREAMROUTER5GMAX")) return "UDR5GMAX";
+    if (candidate === "UDR") return "UDR";
+    if (candidate.includes("DREAMROUTER")) return "UDR";
     if (candidate.includes("UDM67A")) return "UDM67A";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
     if (candidate.includes("UCGMAX")) return "UCGMAX";
     if (candidate.includes("CLOUDGATEWAYMAX")) return "UCGMAX";
+    if (candidate.includes("UCGINDUSTRIAL")) return "UCGINDUSTRIAL";
+    if (candidate.includes("CLOUDGATEWAYINDUSTRIAL")) return "UCGINDUSTRIAL";
+    if (candidate === "UX7" || candidate.includes("UNIFIEXPRESS7")) return "UX7";
+    if (candidate === "UX" || candidate === "UEX" || candidate.includes("UNIFIEXPRESS")) return "UX";
+    if (candidate === "UTR" || candidate.includes("UNIFITRAVELROUTER")) return "UTR";
+    if (candidate.includes("UXGMAX") || candidate.includes("UXGB")) return "UXGMAX";
+    if (candidate === "UXG" || candidate.includes("UXGLITE")) return "UXGL";
+    if (candidate.includes("UXGFIBER")) return "UCGFIBER";
+    if (candidate === "UDW" || candidate.includes("DREAMWALL")) return "UDW";
     if (candidate === "UXGPRO") return "UXGPRO";
     if (candidate.includes("UXGPRO")) return "UXGPRO";
     if (candidate === "UXGL") return "UXGL";
@@ -936,6 +1320,27 @@ function resolveModelKey(device) {
     if (candidate.includes("ENTERPRISEXG24")) return "USXG24";
     if (candidate === "US68P") return "US68P";
     if (candidate.includes("ENTERPRISE8")) return "US68P";
+    if (candidate.includes("USWPROXG48POE")) return "USWPROXG48POE";
+    if (candidate.includes("USWPROXG48")) return "USWPROXG48";
+    if (candidate.includes("USWPROXG24POE")) return "USWPROXG24POE";
+    if (candidate.includes("USWPROXG24")) return "USWPROXG24";
+    if (candidate.includes("USWPROXG10POE")) return "USWPROXG10POE";
+    if (candidate.includes("USWPROXG8POE")) return "USWPROXG8POE";
+    if (candidate.includes("USWPROHD24POE")) return "USWPROHD24POE";
+    if (candidate.includes("USWPROHD24")) return "USWPROHD24";
+    if (candidate.includes("USWWANRJ45")) return "USWWANRJ45";
+    if (candidate.includes("USWWAN")) return "USWWAN";
+    if (candidate.includes("USWFLEXXG")) return "USWFLEXXG";
+    if (candidate.includes("FLEXXG")) return "USWFLEXXG";
+    if (candidate.includes("US6XG150")) return "USXG6POE";
+    if (candidate.includes("USXG6POE")) return "USXG6POE";
+    if (candidate.includes("USX6POE")) return "USXG6POE";
+    if (candidate.includes("MISSIONCRITICAL")) return "USWMISSIONCRITICAL";
+    if (candidate.includes("ECSAGGREGATION")) return "ECSAGGREGATION";
+    if (candidate.includes("ECS48SPOE")) return "ECS48SPOE";
+    if (candidate.includes("ECS48POE")) return "ECS48POE";
+    if (candidate.includes("ECS24SPOE")) return "ECS24SPOE";
+    if (candidate.includes("ECS24POE")) return "ECS24POE";
     if (candidate === "USWINDUSTRIAL") return "USWINDUSTRIAL";
     if (candidate.includes("USWINDUSTRIAL")) return "USWINDUSTRIAL";
     if (candidate === "US48PRO") return "US48PRO";
@@ -1057,6 +1462,9 @@ function inferPortCountFromModel(device) {
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
+  if (text.includes("UDMPROMAX") || text.includes("DREAMMACHINEPROMAX")) return 11;
+  if (text.includes("UDMBEAST") || text.includes("DREAMMACHINEBEAST")) return 11;
+  if (text.includes("EFG") || text.includes("UDMENT") || text.includes("ENTERPRISEFORTRESSGATEWAY")) return 6;
   if (text.includes("DREAMMACHINESE") || text.includes("DREAMMACHINEPROSE")) return 11;
   if (text.includes("UDMPRO")) return 11;
   if (text === "UDM" || text.includes("DREAMMACHINE")) return 5;
@@ -1066,6 +1474,15 @@ function inferPortCountFromModel(device) {
   if (text.includes("UDM67A")) return 11;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
+  if (text.includes("UCGINDUSTRIAL") || text.includes("CLOUDGATEWAYINDUSTRIAL")) return 6;
+  if (text.includes("UDR5GMAX")) return 5;
+  if (text === "UX7" || text.includes("UNIFIEXPRESS7")) return 2;
+  if (text === "UX" || text.includes("UNIFIEXPRESS")) return 2;
+  if (text === "UTR" || text.includes("UNIFITRAVELROUTER")) return 2;
+  if (text.includes("UXGMAX") || text.includes("UXGB")) return 5;
+  if (text === "UXG") return 2;
+  if (text.includes("UXGFIBER")) return 7;
+  if (text === "UDW" || text.includes("DREAMWALL")) return 20;
   if (text.includes("UXGPRO")) return 4;
   if (text.includes("UXGL")) return 2;
   if (text.includes("UGWXG") || text.includes("USGXG8")) return 9;
@@ -1097,6 +1514,18 @@ function inferPortCountFromModel(device) {
   if (text.includes("US624P") || text.includes("ENTERPRISE24POE")) return 26;
   if (text.includes("USXG24") || text.includes("ENTERPRISEXG24")) return 26;
   if (text.includes("US68P") || text.includes("ENTERPRISE8POE")) return 10;
+  if (text.includes("USWPROXG48")) return 52;
+  if (text.includes("USWPROXG24") || text.includes("USWPROHD24")) return 26;
+  if (text.includes("USWPROXG10POE")) return 12;
+  if (text.includes("USWPROXG8POE")) return 10;
+  if (text.includes("USWWANRJ45")) return 4;
+  if (text.includes("USWFLEXXG")) return 5;
+  if (text.includes("USWWAN")) return 4;
+  if (text.includes("US6XG150") || text.includes("USXG6POE") || text.includes("USX6POE")) return 6;
+  if (text.includes("MISSIONCRITICAL")) return 9;
+  if (text.includes("ECSAGGREGATION")) return 32;
+  if (text.includes("ECS48")) return 52;
+  if (text.includes("ECS24")) return 28;
   if (text.includes("USWINDUSTRIAL")) return 10;
   if (text.includes("USL48P") || text.includes("USL48")) return 52;
   if (text.includes("USL24P") || text.includes("USL24")) return 26;
@@ -1158,6 +1587,29 @@ function getDeviceLayout(device, discoveredPorts = []) {
       ...defaultSwitchLayout(inferredPortCount),
       displayModel: device?.model || `UniFi Device (${inferredPortCount}p)`
     });
+  }
+  if (looksSwitchLike) {
+    return applyRj45LayoutHints({
+      modelKey: null,
+      kind: "switch",
+      frontStyle: "single-row",
+      rows: [],
+      portCount: 0,
+      displayModel: device?.model || "UniFi Switch",
+      specialSlots: []
+    });
+  }
+  if (isAccessPointLikeModel(device)) {
+    return {
+      modelKey: null,
+      kind: "access_point",
+      frontStyle: "ap-disc",
+      rows: [],
+      portCount: 0,
+      displayModel: device?.model || "UniFi Access Point",
+      theme: "white",
+      specialSlots: []
+    };
   }
   return applyRj45LayoutHints({
     modelKey: null,
@@ -1258,6 +1710,14 @@ var PORT_FEATURE_PREFIXES = {
 };
 var DEVICE_FEATURE_PREFIXES = {
   device_restart: "restart",
+  cpu_utilization: "cpu_utilization",
+  memory_utilization: "memory_utilization",
+  temperature: "temperature",
+  "temperature-cpu": "sub_temperature",
+  device_cpu_utilization: "cpu_utilization",
+  device_memory_utilization: "memory_utilization",
+  device_temperature: "temperature",
+  device_sub_temperature: "sub_temperature",
   device_uplink_mac: "uplink_mac",
   rx: "client_rx",
   tx: "client_tx",
@@ -1278,7 +1738,7 @@ function parseUnifiPortUniqueId(uniqueId) {
 function parseUnifiDeviceUniqueId(uniqueId) {
   const raw = String(uniqueId ?? "").trim().toLowerCase();
   if (!raw) return null;
-  const match = raw.match(/^([a-z0-9_]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
+  const match = raw.match(/^([a-z0-9_-]+)-([0-9a-f:]{17}|[0-9a-f]{12})$/i);
   if (!match) return null;
   const [, prefix, macRaw] = match;
   const feature = DEVICE_FEATURE_PREFIXES[prefix] || null;
@@ -1415,16 +1875,16 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
   const registryType = fromModel(model);
   if (registryType) return registryType;
-  const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || name.includes("gateway") || name.includes("router");
+  const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || model.startsWith("UX") || model.startsWith("UDW") || model.startsWith("EFG") || model.startsWith("UTR") || name.includes("gateway") || name.includes("router");
   if (gatewaySignals) return "gateway";
   const modelKey = resolveModelKey(device || identity || {});
-  const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UXGPRO", "UXGL", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER"];
+  const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
   if (modelKey) {
     if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
-    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US")) {
+    if (["USMINI", "USWULTRA", "US8P60", "US8P150", "USL8LP", "USL16LP", "US24PRO", "US48PRO"].includes(modelKey) || modelKey.startsWith("US") || modelKey.startsWith("ECS")) {
       return "switch";
     }
   }
@@ -1447,6 +1907,22 @@ function normalize(value) {
 }
 function lower(value) {
   return normalize(value).toLowerCase();
+}
+function entityText(entity) {
+  const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object" ? Object.values(entity.translation_placeholders) : [];
+  return lower(
+    [
+      entity?.entity_id,
+      entity?.unique_id,
+      entity?.original_name,
+      entity?.name,
+      entity?.platform,
+      entity?.device_class,
+      entity?.translation_key,
+      entity?.original_device_class,
+      ...translationValues
+    ].filter(Boolean).join(" ")
+  );
 }
 function isUnifiConfigEntry(entry) {
   const domain = lower(entry?.domain);
@@ -1648,37 +2124,119 @@ function extractFirmware(device) {
   if (normalize(device?.sw_version)) return normalize(device.sw_version);
   return "";
 }
+function isSensorEntity(entity) {
+  return lower(entity?.entity_id).startsWith("sensor.");
+}
 function findDeviceEntityByPatterns(entities, patterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (patterns.some((pattern) => id.includes(pattern))) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (patterns.some((pattern) => text.includes(pattern))) {
       return entity.entity_id;
     }
   }
   return null;
 }
-function isPortLevelTelemetrySensor(entityId) {
-  const id = lower(entityId);
-  return hasIndexedPortId(id) || id.includes("_wan_") || id.includes("link_speed") || id.includes("_rx") || id.includes("_tx") || id.includes("throughput");
+function isPortLevelTelemetrySensor(entity) {
+  const text = typeof entity === "string" ? lower(entity) : entityText(entity);
+  return hasIndexedPortId(text) || text.includes("_wan_") || text.includes("link_speed") || text.includes("port_link_speed") || text.includes("port_bandwidth") || text.includes("poe_power") || text.includes("_rx") || text.includes("_tx") || text.includes("throughput");
 }
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (isPortLevelTelemetrySensor(id)) continue;
-    if (!includePatterns.some((pattern) => id.includes(pattern))) continue;
-    if (excludePatterns.some((pattern) => id.includes(pattern))) continue;
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
+    if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
     return entity.entity_id;
   }
   return null;
 }
+var HEADER_TELEMETRY_MATCHERS = {
+  cpu_utilization: {
+    features: /* @__PURE__ */ new Set(["cpu_utilization"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_cpu_utilization"]),
+    uniqueIdPrefixes: ["cpu_utilization-"]
+  },
+  cpu_temperature: {
+    features: /* @__PURE__ */ new Set(["sub_temperature"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_sub_temperature"]),
+    uniqueIdPrefixes: ["temperature-cpu-"],
+    textPatterns: ["cpu", "processor", "temperature-cpu"]
+  },
+  memory_utilization: {
+    features: /* @__PURE__ */ new Set(["memory_utilization"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_memory_utilization"]),
+    uniqueIdPrefixes: ["memory_utilization-"]
+  },
+  temperature: {
+    features: /* @__PURE__ */ new Set(["temperature"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_temperature"]),
+    uniqueIdPrefixes: ["device_temperature-"]
+  },
+  sub_temperature: {
+    features: /* @__PURE__ */ new Set(["sub_temperature"]),
+    translationKeys: /* @__PURE__ */ new Set(["device_sub_temperature"])
+  }
+};
+function matchesHeaderTelemetryTarget(entity, target) {
+  if (!isSensorEntity(entity)) return false;
+  const matcher = HEADER_TELEMETRY_MATCHERS[target];
+  if (!matcher) return false;
+  const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+  if (parsed?.feature && matcher.features?.has(parsed.feature)) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+  const uid = lower(entity?.unique_id);
+  if (uid && matcher.uniqueIdPrefixes?.some((prefix) => uid.startsWith(prefix))) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+  const tk = lower(entity?.translation_key);
+  if (matcher.translationKeys?.has(tk)) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+  return false;
+}
+function findHeaderTelemetryEntity(entities, target) {
+  for (const entity of entities || []) {
+    if (matchesHeaderTelemetryTarget(entity, target)) return entity.entity_id;
+  }
+  return null;
+}
+function findFallbackSubTemperatureEntity(entities) {
+  for (const entity of entities || []) {
+    if (!matchesHeaderTelemetryTarget(entity, "sub_temperature")) continue;
+    const text = entityText(entity);
+    if (text.includes("cpu") || text.includes("processor")) continue;
+    return entity.entity_id;
+  }
+  return null;
+}
+function classifyHeaderTelemetryWarningType(entity) {
+  if (matchesHeaderTelemetryTarget(entity, "cpu_utilization")) return "header_cpu";
+  if (matchesHeaderTelemetryTarget(entity, "memory_utilization")) return "header_memory";
+  if (matchesHeaderTelemetryTarget(entity, "cpu_temperature")) return "header_cpu_temperature";
+  if (matchesHeaderTelemetryTarget(entity, "temperature")) return "header_temperature";
+  if (matchesHeaderTelemetryTarget(entity, "sub_temperature")) return "header_temperature";
+  return null;
+}
 function getDeviceTelemetry(entities) {
+  const coreCpuUtilization = findHeaderTelemetryEntity(entities, "cpu_utilization");
+  const coreCpuTemperature = findHeaderTelemetryEntity(entities, "cpu_temperature");
+  const coreMemoryUtilization = findHeaderTelemetryEntity(entities, "memory_utilization");
+  const coreDeviceTemperature = findHeaderTelemetryEntity(entities, "temperature") || findFallbackSubTemperatureEntity(entities);
   return {
-    cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
-    cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
-    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
-    temperature_entity: findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) || findSystemStatEntity(
+    cpu_utilization_entity: coreCpuUtilization || findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
+    cpu_temperature_entity: coreCpuTemperature || findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
+    memory_utilization_entity: coreMemoryUtilization || findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
+    temperature_entity: coreDeviceTemperature || findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) || findSystemStatEntity(
       entities,
       ["temperature", "temp"],
       ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"]
@@ -1886,6 +2444,8 @@ async function getUnifiDevices(hass) {
   );
 }
 function classifyRelevantEntityType(entity) {
+  const headerTelemetryType = classifyHeaderTelemetryWarningType(entity);
+  if (headerTelemetryType) return headerTelemetryType;
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
   const tk = lower(entity.translation_key || "");
@@ -1934,7 +2494,11 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     link_speed: [],
     rx_tx: [],
     power_cycle: [],
-    link: []
+    link: [],
+    header_cpu: [],
+    header_memory: [],
+    header_cpu_temperature: [],
+    header_temperature: []
   };
   const hidden = {
     port_switch: [],
@@ -1943,7 +2507,11 @@ async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     link_speed: [],
     rx_tx: [],
     power_cycle: [],
-    link: []
+    link: [],
+    header_cpu: [],
+    header_memory: [],
+    header_cpu_temperature: [],
+    header_temperature: []
   };
   for (const entity of allForDevice) {
     const type = classifyRelevantEntityType(entity);
@@ -2593,6 +3161,58 @@ function formatState(hass, entityId) {
   if (!Number.isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
   return val;
 }
+function humanizeDurationSeconds(totalSeconds) {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor(seconds % 86400 / 3600);
+  const minutes = Math.floor(seconds % 3600 / 60);
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours || days) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
+function looksLikeTimestamp(value) {
+  return /^\d{4}-\d{2}-\d{2}(?:[T\s]|$)/.test(String(value || "").trim());
+}
+function isUptimeTimestampState(obj) {
+  if (!obj) return false;
+  const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
+  const originalDeviceClass = String(obj.attributes?.original_device_class || "").toLowerCase().trim();
+  const isUptimeTimestamp = deviceClass === "uptime" || deviceClass === "timestamp" || originalDeviceClass === "uptime" || originalDeviceClass === "timestamp";
+  if (!isUptimeTimestamp) return false;
+  const rawState = String(obj.state ?? "").trim();
+  return looksLikeTimestamp(rawState) && Number.isFinite(Date.parse(rawState));
+}
+function formatUptimeState(hass, entityId, now = Date.now()) {
+  const obj = stateObj(hass, entityId);
+  if (!obj) return "\u2014";
+  const rawState = String(obj.state ?? "").trim();
+  if (!rawState || rawState === "unavailable" || rawState === "unknown") return "\u2014";
+  if (isUptimeTimestampState(obj)) {
+    const parsedMs = Date.parse(rawState);
+    const nowMs = Number(now);
+    if (Number.isFinite(parsedMs) && Number.isFinite(nowMs)) {
+      return humanizeDurationSeconds((nowMs - parsedMs) / 1e3);
+    }
+  }
+  const raw = Number.parseFloat(rawState.replace(",", "."));
+  if (!Number.isFinite(raw)) return formatState(hass, entityId);
+  const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
+  if (["s", "sec", "second", "seconds"].includes(unit)) {
+    return humanizeDurationSeconds(raw);
+  }
+  if (["min", "mins", "minute", "minutes"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 60);
+  }
+  if (["h", "hr", "hour", "hours"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 3600);
+  }
+  if (["d", "day", "days"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 86400);
+  }
+  return formatState(hass, entityId);
+}
 function getPoeStatus(hass, port) {
   const sw = stateValue(hass, port.poe_switch_entity);
   const pwr = stateValue(hass, port.poe_power_entity);
@@ -2766,6 +3386,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Enabled by default. When disabled, only the model/firmware line is shown.",
     editor_name_label: "Display name text",
     editor_name_hint: "Optional \u2014 updates automatically when switching devices unless you changed it manually",
+    editor_telemetry_toggle_label: "Header telemetry",
+    editor_telemetry_toggle_text: "Show telemetry data in the card header",
+    editor_telemetry_toggle_hint: "Enabled by default. Disable to hide CPU, memory, and temperature rows in the header.",
     editor_panel_toggle_label: "Front panel",
     editor_panel_toggle_text: "Show front panel hardware view",
     editor_panel_toggle_hint: "Enabled by default. Disable to hide the visual front panel.",
@@ -2866,6 +3489,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "RX/TX sensors",
     warning_entity_power_cycle: "power cycle buttons",
     warning_entity_link: "link entities",
+    warning_entity_header_cpu: "header CPU sensors",
+    warning_entity_header_memory: "header memory sensors",
+    warning_entity_header_cpu_temperature: "header CPU temperature sensors",
+    warning_entity_header_temperature: "header temperature sensors",
     // Device type labels (used in device selector)
     type_switch: "Switch",
     type_gateway: "Gateway",
@@ -2919,6 +3546,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Standardm\xE4\xDFig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
     editor_name_label: "Text f\xFCr den Anzeigenamen",
     editor_name_hint: "Optional \u2014 wird beim Ger\xE4tewechsel automatisch aktualisiert, solange du ihn nicht manuell ge\xE4ndert hast",
+    editor_telemetry_toggle_label: "Header-Telemetrie",
+    editor_telemetry_toggle_text: "Telemetriedaten im Karten-Header anzeigen",
+    editor_telemetry_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet CPU-, Speicher- und Temperaturzeilen im Header aus.",
     editor_panel_toggle_label: "Frontpanel",
     editor_panel_toggle_text: "Hardware-Frontpanel anzeigen",
     editor_panel_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
@@ -3019,6 +3649,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "RX/TX-Sensoren",
     warning_entity_power_cycle: "Power-Cycle-Buttons",
     warning_entity_link: "Link-Entities",
+    warning_entity_header_cpu: "Header-CPU-Sensoren",
+    warning_entity_header_memory: "Header-Speichersensoren",
+    warning_entity_header_cpu_temperature: "Header-CPU-Temperatursensoren",
+    warning_entity_header_temperature: "Header-Temperatursensoren",
     // Device type labels
     type_switch: "Switch",
     type_gateway: "Gateway",
@@ -3072,6 +3706,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
     editor_name_label: "Tekst voor de weergavenaam",
     editor_name_hint: "Optioneel \u2014 wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
+    editor_telemetry_toggle_label: "Headertelemetrie",
+    editor_telemetry_toggle_text: "Telemetriegegevens in de kaartkop tonen",
+    editor_telemetry_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt CPU-, geheugen- en temperatuurregels in de kop.",
     editor_panel_toggle_label: "Frontpaneel",
     editor_panel_toggle_text: "Hardware-frontpaneel tonen",
     editor_panel_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
@@ -3222,6 +3859,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Activ\xE9 par d\xE9faut. Si d\xE9sactiv\xE9, seule la ligne mod\xE8le/firmware est affich\xE9e.",
     editor_name_label: "Nom d'affichage",
     editor_name_hint: "Optionnel \u2014 par d\xE9faut le nom de l'appareil",
+    editor_telemetry_toggle_label: "T\xE9l\xE9m\xE9trie d\u2019en-t\xEAte",
+    editor_telemetry_toggle_text: "Afficher les donn\xE9es de t\xE9l\xE9m\xE9trie dans l\u2019en-t\xEAte",
+    editor_telemetry_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer les lignes CPU, m\xE9moire et temp\xE9rature dans l\u2019en-t\xEAte.",
     editor_panel_toggle_label: "Panneau avant",
     editor_panel_toggle_text: "Afficher la vue mat\xE9rielle du panneau avant",
     editor_panel_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer la vue visuelle des ports.",
@@ -3372,6 +4012,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Activado por defecto. Si se desactiva, solo se muestra la l\xEDnea de modelo/firmware.",
     editor_name_label: "Nombre para mostrar",
     editor_name_hint: "Opcional \u2014 por defecto, el nombre del dispositivo",
+    editor_telemetry_toggle_label: "Telemetr\xEDa del encabezado",
+    editor_telemetry_toggle_text: "Mostrar datos de telemetr\xEDa en el encabezado",
+    editor_telemetry_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar CPU, memoria y temperatura en el encabezado.",
     editor_panel_toggle_label: "Panel frontal",
     editor_panel_toggle_text: "Mostrar vista de hardware del panel frontal",
     editor_panel_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar la vista visual del panel.",
@@ -3522,6 +4165,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label: "Nome visualizzato",
     editor_name_hint: "Opzionale \u2014 per impostazione predefinita il nome del dispositivo",
+    editor_telemetry_toggle_label: "Telemetria header",
+    editor_telemetry_toggle_text: "Mostra i dati di telemetria nell\u2019header",
+    editor_telemetry_toggle_hint: "Abilitato per default. Disattiva per nascondere CPU, memoria e temperatura nell\u2019header.",
     editor_panel_toggle_label: "Pannello frontale",
     editor_panel_toggle_text: "Mostra la vista hardware del pannello frontale",
     editor_panel_toggle_hint: "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
@@ -3627,6 +4273,9 @@ var TRANSLATIONS = {
 };
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text: "Visa telemetridata i kortets header",
+  editor_telemetry_toggle_hint: "Aktiverat som standard. Inaktivera f\xF6r att d\xF6lja CPU-, minnes- och temperaturrader i headern.",
   editor_colors_open: "\xC4ndra f\xE4rger",
   editor_colors_back: "Tillbaka till editorn",
   editor_colors_apply: "Anv\xE4nd f\xE4rger",
@@ -3635,6 +4284,9 @@ TRANSLATIONS.sv = {
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text: "Vis telemetridata i kortets header",
+  editor_telemetry_toggle_hint: "Aktiveret som standard. Sl\xE5 fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
   editor_colors_open: "Skift farver",
   editor_colors_back: "Tilbage til editor",
   editor_colors_apply: "Anvend farver",
@@ -3643,6 +4295,9 @@ TRANSLATIONS.da = {
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text: "Vis telemetridata i kortoverskriften",
+  editor_telemetry_toggle_hint: "Aktivert som standard. Sl\xE5 av for \xE5 skjule CPU-, minne- og temperaturrader i overskriften.",
   editor_colors_open: "Endre farger",
   editor_colors_back: "Tilbake til editor",
   editor_colors_apply: "Bruk farger",
@@ -3651,6 +4306,9 @@ TRANSLATIONS.no = {
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Otsakkeen telemetria",
+  editor_telemetry_toggle_text: "N\xE4yt\xE4 telemetriatiedot kortin otsakkeessa",
+  editor_telemetry_toggle_hint: "K\xE4yt\xF6ss\xE4 oletuksena. Poista k\xE4yt\xF6st\xE4 piilottaaksesi CPU-, muisti- ja l\xE4mp\xF6tilarivit otsakkeesta.",
   editor_colors_open: "Vaihda v\xE4rej\xE4",
   editor_colors_back: "Takaisin editoriin",
   editor_colors_apply: "K\xE4yt\xE4 v\xE4rit",
@@ -3659,6 +4317,9 @@ TRANSLATIONS.fi = {
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Telemetria nag\u0142\xF3wka",
+  editor_telemetry_toggle_text: "Poka\u017C dane telemetryczne w nag\u0142\xF3wku karty",
+  editor_telemetry_toggle_hint: "Domy\u015Blnie w\u0142\u0105czone. Wy\u0142\u0105cz, aby ukry\u0107 w nag\u0142\xF3wku wiersze CPU, pami\u0119ci i temperatury.",
   editor_colors_open: "Zmie\u0144 kolory",
   editor_colors_back: "Wr\xF3\u0107 do edytora",
   editor_colors_apply: "Zastosuj kolory",
@@ -3667,6 +4328,9 @@ TRANSLATIONS.pl = {
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Telemetrie z\xE1hlav\xED",
+  editor_telemetry_toggle_text: "Zobrazit telemetrii v z\xE1hlav\xED karty",
+  editor_telemetry_toggle_hint: "Ve v\xFDchoz\xEDm stavu zapnuto. Vypnut\xEDm skryjete \u0159\xE1dky CPU, pam\u011Bti a teploty v z\xE1hlav\xED.",
   editor_colors_open: "Zm\u011Bnit barvy",
   editor_colors_back: "Zp\u011Bt do editoru",
   editor_colors_apply: "Pou\u017E\xEDt barvy",
@@ -4060,6 +4724,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.show_name !== false) delete next.show_name;
+    if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -4107,6 +4772,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _onShowNameChange(ev) {
     const checked = !!ev.target.checked;
     this._emitConfig({ show_name: checked ? void 0 : false });
+  }
+  _onShowTelemetryChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_telemetry: checked ? void 0 : false });
   }
   _onBackgroundInput(ev) {
     this._emitConfig({ background_color: ev.target.value || void 0 });
@@ -4272,7 +4941,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       "link_speed",
       "rx_tx",
       "power_cycle",
-      "link"
+      "link",
+      "header_cpu",
+      "header_memory",
+      "header_cpu_temperature",
+      "header_temperature"
     ];
     return order.map((key) => ({
       key,
@@ -4619,6 +5292,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
+    const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
@@ -4631,7 +5305,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
     const apCompactView = this._config?.ap_compact_view === true;
-    const apCompactShowHeaderTelemetry = this._config?.ap_compact_show_header_telemetry === true;
+    const apCompactShowHeaderTelemetry = showTelemetry && this._config?.ap_compact_show_header_telemetry === true;
     const editSpecialPorts = this._config?.edit_special_ports === true || !!this._config?.wan_port || !!this._config?.wan2_port;
     const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
     const discoveredPorts = availablePortSlots.map((slot) => slot?.port).filter((port) => Number.isInteger(port) && port > 0);
@@ -4680,6 +5354,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_telemetry_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_telemetry_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
+        </div>
+
         ${isSwitchOrGateway ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
@@ -4718,7 +5401,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         <div class="field">
           <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
-            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
+            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""} ${showTelemetry ? "" : "disabled"}>
             <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
@@ -4825,6 +5508,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
     this.shadowRoot.getElementById("device_id")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
     this.shadowRoot.getElementById("show_name")?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
@@ -4866,7 +5550,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.2";
+var VERSION = "0.7.5-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -4895,6 +5579,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._resizeObserver = null;
+    this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
@@ -4994,10 +5679,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       this._render();
     });
     this._resizeObserver.observe(this);
+    this._syncUptimeRefreshTimer();
   }
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._clearUptimeRefreshTimer();
   }
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
@@ -5009,6 +5696,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       log_level: this._configuredLogLevel()
     });
     if (oldDeviceId !== newDeviceId) {
+      this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
@@ -5078,6 +5766,30 @@ var UnifiDeviceCard = class extends HTMLElement {
     const translated = this._t(key);
     return translated === key ? raw : translated;
   }
+  _clearUptimeRefreshTimer() {
+    if (!this._uptimeRefreshTimer) return;
+    clearTimeout(this._uptimeRefreshTimer);
+    this._uptimeRefreshTimer = null;
+  }
+  _isTimestampUptimeEntity(entityId) {
+    if (!entityId || !this._hass) return false;
+    return isUptimeTimestampState(stateObj(this._hass, entityId));
+  }
+  _syncUptimeRefreshTimer() {
+    const needsRefresh = this.isConnected && this._ctx?.type === "access_point" && this._isTimestampUptimeEntity(this._ctx?.uptime_entity);
+    if (!needsRefresh) {
+      this._clearUptimeRefreshTimer();
+      return;
+    }
+    if (this._uptimeRefreshTimer) return;
+    const now = Date.now();
+    const nextMinuteDelay = 6e4 - now % 6e4;
+    this._uptimeRefreshTimer = setTimeout(() => {
+      this._uptimeRefreshTimer = null;
+      if (!this.isConnected) return;
+      this._render();
+    }, nextMinuteDelay || 6e4);
+  }
   _cardBgStyle() {
     const color = this._config?.background_color || "var(--card-background-color)";
     const opacityRaw = Number.parseInt(this._config?.background_opacity, 10);
@@ -5124,8 +5836,11 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apCompactViewEnabled() {
     return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
+  _telemetryEnabled() {
+    return this._config?.show_telemetry !== false;
+  }
   _apCompactHeaderTelemetryEnabled() {
-    return this._ctx?.type === "access_point" && this._config?.ap_compact_show_header_telemetry === true;
+    return this._ctx?.type === "access_point" && this._telemetryEnabled() && this._config?.ap_compact_show_header_telemetry === true;
   }
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
@@ -5177,17 +5892,6 @@ var UnifiDeviceCard = class extends HTMLElement {
     const intValue = Math.round(raw);
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
-  _humanizeDurationSeconds(totalSeconds) {
-    const seconds = Math.max(0, Math.round(totalSeconds));
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor(seconds % 86400 / 3600);
-    const minutes = Math.floor(seconds % 3600 / 60);
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours || days) parts.push(`${hours}h`);
-    parts.push(`${minutes}m`);
-    return parts.join(" ");
-  }
   _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "\u2014";
     const obj = stateObj(this._hass, entityId);
@@ -5200,35 +5904,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _apUptimeState(entityId) {
     if (!entityId || !this._hass) return "\u2014";
-    const obj = stateObj(this._hass, entityId);
-    if (!obj) return "\u2014";
-    const rawState = String(obj.state ?? "").trim();
-    const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
-    if (deviceClass === "timestamp") {
-      const parsed = new Date(rawState);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(this._hass?.locale?.language || void 0, {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit"
-        });
-      }
-    }
-    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
-    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
-    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
-    if (["s", "sec", "second", "seconds"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw);
-    }
-    if (["min", "mins", "minute", "minutes"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 60);
-    }
-    if (["h", "hr", "hour", "hours"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 3600);
-    }
-    return formatState(this._hass, entityId);
+    return formatUptimeState(this._hass, entityId);
   }
   _apLedColorValue() {
     const colorEntity = this._ctx?.led_color_entity;
@@ -5282,6 +5958,19 @@ var UnifiDeviceCard = class extends HTMLElement {
     const token = String(value ?? "").trim();
     if (!token) return fallback;
     return /^[a-z0-9_-]+$/i.test(token) ? token : fallback;
+  }
+  _formatEntityName(entityId, fallback = "") {
+    const fallbackName = String(fallback ?? "").trim();
+    const obj = entityId ? this._hass?.states?.[entityId] : null;
+    const formatter = this._hass?.formatEntityName;
+    if (obj && typeof formatter === "function") {
+      try {
+        const formatted = String(formatter(obj) ?? "").trim();
+        if (formatted) return formatted;
+      } catch (err) {
+      }
+    }
+    return fallbackName;
   }
   _apUplinkTooltip(uplink) {
     if (!uplink) return "";
@@ -5357,9 +6046,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _extractClientNameFromStateObj(obj, entityId) {
     const attrs = obj?.attributes || {};
-    const friendly = String(attrs.friendly_name || "").trim();
-    if (friendly) return friendly;
-    return String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
+    const fallback = String(attrs.friendly_name || "").trim() || String(entityId || "").replace(/^device_tracker\./i, "").replace(/_/g, " ").trim();
+    return this._formatEntityName(entityId, fallback);
   }
   _extractPortFromAttributes(attrs, entityId = "") {
     const keys = [
@@ -5480,12 +6168,50 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     return { specials: specialsRaw, numbered: numberedRaw };
   }
+  _relevantStateEntityIds() {
+    const ids = /* @__PURE__ */ new Set();
+    for (const entity of this._ctx?.entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
+    const directEntityKeys = [
+      "cpu_utilization_entity",
+      "cpu_temperature_entity",
+      "memory_utilization_entity",
+      "temperature_entity",
+      "online_entity",
+      "uptime_entity",
+      "clients_entity",
+      "ap_status_entity",
+      "led_switch_entity",
+      "led_color_entity",
+      "reboot_entity"
+    ];
+    for (const key of directEntityKeys) {
+      const entityId = this._ctx?.[key];
+      if (entityId) ids.add(entityId);
+    }
+    const { specials, numbered } = this._buildSlotData(this._ctx);
+    const portEntityKeys = [
+      "link_entity",
+      "speed_entity",
+      "poe_switch_entity",
+      "poe_power_entity",
+      "port_switch_entity",
+      "power_cycle_entity",
+      "rx_entity",
+      "tx_entity"
+    ];
+    for (const slot of [...specials, ...numbered]) {
+      for (const key of portEntityKeys) {
+        if (slot?.[key]) ids.add(slot[key]);
+      }
+    }
+    return ids;
+  }
   _hasRelevantStateChanges(previousHass, nextHass) {
-    const entities = this._ctx?.entities || [];
-    if (!Array.isArray(entities) || entities.length === 0) return true;
-    for (const entity of entities) {
-      const id = entity?.entity_id;
-      if (!id) continue;
+    const entityIds = this._relevantStateEntityIds();
+    if (!entityIds.size) return true;
+    for (const id of entityIds) {
       if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
     }
     return false;
@@ -5725,7 +6451,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return fw ? `${model} \xB7 FW ${fw}` : model;
   }
   _headerMetrics() {
-    if (!this._ctx || !this._hass) return [];
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
     const metrics = [
       { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },
       { key: "cpu_temperature", entity: this._ctx.cpu_temperature_entity },
@@ -6683,6 +7409,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
+      this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
@@ -6944,6 +7671,19 @@ var UnifiDeviceCard = class extends HTMLElement {
 if (!customElements.get("unifi-device-card")) {
   customElements.define("unifi-device-card", UnifiDeviceCard);
 }
+function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
+  const id = String(entityId || "").trim().toLowerCase();
+  if (!id || !id.includes(".")) return null;
+  const obj = hass?.states?.[entityId];
+  const attrs = obj?.attributes || {};
+  const friendly = String(attrs.friendly_name || "").toLowerCase();
+  const attribution = String(attrs.attribution || "").toLowerCase();
+  const hasUnifiHint = id.includes("unifi") || id.includes("ubiquiti") || friendly.includes("unifi") || friendly.includes("ubiquiti") || attribution.includes("unifi") || attribution.includes("ubiquiti");
+  const hasUniFiPrefix = /^(sensor|switch|button|binary_sensor|number|select|update|device_tracker)\.unifi_/i.test(id);
+  const hasUnifiPortPattern = /(?:^|[_-])(port(?:[_-]\d+)?|link[_-]speed|poe[_-]power|power[_-]cycle)(?:[_-]|$)/i.test(id);
+  if (!hasUniFiPrefix && !(hasUnifiHint && hasUnifiPortPattern)) return null;
+  return { type: "custom:unifi-device-card" };
+}
 window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
   window.customCards.push({
@@ -6951,7 +7691,8 @@ if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
     name: "UniFi Device Card",
     description: `Lovelace card for UniFi devices (v${VERSION}).`,
     preview: true,
-    documentationURL: "https://github.com/bluenazgul/unifi-device-card"
+    documentationURL: "https://github.com/bluenazgul/unifi-device-card",
+    getEntitySuggestion: getUnifiDeviceCardEntitySuggestion
   });
 }
 if (!window[DEV_LOG_FLAG]) {

@@ -14,7 +14,7 @@ import {
 import { buildNormalizedDeviceIdentity, extractFirstMac, findDeviceByMac } from "./identity.js";
 import { buildDeviceCapabilities } from "./capabilities.js";
 import { classifyDeviceType } from "./classify.js";
-import { parseUnifiPortUniqueId } from "./unique-id.js";
+import { parseUnifiDeviceUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
 
 // ─────────────────────────────────────────────────
 // String utilities
@@ -29,15 +29,21 @@ function lower(value) {
 }
 
 function entityText(entity) {
+  const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object"
+    ? Object.values(entity.translation_placeholders)
+    : [];
+
   return lower(
     [
-      entity.entity_id,
-      entity.original_name,
-      entity.name,
-      entity.platform,
-      entity.device_class,
-      entity.translation_key,
-      entity.original_device_class,
+      entity?.entity_id,
+      entity?.unique_id,
+      entity?.original_name,
+      entity?.name,
+      entity?.platform,
+      entity?.device_class,
+      entity?.translation_key,
+      entity?.original_device_class,
+      ...translationValues,
     ]
       .filter(Boolean)
       .join(" ")
@@ -361,53 +367,177 @@ function extractFirmware(device) {
 // Exported telemetry / reboot helpers
 // ─────────────────────────────────────────────────
 
+function isSensorEntity(entity) {
+  return lower(entity?.entity_id).startsWith("sensor.");
+}
+
 function findDeviceEntityByPatterns(entities, patterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (patterns.some((pattern) => id.includes(pattern))) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (patterns.some((pattern) => text.includes(pattern))) {
       return entity.entity_id;
     }
   }
   return null;
 }
 
-function isPortLevelTelemetrySensor(entityId) {
-  const id = lower(entityId);
+function isPortLevelTelemetrySensor(entity) {
+  const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return (
-    hasIndexedPortId(id) ||
-    id.includes("_wan_") ||
-    id.includes("link_speed") ||
-    id.includes("_rx") ||
-    id.includes("_tx") ||
-    id.includes("throughput")
+    hasIndexedPortId(text) ||
+    text.includes("_wan_") ||
+    text.includes("link_speed") ||
+    text.includes("port_link_speed") ||
+    text.includes("port_bandwidth") ||
+    text.includes("poe_power") ||
+    text.includes("_rx") ||
+    text.includes("_tx") ||
+    text.includes("throughput")
   );
+}
+
+function findDeviceUniqueIdTelemetryEntity(entities, features = []) {
+  const allowed = new Set(features);
+
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+    if (parsed?.feature && allowed.has(parsed.feature)) return entity.entity_id;
+  }
+  return null;
+}
+
+function findCoreDeviceTelemetryEntity(entities, matchFn) {
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const text = entityText(entity);
+    if (isPortLevelTelemetrySensor(entity) && !matchFn(entity, text)) continue;
+    if (matchFn(entity, text)) return entity.entity_id;
+  }
+  return null;
 }
 
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (isPortLevelTelemetrySensor(id)) continue;
-    if (!includePatterns.some((pattern) => id.includes(pattern))) continue;
-    if (excludePatterns.some((pattern) => id.includes(pattern))) continue;
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
+    if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
     return entity.entity_id;
   }
   return null;
 }
 
+const HEADER_TELEMETRY_MATCHERS = {
+  cpu_utilization: {
+    features: new Set(["cpu_utilization"]),
+    translationKeys: new Set(["device_cpu_utilization"]),
+    uniqueIdPrefixes: ["cpu_utilization-"],
+  },
+  cpu_temperature: {
+    features: new Set(["sub_temperature"]),
+    translationKeys: new Set(["device_sub_temperature"]),
+    uniqueIdPrefixes: ["temperature-cpu-"],
+    textPatterns: ["cpu", "processor", "temperature-cpu"],
+  },
+  memory_utilization: {
+    features: new Set(["memory_utilization"]),
+    translationKeys: new Set(["device_memory_utilization"]),
+    uniqueIdPrefixes: ["memory_utilization-"],
+  },
+  temperature: {
+    features: new Set(["temperature"]),
+    translationKeys: new Set(["device_temperature"]),
+    uniqueIdPrefixes: ["device_temperature-"],
+  },
+  sub_temperature: {
+    features: new Set(["sub_temperature"]),
+    translationKeys: new Set(["device_sub_temperature"]),
+  },
+};
+
+function matchesHeaderTelemetryTarget(entity, target) {
+  if (!isSensorEntity(entity)) return false;
+
+  const matcher = HEADER_TELEMETRY_MATCHERS[target];
+  if (!matcher) return false;
+
+  const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+  if (parsed?.feature && matcher.features?.has(parsed.feature)) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+
+  const uid = lower(entity?.unique_id);
+  if (uid && matcher.uniqueIdPrefixes?.some((prefix) => uid.startsWith(prefix))) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+
+  const tk = lower(entity?.translation_key);
+  if (matcher.translationKeys?.has(tk)) {
+    if (!matcher.textPatterns?.length) return true;
+    const text = entityText(entity);
+    return matcher.textPatterns.some((pattern) => text.includes(pattern));
+  }
+
+  return false;
+}
+
+function findHeaderTelemetryEntity(entities, target) {
+  for (const entity of entities || []) {
+    if (matchesHeaderTelemetryTarget(entity, target)) return entity.entity_id;
+  }
+  return null;
+}
+
+function findFallbackSubTemperatureEntity(entities) {
+  for (const entity of entities || []) {
+    if (!matchesHeaderTelemetryTarget(entity, "sub_temperature")) continue;
+    const text = entityText(entity);
+    if (text.includes("cpu") || text.includes("processor")) continue;
+    return entity.entity_id;
+  }
+  return null;
+}
+
+function classifyHeaderTelemetryWarningType(entity) {
+  if (matchesHeaderTelemetryTarget(entity, "cpu_utilization")) return "header_cpu";
+  if (matchesHeaderTelemetryTarget(entity, "memory_utilization")) return "header_memory";
+  if (matchesHeaderTelemetryTarget(entity, "cpu_temperature")) return "header_cpu_temperature";
+  if (matchesHeaderTelemetryTarget(entity, "temperature")) return "header_temperature";
+  if (matchesHeaderTelemetryTarget(entity, "sub_temperature")) return "header_temperature";
+  return null;
+}
+
 export function getDeviceTelemetry(entities) {
+  const coreCpuUtilization = findHeaderTelemetryEntity(entities, "cpu_utilization");
+  const coreCpuTemperature = findHeaderTelemetryEntity(entities, "cpu_temperature");
+  const coreMemoryUtilization = findHeaderTelemetryEntity(entities, "memory_utilization");
+  const coreDeviceTemperature =
+    findHeaderTelemetryEntity(entities, "temperature") ||
+    findFallbackSubTemperatureEntity(entities);
+
   return {
     cpu_utilization_entity:
+      coreCpuUtilization ||
       findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
       findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
     cpu_temperature_entity:
-      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]) ||
+      coreCpuTemperature ||
+      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) ||
       findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
     memory_utilization_entity:
+      coreMemoryUtilization ||
       findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
       findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
     temperature_entity:
+      coreDeviceTemperature ||
       findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) ||
       findSystemStatEntity(
         entities,
@@ -753,6 +883,9 @@ export async function getUnifiDevices(hass) {
 // ─────────────────────────────────────────────────
 
 function classifyRelevantEntityType(entity) {
+  const headerTelemetryType = classifyHeaderTelemetryWarningType(entity);
+  if (headerTelemetryType) return headerTelemetryType;
+
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
   const tk = lower(entity.translation_key || "");
@@ -852,6 +985,10 @@ export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     rx_tx: [],
     power_cycle: [],
     link: [],
+    header_cpu: [],
+    header_memory: [],
+    header_cpu_temperature: [],
+    header_temperature: [],
   };
   const hidden = {
     port_switch: [],
@@ -861,6 +998,10 @@ export async function getRelevantEntityWarningsForDevice(hass, deviceId) {
     rx_tx: [],
     power_cycle: [],
     link: [],
+    header_cpu: [],
+    header_memory: [],
+    header_cpu_temperature: [],
+    header_temperature: [],
   };
 
   for (const entity of allForDevice) {
@@ -1821,6 +1962,74 @@ export function formatState(hass, entityId) {
   if (!Number.isNaN(num)) return unit ? `${num.toFixed(2)} ${unit}` : String(num.toFixed(2));
 
   return val;
+}
+
+export function humanizeDurationSeconds(totalSeconds) {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours || days) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
+
+function looksLikeTimestamp(value) {
+  return /^\d{4}-\d{2}-\d{2}(?:[T\s]|$)/.test(String(value || "").trim());
+}
+
+export function isUptimeTimestampState(obj) {
+  if (!obj) return false;
+
+  const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
+  const originalDeviceClass = String(obj.attributes?.original_device_class || "").toLowerCase().trim();
+  const isUptimeTimestamp =
+    deviceClass === "uptime" ||
+    deviceClass === "timestamp" ||
+    originalDeviceClass === "uptime" ||
+    originalDeviceClass === "timestamp";
+  if (!isUptimeTimestamp) return false;
+
+  const rawState = String(obj.state ?? "").trim();
+  return looksLikeTimestamp(rawState) && Number.isFinite(Date.parse(rawState));
+}
+
+export function formatUptimeState(hass, entityId, now = Date.now()) {
+  const obj = stateObj(hass, entityId);
+  if (!obj) return "—";
+
+  const rawState = String(obj.state ?? "").trim();
+  if (!rawState || rawState === "unavailable" || rawState === "unknown") return "—";
+
+  if (isUptimeTimestampState(obj)) {
+    const parsedMs = Date.parse(rawState);
+    const nowMs = Number(now);
+    if (Number.isFinite(parsedMs) && Number.isFinite(nowMs)) {
+      return humanizeDurationSeconds((nowMs - parsedMs) / 1000);
+    }
+  }
+
+  const raw = Number.parseFloat(rawState.replace(",", "."));
+  if (!Number.isFinite(raw)) return formatState(hass, entityId);
+
+  const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
+  if (["s", "sec", "second", "seconds"].includes(unit)) {
+    return humanizeDurationSeconds(raw);
+  }
+  if (["min", "mins", "minute", "minutes"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 60);
+  }
+  if (["h", "hr", "hour", "hours"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 3600);
+  }
+  if (["d", "day", "days"].includes(unit)) {
+    return humanizeDurationSeconds(raw * 86400);
+  }
+
+  return formatState(hass, entityId);
 }
 
 export function getPoeStatus(hass, port) {

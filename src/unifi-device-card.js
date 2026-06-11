@@ -2,11 +2,13 @@ import {
   applyGatewayPortOverrides,
   discoverSpecialPorts,
   formatState,
+  formatUptimeState,
   getDeviceContext,
   getPoeStatus,
   getPortLinkText,
   getPortSpeedText,
   hasTraffic,
+  isUptimeTimestampState,
   isSfpLikePort,
   isOn,
   isPortConnected,
@@ -51,6 +53,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._resizeObserver = null;
+    this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
     this._lastMeasuredPanelWidth = 0;
     this._cardSize = 8;
@@ -173,11 +176,13 @@ class UnifiDeviceCard extends HTMLElement {
       this._render();
     });
     this._resizeObserver.observe(this);
+    this._syncUptimeRefreshTimer();
   }
 
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._clearUptimeRefreshTimer();
   }
 
   setConfig(config) {
@@ -191,6 +196,7 @@ class UnifiDeviceCard extends HTMLElement {
     });
 
     if (oldDeviceId !== newDeviceId) {
+      this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
@@ -276,6 +282,38 @@ class UnifiDeviceCard extends HTMLElement {
     return translated === key ? raw : translated;
   }
 
+  _clearUptimeRefreshTimer() {
+    if (!this._uptimeRefreshTimer) return;
+    clearTimeout(this._uptimeRefreshTimer);
+    this._uptimeRefreshTimer = null;
+  }
+
+  _isTimestampUptimeEntity(entityId) {
+    if (!entityId || !this._hass) return false;
+    return isUptimeTimestampState(stateObj(this._hass, entityId));
+  }
+
+  _syncUptimeRefreshTimer() {
+    const needsRefresh =
+      this.isConnected &&
+      this._ctx?.type === "access_point" &&
+      this._isTimestampUptimeEntity(this._ctx?.uptime_entity);
+    if (!needsRefresh) {
+      this._clearUptimeRefreshTimer();
+      return;
+    }
+
+    if (this._uptimeRefreshTimer) return;
+
+    const now = Date.now();
+    const nextMinuteDelay = 60000 - (now % 60000);
+    this._uptimeRefreshTimer = setTimeout(() => {
+      this._uptimeRefreshTimer = null;
+      if (!this.isConnected) return;
+      this._render();
+    }, nextMinuteDelay || 60000);
+  }
+
   _cardBgStyle() {
     const color = this._config?.background_color || "var(--card-background-color)";
     const opacityRaw = Number.parseInt(this._config?.background_opacity, 10);
@@ -329,8 +367,16 @@ class UnifiDeviceCard extends HTMLElement {
     return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
 
+  _telemetryEnabled() {
+    return this._config?.show_telemetry !== false;
+  }
+
   _apCompactHeaderTelemetryEnabled() {
-    return this._ctx?.type === "access_point" && this._config?.ap_compact_show_header_telemetry === true;
+    return (
+      this._ctx?.type === "access_point" &&
+      this._telemetryEnabled() &&
+      this._config?.ap_compact_show_header_telemetry === true
+    );
   }
 
   _maxPortColumns() {
@@ -400,19 +446,6 @@ class UnifiDeviceCard extends HTMLElement {
     return unit ? `${intValue} ${unit}` : String(intValue);
   }
 
-  _humanizeDurationSeconds(totalSeconds) {
-    const seconds = Math.max(0, Math.round(totalSeconds));
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours || days) parts.push(`${hours}h`);
-    parts.push(`${minutes}m`);
-    return parts.join(" ");
-  }
-
   _apStatusRaw(entityId) {
     if (!entityId || !this._hass) return "—";
     const obj = stateObj(this._hass, entityId);
@@ -427,39 +460,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _apUptimeState(entityId) {
     if (!entityId || !this._hass) return "—";
-    const obj = stateObj(this._hass, entityId);
-    if (!obj) return "—";
-
-    const rawState = String(obj.state ?? "").trim();
-    const deviceClass = String(obj.attributes?.device_class || "").toLowerCase().trim();
-    if (deviceClass === "timestamp") {
-      const parsed = new Date(rawState);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(this._hass?.locale?.language || undefined, {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-    }
-
-    const raw = Number.parseFloat(String(obj.state ?? "").replace(",", "."));
-    if (!Number.isFinite(raw)) return formatState(this._hass, entityId);
-
-    const unit = String(obj.attributes?.unit_of_measurement || "").toLowerCase().trim();
-    if (["s", "sec", "second", "seconds"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw);
-    }
-    if (["min", "mins", "minute", "minutes"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 60);
-    }
-    if (["h", "hr", "hour", "hours"].includes(unit)) {
-      return this._humanizeDurationSeconds(raw * 3600);
-    }
-
-    return formatState(this._hass, entityId);
+    return formatUptimeState(this._hass, entityId);
   }
 
   _apLedColorValue() {
@@ -529,6 +530,23 @@ class UnifiDeviceCard extends HTMLElement {
     const token = String(value ?? "").trim();
     if (!token) return fallback;
     return /^[a-z0-9_-]+$/i.test(token) ? token : fallback;
+  }
+
+  _formatEntityName(entityId, fallback = "") {
+    const fallbackName = String(fallback ?? "").trim();
+    const obj = entityId ? this._hass?.states?.[entityId] : null;
+    const formatter = this._hass?.formatEntityName;
+
+    if (obj && typeof formatter === "function") {
+      try {
+        const formatted = String(formatter(obj) ?? "").trim();
+        if (formatted) return formatted;
+      } catch (err) {
+        // Keep older Home Assistant versions and unexpected formatter failures silent.
+      }
+    }
+
+    return fallbackName;
   }
 
   _apUplinkTooltip(uplink) {
@@ -628,12 +646,14 @@ class UnifiDeviceCard extends HTMLElement {
 
   _extractClientNameFromStateObj(obj, entityId) {
     const attrs = obj?.attributes || {};
-    const friendly = String(attrs.friendly_name || "").trim();
-    if (friendly) return friendly;
-    return String(entityId || "")
-      .replace(/^device_tracker\./i, "")
-      .replace(/_/g, " ")
-      .trim();
+    const fallback =
+      String(attrs.friendly_name || "").trim() ||
+      String(entityId || "")
+        .replace(/^device_tracker\./i, "")
+        .replace(/_/g, " ")
+        .trim();
+
+    return this._formatEntityName(entityId, fallback);
   }
 
   _extractPortFromAttributes(attrs, entityId = "") {
@@ -782,13 +802,55 @@ class UnifiDeviceCard extends HTMLElement {
     return { specials: specialsRaw, numbered: numberedRaw };
   }
 
-  _hasRelevantStateChanges(previousHass, nextHass) {
-    const entities = this._ctx?.entities || [];
-    if (!Array.isArray(entities) || entities.length === 0) return true;
+  _relevantStateEntityIds() {
+    const ids = new Set();
+    for (const entity of this._ctx?.entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
 
-    for (const entity of entities) {
-      const id = entity?.entity_id;
-      if (!id) continue;
+    const directEntityKeys = [
+      "cpu_utilization_entity",
+      "cpu_temperature_entity",
+      "memory_utilization_entity",
+      "temperature_entity",
+      "online_entity",
+      "uptime_entity",
+      "clients_entity",
+      "ap_status_entity",
+      "led_switch_entity",
+      "led_color_entity",
+      "reboot_entity",
+    ];
+    for (const key of directEntityKeys) {
+      const entityId = this._ctx?.[key];
+      if (entityId) ids.add(entityId);
+    }
+
+    const { specials, numbered } = this._buildSlotData(this._ctx);
+    const portEntityKeys = [
+      "link_entity",
+      "speed_entity",
+      "poe_switch_entity",
+      "poe_power_entity",
+      "port_switch_entity",
+      "power_cycle_entity",
+      "rx_entity",
+      "tx_entity",
+    ];
+    for (const slot of [...specials, ...numbered]) {
+      for (const key of portEntityKeys) {
+        if (slot?.[key]) ids.add(slot[key]);
+      }
+    }
+
+    return ids;
+  }
+
+  _hasRelevantStateChanges(previousHass, nextHass) {
+    const entityIds = this._relevantStateEntityIds();
+    if (!entityIds.size) return true;
+
+    for (const id of entityIds) {
       if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
     }
 
@@ -1120,7 +1182,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _headerMetrics() {
-    if (!this._ctx || !this._hass) return [];
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
 
     const metrics = [
       { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },
@@ -2121,6 +2183,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
+      this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
@@ -2438,6 +2501,30 @@ if (!customElements.get("unifi-device-card")) {
   customElements.define("unifi-device-card", UnifiDeviceCard);
 }
 
+function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
+  const id = String(entityId || "").trim().toLowerCase();
+  if (!id || !id.includes(".")) return null;
+
+  const obj = hass?.states?.[entityId];
+  const attrs = obj?.attributes || {};
+  const friendly = String(attrs.friendly_name || "").toLowerCase();
+  const attribution = String(attrs.attribution || "").toLowerCase();
+  const hasUnifiHint =
+    id.includes("unifi") ||
+    id.includes("ubiquiti") ||
+    friendly.includes("unifi") ||
+    friendly.includes("ubiquiti") ||
+    attribution.includes("unifi") ||
+    attribution.includes("ubiquiti");
+
+  const hasUniFiPrefix = /^(sensor|switch|button|binary_sensor|number|select|update|device_tracker)\.unifi_/i.test(id);
+  const hasUnifiPortPattern = /(?:^|[_-])(port(?:[_-]\d+)?|link[_-]speed|poe[_-]power|power[_-]cycle)(?:[_-]|$)/i.test(id);
+
+  if (!hasUniFiPrefix && !(hasUnifiHint && hasUnifiPortPattern)) return null;
+
+  return { type: "custom:unifi-device-card" };
+}
+
 window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
   window.customCards.push({
@@ -2446,6 +2533,7 @@ if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
     description: `Lovelace card for UniFi devices (v${VERSION}).`,
     preview: true,
     documentationURL: "https://github.com/bluenazgul/unifi-device-card",
+    getEntitySuggestion: getUnifiDeviceCardEntitySuggestion,
   });
 }
 
