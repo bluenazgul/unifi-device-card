@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.4-dev */
+/* UniFi Device Card 0.0.0-dev.0085180 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1900,6 +1900,22 @@ function normalize(value) {
 function lower(value) {
   return normalize(value).toLowerCase();
 }
+function entityText(entity) {
+  const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object" ? Object.values(entity.translation_placeholders) : [];
+  return lower(
+    [
+      entity?.entity_id,
+      entity?.unique_id,
+      entity?.original_name,
+      entity?.name,
+      entity?.platform,
+      entity?.device_class,
+      entity?.translation_key,
+      entity?.original_device_class,
+      ...translationValues
+    ].filter(Boolean).join(" ")
+  );
+}
 function isUnifiConfigEntry(entry) {
   const domain = lower(entry?.domain);
   const title = lower(entry?.title);
@@ -2100,37 +2116,65 @@ function extractFirmware(device) {
   if (normalize(device?.sw_version)) return normalize(device.sw_version);
   return "";
 }
+function isSensorEntity(entity) {
+  return lower(entity?.entity_id).startsWith("sensor.");
+}
 function findDeviceEntityByPatterns(entities, patterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (patterns.some((pattern) => id.includes(pattern))) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (patterns.some((pattern) => text.includes(pattern))) {
       return entity.entity_id;
     }
   }
   return null;
 }
-function isPortLevelTelemetrySensor(entityId) {
-  const id = lower(entityId);
-  return hasIndexedPortId(id) || id.includes("_wan_") || id.includes("link_speed") || id.includes("_rx") || id.includes("_tx") || id.includes("throughput");
+function isPortLevelTelemetrySensor(entity) {
+  const text = typeof entity === "string" ? lower(entity) : entityText(entity);
+  return hasIndexedPortId(text) || text.includes("_wan_") || text.includes("link_speed") || text.includes("port_link_speed") || text.includes("port_bandwidth") || text.includes("poe_power") || text.includes("_rx") || text.includes("_tx") || text.includes("throughput");
+}
+function findCoreDeviceTelemetryEntity(entities, matchFn) {
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const text = entityText(entity);
+    if (matchFn(entity, text)) return entity.entity_id;
+  }
+  return null;
 }
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (isPortLevelTelemetrySensor(id)) continue;
-    if (!includePatterns.some((pattern) => id.includes(pattern))) continue;
-    if (excludePatterns.some((pattern) => id.includes(pattern))) continue;
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
+    if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
     return entity.entity_id;
   }
   return null;
 }
 function getDeviceTelemetry(entities) {
+  const coreCpuUtilization = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("cpu_utilization-")
+  );
+  const coreCpuTemperature = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => text.includes("temperature-cpu-") || entity.translation_key === "device_sub_temperature" && text.includes("cpu")
+  );
+  const coreMemoryUtilization = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("memory_utilization-")
+  );
+  const coreDeviceTemperature = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => entity.translation_key === "device_temperature" || text.includes("device_temperature-")
+  );
   return {
-    cpu_utilization_entity: findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
-    cpu_temperature_entity: findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
-    memory_utilization_entity: findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
-    temperature_entity: findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) || findSystemStatEntity(
+    cpu_utilization_entity: coreCpuUtilization || findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
+    cpu_temperature_entity: coreCpuTemperature || findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
+    memory_utilization_entity: coreMemoryUtilization || findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
+    temperature_entity: coreDeviceTemperature || findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) || findSystemStatEntity(
       entities,
       ["temperature", "temp"],
       ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"]
@@ -3270,6 +3314,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Enabled by default. When disabled, only the model/firmware line is shown.",
     editor_name_label: "Display name text",
     editor_name_hint: "Optional \u2014 updates automatically when switching devices unless you changed it manually",
+    editor_telemetry_toggle_label: "Header telemetry",
+    editor_telemetry_toggle_text: "Show telemetry data in the card header",
+    editor_telemetry_toggle_hint: "Enabled by default. Disable to hide CPU, memory, and temperature rows in the header.",
     editor_panel_toggle_label: "Front panel",
     editor_panel_toggle_text: "Show front panel hardware view",
     editor_panel_toggle_hint: "Enabled by default. Disable to hide the visual front panel.",
@@ -3423,6 +3470,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Standardm\xE4\xDFig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
     editor_name_label: "Text f\xFCr den Anzeigenamen",
     editor_name_hint: "Optional \u2014 wird beim Ger\xE4tewechsel automatisch aktualisiert, solange du ihn nicht manuell ge\xE4ndert hast",
+    editor_telemetry_toggle_label: "Header-Telemetrie",
+    editor_telemetry_toggle_text: "Telemetriedaten im Karten-Header anzeigen",
+    editor_telemetry_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet CPU-, Speicher- und Temperaturzeilen im Header aus.",
     editor_panel_toggle_label: "Frontpanel",
     editor_panel_toggle_text: "Hardware-Frontpanel anzeigen",
     editor_panel_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
@@ -3576,6 +3626,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
     editor_name_label: "Tekst voor de weergavenaam",
     editor_name_hint: "Optioneel \u2014 wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
+    editor_telemetry_toggle_label: "Headertelemetrie",
+    editor_telemetry_toggle_text: "Telemetriegegevens in de kaartkop tonen",
+    editor_telemetry_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt CPU-, geheugen- en temperatuurregels in de kop.",
     editor_panel_toggle_label: "Frontpaneel",
     editor_panel_toggle_text: "Hardware-frontpaneel tonen",
     editor_panel_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
@@ -3726,6 +3779,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Activ\xE9 par d\xE9faut. Si d\xE9sactiv\xE9, seule la ligne mod\xE8le/firmware est affich\xE9e.",
     editor_name_label: "Nom d'affichage",
     editor_name_hint: "Optionnel \u2014 par d\xE9faut le nom de l'appareil",
+    editor_telemetry_toggle_label: "T\xE9l\xE9m\xE9trie d\u2019en-t\xEAte",
+    editor_telemetry_toggle_text: "Afficher les donn\xE9es de t\xE9l\xE9m\xE9trie dans l\u2019en-t\xEAte",
+    editor_telemetry_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer les lignes CPU, m\xE9moire et temp\xE9rature dans l\u2019en-t\xEAte.",
     editor_panel_toggle_label: "Panneau avant",
     editor_panel_toggle_text: "Afficher la vue mat\xE9rielle du panneau avant",
     editor_panel_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer la vue visuelle des ports.",
@@ -3876,6 +3932,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Activado por defecto. Si se desactiva, solo se muestra la l\xEDnea de modelo/firmware.",
     editor_name_label: "Nombre para mostrar",
     editor_name_hint: "Opcional \u2014 por defecto, el nombre del dispositivo",
+    editor_telemetry_toggle_label: "Telemetr\xEDa del encabezado",
+    editor_telemetry_toggle_text: "Mostrar datos de telemetr\xEDa en el encabezado",
+    editor_telemetry_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar CPU, memoria y temperatura en el encabezado.",
     editor_panel_toggle_label: "Panel frontal",
     editor_panel_toggle_text: "Mostrar vista de hardware del panel frontal",
     editor_panel_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar la vista visual del panel.",
@@ -4026,6 +4085,9 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label: "Nome visualizzato",
     editor_name_hint: "Opzionale \u2014 per impostazione predefinita il nome del dispositivo",
+    editor_telemetry_toggle_label: "Telemetria header",
+    editor_telemetry_toggle_text: "Mostra i dati di telemetria nell\u2019header",
+    editor_telemetry_toggle_hint: "Abilitato per default. Disattiva per nascondere CPU, memoria e temperatura nell\u2019header.",
     editor_panel_toggle_label: "Pannello frontale",
     editor_panel_toggle_text: "Mostra la vista hardware del pannello frontale",
     editor_panel_toggle_hint: "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
@@ -4131,6 +4193,9 @@ var TRANSLATIONS = {
 };
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text: "Visa telemetridata i kortets header",
+  editor_telemetry_toggle_hint: "Aktiverat som standard. Inaktivera f\xF6r att d\xF6lja CPU-, minnes- och temperaturrader i headern.",
   editor_colors_open: "\xC4ndra f\xE4rger",
   editor_colors_back: "Tillbaka till editorn",
   editor_colors_apply: "Anv\xE4nd f\xE4rger",
@@ -4139,6 +4204,9 @@ TRANSLATIONS.sv = {
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text: "Vis telemetridata i kortets header",
+  editor_telemetry_toggle_hint: "Aktiveret som standard. Sl\xE5 fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
   editor_colors_open: "Skift farver",
   editor_colors_back: "Tilbage til editor",
   editor_colors_apply: "Anvend farver",
@@ -4147,6 +4215,9 @@ TRANSLATIONS.da = {
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text: "Vis telemetridata i kortoverskriften",
+  editor_telemetry_toggle_hint: "Aktivert som standard. Sl\xE5 av for \xE5 skjule CPU-, minne- og temperaturrader i overskriften.",
   editor_colors_open: "Endre farger",
   editor_colors_back: "Tilbake til editor",
   editor_colors_apply: "Bruk farger",
@@ -4155,6 +4226,9 @@ TRANSLATIONS.no = {
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Otsakkeen telemetria",
+  editor_telemetry_toggle_text: "N\xE4yt\xE4 telemetriatiedot kortin otsakkeessa",
+  editor_telemetry_toggle_hint: "K\xE4yt\xF6ss\xE4 oletuksena. Poista k\xE4yt\xF6st\xE4 piilottaaksesi CPU-, muisti- ja l\xE4mp\xF6tilarivit otsakkeesta.",
   editor_colors_open: "Vaihda v\xE4rej\xE4",
   editor_colors_back: "Takaisin editoriin",
   editor_colors_apply: "K\xE4yt\xE4 v\xE4rit",
@@ -4163,6 +4237,9 @@ TRANSLATIONS.fi = {
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Telemetria nag\u0142\xF3wka",
+  editor_telemetry_toggle_text: "Poka\u017C dane telemetryczne w nag\u0142\xF3wku karty",
+  editor_telemetry_toggle_hint: "Domy\u015Blnie w\u0142\u0105czone. Wy\u0142\u0105cz, aby ukry\u0107 w nag\u0142\xF3wku wiersze CPU, pami\u0119ci i temperatury.",
   editor_colors_open: "Zmie\u0144 kolory",
   editor_colors_back: "Wr\xF3\u0107 do edytora",
   editor_colors_apply: "Zastosuj kolory",
@@ -4171,6 +4248,9 @@ TRANSLATIONS.pl = {
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Telemetrie z\xE1hlav\xED",
+  editor_telemetry_toggle_text: "Zobrazit telemetrii v z\xE1hlav\xED karty",
+  editor_telemetry_toggle_hint: "Ve v\xFDchoz\xEDm stavu zapnuto. Vypnut\xEDm skryjete \u0159\xE1dky CPU, pam\u011Bti a teploty v z\xE1hlav\xED.",
   editor_colors_open: "Zm\u011Bnit barvy",
   editor_colors_back: "Zp\u011Bt do editoru",
   editor_colors_apply: "Pou\u017E\xEDt barvy",
@@ -4564,6 +4644,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     if (next.edit_special_ports !== true) delete next.edit_special_ports;
     if (next.show_name !== false) delete next.show_name;
+    if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
@@ -4611,6 +4692,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _onShowNameChange(ev) {
     const checked = !!ev.target.checked;
     this._emitConfig({ show_name: checked ? void 0 : false });
+  }
+  _onShowTelemetryChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_telemetry: checked ? void 0 : false });
   }
   _onBackgroundInput(ev) {
     this._emitConfig({ background_color: ev.target.value || void 0 });
@@ -5123,6 +5208,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
+    const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
@@ -5135,7 +5221,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const portSize = clampPortSize(this._config?.port_size);
     const apScale = clampApScale(this._config?.ap_scale);
     const apCompactView = this._config?.ap_compact_view === true;
-    const apCompactShowHeaderTelemetry = this._config?.ap_compact_show_header_telemetry === true;
+    const apCompactShowHeaderTelemetry = showTelemetry && this._config?.ap_compact_show_header_telemetry === true;
     const editSpecialPorts = this._config?.edit_special_ports === true || !!this._config?.wan_port || !!this._config?.wan2_port;
     const availablePortSlots = mergePortsWithLayout(this._deviceCtx?.layout, this._deviceCtx?.numberedPorts || []);
     const discoveredPorts = availablePortSlots.map((slot) => slot?.port).filter((port) => Number.isInteger(port) && port > 0);
@@ -5184,6 +5270,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_name_hint"))}</div>
         </div>
 
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_telemetry_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_telemetry_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
+        </div>
+
         ${isSwitchOrGateway ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
@@ -5222,7 +5317,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         <div class="field">
           <label>${escapeHtml(this._t("editor_ap_compact_header_telemetry_label"))}</label>
           <label class="checkbox-row">
-            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""}>
+            <input id="ap_compact_show_header_telemetry" type="checkbox" ${apCompactShowHeaderTelemetry ? "checked" : ""} ${showTelemetry ? "" : "disabled"}>
             <span>${escapeHtml(this._t("editor_ap_compact_header_telemetry_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_ap_compact_header_telemetry_hint"))}</div>
@@ -5329,6 +5424,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
     this.shadowRoot.getElementById("device_id")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
     this.shadowRoot.getElementById("show_name")?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
@@ -5370,7 +5466,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.4-dev";
+var VERSION = "0.0.0-dev.0085180";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -5656,8 +5752,11 @@ var UnifiDeviceCard = class extends HTMLElement {
   _apCompactViewEnabled() {
     return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
+  _telemetryEnabled() {
+    return this._config?.show_telemetry !== false;
+  }
   _apCompactHeaderTelemetryEnabled() {
-    return this._ctx?.type === "access_point" && this._config?.ap_compact_show_header_telemetry === true;
+    return this._ctx?.type === "access_point" && this._telemetryEnabled() && this._config?.ap_compact_show_header_telemetry === true;
   }
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
@@ -5985,12 +6084,50 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     return { specials: specialsRaw, numbered: numberedRaw };
   }
+  _relevantStateEntityIds() {
+    const ids = /* @__PURE__ */ new Set();
+    for (const entity of this._ctx?.entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
+    const directEntityKeys = [
+      "cpu_utilization_entity",
+      "cpu_temperature_entity",
+      "memory_utilization_entity",
+      "temperature_entity",
+      "online_entity",
+      "uptime_entity",
+      "clients_entity",
+      "ap_status_entity",
+      "led_switch_entity",
+      "led_color_entity",
+      "reboot_entity"
+    ];
+    for (const key of directEntityKeys) {
+      const entityId = this._ctx?.[key];
+      if (entityId) ids.add(entityId);
+    }
+    const { specials, numbered } = this._buildSlotData(this._ctx);
+    const portEntityKeys = [
+      "link_entity",
+      "speed_entity",
+      "poe_switch_entity",
+      "poe_power_entity",
+      "port_switch_entity",
+      "power_cycle_entity",
+      "rx_entity",
+      "tx_entity"
+    ];
+    for (const slot of [...specials, ...numbered]) {
+      for (const key of portEntityKeys) {
+        if (slot?.[key]) ids.add(slot[key]);
+      }
+    }
+    return ids;
+  }
   _hasRelevantStateChanges(previousHass, nextHass) {
-    const entities = this._ctx?.entities || [];
-    if (!Array.isArray(entities) || entities.length === 0) return true;
-    for (const entity of entities) {
-      const id = entity?.entity_id;
-      if (!id) continue;
+    const entityIds = this._relevantStateEntityIds();
+    if (!entityIds.size) return true;
+    for (const id of entityIds) {
       if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
     }
     return false;
@@ -6230,7 +6367,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return fw ? `${model} \xB7 FW ${fw}` : model;
   }
   _headerMetrics() {
-    if (!this._ctx || !this._hass) return [];
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
     const metrics = [
       { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },
       { key: "cpu_temperature", entity: this._ctx.cpu_temperature_entity },
