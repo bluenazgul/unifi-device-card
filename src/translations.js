@@ -63,6 +63,9 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Enabled by default. When disabled, only the model/firmware line is shown.",
     editor_name_label:        "Display name text",
     editor_name_hint:         "Optional — updates automatically when switching devices unless you changed it manually",
+    editor_telemetry_toggle_label: "Header telemetry",
+    editor_telemetry_toggle_text:  "Show telemetry data in the card header",
+    editor_telemetry_toggle_hint:  "Enabled by default. Disable to hide CPU, memory, and temperature rows in the header.",
     editor_panel_toggle_label: "Front panel",
     editor_panel_toggle_text:  "Show front panel hardware view",
     editor_panel_toggle_hint:  "Enabled by default. Disable to hide the visual front panel.",
@@ -231,6 +234,9 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Standardmäßig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
     editor_name_label:        "Text für den Anzeigenamen",
     editor_name_hint:         "Optional — wird beim Gerätewechsel automatisch aktualisiert, solange du ihn nicht manuell geändert hast",
+    editor_telemetry_toggle_label: "Header-Telemetrie",
+    editor_telemetry_toggle_text:  "Telemetriedaten im Karten-Header anzeigen",
+    editor_telemetry_toggle_hint:  "Standardmäßig aktiviert. Deaktivieren blendet CPU-, Speicher- und Temperaturzeilen im Header aus.",
     editor_panel_toggle_label: "Frontpanel",
     editor_panel_toggle_text:  "Hardware-Frontpanel anzeigen",
     editor_panel_toggle_hint:  "Standardmäßig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
@@ -399,6 +405,9 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
     editor_name_label:        "Tekst voor de weergavenaam",
     editor_name_hint:         "Optioneel — wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
+    editor_telemetry_toggle_label: "Headertelemetrie",
+    editor_telemetry_toggle_text:  "Telemetriegegevens in de kaartkop tonen",
+    editor_telemetry_toggle_hint:  "Standaard ingeschakeld. Uitschakelen verbergt CPU-, geheugen- en temperatuurregels in de kop.",
     editor_panel_toggle_label: "Frontpaneel",
     editor_panel_toggle_text:  "Hardware-frontpaneel tonen",
     editor_panel_toggle_hint:  "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
@@ -563,6 +572,9 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Activé par défaut. Si désactivé, seule la ligne modèle/firmware est affichée.",
     editor_name_label:     "Nom d'affichage",
     editor_name_hint:      "Optionnel — par défaut le nom de l'appareil",
+    editor_telemetry_toggle_label: "Télémétrie d’en-tête",
+    editor_telemetry_toggle_text:  "Afficher les données de télémétrie dans l’en-tête",
+    editor_telemetry_toggle_hint:  "Activé par défaut. Désactivez pour masquer les lignes CPU, mémoire et température dans l’en-tête.",
     editor_panel_toggle_label: "Panneau avant",
     editor_panel_toggle_text:  "Afficher la vue matérielle du panneau avant",
     editor_panel_toggle_hint:  "Activé par défaut. Désactivez pour masquer la vue visuelle des ports.",
@@ -727,6 +739,9 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Activado por defecto. Si se desactiva, solo se muestra la línea de modelo/firmware.",
     editor_name_label:     "Nombre para mostrar",
     editor_name_hint:      "Opcional — por defecto, el nombre del dispositivo",
+    editor_telemetry_toggle_label: "Telemetría del encabezado",
+    editor_telemetry_toggle_text:  "Mostrar datos de telemetría en el encabezado",
+    editor_telemetry_toggle_hint:  "Activado por defecto. Desactívalo para ocultar CPU, memoria y temperatura en el encabezado.",
     editor_panel_toggle_label: "Panel frontal",
     editor_panel_toggle_text:  "Mostrar vista de hardware del panel frontal",
     editor_panel_toggle_hint:  "Activado por defecto. Desactívalo para ocultar la vista visual del panel.",
@@ -891,6 +906,9 @@ const TRANSLATIONS = {
     editor_name_toggle_hint:  "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label:     "Nome visualizzato",
     editor_name_hint:      "Opzionale — per impostazione predefinita il nome del dispositivo",
+    editor_telemetry_toggle_label: "Telemetria header",
+    editor_telemetry_toggle_text:  "Mostra i dati di telemetria nell’header",
+    editor_telemetry_toggle_hint:  "Abilitato per default. Disattiva per nascondere CPU, memoria e temperatura nell’header.",
     editor_panel_toggle_label: "Pannello frontale",
     editor_panel_toggle_text:  "Mostra la vista hardware del pannello frontale",
     editor_panel_toggle_hint:  "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
@@ -1005,6 +1023,9 @@ const TRANSLATIONS = {
 
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text:  "Visa telemetridata i kortets header",
+  editor_telemetry_toggle_hint:  "Aktiverat som standard. Inaktivera för att dölja CPU-, minnes- och temperaturrader i headern.",
   editor_colors_open: "Ändra färger",
   editor_colors_back: "Tillbaka till editorn",
   editor_colors_apply: "Använd färger",
@@ -1014,6 +1035,9 @@ TRANSLATIONS.sv = {
 
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text:  "Vis telemetridata i kortets header",
+  editor_telemetry_toggle_hint:  "Aktiveret som standard. Slå fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
   editor_colors_open: "Skift farver",
   editor_colors_back: "Tilbage til editor",
   editor_colors_apply: "Anvend farver",
@@ -1023,6 +1047,9 @@ TRANSLATIONS.da = {
 
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Headertelemetri",
+  editor_telemetry_toggle_text:  "Vis telemetridata i kortoverskriften",
+  editor_telemetry_toggle_hint:  "Aktivert som standard. Slå av for å skjule CPU-, minne- og temperaturrader i overskriften.",
   editor_colors_open: "Endre farger",
   editor_colors_back: "Tilbake til editor",
   editor_colors_apply: "Bruk farger",
@@ -1032,6 +1059,9 @@ TRANSLATIONS.no = {
 
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Otsakkeen telemetria",
+  editor_telemetry_toggle_text:  "Näytä telemetriatiedot kortin otsakkeessa",
+  editor_telemetry_toggle_hint:  "Käytössä oletuksena. Poista käytöstä piilottaaksesi CPU-, muisti- ja lämpötilarivit otsakkeesta.",
   editor_colors_open: "Vaihda värejä",
   editor_colors_back: "Takaisin editoriin",
   editor_colors_apply: "Käytä värit",
@@ -1041,6 +1071,9 @@ TRANSLATIONS.fi = {
 
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Telemetria nagłówka",
+  editor_telemetry_toggle_text:  "Pokaż dane telemetryczne w nagłówku karty",
+  editor_telemetry_toggle_hint:  "Domyślnie włączone. Wyłącz, aby ukryć w nagłówku wiersze CPU, pamięci i temperatury.",
   editor_colors_open: "Zmień kolory",
   editor_colors_back: "Wróć do edytora",
   editor_colors_apply: "Zastosuj kolory",
@@ -1050,6 +1083,9 @@ TRANSLATIONS.pl = {
 
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_telemetry_toggle_label: "Telemetrie záhlaví",
+  editor_telemetry_toggle_text:  "Zobrazit telemetrii v záhlaví karty",
+  editor_telemetry_toggle_hint:  "Ve výchozím stavu zapnuto. Vypnutím skryjete řádky CPU, paměti a teploty v záhlaví.",
   editor_colors_open: "Změnit barvy",
   editor_colors_back: "Zpět do editoru",
   editor_colors_apply: "Použít barvy",
