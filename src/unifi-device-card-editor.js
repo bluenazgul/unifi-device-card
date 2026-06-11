@@ -728,6 +728,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
       "rx_tx",
       "power_cycle",
       "link",
+      "header_cpu",
+      "header_memory",
+      "header_cpu_temperature",
+      "header_temperature",
     ];
 
     return order

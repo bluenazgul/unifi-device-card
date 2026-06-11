@@ -174,6 +174,10 @@ const TRANSLATIONS = {
     warning_entity_rx_tx:       "RX/TX sensors",
     warning_entity_power_cycle: "power cycle buttons",
     warning_entity_link:        "link entities",
+    warning_entity_header_cpu:  "header CPU sensors",
+    warning_entity_header_memory: "header memory sensors",
+    warning_entity_header_cpu_temperature: "header CPU temperature sensors",
+    warning_entity_header_temperature: "header temperature sensors",
 
     // Device type labels (used in device selector)
     type_switch:  "Switch",
@@ -345,6 +349,10 @@ const TRANSLATIONS = {
     warning_entity_rx_tx:       "RX/TX-Sensoren",
     warning_entity_power_cycle: "Power-Cycle-Buttons",
     warning_entity_link:        "Link-Entities",
+    warning_entity_header_cpu:  "Header-CPU-Sensoren",
+    warning_entity_header_memory: "Header-Speichersensoren",
+    warning_entity_header_cpu_temperature: "Header-CPU-Temperatursensoren",
+    warning_entity_header_temperature: "Header-Temperatursensoren",
 
     // Device type labels
     type_switch:  "Switch",

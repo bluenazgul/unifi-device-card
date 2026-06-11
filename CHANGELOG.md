@@ -9,6 +9,7 @@
 ### 🐛 Bug Fixes
 - Refresh the card when discovered telemetry or port-state entities update even if those entities are hidden from the normal visible device entity list.
 - Prefer Home Assistant Core UniFi telemetry identifiers (`device_cpu_utilization`, `device_memory_utilization`, `device_temperature`, CPU sub-temperature) so renamed/localized entities from the aiounifi-backed integration are matched more reliably.
+- Detect disabled or hidden Home Assistant Core UniFi header telemetry sensors (`device_cpu_utilization`, `device_memory_utilization`, `device_temperature`, `device_sub_temperature`) in the editor warning.
 - Fix AP uptime rendering for Home Assistant `device_class: uptime` timestamp sensors so the card displays and refreshes an elapsed duration instead of `2026.00`.
 - Improve UniFi model recognition and same-family fallbacks for current devices reported by UniFi Network / aiounifi:
   - **Access points / bridges:** `G7LR`, `U7UKU`, `U6ENT`, `U6ENTIW`, `UAL6`, `UALR6`, `UAM6`, `UAP6`, `UAP6MP`, `U7-Pro-XG-Wall`, `U7-Pro-Outdoor`, `U7ENT` / `E7`, `E7-Campus`, `E7-Audience`, `UK-Ultra`, `UBB`, `UBB-XG`, `U-AirWire`, `UDB`, `UDB-IoT`, `UDB-Switch`, `UDB-Pro`, `UDB-Pro-Sector`.
