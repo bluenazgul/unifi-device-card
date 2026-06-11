@@ -367,8 +367,16 @@ class UnifiDeviceCard extends HTMLElement {
     return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
   }
 
+  _telemetryEnabled() {
+    return this._config?.show_telemetry !== false;
+  }
+
   _apCompactHeaderTelemetryEnabled() {
-    return this._ctx?.type === "access_point" && this._config?.ap_compact_show_header_telemetry === true;
+    return (
+      this._ctx?.type === "access_point" &&
+      this._telemetryEnabled() &&
+      this._config?.ap_compact_show_header_telemetry === true
+    );
   }
 
   _maxPortColumns() {
@@ -794,13 +802,55 @@ class UnifiDeviceCard extends HTMLElement {
     return { specials: specialsRaw, numbered: numberedRaw };
   }
 
-  _hasRelevantStateChanges(previousHass, nextHass) {
-    const entities = this._ctx?.entities || [];
-    if (!Array.isArray(entities) || entities.length === 0) return true;
+  _relevantStateEntityIds() {
+    const ids = new Set();
+    for (const entity of this._ctx?.entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
 
-    for (const entity of entities) {
-      const id = entity?.entity_id;
-      if (!id) continue;
+    const directEntityKeys = [
+      "cpu_utilization_entity",
+      "cpu_temperature_entity",
+      "memory_utilization_entity",
+      "temperature_entity",
+      "online_entity",
+      "uptime_entity",
+      "clients_entity",
+      "ap_status_entity",
+      "led_switch_entity",
+      "led_color_entity",
+      "reboot_entity",
+    ];
+    for (const key of directEntityKeys) {
+      const entityId = this._ctx?.[key];
+      if (entityId) ids.add(entityId);
+    }
+
+    const { specials, numbered } = this._buildSlotData(this._ctx);
+    const portEntityKeys = [
+      "link_entity",
+      "speed_entity",
+      "poe_switch_entity",
+      "poe_power_entity",
+      "port_switch_entity",
+      "power_cycle_entity",
+      "rx_entity",
+      "tx_entity",
+    ];
+    for (const slot of [...specials, ...numbered]) {
+      for (const key of portEntityKeys) {
+        if (slot?.[key]) ids.add(slot[key]);
+      }
+    }
+
+    return ids;
+  }
+
+  _hasRelevantStateChanges(previousHass, nextHass) {
+    const entityIds = this._relevantStateEntityIds();
+    if (!entityIds.size) return true;
+
+    for (const id of entityIds) {
       if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
     }
 
@@ -1132,7 +1182,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _headerMetrics() {
-    if (!this._ctx || !this._hass) return [];
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
 
     const metrics = [
       { key: "cpu_utilization", entity: this._ctx.cpu_utilization_entity },

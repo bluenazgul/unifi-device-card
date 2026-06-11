@@ -29,15 +29,21 @@ function lower(value) {
 }
 
 function entityText(entity) {
+  const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object"
+    ? Object.values(entity.translation_placeholders)
+    : [];
+
   return lower(
     [
-      entity.entity_id,
-      entity.original_name,
-      entity.name,
-      entity.platform,
-      entity.device_class,
-      entity.translation_key,
-      entity.original_device_class,
+      entity?.entity_id,
+      entity?.unique_id,
+      entity?.original_name,
+      entity?.name,
+      entity?.platform,
+      entity?.device_class,
+      entity?.translation_key,
+      entity?.original_device_class,
+      ...translationValues,
     ]
       .filter(Boolean)
       .join(" ")
@@ -361,53 +367,93 @@ function extractFirmware(device) {
 // Exported telemetry / reboot helpers
 // ─────────────────────────────────────────────────
 
+function isSensorEntity(entity) {
+  return lower(entity?.entity_id).startsWith("sensor.");
+}
+
 function findDeviceEntityByPatterns(entities, patterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (patterns.some((pattern) => id.includes(pattern))) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (patterns.some((pattern) => text.includes(pattern))) {
       return entity.entity_id;
     }
   }
   return null;
 }
 
-function isPortLevelTelemetrySensor(entityId) {
-  const id = lower(entityId);
+function isPortLevelTelemetrySensor(entity) {
+  const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return (
-    hasIndexedPortId(id) ||
-    id.includes("_wan_") ||
-    id.includes("link_speed") ||
-    id.includes("_rx") ||
-    id.includes("_tx") ||
-    id.includes("throughput")
+    hasIndexedPortId(text) ||
+    text.includes("_wan_") ||
+    text.includes("link_speed") ||
+    text.includes("port_link_speed") ||
+    text.includes("port_bandwidth") ||
+    text.includes("poe_power") ||
+    text.includes("_rx") ||
+    text.includes("_tx") ||
+    text.includes("throughput")
   );
+}
+
+function findCoreDeviceTelemetryEntity(entities, matchFn) {
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    if (matchFn(entity, entityText(entity))) return entity.entity_id;
+  }
+  return null;
 }
 
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
   for (const entity of entities || []) {
-    const id = lower(entity.entity_id);
-    if (!id.startsWith("sensor.")) continue;
-    if (isPortLevelTelemetrySensor(id)) continue;
-    if (!includePatterns.some((pattern) => id.includes(pattern))) continue;
-    if (excludePatterns.some((pattern) => id.includes(pattern))) continue;
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const text = entityText(entity);
+    if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
+    if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
     return entity.entity_id;
   }
   return null;
 }
 
 export function getDeviceTelemetry(entities) {
+  const coreCpuUtilization = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => entity.translation_key === "device_cpu_utilization" || text.includes("cpu_utilization-")
+  );
+  const coreCpuTemperature = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) =>
+      text.includes("temperature-cpu-") ||
+      (entity.translation_key === "device_sub_temperature" && text.includes("cpu"))
+  );
+  const coreMemoryUtilization = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => entity.translation_key === "device_memory_utilization" || text.includes("memory_utilization-")
+  );
+  const coreDeviceTemperature = findCoreDeviceTelemetryEntity(
+    entities,
+    (entity, text) => entity.translation_key === "device_temperature" || text.includes("device_temperature-")
+  );
+
   return {
     cpu_utilization_entity:
+      coreCpuUtilization ||
       findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
       findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
     cpu_temperature_entity:
-      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu"]) ||
+      coreCpuTemperature ||
+      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) ||
       findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
     memory_utilization_entity:
+      coreMemoryUtilization ||
       findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
       findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
     temperature_entity:
+      coreDeviceTemperature ||
       findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) ||
       findSystemStatEntity(
         entities,

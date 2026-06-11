@@ -214,6 +214,7 @@ special_port_label_color: "#60a5fa" # optional (special/WAN label + detail headl
 ap_led_color: "#2563eb"       # optional fallback (AP only; used if RGB LED color is not available)
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
+show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
 show_panel: true              # optional (default: true)
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
 ports_per_row: 8              # optional (switches only)
@@ -237,6 +238,7 @@ wan2_port: none               # optional (gateway only)
 | `device_id` | string | — | Home Assistant device registry ID of the UniFi device. |
 | `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
 | `show_name` | boolean | `true` | Show/hide the header title line. |
+| `show_telemetry` | boolean | `true` | Show/hide CPU, memory, and temperature telemetry rows in the card header. |
 | `background_color` | string | `var(--card-background-color)` | Any valid CSS color/token. |
 | `title_color` | string | theme default | Optional title text color. |
 | `telemetry_color` | string | theme default | Optional header telemetry color (CPU, memory, temperature values/labels). |
@@ -261,6 +263,8 @@ wan2_port: none               # optional (gateway only)
 | `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
 | `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
+
+Header telemetry is read from Home Assistant's UniFi Network sensor entities. The card prefers the stable Home Assistant Core UniFi identifiers behind those entities, so renamed or localized CPU, memory, and temperature sensors can still be matched when Home Assistant exposes them.
 
 > If `wan_port` or `wan2_port` is set in YAML, `edit_special_ports` is automatically treated as enabled in the editor and persisted.
 
