@@ -134,6 +134,7 @@ function hasInfrastructureEntitySignals(entities = []) {
   return entities.some((e) => {
     const id = lower(e?.entity_id);
     if (!id.startsWith("sensor.") && !id.startsWith("binary_sensor.")) return false;
+    const parsed = parseUnifiDeviceUniqueId(e?.unique_id);
     return (
       id.includes("cpu") ||
       id.includes("memory") ||
@@ -141,7 +142,8 @@ function hasInfrastructureEntitySignals(entities = []) {
       id.endsWith("_uptime") ||
       id.includes("_uptime_") ||
       id.endsWith("_clients") ||
-      id.includes("_clients_")
+      id.includes("_clients_") ||
+      ["uptime", "clients", "status"].includes(parsed?.feature)
     );
   });
 }
@@ -578,16 +580,19 @@ export function getDeviceOnlineEntity(entities) {
 
 const DEVICE_STAT_MATCHERS = {
   uptime: {
+    features: new Set(["uptime"]),
     translationKeys: new Set(["uptime", "device_uptime"]),
     textPatterns: ["uptime", "device_uptime"],
     fallbackId: (id) => id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"),
   },
   clients: {
-    translationKeys: new Set(["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"]),
-    textPatterns: ["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"],
+    features: new Set(["clients"]),
+    translationKeys: new Set(["clients", "device_clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"]),
+    textPatterns: ["clients", "device_clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"],
     fallbackId: (id) => id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"),
   },
   status: {
+    features: new Set(["status"]),
     translationKeys: new Set(["state", "status", "device_state", "device_status"]),
     textPatterns: ["state", "status", "device_state", "device_status"],
     fallbackId: (id) => id.endsWith("_state") || id.includes("_state_") || id.endsWith("_status") || id.includes("_status_"),
@@ -633,6 +638,11 @@ function findDeviceStatEntity(entities, stat) {
   if (!matcher) return null;
 
   const sensors = (entities || []).filter((entity) => lower(entity?.entity_id).startsWith("sensor."));
+
+  for (const entity of sensors) {
+    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+    if (parsed?.feature && matcher.features?.has(parsed.feature)) return entity.entity_id;
+  }
 
   for (const entity of sensors) {
     if (isUnambiguousDeviceStatTranslationKey(entity, stat, matcher)) return entity.entity_id;
