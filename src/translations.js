@@ -521,6 +521,10 @@ const TRANSLATIONS = {
     warning_entity_rx_tx:       "RX/TX-sensoren",
     warning_entity_power_cycle: "power cycle-knoppen",
     warning_entity_link:        "link-entiteiten",
+    warning_entity_header_cpu:  "CPU-sensoren in de header",
+    warning_entity_header_memory: "geheugensensoren in de header",
+    warning_entity_header_cpu_temperature: "CPU-temperatuursensoren in de header",
+    warning_entity_header_temperature: "temperatuursensoren in de header",
 
     type_switch:  "Switch",
     type_gateway: "Gateway",
@@ -688,6 +692,10 @@ const TRANSLATIONS = {
     warning_entity_rx_tx:       "capteurs RX/TX",
     warning_entity_power_cycle: "boutons de redémarrage PoE",
     warning_entity_link:        "entités de lien",
+    warning_entity_header_cpu:  "capteurs CPU d’en-tête",
+    warning_entity_header_memory: "capteurs mémoire d’en-tête",
+    warning_entity_header_cpu_temperature: "capteurs de température CPU d’en-tête",
+    warning_entity_header_temperature: "capteurs de température d’en-tête",
 
     type_switch:  "Switch",
     type_gateway: "Passerelle",
@@ -855,6 +863,10 @@ const TRANSLATIONS = {
     warning_entity_rx_tx:       "sensores RX/TX",
     warning_entity_power_cycle: "botones de reinicio PoE",
     warning_entity_link:        "entidades de enlace",
+    warning_entity_header_cpu:  "sensores de CPU del encabezado",
+    warning_entity_header_memory: "sensores de memoria del encabezado",
+    warning_entity_header_cpu_temperature: "sensores de temperatura de CPU del encabezado",
+    warning_entity_header_temperature: "sensores de temperatura del encabezado",
 
     type_switch:  "Switch",
     type_gateway: "Gateway",
@@ -1022,6 +1034,10 @@ const TRANSLATIONS = {
     warning_entity_rx_tx:       "sensori RX/TX",
     warning_entity_power_cycle: "pulsanti riavvio PoE",
     warning_entity_link:        "entità link",
+    warning_entity_header_cpu:  "sensori CPU dell’header",
+    warning_entity_header_memory: "sensori memoria dell’header",
+    warning_entity_header_cpu_temperature: "sensori temperatura CPU dell’header",
+    warning_entity_header_temperature: "sensori temperatura dell’header",
 
     type_switch:  "Switch",
     type_gateway: "Gateway",
@@ -1039,6 +1055,10 @@ TRANSLATIONS.sv = {
   editor_colors_apply: "Använd färger",
   editor_colors_reset_all: "Återställ alla färger",
   editor_bg_opacity_label: "Kortets transparens",
+  warning_entity_header_cpu:  "CPU-sensorer i headern",
+  warning_entity_header_memory: "minnessensorer i headern",
+  warning_entity_header_cpu_temperature: "CPU-temperatursensorer i headern",
+  warning_entity_header_temperature: "temperatursensorer i headern",
 };
 
 TRANSLATIONS.da = {
@@ -1051,6 +1071,10 @@ TRANSLATIONS.da = {
   editor_colors_apply: "Anvend farver",
   editor_colors_reset_all: "Nulstil alle farver",
   editor_bg_opacity_label: "Korttransparens",
+  warning_entity_header_cpu:  "CPU-sensorer i headeren",
+  warning_entity_header_memory: "hukommelsessensorer i headeren",
+  warning_entity_header_cpu_temperature: "CPU-temperatursensorer i headeren",
+  warning_entity_header_temperature: "temperatursensorer i headeren",
 };
 
 TRANSLATIONS.no = {
@@ -1063,6 +1087,10 @@ TRANSLATIONS.no = {
   editor_colors_apply: "Bruk farger",
   editor_colors_reset_all: "Tilbakestill alle farger",
   editor_bg_opacity_label: "Kortgjennomsiktighet",
+  warning_entity_header_cpu:  "CPU-sensorer i overskriften",
+  warning_entity_header_memory: "minnesensorer i overskriften",
+  warning_entity_header_cpu_temperature: "CPU-temperatursensorer i overskriften",
+  warning_entity_header_temperature: "temperatursensorer i overskriften",
 };
 
 TRANSLATIONS.fi = {
@@ -1075,6 +1103,10 @@ TRANSLATIONS.fi = {
   editor_colors_apply: "Käytä värit",
   editor_colors_reset_all: "Nollaa kaikki värit",
   editor_bg_opacity_label: "Kortin läpinäkyvyys",
+  warning_entity_header_cpu:  "otsakkeen CPU-anturit",
+  warning_entity_header_memory: "otsakkeen muistianturit",
+  warning_entity_header_cpu_temperature: "otsakkeen CPU-lämpötila-anturit",
+  warning_entity_header_temperature: "otsakkeen lämpötila-anturit",
 };
 
 TRANSLATIONS.pl = {
@@ -1087,6 +1119,10 @@ TRANSLATIONS.pl = {
   editor_colors_apply: "Zastosuj kolory",
   editor_colors_reset_all: "Resetuj wszystkie kolory",
   editor_bg_opacity_label: "Przezroczystość karty",
+  warning_entity_header_cpu:  "czujniki CPU w nagłówku",
+  warning_entity_header_memory: "czujniki pamięci w nagłówku",
+  warning_entity_header_cpu_temperature: "czujniki temperatury CPU w nagłówku",
+  warning_entity_header_temperature: "czujniki temperatury w nagłówku",
 };
 
 TRANSLATIONS.cs = {
@@ -1099,6 +1135,10 @@ TRANSLATIONS.cs = {
   editor_colors_apply: "Použít barvy",
   editor_colors_reset_all: "Resetovat všechny barvy",
   editor_bg_opacity_label: "Průhlednost karty",
+  warning_entity_header_cpu:  "senzory CPU v záhlaví",
+  warning_entity_header_memory: "senzory paměti v záhlaví",
+  warning_entity_header_cpu_temperature: "senzory teploty CPU v záhlaví",
+  warning_entity_header_temperature: "senzory teploty v záhlaví",
 };
 
 /**

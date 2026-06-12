@@ -3,6 +3,8 @@
 ## [v0.7.6]
 
 ### 🐛 Bug Fixes
+- Add missing localized labels for header telemetry entity warnings across all supported card languages.
+- Recognize Home Assistant Core UniFi device uptime/client/status sensors by their stable `device_*` unique IDs when localized entity IDs do not expose usable English names.
 - Detect device uptime, client count, and status sensors by stable Home Assistant translation keys/name metadata so localized entity IDs continue to work.
 - Preserve device stat detection when device/entity names contain port-like tokens, while still avoiding port-level status sensors.
 - Return Home Assistant entity suggestions with a `config` object containing the selected `device_id` while keeping the legacy top-level card type for compatibility.

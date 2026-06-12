@@ -18,6 +18,9 @@ const PORT_FEATURE_PREFIXES = {
 
 const DEVICE_FEATURE_PREFIXES = {
   device_restart: "restart",
+  device_uptime: "uptime",
+  device_clients: "clients",
+  device_state: "status",
   cpu_utilization: "cpu_utilization",
   memory_utilization: "memory_utilization",
   temperature: "temperature",
