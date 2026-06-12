@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.7.6]
+
+### 🐛 Bug Fixes
+- Detect device uptime, client count, and status sensors by stable Home Assistant translation keys/name metadata so localized entity IDs continue to work.
+- Return Home Assistant entity suggestions with a `config` object while keeping the legacy top-level card type for compatibility.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [v0.7.5]
 
 ### ✨ Improvements

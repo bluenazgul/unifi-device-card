@@ -816,6 +816,7 @@ class UnifiDeviceCard extends HTMLElement {
       "online_entity",
       "uptime_entity",
       "clients_entity",
+      "status_entity",
       "ap_status_entity",
       "led_switch_entity",
       "led_color_entity",
@@ -2522,7 +2523,10 @@ function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
 
   if (!hasUniFiPrefix && !(hasUnifiHint && hasUnifiPortPattern)) return null;
 
-  return { type: "custom:unifi-device-card" };
+  return {
+    type: "custom:unifi-device-card",
+    config: { type: "custom:unifi-device-card" },
+  };
 }
 
 window.customCards = window.customCards || [];

@@ -576,10 +576,80 @@ export function getDeviceOnlineEntity(entities) {
   return null;
 }
 
-export function getAccessPointStatEntities(entities) {
-  let uptimeEntity = null;
-  let clientsEntity = null;
-  let apStatusEntity = null;
+const DEVICE_STAT_MATCHERS = {
+  uptime: {
+    translationKeys: new Set(["uptime", "device_uptime"]),
+    textPatterns: ["uptime", "device_uptime"],
+    fallbackId: (id) => id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"),
+  },
+  clients: {
+    translationKeys: new Set(["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"]),
+    textPatterns: ["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"],
+    fallbackId: (id) => id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"),
+  },
+  status: {
+    translationKeys: new Set(["state", "status", "device_state", "device_status"]),
+    textPatterns: ["state", "status", "device_state", "device_status"],
+    fallbackId: (id) => id.endsWith("_state") || id.includes("_state_") || id.endsWith("_status") || id.includes("_status_"),
+  },
+};
+
+function canonicalStatText(value) {
+  return lower(value).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function hasPortLevelStatSignal(entity) {
+  if (parseUnifiPortUniqueId(entity?.unique_id)) return true;
+  if (hasIndexedPortId(entity?.entity_id)) return true;
+
+  const displayText = [entity?.original_name, entity?.name].filter(Boolean).join(" ");
+  return /\b(?:port|lan|eth|ethernet|sfp(?:28)?)\s*\d+\b/i.test(displayText);
+}
+
+function getDeviceStatDisplayText(entity) {
+  return canonicalStatText([entity?.original_name, entity?.name].filter(Boolean).join(" "));
+}
+
+function getDeviceStatFallbackText(entity) {
+  return canonicalStatText([entity?.entity_id, entity?.original_name, entity?.name].filter(Boolean).join(" "));
+}
+
+function statTextIncludes(text, patterns) {
+  return patterns.some((pattern) => {
+    const canonicalPattern = canonicalStatText(pattern);
+    return text === canonicalPattern || text.includes(canonicalPattern);
+  });
+}
+
+function findDeviceStatEntity(entities, stat) {
+  const matcher = DEVICE_STAT_MATCHERS[stat];
+  if (!matcher) return null;
+
+  const sensors = (entities || []).filter((entity) => lower(entity?.entity_id).startsWith("sensor.") && !hasPortLevelStatSignal(entity));
+
+  for (const entity of sensors) {
+    if (matcher.translationKeys.has(lower(entity?.translation_key))) return entity.entity_id;
+  }
+
+  for (const entity of sensors) {
+    const tk = canonicalStatText(entity?.translation_key);
+    if (tk && statTextIncludes(tk, matcher.textPatterns)) return entity.entity_id;
+  }
+
+  for (const entity of sensors) {
+    if (statTextIncludes(getDeviceStatDisplayText(entity), matcher.textPatterns)) return entity.entity_id;
+  }
+
+  for (const entity of sensors) {
+    if (matcher.fallbackId(lower(entity?.entity_id)) || statTextIncludes(getDeviceStatFallbackText(entity), matcher.textPatterns)) {
+      return entity.entity_id;
+    }
+  }
+
+  return null;
+}
+
+export function getDeviceStatEntities(entities) {
   let ledSwitchEntity = null;
   let ledColorEntity = null;
 
@@ -597,18 +667,6 @@ export function getAccessPointStatEntities(entities) {
 
     if (!id.startsWith("sensor.")) continue;
 
-    if (!uptimeEntity && (id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"))) {
-      uptimeEntity = entity.entity_id;
-    }
-
-    if (!clientsEntity && (id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"))) {
-      clientsEntity = entity.entity_id;
-    }
-
-    if (!apStatusEntity && (id.endsWith("_state") || id.includes("_state_"))) {
-      apStatusEntity = entity.entity_id;
-    }
-
     if (
       !ledColorEntity &&
       (id.includes("led_color") ||
@@ -620,13 +678,20 @@ export function getAccessPointStatEntities(entities) {
     }
   }
 
+  const statusEntity = findDeviceStatEntity(entities, "status");
+
   return {
-    uptime_entity: uptimeEntity,
-    clients_entity: clientsEntity,
-    ap_status_entity: apStatusEntity,
+    uptime_entity: findDeviceStatEntity(entities, "uptime"),
+    clients_entity: findDeviceStatEntity(entities, "clients"),
+    status_entity: statusEntity,
+    ap_status_entity: statusEntity,
     led_switch_entity: ledSwitchEntity,
     led_color_entity: ledColorEntity,
   };
+}
+
+export function getAccessPointStatEntities(entities) {
+  return getDeviceStatEntities(entities);
 }
 
 function safeEntityState(hass, entityId) {
@@ -1861,7 +1926,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
   const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
-  const apStats = getAccessPointStatEntities(entities);
+  const deviceStats = getDeviceStatEntities(entities);
   const apUplink = type === "access_point"
     ? resolveAccessPointUplink(hass, entities, devices)
     : null;
@@ -1879,7 +1944,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device),
     online_entity: getDeviceOnlineEntity(entities),
-    ...apStats,
+    ...deviceStats,
     ap_uplink: apUplink,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
