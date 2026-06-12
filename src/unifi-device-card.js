@@ -2502,6 +2502,30 @@ if (!customElements.get("unifi-device-card")) {
   customElements.define("unifi-device-card", UnifiDeviceCard);
 }
 
+function getFrontendRegistryItem(collection, key) {
+  if (!collection || !key) return null;
+  if (typeof collection.get === "function") return collection.get(key) || null;
+  if (Array.isArray(collection)) {
+    return collection.find((item) => item?.entity_id === key || item?.id === key) || null;
+  }
+  return collection[key] || null;
+}
+
+function getEntitySuggestionDeviceId(hass, entityId) {
+  const registryEntity =
+    getFrontendRegistryItem(hass?.entities, entityId) ||
+    getFrontendRegistryItem(hass?.entityRegistry, entityId) ||
+    getFrontendRegistryItem(hass?.entity_registry, entityId);
+  const deviceId = registryEntity?.device_id || null;
+  if (!deviceId) return null;
+
+  const devices = hass?.devices || hass?.deviceRegistry || hass?.device_registry;
+  if (!devices) return deviceId;
+
+  const registryDevice = getFrontendRegistryItem(devices, deviceId);
+  return registryDevice ? deviceId : null;
+}
+
 function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
   const id = String(entityId || "").trim().toLowerCase();
   if (!id || !id.includes(".")) return null;
@@ -2523,9 +2547,12 @@ function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
 
   if (!hasUniFiPrefix && !(hasUnifiHint && hasUnifiPortPattern)) return null;
 
+  const deviceId = getEntitySuggestionDeviceId(hass, entityId);
+  if (!deviceId) return null;
+
   return {
     type: "custom:unifi-device-card",
-    config: { type: "custom:unifi-device-card" },
+    config: { type: "custom:unifi-device-card", device_id: deviceId },
   };
 }
 
