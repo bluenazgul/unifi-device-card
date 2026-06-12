@@ -4,6 +4,7 @@
 
 ### 🐛 Bug Fixes
 - Detect device uptime, client count, and status sensors by stable Home Assistant translation keys/name metadata so localized entity IDs continue to work.
+- Preserve device stat detection when device/entity names contain port-like tokens, while still avoiding port-level status sensors.
 - Return Home Assistant entity suggestions with a `config` object while keeping the legacy top-level card type for compatibility.
 
 ### ✨ Hints

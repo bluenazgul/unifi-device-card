@@ -621,26 +621,39 @@ function statTextIncludes(text, patterns) {
   });
 }
 
+function isUnambiguousDeviceStatTranslationKey(entity, stat, matcher) {
+  const tk = lower(entity?.translation_key);
+  if (!matcher.translationKeys.has(tk)) return false;
+  if (tk.startsWith("device_")) return true;
+  return stat !== "status";
+}
+
 function findDeviceStatEntity(entities, stat) {
   const matcher = DEVICE_STAT_MATCHERS[stat];
   if (!matcher) return null;
 
-  const sensors = (entities || []).filter((entity) => lower(entity?.entity_id).startsWith("sensor.") && !hasPortLevelStatSignal(entity));
+  const sensors = (entities || []).filter((entity) => lower(entity?.entity_id).startsWith("sensor."));
 
   for (const entity of sensors) {
+    if (isUnambiguousDeviceStatTranslationKey(entity, stat, matcher)) return entity.entity_id;
+  }
+
+  const deviceSensors = sensors.filter((entity) => !hasPortLevelStatSignal(entity));
+
+  for (const entity of deviceSensors) {
     if (matcher.translationKeys.has(lower(entity?.translation_key))) return entity.entity_id;
   }
 
-  for (const entity of sensors) {
+  for (const entity of deviceSensors) {
     const tk = canonicalStatText(entity?.translation_key);
     if (tk && statTextIncludes(tk, matcher.textPatterns)) return entity.entity_id;
   }
 
-  for (const entity of sensors) {
+  for (const entity of deviceSensors) {
     if (statTextIncludes(getDeviceStatDisplayText(entity), matcher.textPatterns)) return entity.entity_id;
   }
 
-  for (const entity of sensors) {
+  for (const entity of deviceSensors) {
     if (matcher.fallbackId(lower(entity?.entity_id)) || statTextIncludes(getDeviceStatFallbackText(entity), matcher.textPatterns)) {
       return entity.entity_id;
     }
