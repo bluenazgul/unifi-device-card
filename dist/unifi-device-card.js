@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.6-dev */
+/* UniFi Device Card 0.0.0-dev.48f2889 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1710,6 +1710,9 @@ var PORT_FEATURE_PREFIXES = {
 };
 var DEVICE_FEATURE_PREFIXES = {
   device_restart: "restart",
+  device_uptime: "uptime",
+  device_clients: "clients",
+  device_state: "status",
   cpu_utilization: "cpu_utilization",
   memory_utilization: "memory_utilization",
   temperature: "temperature",
@@ -1972,7 +1975,8 @@ function hasInfrastructureEntitySignals(entities = []) {
   return entities.some((e) => {
     const id = lower(e?.entity_id);
     if (!id.startsWith("sensor.") && !id.startsWith("binary_sensor.")) return false;
-    return id.includes("cpu") || id.includes("memory") || id.includes("temperature") || id.endsWith("_uptime") || id.includes("_uptime_") || id.endsWith("_clients") || id.includes("_clients_");
+    const parsed = parseUnifiDeviceUniqueId(e?.unique_id);
+    return id.includes("cpu") || id.includes("memory") || id.includes("temperature") || id.endsWith("_uptime") || id.includes("_uptime_") || id.endsWith("_clients") || id.includes("_clients_") || ["uptime", "clients", "status"].includes(parsed?.feature);
   });
 }
 function getDeviceType(device, entities = []) {
@@ -2262,16 +2266,19 @@ function getDeviceOnlineEntity(entities) {
 }
 var DEVICE_STAT_MATCHERS = {
   uptime: {
+    features: /* @__PURE__ */ new Set(["uptime"]),
     translationKeys: /* @__PURE__ */ new Set(["uptime", "device_uptime"]),
     textPatterns: ["uptime", "device_uptime"],
     fallbackId: (id) => id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime")
   },
   clients: {
-    translationKeys: /* @__PURE__ */ new Set(["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"]),
-    textPatterns: ["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"],
+    features: /* @__PURE__ */ new Set(["clients"]),
+    translationKeys: /* @__PURE__ */ new Set(["clients", "device_clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"]),
+    textPatterns: ["clients", "device_clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"],
     fallbackId: (id) => id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients")
   },
   status: {
+    features: /* @__PURE__ */ new Set(["status"]),
     translationKeys: /* @__PURE__ */ new Set(["state", "status", "device_state", "device_status"]),
     textPatterns: ["state", "status", "device_state", "device_status"],
     fallbackId: (id) => id.endsWith("_state") || id.includes("_state_") || id.endsWith("_status") || id.includes("_status_")
@@ -2308,6 +2315,10 @@ function findDeviceStatEntity(entities, stat) {
   const matcher = DEVICE_STAT_MATCHERS[stat];
   if (!matcher) return null;
   const sensors = (entities || []).filter((entity) => lower(entity?.entity_id).startsWith("sensor."));
+  for (const entity of sensors) {
+    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+    if (parsed?.feature && matcher.features?.has(parsed.feature)) return entity.entity_id;
+  }
   for (const entity of sensors) {
     if (isUnambiguousDeviceStatTranslationKey(entity, stat, matcher)) return entity.entity_id;
   }
@@ -3866,6 +3877,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "RX/TX-sensoren",
     warning_entity_power_cycle: "power cycle-knoppen",
     warning_entity_link: "link-entiteiten",
+    warning_entity_header_cpu: "CPU-sensoren in de header",
+    warning_entity_header_memory: "geheugensensoren in de header",
+    warning_entity_header_cpu_temperature: "CPU-temperatuursensoren in de header",
+    warning_entity_header_temperature: "temperatuursensoren in de header",
     type_switch: "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point"
@@ -4019,6 +4034,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "capteurs RX/TX",
     warning_entity_power_cycle: "boutons de red\xE9marrage PoE",
     warning_entity_link: "entit\xE9s de lien",
+    warning_entity_header_cpu: "capteurs CPU d\u2019en-t\xEAte",
+    warning_entity_header_memory: "capteurs m\xE9moire d\u2019en-t\xEAte",
+    warning_entity_header_cpu_temperature: "capteurs de temp\xE9rature CPU d\u2019en-t\xEAte",
+    warning_entity_header_temperature: "capteurs de temp\xE9rature d\u2019en-t\xEAte",
     type_switch: "Switch",
     type_gateway: "Passerelle",
     type_access_point: "Point d\u2019acc\xE8s"
@@ -4172,6 +4191,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "sensores RX/TX",
     warning_entity_power_cycle: "botones de reinicio PoE",
     warning_entity_link: "entidades de enlace",
+    warning_entity_header_cpu: "sensores de CPU del encabezado",
+    warning_entity_header_memory: "sensores de memoria del encabezado",
+    warning_entity_header_cpu_temperature: "sensores de temperatura de CPU del encabezado",
+    warning_entity_header_temperature: "sensores de temperatura del encabezado",
     type_switch: "Switch",
     type_gateway: "Gateway",
     type_access_point: "Punto de acceso"
@@ -4325,6 +4348,10 @@ var TRANSLATIONS = {
     warning_entity_rx_tx: "sensori RX/TX",
     warning_entity_power_cycle: "pulsanti riavvio PoE",
     warning_entity_link: "entit\xE0 link",
+    warning_entity_header_cpu: "sensori CPU dell\u2019header",
+    warning_entity_header_memory: "sensori memoria dell\u2019header",
+    warning_entity_header_cpu_temperature: "sensori temperatura CPU dell\u2019header",
+    warning_entity_header_temperature: "sensori temperatura dell\u2019header",
     type_switch: "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point"
@@ -4339,7 +4366,11 @@ TRANSLATIONS.sv = {
   editor_colors_back: "Tillbaka till editorn",
   editor_colors_apply: "Anv\xE4nd f\xE4rger",
   editor_colors_reset_all: "\xC5terst\xE4ll alla f\xE4rger",
-  editor_bg_opacity_label: "Kortets transparens"
+  editor_bg_opacity_label: "Kortets transparens",
+  warning_entity_header_cpu: "CPU-sensorer i headern",
+  warning_entity_header_memory: "minnessensorer i headern",
+  warning_entity_header_cpu_temperature: "CPU-temperatursensorer i headern",
+  warning_entity_header_temperature: "temperatursensorer i headern"
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
@@ -4350,7 +4381,11 @@ TRANSLATIONS.da = {
   editor_colors_back: "Tilbage til editor",
   editor_colors_apply: "Anvend farver",
   editor_colors_reset_all: "Nulstil alle farver",
-  editor_bg_opacity_label: "Korttransparens"
+  editor_bg_opacity_label: "Korttransparens",
+  warning_entity_header_cpu: "CPU-sensorer i headeren",
+  warning_entity_header_memory: "hukommelsessensorer i headeren",
+  warning_entity_header_cpu_temperature: "CPU-temperatursensorer i headeren",
+  warning_entity_header_temperature: "temperatursensorer i headeren"
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
@@ -4361,7 +4396,11 @@ TRANSLATIONS.no = {
   editor_colors_back: "Tilbake til editor",
   editor_colors_apply: "Bruk farger",
   editor_colors_reset_all: "Tilbakestill alle farger",
-  editor_bg_opacity_label: "Kortgjennomsiktighet"
+  editor_bg_opacity_label: "Kortgjennomsiktighet",
+  warning_entity_header_cpu: "CPU-sensorer i overskriften",
+  warning_entity_header_memory: "minnesensorer i overskriften",
+  warning_entity_header_cpu_temperature: "CPU-temperatursensorer i overskriften",
+  warning_entity_header_temperature: "temperatursensorer i overskriften"
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
@@ -4372,7 +4411,11 @@ TRANSLATIONS.fi = {
   editor_colors_back: "Takaisin editoriin",
   editor_colors_apply: "K\xE4yt\xE4 v\xE4rit",
   editor_colors_reset_all: "Nollaa kaikki v\xE4rit",
-  editor_bg_opacity_label: "Kortin l\xE4pin\xE4kyvyys"
+  editor_bg_opacity_label: "Kortin l\xE4pin\xE4kyvyys",
+  warning_entity_header_cpu: "otsakkeen CPU-anturit",
+  warning_entity_header_memory: "otsakkeen muistianturit",
+  warning_entity_header_cpu_temperature: "otsakkeen CPU-l\xE4mp\xF6tila-anturit",
+  warning_entity_header_temperature: "otsakkeen l\xE4mp\xF6tila-anturit"
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
@@ -4383,7 +4426,11 @@ TRANSLATIONS.pl = {
   editor_colors_back: "Wr\xF3\u0107 do edytora",
   editor_colors_apply: "Zastosuj kolory",
   editor_colors_reset_all: "Resetuj wszystkie kolory",
-  editor_bg_opacity_label: "Przezroczysto\u015B\u0107 karty"
+  editor_bg_opacity_label: "Przezroczysto\u015B\u0107 karty",
+  warning_entity_header_cpu: "czujniki CPU w nag\u0142\xF3wku",
+  warning_entity_header_memory: "czujniki pami\u0119ci w nag\u0142\xF3wku",
+  warning_entity_header_cpu_temperature: "czujniki temperatury CPU w nag\u0142\xF3wku",
+  warning_entity_header_temperature: "czujniki temperatury w nag\u0142\xF3wku"
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
@@ -4394,7 +4441,11 @@ TRANSLATIONS.cs = {
   editor_colors_back: "Zp\u011Bt do editoru",
   editor_colors_apply: "Pou\u017E\xEDt barvy",
   editor_colors_reset_all: "Resetovat v\u0161echny barvy",
-  editor_bg_opacity_label: "Pr\u016Fhlednost karty"
+  editor_bg_opacity_label: "Pr\u016Fhlednost karty",
+  warning_entity_header_cpu: "senzory CPU v z\xE1hlav\xED",
+  warning_entity_header_memory: "senzory pam\u011Bti v z\xE1hlav\xED",
+  warning_entity_header_cpu_temperature: "senzory teploty CPU v z\xE1hlav\xED",
+  warning_entity_header_temperature: "senzory teploty v z\xE1hlav\xED"
 };
 function getTranslations(lang) {
   if (!lang) return TRANSLATIONS.en;
@@ -5609,7 +5660,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.6-dev";
+var VERSION = "0.0.0-dev.48f2889";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
