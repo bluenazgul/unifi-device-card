@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.5-dev */
+/* UniFi Device Card 0.0.0-dev.432e3d9 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2260,10 +2260,76 @@ function getDeviceOnlineEntity(entities) {
   }
   return null;
 }
-function getAccessPointStatEntities(entities) {
-  let uptimeEntity = null;
-  let clientsEntity = null;
-  let apStatusEntity = null;
+var DEVICE_STAT_MATCHERS = {
+  uptime: {
+    translationKeys: /* @__PURE__ */ new Set(["uptime", "device_uptime"]),
+    textPatterns: ["uptime", "device_uptime"],
+    fallbackId: (id) => id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime")
+  },
+  clients: {
+    translationKeys: /* @__PURE__ */ new Set(["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"]),
+    textPatterns: ["clients", "connected_clients", "client_count", "num_clients", "active_clients", "station_count"],
+    fallbackId: (id) => id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients")
+  },
+  status: {
+    translationKeys: /* @__PURE__ */ new Set(["state", "status", "device_state", "device_status"]),
+    textPatterns: ["state", "status", "device_state", "device_status"],
+    fallbackId: (id) => id.endsWith("_state") || id.includes("_state_") || id.endsWith("_status") || id.includes("_status_")
+  }
+};
+function canonicalStatText(value) {
+  return lower(value).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+function hasPortLevelStatSignal(entity) {
+  if (parseUnifiPortUniqueId(entity?.unique_id)) return true;
+  if (hasIndexedPortId(entity?.entity_id)) return true;
+  const displayText = [entity?.original_name, entity?.name].filter(Boolean).join(" ");
+  return /\b(?:port|lan|eth|ethernet|sfp(?:28)?)\s*\d+\b/i.test(displayText);
+}
+function getDeviceStatDisplayText(entity) {
+  return canonicalStatText([entity?.original_name, entity?.name].filter(Boolean).join(" "));
+}
+function getDeviceStatFallbackText(entity) {
+  return canonicalStatText([entity?.entity_id, entity?.original_name, entity?.name].filter(Boolean).join(" "));
+}
+function statTextIncludes(text, patterns) {
+  return patterns.some((pattern) => {
+    const canonicalPattern = canonicalStatText(pattern);
+    return text === canonicalPattern || text.includes(canonicalPattern);
+  });
+}
+function isUnambiguousDeviceStatTranslationKey(entity, stat, matcher) {
+  const tk = lower(entity?.translation_key);
+  if (!matcher.translationKeys.has(tk)) return false;
+  if (tk.startsWith("device_")) return true;
+  return stat !== "status";
+}
+function findDeviceStatEntity(entities, stat) {
+  const matcher = DEVICE_STAT_MATCHERS[stat];
+  if (!matcher) return null;
+  const sensors = (entities || []).filter((entity) => lower(entity?.entity_id).startsWith("sensor."));
+  for (const entity of sensors) {
+    if (isUnambiguousDeviceStatTranslationKey(entity, stat, matcher)) return entity.entity_id;
+  }
+  const deviceSensors = sensors.filter((entity) => !hasPortLevelStatSignal(entity));
+  for (const entity of deviceSensors) {
+    if (matcher.translationKeys.has(lower(entity?.translation_key))) return entity.entity_id;
+  }
+  for (const entity of deviceSensors) {
+    const tk = canonicalStatText(entity?.translation_key);
+    if (tk && statTextIncludes(tk, matcher.textPatterns)) return entity.entity_id;
+  }
+  for (const entity of deviceSensors) {
+    if (statTextIncludes(getDeviceStatDisplayText(entity), matcher.textPatterns)) return entity.entity_id;
+  }
+  for (const entity of deviceSensors) {
+    if (matcher.fallbackId(lower(entity?.entity_id)) || statTextIncludes(getDeviceStatFallbackText(entity), matcher.textPatterns)) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
+function getDeviceStatEntities(entities) {
   let ledSwitchEntity = null;
   let ledColorEntity = null;
   for (const entity of entities || []) {
@@ -2273,23 +2339,16 @@ function getAccessPointStatEntities(entities) {
       ledSwitchEntity = entity.entity_id;
     }
     if (!id.startsWith("sensor.")) continue;
-    if (!uptimeEntity && (id.endsWith("_uptime") || id.includes(" uptime") || id.includes("_uptime_") || id.includes("uptime"))) {
-      uptimeEntity = entity.entity_id;
-    }
-    if (!clientsEntity && (id.endsWith("_clients") || id.includes("_clients_") || id.includes(" clients"))) {
-      clientsEntity = entity.entity_id;
-    }
-    if (!apStatusEntity && (id.endsWith("_state") || id.includes("_state_"))) {
-      apStatusEntity = entity.entity_id;
-    }
     if (!ledColorEntity && (id.includes("led_color") || id.includes("led_colour") || id.includes("indicator_color") || id.includes("indicator_colour"))) {
       ledColorEntity = entity.entity_id;
     }
   }
+  const statusEntity = findDeviceStatEntity(entities, "status");
   return {
-    uptime_entity: uptimeEntity,
-    clients_entity: clientsEntity,
-    ap_status_entity: apStatusEntity,
+    uptime_entity: findDeviceStatEntity(entities, "uptime"),
+    clients_entity: findDeviceStatEntity(entities, "clients"),
+    status_entity: statusEntity,
+    ap_status_entity: statusEntity,
     led_switch_entity: ledSwitchEntity,
     led_color_entity: ledColorEntity
   };
@@ -3082,7 +3141,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
   const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
-  const apStats = getAccessPointStatEntities(entities);
+  const deviceStats = getDeviceStatEntities(entities);
   const apUplink = type === "access_point" ? resolveAccessPointUplink(hass, entities, devices) : null;
   return {
     device,
@@ -3097,7 +3156,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     manufacturer: normalize(device.manufacturer),
     firmware: extractFirmware(device),
     online_entity: getDeviceOnlineEntity(entities),
-    ...apStats,
+    ...deviceStats,
     ap_uplink: apUplink,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
@@ -5550,7 +5609,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.5-dev";
+var VERSION = "0.0.0-dev.432e3d9";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -6181,6 +6240,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       "online_entity",
       "uptime_entity",
       "clients_entity",
+      "status_entity",
       "ap_status_entity",
       "led_switch_entity",
       "led_color_entity",
@@ -7671,6 +7731,23 @@ var UnifiDeviceCard = class extends HTMLElement {
 if (!customElements.get("unifi-device-card")) {
   customElements.define("unifi-device-card", UnifiDeviceCard);
 }
+function getFrontendRegistryItem(collection, key) {
+  if (!collection || !key) return null;
+  if (typeof collection.get === "function") return collection.get(key) || null;
+  if (Array.isArray(collection)) {
+    return collection.find((item) => item?.entity_id === key || item?.id === key) || null;
+  }
+  return collection[key] || null;
+}
+function getEntitySuggestionDeviceId(hass, entityId) {
+  const registryEntity = getFrontendRegistryItem(hass?.entities, entityId) || getFrontendRegistryItem(hass?.entityRegistry, entityId) || getFrontendRegistryItem(hass?.entity_registry, entityId);
+  const deviceId = registryEntity?.device_id || null;
+  if (!deviceId) return null;
+  const devices = hass?.devices || hass?.deviceRegistry || hass?.device_registry;
+  if (!devices) return deviceId;
+  const registryDevice = getFrontendRegistryItem(devices, deviceId);
+  return registryDevice ? deviceId : null;
+}
 function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
   const id = String(entityId || "").trim().toLowerCase();
   if (!id || !id.includes(".")) return null;
@@ -7682,7 +7759,12 @@ function getUnifiDeviceCardEntitySuggestion(hass, entityId) {
   const hasUniFiPrefix = /^(sensor|switch|button|binary_sensor|number|select|update|device_tracker)\.unifi_/i.test(id);
   const hasUnifiPortPattern = /(?:^|[_-])(port(?:[_-]\d+)?|link[_-]speed|poe[_-]power|power[_-]cycle)(?:[_-]|$)/i.test(id);
   if (!hasUniFiPrefix && !(hasUnifiHint && hasUnifiPortPattern)) return null;
-  return { type: "custom:unifi-device-card" };
+  const deviceId = getEntitySuggestionDeviceId(hass, entityId);
+  if (!deviceId) return null;
+  return {
+    type: "custom:unifi-device-card",
+    config: { type: "custom:unifi-device-card", device_id: deviceId }
+  };
 }
 window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card?.type === "unifi-device-card")) {
