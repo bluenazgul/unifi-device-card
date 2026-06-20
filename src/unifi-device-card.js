@@ -2398,7 +2398,8 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
             const enabled = isOn(this._hass, selected.port_switch_entity);
-            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}">
+            const confirmDisableAttr = enabled ? ` data-confirm-disable="true" data-port-name="${this._escapeAttr(portTitle)}"` : "";
+            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}"${confirmDisableAttr}>
               ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
             </button>`;
           })() : ""}
@@ -2446,7 +2447,15 @@ class UnifiDeviceCard extends HTMLElement {
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
 
     this.shadowRoot.querySelector("[data-action='toggle-port']")
-      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+      ?.addEventListener("click", (e) => {
+        const target = e.currentTarget;
+        if (target.dataset.confirmDisable === "true") {
+          const portName = target.dataset.portName || this._t("port_label");
+          const message = `${this._t("confirm_disable_port_title")}\n\n${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
+          if (!window.confirm(message)) return;
+        }
+        this._toggleEntity(target.dataset.entity);
+      });
 
     this.shadowRoot.querySelector("[data-action='toggle-poe']")
       ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
