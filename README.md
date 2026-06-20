@@ -50,6 +50,8 @@ This dashboard is based on my idea, but was created with the help of ChatGPT and
 
 The idea behind this card was to create a single place to gather the most important information about UniFi devices, so you do not have to open the excellent UniFi app for every small detail. Since there was nothing like this available, I decided to get creative.
 
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
 If you like this project and want to support my work, you can donate via PayPal.
