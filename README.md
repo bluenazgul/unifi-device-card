@@ -212,6 +212,10 @@ meta_color: "#94a3b8"         # optional (model + firmware line)
 port_label_color: "#6b7280"   # optional
 special_port_label_color: "#60a5fa" # optional (special/WAN label + detail headline)
 ap_led_color: "#2563eb"       # optional fallback (AP only; used if RGB LED color is not available)
+button_theme_style: true        # optional (default: true; use HA theme colors for buttons)
+button_default_color: true      # optional (default when theme style is disabled)
+button_color: "#0090d9"         # optional custom button background
+button_text_color: "#ffffff"    # optional custom button text/icon color
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
@@ -248,6 +252,13 @@ wan2_port: none               # optional (gateway only)
 | `port_label_color` | string | theme default | Optional front-panel port number label color. |
 | `special_port_label_color` | string | theme default | Optional special-port label color (for special row labels like WAN and the selected special port headline). |
 | `ap_led_color` | string | model default | AP only: optional LED fallback color used when no RGB LED color is provided by entities. |
+| `button_theme_style` | boolean | `true` | Use Home Assistant theme colors for card buttons. |
+| `button_default_color` | boolean | `true` | Use the card's built-in default button colors when theme button style is disabled. |
+| `button_color` | string | default/theme | Custom button background color when theme and default button colors are disabled. |
+| `button_text_color` | string | default/theme | Custom button text/icon color when theme and default button colors are disabled. |
+| `button_secondary_color` | string | default/custom primary | Optional custom secondary button background color. |
+| `button_secondary_text_color` | string | default/custom primary | Optional custom secondary button text/icon color. |
+| `button_border_color` | string | default/theme | Optional custom secondary button border color. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |

@@ -155,6 +155,15 @@ const TRANSLATIONS = {
     editor_color_slot_ap_color: "AP color",
     editor_color_slot_ap_led: "AP LED fallback",
     editor_ap_led_color_disabled_hint: "Disabled because RGB LED control is available.",
+    editor_color_slot_button: "Button background",
+    editor_color_slot_button_text: "Button text/icon",
+    editor_color_slot_button_secondary: "Secondary button background",
+    editor_color_slot_button_secondary_text: "Secondary button text/icon",
+    editor_color_slot_button_border: "Button border",
+    editor_button_theme_style_label: "Use theme button colors",
+    editor_button_theme_style_hint: "Use Home Assistant theme variables for button background and text/icon colors.",
+    editor_button_default_color_label: "Use default button colors",
+    editor_button_default_color_hint: "When theme colors are off, keep the card's built-in button colors unless custom colors are enabled.",
 
     // Entity warning — loading hint
     warning_checking: "Checking selected device for disabled or hidden UniFi entities…",
@@ -330,6 +339,15 @@ const TRANSLATIONS = {
     editor_color_slot_ap_color: "AP Farbe",
     editor_color_slot_ap_led: "AP LED-Fallback",
     editor_ap_led_color_disabled_hint: "Durch RGB-LED-Steuerung deaktiviert.",
+    editor_color_slot_button: "Button-Hintergrund",
+    editor_color_slot_button_text: "Button-Text/Icon",
+    editor_color_slot_button_secondary: "Sekundärer Button-Hintergrund",
+    editor_color_slot_button_secondary_text: "Sekundärer Button-Text/Icon",
+    editor_color_slot_button_border: "Button-Rahmen",
+    editor_button_theme_style_label: "Buttons im Theme-Stil",
+    editor_button_theme_style_hint: "Verwendet Home-Assistant-Theme-Variablen für Button-Hintergrund und Text/Icon-Farbe.",
+    editor_button_default_color_label: "Default Button-Farben verwenden",
+    editor_button_default_color_hint: "Wenn Theme-Farben aus sind, bleiben die eingebauten Button-Farben aktiv, solange Custom-Farben nicht aktiviert sind.",
 
     // Entity warning — loading hint
     warning_checking: "Ausgewähltes Gerät auf deaktivierte oder versteckte UniFi-Entities prüfen…",
