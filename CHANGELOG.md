@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.7.7]
+
+### ✨ Improvements
+- Add editor controls for button theme/default/custom colors, including separate button background and text/icon colors.
+
 ## [v0.7.6]
 
 ### 🐛 Bug Fixes
