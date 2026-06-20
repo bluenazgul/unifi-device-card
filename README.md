@@ -69,7 +69,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts
 - **Device-accurate styling** — white panel for Lite / Flex / Ultra / Cloud Gateway style devices, silver or dark layouts for rack devices like US 8 / UDM Pro / UDM SE
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
-- **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions
+- **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
@@ -79,7 +79,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
 - **Smarter link detection** — falls back to speed, PoE power, and RX/TX traffic when direct port link entities are missing
 - **Optional card background color** — use the default Home Assistant card background or override it with your own color
-- **Advanced color editor step** — configure background/title/telemetry/labels/values/model+firmware/port labels with live preview and per-slot reset
+- **Advanced color editor step** — configure background/title/telemetry/labels/values/model+firmware/port labels/AP colors/button colors with live preview and per-slot reset
 - **AP-native card background behavior** — AP cards can stay transparent like native Home Assistant cards unless a custom background color is configured
 
 ---
@@ -212,10 +212,16 @@ meta_color: "#94a3b8"         # optional (model + firmware line)
 port_label_color: "#6b7280"   # optional
 special_port_label_color: "#60a5fa" # optional (special/WAN label + detail headline)
 ap_led_color: "#2563eb"       # optional fallback (AP only; used if RGB LED color is not available)
+ap_color: "#e5e7eb"           # optional AP body color
+ap_ring_color: "#cbd5e1"      # optional AP outer ring color
+ap_inner_color: "#f8fafc"     # optional AP inner circle color
 button_theme_style: true        # optional (default: true; use HA theme colors for buttons)
 button_default_color: true      # optional (default when theme style is disabled)
-button_color: "#0090d9"         # optional custom button background
-button_text_color: "#ffffff"    # optional custom button text/icon color
+button_color: "#0090d9"         # optional custom primary button background
+button_text_color: "#ffffff"    # optional custom primary button text/icon color
+button_secondary_color: "#262b34"      # optional custom secondary button background
+button_secondary_text_color: "#e2e8f0" # optional custom secondary button text/icon color
+button_border_color: "#3b4350"         # optional custom button border color
 background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
@@ -252,6 +258,9 @@ wan2_port: none               # optional (gateway only)
 | `port_label_color` | string | theme default | Optional front-panel port number label color. |
 | `special_port_label_color` | string | theme default | Optional special-port label color (for special row labels like WAN and the selected special port headline). |
 | `ap_led_color` | string | model default | AP only: optional LED fallback color used when no RGB LED color is provided by entities. |
+| `ap_color` | string | model default | AP only: optional AP body color override. |
+| `ap_ring_color` | string | model default | AP only: optional AP outer ring color override. |
+| `ap_inner_color` | string | model default | AP only: optional AP inner circle color override. |
 | `button_theme_style` | boolean | `true` | Use Home Assistant theme colors for card buttons. |
 | `button_default_color` | boolean | `true` | Use the card's built-in default button colors when theme button style is disabled. |
 | `button_color` | string | default/theme | Custom button background color when theme and default button colors are disabled. |
