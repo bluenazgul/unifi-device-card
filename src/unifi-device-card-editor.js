@@ -132,6 +132,11 @@ const COLOR_SLOTS = [
   { key: "port_label_color", token: "port_label", cssVar: "--udc-port-label-color", fallback: "#646a76" },
   { key: "special_port_label_color", token: "special_port_label", cssVar: "--udc-special-port-label-color", fallback: "#646a76" },
   { key: "ap_led_color", token: "ap_led", cssVar: "--udc-ap-led-color", fallback: "#0000ff" },
+  { key: "button_color", token: "button", cssVar: "--udc-button-bg", fallback: "#0090d9" },
+  { key: "button_text_color", token: "button_text", cssVar: "--udc-button-text-color", fallback: "#ffffff" },
+  { key: "button_secondary_color", token: "button_secondary", cssVar: "--udc-button-secondary-bg", fallback: "#262b34" },
+  { key: "button_secondary_text_color", token: "button_secondary_text", cssVar: "--udc-button-secondary-text-color", fallback: "#e2e8f0" },
+  { key: "button_border_color", token: "button_border", cssVar: "--udc-button-border-color", fallback: "#3b4350" },
 ];
 
 const COLOR_SLOT_BY_KEY = Object.fromEntries(COLOR_SLOTS.map((slot) => [slot.key, slot]));
@@ -248,6 +253,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._lastCtxDeviceId = null;
     this._editorStep = "main";
     this._draftColors = {};
+    this._draftButtonThemeStyle = true;
+    this._draftButtonDefaultColor = true;
     this._activeColorSlot = "";
     this._colorStepBaseConfig = null;
   }
@@ -307,6 +314,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       if (this._config?.[slot.key]) nextDraft[slot.key] = this._config[slot.key];
     }
     this._draftColors = nextDraft;
+    this._draftButtonThemeStyle = this._config?.button_theme_style !== false;
+    this._draftButtonDefaultColor = this._config?.button_default_color !== false;
   }
 
   _apHasRgbLedControl() {
@@ -432,6 +441,23 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     if (!next.name) delete next.name;
     if (!next.background_color) delete next.background_color;
+    const buttonThemeStyle = next.button_theme_style !== false;
+    if (buttonThemeStyle) {
+      delete next.button_theme_style;
+      delete next.button_default_color;
+      for (const key of ["button_color", "button_text_color", "button_secondary_color", "button_secondary_text_color", "button_border_color"]) {
+        delete next[key];
+      }
+    } else if (next.button_default_color !== false) {
+      next.button_theme_style = false;
+      delete next.button_default_color;
+      for (const key of ["button_color", "button_text_color", "button_secondary_color", "button_secondary_text_color", "button_border_color"]) {
+        delete next[key];
+      }
+    } else {
+      next.button_theme_style = false;
+      next.button_default_color = false;
+    }
     for (const slot of COLOR_SLOTS) {
       if (!next[slot.key]) delete next[slot.key];
     }
@@ -478,8 +504,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _emitDraftPreviewConfig() {
     const base = { ...(this._colorStepBaseConfig || this._config || {}) };
+    base.button_theme_style = this._draftButtonThemeStyle ? undefined : false;
+    base.button_default_color = this._draftButtonThemeStyle || this._draftButtonDefaultColor ? undefined : false;
     for (const slot of COLOR_SLOTS) {
-      base[slot.key] = this._draftColors[slot.key] || undefined;
+      const isButtonSlot = slot.key.startsWith("button_") && !["button_theme_style", "button_default_color"].includes(slot.key);
+      base[slot.key] = !isButtonSlot || (!this._draftButtonThemeStyle && !this._draftButtonDefaultColor)
+        ? this._draftColors[slot.key] || undefined
+        : undefined;
     }
     this._dispatchConfig(base);
   }
@@ -554,6 +585,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _onOpenColorDialog(ev) {
     const slotKey = ev.currentTarget?.dataset?.slot || "";
     if (!COLOR_SLOT_BY_KEY[slotKey]) return;
+    if (slotKey.startsWith("button_") && (this._draftButtonThemeStyle || this._draftButtonDefaultColor)) return;
     this._activeColorSlot = slotKey;
     this._render();
   }
@@ -598,14 +630,37 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onResetAllColors() {
     for (const slot of COLOR_SLOTS) delete this._draftColors[slot.key];
+    this._draftButtonThemeStyle = true;
+    this._draftButtonDefaultColor = true;
+    this._emitDraftPreviewConfig();
+    this._render();
+  }
+
+  _onButtonThemeStyleChange(ev) {
+    this._draftButtonThemeStyle = !!ev.target.checked;
+    if (!this._draftButtonThemeStyle) this._draftButtonDefaultColor = true;
+    this._activeColorSlot = "";
+    this._emitDraftPreviewConfig();
+    this._render();
+  }
+
+  _onButtonDefaultColorChange(ev) {
+    this._draftButtonDefaultColor = !!ev.target.checked;
+    this._activeColorSlot = "";
     this._emitDraftPreviewConfig();
     this._render();
   }
 
   _onApplyDraftColors() {
-    const payload = {};
+    const payload = {
+      button_theme_style: this._draftButtonThemeStyle ? undefined : false,
+      button_default_color: this._draftButtonThemeStyle || this._draftButtonDefaultColor ? undefined : false,
+    };
     for (const slot of COLOR_SLOTS) {
-      payload[slot.key] = this._draftColors[slot.key] || undefined;
+      const isButtonSlot = slot.key.startsWith("button_");
+      payload[slot.key] = !isButtonSlot || (!this._draftButtonThemeStyle && !this._draftButtonDefaultColor)
+        ? this._draftColors[slot.key] || undefined
+        : undefined;
     }
     this._emitConfig(payload);
     this._activeColorSlot = "";
@@ -879,6 +934,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
       .field {
         display: grid;
         gap: 6px;
+      }
+
+      .disabled-field {
+        opacity: .55;
       }
 
       .step-header {
@@ -1161,6 +1220,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
+    const buttonThemeStyle = this._draftButtonThemeStyle !== false;
+    const buttonDefaultColor = this._draftButtonDefaultColor !== false;
+    const buttonCustomActive = !buttonThemeStyle && !buttonDefaultColor;
     const visibleColorSlots = COLOR_SLOTS.filter((slot) => {
       if (slot.key === "background_color") return true;
       if (isApDevice) {
@@ -1334,9 +1396,23 @@ class UnifiDeviceCardEditor extends HTMLElement {
               <span>${escapeHtml(this._draftColors.background_color || this._t("editor_colors_default_value"))}</span>
             </button>
           </div>
+          <div class="field">
+            <label class="checkbox-row">
+              <input id="button_theme_style" type="checkbox" ${buttonThemeStyle ? "checked" : ""}>
+              <span>${escapeHtml(this._t("editor_button_theme_style_label"))}</span>
+            </label>
+            <div class="hint">${escapeHtml(this._t("editor_button_theme_style_hint"))}</div>
+          </div>
+          <div class="field ${buttonThemeStyle ? "disabled-field" : ""}">
+            <label class="checkbox-row">
+              <input id="button_default_color" type="checkbox" ${buttonDefaultColor ? "checked" : ""} ${buttonThemeStyle ? "disabled" : ""}>
+              <span>${escapeHtml(this._t("editor_button_default_color_label"))}</span>
+            </label>
+            <div class="hint">${escapeHtml(this._t("editor_button_default_color_hint"))}</div>
+          </div>
           <div class="color-grid">
             ${visibleColorSlots.filter((slot) => slot.key !== "background_color").map((slot) => {
-              const disabled = slot.key === "ap_led_color" && apLedColorDisabled;
+              const disabled = (slot.key === "ap_led_color" && apLedColorDisabled) || (slot.key.startsWith("button_") && !buttonCustomActive);
               return `
               <button type="button" class="color-slot-btn ${disabled ? "disabled" : ""}" data-slot="${escapeAttr(slot.key)}" ${disabled ? "disabled" : ""}>
                 <span>${escapeHtml(colorSlotLabel((k) => this._t(k), slot.key))}</span>
@@ -1392,6 +1468,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("background_opacity")
       ?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
+    this.shadowRoot.getElementById("button_theme_style")
+      ?.addEventListener("change", (ev) => this._onButtonThemeStyleChange(ev));
+    this.shadowRoot.getElementById("button_default_color")
+      ?.addEventListener("change", (ev) => this._onButtonDefaultColorChange(ev));
 
     this.shadowRoot.getElementById("wan_port")
       ?.addEventListener("change", (ev) => this._onWanPortChange(ev));

@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.7.7]
+
+### ✨ Improvements
+- Add editor controls for button theme/default/custom colors, including separate button background and text/icon colors.
+- Ask for confirmation before disabling a switch port from the port detail panel to prevent accidental shutdowns.
+- Document all currently supported YAML color/button keys and add missing localized labels for button color editor controls.
+
 ## [v0.7.6]
 
 ### 🐛 Bug Fixes

@@ -332,6 +332,21 @@ class UnifiDeviceCard extends HTMLElement {
 
   _customColorVars() {
     const vars = [];
+    const buttonThemeStyle = this._config?.button_theme_style !== false;
+    const buttonDefaultColor = this._config?.button_default_color !== false;
+    if (buttonThemeStyle) {
+      vars.push("--udc-button-bg: var(--primary-color, #0090d9)");
+      vars.push("--udc-button-text-color: var(--text-primary-color, #ffffff)");
+      vars.push("--udc-button-secondary-bg: var(--card-background-color, var(--udc-surf2))");
+      vars.push("--udc-button-secondary-text-color: var(--primary-text-color, var(--udc-text))");
+      vars.push("--udc-button-border-color: var(--divider-color, var(--udc-border))");
+    } else if (!buttonDefaultColor) {
+      vars.push(`--udc-button-bg: ${this._config?.button_color || "#0090d9"}`);
+      vars.push(`--udc-button-text-color: ${this._config?.button_text_color || "#ffffff"}`);
+      vars.push(`--udc-button-secondary-bg: ${this._config?.button_secondary_color || this._config?.button_color || "var(--udc-surf2)"}`);
+      vars.push(`--udc-button-secondary-text-color: ${this._config?.button_secondary_text_color || this._config?.button_text_color || "var(--primary-text-color, var(--udc-text))"}`);
+      vars.push(`--udc-button-border-color: ${this._config?.button_border_color || "var(--udc-border)"}`);
+    }
     const pairs = [
       ["title_color", "--udc-title-color"],
       ["telemetry_color", "--udc-telemetry-color"],
@@ -1493,14 +1508,14 @@ class UnifiDeviceCard extends HTMLElement {
         display: flex;
         align-items: center;
         gap: 4px;
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
+        background: var(--udc-button-secondary-bg, var(--udc-surf2));
+        border: 1px solid var(--udc-button-border-color, var(--udc-border));
         border-radius: 20px;
         padding: 2px 8px;
         font-size: 0.68rem;
         font-weight: 600;
         white-space: nowrap;
-        color: var(--udc-dim);
+        color: var(--udc-button-secondary-text-color, var(--udc-dim));
         flex-shrink: 0;
       }
 
@@ -2136,8 +2151,8 @@ class UnifiDeviceCard extends HTMLElement {
       .action-btn:active { filter: brightness(.9); }
 
       .action-btn.primary {
-        background: #0090d9;
-        color: #fff;
+        background: var(--udc-button-bg, #0090d9);
+        color: var(--udc-button-text-color, #fff);
       }
 
       .action-btn.primary.dimmed {
@@ -2146,9 +2161,9 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .action-btn.secondary {
-        background: var(--udc-surf2);
-        border: 1px solid var(--udc-border);
-        color: var(--primary-text-color, var(--udc-text));
+        background: var(--udc-button-secondary-bg, var(--udc-surf2));
+        border: 1px solid var(--udc-button-border-color, var(--udc-border));
+        color: var(--udc-button-secondary-text-color, var(--primary-text-color, var(--udc-text)));
       }
 
       .muted {
@@ -2383,7 +2398,8 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
             const enabled = isOn(this._hass, selected.port_switch_entity);
-            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}">
+            const confirmDisableAttr = enabled ? ` data-confirm-disable="true" data-port-name="${this._escapeAttr(portTitle)}"` : "";
+            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}"${confirmDisableAttr}>
               ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
             </button>`;
           })() : ""}
@@ -2431,7 +2447,15 @@ class UnifiDeviceCard extends HTMLElement {
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
 
     this.shadowRoot.querySelector("[data-action='toggle-port']")
-      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+      ?.addEventListener("click", (e) => {
+        const target = e.currentTarget;
+        if (target.dataset.confirmDisable === "true") {
+          const portName = target.dataset.portName || this._t("port_label");
+          const message = `${this._t("confirm_disable_port_title")}\n\n${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
+          if (!window.confirm(message)) return;
+        }
+        this._toggleEntity(target.dataset.entity);
+      });
 
     this.shadowRoot.querySelector("[data-action='toggle-poe']")
       ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
