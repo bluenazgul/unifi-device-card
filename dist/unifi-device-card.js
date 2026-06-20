@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.bfd3920 */
+/* UniFi Device Card 0.0.0-dev.01d6249 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3438,6 +3438,10 @@ var TRANSLATIONS = {
     // Actions
     port_disable: "Disable port",
     port_enable: "Enable port",
+    confirm_disable_port_title: "Disable port?",
+    confirm_disable_port_message: "Do you really want to disable {port}?",
+    confirm_yes: "Yes",
+    confirm_no: "No",
     poe_off: "PoE off",
     poe_on: "PoE on",
     power_cycle: "Power Cycle",
@@ -3607,6 +3611,10 @@ var TRANSLATIONS = {
     // Actions
     port_disable: "Port deaktivieren",
     port_enable: "Port aktivieren",
+    confirm_disable_port_title: "Port deaktivieren?",
+    confirm_disable_port_message: "M\xF6chtest du {port} wirklich deaktivieren?",
+    confirm_yes: "Ja",
+    confirm_no: "Nein",
     poe_off: "PoE Aus",
     poe_on: "PoE Ein",
     power_cycle: "Power Cycle",
@@ -3776,6 +3784,10 @@ var TRANSLATIONS = {
     // Actions
     port_disable: "Poort uitschakelen",
     port_enable: "Poort inschakelen",
+    confirm_disable_port_title: "Poort uitschakelen?",
+    confirm_disable_port_message: "Weet je zeker dat je {port} wilt uitschakelen?",
+    confirm_yes: "Ja",
+    confirm_no: "Nee",
     poe_off: "PoE uit",
     poe_on: "PoE aan",
     power_cycle: "Power Cycle",
@@ -3881,6 +3893,15 @@ var TRANSLATIONS = {
     editor_color_slot_ap_color: "AP kleur",
     editor_color_slot_ap_led: "AP LED fallback",
     editor_ap_led_color_disabled_hint: "Uitgeschakeld omdat RGB-ledbediening beschikbaar is.",
+    editor_color_slot_button: "Knopachtergrond",
+    editor_color_slot_button_text: "Knoptekst/-icoon",
+    editor_color_slot_button_secondary: "Achtergrond secundaire knop",
+    editor_color_slot_button_secondary_text: "Tekst/icoon secundaire knop",
+    editor_color_slot_button_border: "Knoprand",
+    editor_button_theme_style_label: "Themakleuren voor knoppen gebruiken",
+    editor_button_theme_style_hint: "Gebruik Home Assistant-themavariabelen voor knopachtergrond en tekst-/icoonkleuren.",
+    editor_button_default_color_label: "Standaard knopkleuren gebruiken",
+    editor_button_default_color_hint: "Als themakleuren uit staan, behoudt de kaart de ingebouwde knopkleuren tenzij aangepaste kleuren zijn ingeschakeld.",
     // Entity warning
     warning_checking: "Geselecteerd apparaat controleren op uitgeschakelde of verborgen UniFi-entiteiten\u2026",
     warning_title: "Uitgeschakelde of verborgen UniFi-entiteiten gedetecteerd",
@@ -3933,6 +3954,10 @@ var TRANSLATIONS = {
     // Actions
     port_disable: "D\xE9sactiver le port",
     port_enable: "Activer le port",
+    confirm_disable_port_title: "D\xE9sactiver le port ?",
+    confirm_disable_port_message: "Voulez-vous vraiment d\xE9sactiver {port} ?",
+    confirm_yes: "Oui",
+    confirm_no: "Non",
     poe_off: "PoE d\xE9sactiv\xE9",
     poe_on: "PoE activ\xE9",
     power_cycle: "Red\xE9marrage PoE",
@@ -4038,6 +4063,15 @@ var TRANSLATIONS = {
     editor_color_slot_ap_color: "Couleur AP",
     editor_color_slot_ap_led: "LED AP (secours)",
     editor_ap_led_color_disabled_hint: "D\xE9sactiv\xE9 car le contr\xF4le LED RGB est disponible.",
+    editor_color_slot_button: "Arri\xE8re-plan du bouton",
+    editor_color_slot_button_text: "Texte/ic\xF4ne du bouton",
+    editor_color_slot_button_secondary: "Arri\xE8re-plan du bouton secondaire",
+    editor_color_slot_button_secondary_text: "Texte/ic\xF4ne du bouton secondaire",
+    editor_color_slot_button_border: "Bordure du bouton",
+    editor_button_theme_style_label: "Utiliser les couleurs de bouton du th\xE8me",
+    editor_button_theme_style_hint: "Utilise les variables du th\xE8me Home Assistant pour l\u2019arri\xE8re-plan et les couleurs du texte/de l\u2019ic\xF4ne des boutons.",
+    editor_button_default_color_label: "Utiliser les couleurs de bouton par d\xE9faut",
+    editor_button_default_color_hint: "Lorsque les couleurs du th\xE8me sont d\xE9sactiv\xE9es, conserve les couleurs int\xE9gr\xE9es des boutons sauf si les couleurs personnalis\xE9es sont activ\xE9es.",
     // Entity warning
     warning_checking: "V\xE9rification des entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es pour l'appareil s\xE9lectionn\xE9\u2026",
     warning_title: "Entit\xE9s UniFi d\xE9sactiv\xE9es ou masqu\xE9es d\xE9tect\xE9es",
@@ -4090,6 +4124,10 @@ var TRANSLATIONS = {
     // Actions
     port_disable: "Desactivar puerto",
     port_enable: "Activar puerto",
+    confirm_disable_port_title: "\xBFDesactivar puerto?",
+    confirm_disable_port_message: "\xBFSeguro que quieres desactivar {port}?",
+    confirm_yes: "S\xED",
+    confirm_no: "No",
     poe_off: "PoE apagado",
     poe_on: "PoE encendido",
     power_cycle: "Reinicio PoE",
@@ -4195,6 +4233,15 @@ var TRANSLATIONS = {
     editor_color_slot_ap_color: "Color AP",
     editor_color_slot_ap_led: "LED AP (respaldo)",
     editor_ap_led_color_disabled_hint: "Desactivado porque hay control RGB LED disponible.",
+    editor_color_slot_button: "Fondo del bot\xF3n",
+    editor_color_slot_button_text: "Texto/icono del bot\xF3n",
+    editor_color_slot_button_secondary: "Fondo del bot\xF3n secundario",
+    editor_color_slot_button_secondary_text: "Texto/icono del bot\xF3n secundario",
+    editor_color_slot_button_border: "Borde del bot\xF3n",
+    editor_button_theme_style_label: "Usar colores de bot\xF3n del tema",
+    editor_button_theme_style_hint: "Usa variables del tema de Home Assistant para el fondo y los colores de texto/icono de los botones.",
+    editor_button_default_color_label: "Usar colores de bot\xF3n predeterminados",
+    editor_button_default_color_hint: "Cuando los colores del tema est\xE1n desactivados, mantiene los colores integrados de los botones salvo que est\xE9n activados los colores personalizados.",
     // Entity warning
     warning_checking: "Comprobando entidades UniFi deshabilitadas u ocultas en el dispositivo seleccionado\u2026",
     warning_title: "Se detectaron entidades UniFi deshabilitadas u ocultas",
@@ -4247,6 +4294,10 @@ var TRANSLATIONS = {
     // Actions
     port_disable: "Disattiva porta",
     port_enable: "Attiva porta",
+    confirm_disable_port_title: "Disattivare la porta?",
+    confirm_disable_port_message: "Vuoi davvero disattivare {port}?",
+    confirm_yes: "S\xEC",
+    confirm_no: "No",
     poe_off: "PoE spento",
     poe_on: "PoE acceso",
     power_cycle: "Riavvio PoE",
@@ -4352,6 +4403,15 @@ var TRANSLATIONS = {
     editor_color_slot_ap_color: "Colore AP",
     editor_color_slot_ap_led: "LED AP (fallback)",
     editor_ap_led_color_disabled_hint: "Disattivato perch\xE9 \xE8 disponibile il controllo LED RGB.",
+    editor_color_slot_button: "Sfondo pulsante",
+    editor_color_slot_button_text: "Testo/icona pulsante",
+    editor_color_slot_button_secondary: "Sfondo pulsante secondario",
+    editor_color_slot_button_secondary_text: "Testo/icona pulsante secondario",
+    editor_color_slot_button_border: "Bordo pulsante",
+    editor_button_theme_style_label: "Usa colori pulsante del tema",
+    editor_button_theme_style_hint: "Usa le variabili del tema Home Assistant per lo sfondo e i colori di testo/icona dei pulsanti.",
+    editor_button_default_color_label: "Usa colori pulsante predefiniti",
+    editor_button_default_color_hint: "Quando i colori del tema sono disattivati, mantiene i colori pulsante integrati della card salvo che i colori personalizzati siano attivi.",
     // Entity warning
     warning_checking: "Controllo entit\xE0 UniFi disabilitate o nascoste per il dispositivo selezionato\u2026",
     warning_title: "Rilevate entit\xE0 UniFi disabilitate o nascoste",
@@ -5750,7 +5810,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.bfd3920";
+var VERSION = "0.0.0-dev.01d6249";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -7787,7 +7847,8 @@ var UnifiDeviceCard = class extends HTMLElement {
         <div class="actions">
           ${selected.port_switch_entity ? (() => {
         const enabled = isOn(this._hass, selected.port_switch_entity);
-        return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}">
+        const confirmDisableAttr = enabled ? ` data-confirm-disable="true" data-port-name="${this._escapeAttr(portTitle)}"` : "";
+        return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}"${confirmDisableAttr}>
               ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
             </button>`;
       })() : ""}
@@ -7829,7 +7890,17 @@ var UnifiDeviceCard = class extends HTMLElement {
         <div class="section">${detail}</div>
       </ha-card>`;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
-    this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+    this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => {
+      const target = e.currentTarget;
+      if (target.dataset.confirmDisable === "true") {
+        const portName = target.dataset.portName || this._t("port_label");
+        const message = `${this._t("confirm_disable_port_title")}
+
+${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
+        if (!window.confirm(message)) return;
+      }
+      this._toggleEntity(target.dataset.entity);
+    });
     this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
