@@ -176,13 +176,28 @@ Unknown models are auto-detected by port count and fall back to a generic dark t
 
 ## Installation via HACS
 
-1. Open **HACS** → **Frontend**
-2. Click **⋮** → **Custom repositories**
-3. Add:
+1. Open **HACS**
+2. Go to **Frontend**
+3. Search for **UniFi Device Card**
+4. Install the card
+5. Reload the browser/frontend
+
+> [!NOTE]
+> Manual installation as a custom repository is only relevant for development, forks, or fallback cases.
+
+### Manual HACS custom repository installation
+
+Use this path only if the card is not available through the normal HACS search, or if you want to install a development version, fork, or fallback source.
+
+1. Open **HACS**
+2. Go to **Frontend**
+3. Click **⋮** → **Custom repositories**
+4. Add:
    - **Repository:** `https://github.com/bluenazgul/unifi-device-card`
    - **Category:** `Dashboard`
-4. Click **Add**, search for **UniFi Device Card** and install
-5. Reload the browser (`Ctrl+Shift+R`)
+5. Click **Add**
+6. Search for **UniFi Device Card** and install the card
+7. Reload the browser/frontend
 
 ---
 
