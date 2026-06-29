@@ -460,6 +460,7 @@ const TEMPERATURE_TELEMETRY_TEXT_PATTERNS = [
   "ambient_temperature",
   "sensor.temperature",
 ];
+const ABBREVIATED_TEMPERATURE_TEXT_RE = /(?:^|[._\-\s])(?:device|system|board|chassis|internal|ambient)?[._\-\s]?temp(?:$|[._\-\s])/;
 
 function hasTemperatureDeviceClass(entity) {
   return lower(entity?.device_class) === "temperature" || lower(entity?.original_device_class) === "temperature";
@@ -471,6 +472,13 @@ function hasNonTemperatureTelemetrySignal(entity, text = entityText(entity)) {
   if (["timestamp", "date", "datetime", "duration"].includes(deviceClass)) return true;
   if (["timestamp", "date", "datetime", "duration"].includes(originalDeviceClass)) return true;
   return NON_TEMPERATURE_TELEMETRY_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
+function hasTemperatureTextSignal(text) {
+  return (
+    TEMPERATURE_TELEMETRY_TEXT_PATTERNS.some((pattern) => text.includes(pattern)) ||
+    ABBREVIATED_TEMPERATURE_TEXT_RE.test(text)
+  );
 }
 
 function isValidTemperatureTelemetryEntity(entity, { allowSubTemperature = true } = {}) {
@@ -494,7 +502,7 @@ function isValidTemperatureTelemetryEntity(entity, { allowSubTemperature = true 
   if (uid.startsWith("device_temperature-")) return true;
   if (allowSubTemperature && uid.startsWith("temperature-cpu-")) return true;
 
-  return TEMPERATURE_TELEMETRY_TEXT_PATTERNS.some((pattern) => text.includes(pattern));
+  return hasTemperatureTextSignal(text);
 }
 
 const HEADER_TELEMETRY_MATCHERS = {

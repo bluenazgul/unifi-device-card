@@ -65,6 +65,20 @@ assert.equal(
   "real temperature telemetry should still be selected"
 );
 
+const telemetryWithAbbreviatedTemperature = getDeviceTelemetry([
+  ...apEntitiesWithoutTemperature,
+  {
+    entity_id: "sensor.usw_temp",
+    unique_id: "usw-temp-aabbccddeeff",
+    name: "USW Temp",
+  },
+]);
+assert.equal(
+  telemetryWithAbbreviatedTemperature.temperature_entity,
+  "sensor.usw_temp",
+  "abbreviated *_temp sensors should remain valid temperature fallbacks"
+);
+
 for (const lang of ["en", "de", "nl", "fr", "es", "it", "sv", "da", "no", "fi", "pl", "cs"]) {
   const strings = getTranslations(lang);
   assert.ok(strings.telemetry_unavailable_title, `${lang} title translation should exist`);
