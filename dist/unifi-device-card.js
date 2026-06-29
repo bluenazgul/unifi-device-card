@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.de8bdf9 */
+/* UniFi Device Card 0.0.0-dev.af8870d */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2131,12 +2131,13 @@ function extractFirmware(device) {
 function isSensorEntity(entity) {
   return lower(entity?.entity_id).startsWith("sensor.");
 }
-function findDeviceEntityByPatterns(entities, patterns = []) {
+function findDeviceEntityByPatterns(entities, patterns = [], candidateIsValid = null) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
     if (isPortLevelTelemetrySensor(entity)) continue;
     const text = entityText(entity);
     if (patterns.some((pattern) => text.includes(pattern))) {
+      if (candidateIsValid && !candidateIsValid(entity, text)) continue;
       return entity.entity_id;
     }
   }
@@ -2146,16 +2147,71 @@ function isPortLevelTelemetrySensor(entity) {
   const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return hasIndexedPortId(text) || text.includes("_wan_") || text.includes("link_speed") || text.includes("port_link_speed") || text.includes("port_bandwidth") || text.includes("poe_power") || text.includes("_rx") || text.includes("_tx") || text.includes("throughput");
 }
-function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
+function findSystemStatEntity(entities, includePatterns = [], excludePatterns = [], candidateIsValid = null) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
     if (isPortLevelTelemetrySensor(entity)) continue;
     const text = entityText(entity);
     if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
     if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
+    if (candidateIsValid && !candidateIsValid(entity, text)) continue;
     return entity.entity_id;
   }
   return null;
+}
+var NON_TEMPERATURE_TELEMETRY_PATTERNS = [
+  "uptime",
+  "last_seen",
+  "last seen",
+  "lastseen",
+  "timestamp",
+  "date_time",
+  "datetime",
+  "date",
+  "time",
+  "duration",
+  "connected_at",
+  "updated_at"
+];
+var TEMPERATURE_TELEMETRY_TEXT_PATTERNS = [
+  "device_temperature",
+  "system_temperature",
+  "board_temperature",
+  "chassis_temperature",
+  "internal_temperature",
+  "ambient_temperature",
+  "sensor.temperature"
+];
+var ABBREVIATED_TEMPERATURE_TEXT_RE = /(?:^|[._\-\s])(?:device|system|board|chassis|internal|ambient)?[._\-\s]?temp(?:$|[._\-\s])/;
+function hasTemperatureDeviceClass(entity) {
+  return lower(entity?.device_class) === "temperature" || lower(entity?.original_device_class) === "temperature";
+}
+function hasNonTemperatureTelemetrySignal(entity, text = entityText(entity)) {
+  const deviceClass = lower(entity?.device_class);
+  const originalDeviceClass = lower(entity?.original_device_class);
+  if (["timestamp", "date", "datetime", "duration"].includes(deviceClass)) return true;
+  if (["timestamp", "date", "datetime", "duration"].includes(originalDeviceClass)) return true;
+  return NON_TEMPERATURE_TELEMETRY_PATTERNS.some((pattern) => text.includes(pattern));
+}
+function hasTemperatureTextSignal(text) {
+  return TEMPERATURE_TELEMETRY_TEXT_PATTERNS.some((pattern) => text.includes(pattern)) || ABBREVIATED_TEMPERATURE_TEXT_RE.test(text);
+}
+function isValidTemperatureTelemetryEntity(entity, { allowSubTemperature = true } = {}) {
+  if (!isSensorEntity(entity)) return false;
+  if (isPortLevelTelemetrySensor(entity)) return false;
+  const text = entityText(entity);
+  if (hasNonTemperatureTelemetrySignal(entity, text)) return false;
+  if (hasTemperatureDeviceClass(entity)) return true;
+  const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+  if (parsed?.feature === "temperature") return true;
+  if (allowSubTemperature && parsed?.feature === "sub_temperature") return true;
+  const translationKey = lower(entity?.translation_key);
+  if (translationKey === "device_temperature") return true;
+  if (allowSubTemperature && translationKey === "device_sub_temperature") return true;
+  const uid = lower(entity?.unique_id);
+  if (uid.startsWith("device_temperature-")) return true;
+  if (allowSubTemperature && uid.startsWith("temperature-cpu-")) return true;
+  return hasTemperatureTextSignal(text);
 }
 var HEADER_TELEMETRY_MATCHERS = {
   cpu_utilization: {
@@ -2186,6 +2242,9 @@ var HEADER_TELEMETRY_MATCHERS = {
 };
 function matchesHeaderTelemetryTarget(entity, target) {
   if (!isSensorEntity(entity)) return false;
+  if ((target === "temperature" || target === "sub_temperature") && !isValidTemperatureTelemetryEntity(entity)) {
+    return false;
+  }
   const matcher = HEADER_TELEMETRY_MATCHERS[target];
   if (!matcher) return false;
   const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
@@ -2240,10 +2299,15 @@ function getDeviceTelemetry(entities) {
     cpu_utilization_entity: coreCpuUtilization || findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
     cpu_temperature_entity: coreCpuTemperature || findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
     memory_utilization_entity: coreMemoryUtilization || findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
-    temperature_entity: coreDeviceTemperature || findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) || findSystemStatEntity(
+    temperature_entity: coreDeviceTemperature || findDeviceEntityByPatterns(
+      entities,
+      ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
+      (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
+    ) || findSystemStatEntity(
       entities,
       ["temperature", "temp"],
-      ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"]
+      ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
+      (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
     )
   };
 }
@@ -3450,6 +3514,8 @@ var TRANSLATIONS = {
     led_off: "LED Off",
     // Hints
     speed_disabled: "Speed entity disabled \u2014 enable it in HA to show link speed.",
+    telemetry_unavailable_title: "Telemetry not available",
+    telemetry_unavailable_body: "The selected device does not provide the following telemetry data, so these values are not shown in the header.",
     // Editor
     editor_device_title: "Device",
     editor_device_label: "UniFi Device",
@@ -3623,6 +3689,8 @@ var TRANSLATIONS = {
     led_off: "LED Aus",
     // Hints
     speed_disabled: "Speed-Entity deaktiviert \u2014 in HA aktivieren f\xFCr Geschwindigkeitsanzeige.",
+    telemetry_unavailable_title: "Telemetrie nicht verf\xFCgbar",
+    telemetry_unavailable_body: "Das ausgew\xE4hlte Ger\xE4t stellt die folgenden Telemetriedaten nicht bereit. Diese Werte werden daher nicht im Header angezeigt.",
     // Editor
     editor_device_title: "Ger\xE4t",
     editor_device_label: "UniFi Ger\xE4t",
@@ -3796,6 +3864,8 @@ var TRANSLATIONS = {
     led_off: "LED uit",
     // Hints
     speed_disabled: "Snelheidsentiteit uitgeschakeld \u2014 schakel in HA in om linksnelheid te tonen.",
+    telemetry_unavailable_title: "Telemetrie niet beschikbaar",
+    telemetry_unavailable_body: "Het geselecteerde apparaat levert de volgende telemetriegegevens niet, daarom worden deze waarden niet in de kop getoond.",
     // Editor
     editor_device_title: "Apparaat",
     editor_device_label: "UniFi-apparaat",
@@ -3966,6 +4036,8 @@ var TRANSLATIONS = {
     led_off: "LED d\xE9sactiv\xE9e",
     // Hints
     speed_disabled: "Entit\xE9 de vitesse d\xE9sactiv\xE9e \u2014 activez-la dans HA pour afficher la vitesse.",
+    telemetry_unavailable_title: "T\xE9l\xE9m\xE9trie non disponible",
+    telemetry_unavailable_body: "L'appareil s\xE9lectionn\xE9 ne fournit pas les donn\xE9es de t\xE9l\xE9m\xE9trie suivantes ; ces valeurs ne sont donc pas affich\xE9es dans l'en-t\xEAte.",
     // Editor
     editor_device_title: "Appareil",
     editor_device_label: "Appareil UniFi",
@@ -4136,6 +4208,8 @@ var TRANSLATIONS = {
     led_off: "LED apagado",
     // Hints
     speed_disabled: "Entidad de velocidad deshabilitada \u2014 act\xEDvala en HA para mostrar la velocidad de enlace.",
+    telemetry_unavailable_title: "Telemetr\xEDa no disponible",
+    telemetry_unavailable_body: "El dispositivo seleccionado no proporciona los siguientes datos de telemetr\xEDa, por lo que estos valores no se muestran en el encabezado.",
     // Editor
     editor_device_title: "Dispositivo",
     editor_device_label: "Dispositivo UniFi",
@@ -4306,6 +4380,8 @@ var TRANSLATIONS = {
     led_off: "LED spento",
     // Hints
     speed_disabled: "Entit\xE0 velocit\xE0 disabilitata \u2014 abilitala in HA per mostrare la velocit\xE0 del link.",
+    telemetry_unavailable_title: "Telemetria non disponibile",
+    telemetry_unavailable_body: "Il dispositivo selezionato non fornisce i seguenti dati di telemetria, quindi questi valori non vengono mostrati nell\u2019header.",
     // Editor
     editor_device_title: "Dispositivo",
     editor_device_label: "Dispositivo UniFi",
@@ -4440,6 +4516,8 @@ TRANSLATIONS.sv = {
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Visa telemetridata i kortets header",
   editor_telemetry_toggle_hint: "Aktiverat som standard. Inaktivera f\xF6r att d\xF6lja CPU-, minnes- och temperaturrader i headern.",
+  telemetry_unavailable_title: "Telemetri inte tillg\xE4nglig",
+  telemetry_unavailable_body: "Den valda enheten tillhandah\xE5ller inte f\xF6ljande telemetridata, d\xE4rf\xF6r visas dessa v\xE4rden inte i headern.",
   editor_colors_open: "\xC4ndra f\xE4rger",
   editor_colors_back: "Tillbaka till editorn",
   editor_colors_apply: "Anv\xE4nd f\xE4rger",
@@ -4455,6 +4533,8 @@ TRANSLATIONS.da = {
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Vis telemetridata i kortets header",
   editor_telemetry_toggle_hint: "Aktiveret som standard. Sl\xE5 fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
+  telemetry_unavailable_title: "Telemetri ikke tilg\xE6ngelig",
+  telemetry_unavailable_body: "Den valgte enhed leverer ikke f\xF8lgende telemetridata, s\xE5 disse v\xE6rdier vises ikke i headeren.",
   editor_colors_open: "Skift farver",
   editor_colors_back: "Tilbage til editor",
   editor_colors_apply: "Anvend farver",
@@ -4470,6 +4550,8 @@ TRANSLATIONS.no = {
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Vis telemetridata i kortoverskriften",
   editor_telemetry_toggle_hint: "Aktivert som standard. Sl\xE5 av for \xE5 skjule CPU-, minne- og temperaturrader i overskriften.",
+  telemetry_unavailable_title: "Telemetri ikke tilgjengelig",
+  telemetry_unavailable_body: "Den valgte enheten leverer ikke f\xF8lgende telemetridata, derfor vises ikke disse verdiene i overskriften.",
   editor_colors_open: "Endre farger",
   editor_colors_back: "Tilbake til editor",
   editor_colors_apply: "Bruk farger",
@@ -4485,6 +4567,8 @@ TRANSLATIONS.fi = {
   editor_telemetry_toggle_label: "Otsakkeen telemetria",
   editor_telemetry_toggle_text: "N\xE4yt\xE4 telemetriatiedot kortin otsakkeessa",
   editor_telemetry_toggle_hint: "K\xE4yt\xF6ss\xE4 oletuksena. Poista k\xE4yt\xF6st\xE4 piilottaaksesi CPU-, muisti- ja l\xE4mp\xF6tilarivit otsakkeesta.",
+  telemetry_unavailable_title: "Telemetria ei ole saatavilla",
+  telemetry_unavailable_body: "Valittu laite ei tarjoa seuraavia telemetriatietoja, joten n\xE4it\xE4 arvoja ei n\xE4ytet\xE4 otsakkeessa.",
   editor_colors_open: "Vaihda v\xE4rej\xE4",
   editor_colors_back: "Takaisin editoriin",
   editor_colors_apply: "K\xE4yt\xE4 v\xE4rit",
@@ -4500,6 +4584,8 @@ TRANSLATIONS.pl = {
   editor_telemetry_toggle_label: "Telemetria nag\u0142\xF3wka",
   editor_telemetry_toggle_text: "Poka\u017C dane telemetryczne w nag\u0142\xF3wku karty",
   editor_telemetry_toggle_hint: "Domy\u015Blnie w\u0142\u0105czone. Wy\u0142\u0105cz, aby ukry\u0107 w nag\u0142\xF3wku wiersze CPU, pami\u0119ci i temperatury.",
+  telemetry_unavailable_title: "Telemetria niedost\u0119pna",
+  telemetry_unavailable_body: "Wybrane urz\u0105dzenie nie udost\u0119pnia nast\u0119puj\u0105cych danych telemetrycznych, dlatego te warto\u015Bci nie s\u0105 pokazywane w nag\u0142\xF3wku.",
   editor_colors_open: "Zmie\u0144 kolory",
   editor_colors_back: "Wr\xF3\u0107 do edytora",
   editor_colors_apply: "Zastosuj kolory",
@@ -4515,6 +4601,8 @@ TRANSLATIONS.cs = {
   editor_telemetry_toggle_label: "Telemetrie z\xE1hlav\xED",
   editor_telemetry_toggle_text: "Zobrazit telemetrii v z\xE1hlav\xED karty",
   editor_telemetry_toggle_hint: "Ve v\xFDchoz\xEDm stavu zapnuto. Vypnut\xEDm skryjete \u0159\xE1dky CPU, pam\u011Bti a teploty v z\xE1hlav\xED.",
+  telemetry_unavailable_title: "Telemetrie nen\xED dostupn\xE1",
+  telemetry_unavailable_body: "Vybran\xE9 za\u0159\xEDzen\xED neposkytuje n\xE1sleduj\xEDc\xED telemetrick\xE1 data, proto se tyto hodnoty v z\xE1hlav\xED nezobrazuj\xED.",
   editor_colors_open: "Zm\u011Bnit barvy",
   editor_colors_back: "Zp\u011Bt do editoru",
   editor_colors_apply: "Pou\u017E\xEDt barvy",
@@ -5189,6 +5277,27 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       count: (hint.disabled?.[key]?.length || 0) + (hint.hidden?.[key]?.length || 0)
     })).filter((item) => item.count > 0);
   }
+  _unavailableTelemetryItems() {
+    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
+    return [
+      ["cpu_utilization", "cpu_utilization_entity"],
+      ["cpu_temperature", "cpu_temperature_entity"],
+      ["memory_utilization", "memory_utilization_entity"],
+      ["temperature", "temperature_entity"]
+    ].filter(([, entityKey]) => !this._deviceCtx?.[entityKey]).map(([labelKey]) => this._t(labelKey));
+  }
+  _unavailableTelemetryHTML() {
+    const items = this._unavailableTelemetryItems();
+    if (!items.length) return "";
+    const list = `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+    return `
+      <div class="warn telemetry-missing">
+        <div class="warn-title">${escapeHtml(this._t("telemetry_unavailable_title"))}</div>
+        <div class="warn-body">${escapeHtml(this._t("telemetry_unavailable_body"))}</div>
+        ${list}
+      </div>
+    `;
+  }
   _warningHTML() {
     if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
@@ -5692,7 +5801,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
         </div>
 
-        <div id="warning_slot">${this._warningHTML()}</div>
+        <div id="warning_slot">${this._warningHTML()}${this._unavailableTelemetryHTML()}</div>
         </div>
 
         <div class="color-step ${colorStepOpen ? "" : "hidden"}">
@@ -5798,7 +5907,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!this._rendered || !this.shadowRoot) return;
     const slot = this.shadowRoot.getElementById("warning_slot");
     if (!slot) return;
-    slot.innerHTML = this._warningHTML();
+    slot.innerHTML = `${this._warningHTML()}${this._unavailableTelemetryHTML()}`;
   }
   _patchFields() {
     if (!this._rendered || !this.shadowRoot) return;
@@ -5810,7 +5919,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.de8bdf9";
+var VERSION = "0.0.0-dev.af8870d";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
