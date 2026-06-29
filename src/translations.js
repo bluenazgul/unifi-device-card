@@ -56,6 +56,8 @@ const TRANSLATIONS = {
 
     // Hints
     speed_disabled:     "Speed entity disabled — enable it in HA to show link speed.",
+    telemetry_unavailable_title: "Telemetry not available",
+    telemetry_unavailable_body:  "The selected device does not provide the following telemetry data, so these values are not shown in the header.",
 
     // Editor
     editor_device_title:   "Device",
@@ -244,6 +246,8 @@ const TRANSLATIONS = {
 
     // Hints
     speed_disabled:     "Speed-Entity deaktiviert — in HA aktivieren für Geschwindigkeitsanzeige.",
+    telemetry_unavailable_title: "Telemetrie nicht verfügbar",
+    telemetry_unavailable_body:  "Das ausgewählte Gerät stellt die folgenden Telemetriedaten nicht bereit. Diese Werte werden daher nicht im Header angezeigt.",
 
     // Editor
     editor_device_title:   "Gerät",
@@ -432,6 +436,8 @@ const TRANSLATIONS = {
 
     // Hints
     speed_disabled:     "Snelheidsentiteit uitgeschakeld — schakel in HA in om linksnelheid te tonen.",
+    telemetry_unavailable_title: "Telemetrie niet beschikbaar",
+    telemetry_unavailable_body:  "Het geselecteerde apparaat levert de volgende telemetriegegevens niet, daarom worden deze waarden niet in de kop getoond.",
 
     // Editor
     editor_device_title:   "Apparaat",
@@ -616,6 +622,8 @@ const TRANSLATIONS = {
 
     // Hints
     speed_disabled:     "Entité de vitesse désactivée — activez-la dans HA pour afficher la vitesse.",
+    telemetry_unavailable_title: "Télémétrie non disponible",
+    telemetry_unavailable_body:  "L'appareil sélectionné ne fournit pas les données de télémétrie suivantes ; ces valeurs ne sont donc pas affichées dans l'en-tête.",
 
     // Editor
     editor_device_title:   "Appareil",
@@ -800,6 +808,8 @@ const TRANSLATIONS = {
 
     // Hints
     speed_disabled:     "Entidad de velocidad deshabilitada — actívala en HA para mostrar la velocidad de enlace.",
+    telemetry_unavailable_title: "Telemetría no disponible",
+    telemetry_unavailable_body:  "El dispositivo seleccionado no proporciona los siguientes datos de telemetría, por lo que estos valores no se muestran en el encabezado.",
 
     // Editor
     editor_device_title:   "Dispositivo",
@@ -984,6 +994,8 @@ const TRANSLATIONS = {
 
     // Hints
     speed_disabled:     "Entità velocità disabilitata — abilitala in HA per mostrare la velocità del link.",
+    telemetry_unavailable_title: "Telemetria non disponibile",
+    telemetry_unavailable_body:  "Il dispositivo selezionato non fornisce i seguenti dati di telemetria, quindi questi valori non vengono mostrati nell’header.",
 
     // Editor
     editor_device_title:   "Dispositivo",
@@ -1128,6 +1140,8 @@ TRANSLATIONS.sv = {
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text:  "Visa telemetridata i kortets header",
   editor_telemetry_toggle_hint:  "Aktiverat som standard. Inaktivera för att dölja CPU-, minnes- och temperaturrader i headern.",
+  telemetry_unavailable_title: "Telemetri inte tillgänglig",
+  telemetry_unavailable_body:  "Den valda enheten tillhandahåller inte följande telemetridata, därför visas dessa värden inte i headern.",
   editor_colors_open: "Ändra färger",
   editor_colors_back: "Tillbaka till editorn",
   editor_colors_apply: "Använd färger",
@@ -1144,6 +1158,8 @@ TRANSLATIONS.da = {
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text:  "Vis telemetridata i kortets header",
   editor_telemetry_toggle_hint:  "Aktiveret som standard. Slå fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
+  telemetry_unavailable_title: "Telemetri ikke tilgængelig",
+  telemetry_unavailable_body:  "Den valgte enhed leverer ikke følgende telemetridata, så disse værdier vises ikke i headeren.",
   editor_colors_open: "Skift farver",
   editor_colors_back: "Tilbage til editor",
   editor_colors_apply: "Anvend farver",
@@ -1160,6 +1176,8 @@ TRANSLATIONS.no = {
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text:  "Vis telemetridata i kortoverskriften",
   editor_telemetry_toggle_hint:  "Aktivert som standard. Slå av for å skjule CPU-, minne- og temperaturrader i overskriften.",
+  telemetry_unavailable_title: "Telemetri ikke tilgjengelig",
+  telemetry_unavailable_body:  "Den valgte enheten leverer ikke følgende telemetridata, derfor vises ikke disse verdiene i overskriften.",
   editor_colors_open: "Endre farger",
   editor_colors_back: "Tilbake til editor",
   editor_colors_apply: "Bruk farger",
@@ -1176,6 +1194,8 @@ TRANSLATIONS.fi = {
   editor_telemetry_toggle_label: "Otsakkeen telemetria",
   editor_telemetry_toggle_text:  "Näytä telemetriatiedot kortin otsakkeessa",
   editor_telemetry_toggle_hint:  "Käytössä oletuksena. Poista käytöstä piilottaaksesi CPU-, muisti- ja lämpötilarivit otsakkeesta.",
+  telemetry_unavailable_title: "Telemetria ei ole saatavilla",
+  telemetry_unavailable_body:  "Valittu laite ei tarjoa seuraavia telemetriatietoja, joten näitä arvoja ei näytetä otsakkeessa.",
   editor_colors_open: "Vaihda värejä",
   editor_colors_back: "Takaisin editoriin",
   editor_colors_apply: "Käytä värit",
@@ -1192,6 +1212,8 @@ TRANSLATIONS.pl = {
   editor_telemetry_toggle_label: "Telemetria nagłówka",
   editor_telemetry_toggle_text:  "Pokaż dane telemetryczne w nagłówku karty",
   editor_telemetry_toggle_hint:  "Domyślnie włączone. Wyłącz, aby ukryć w nagłówku wiersze CPU, pamięci i temperatury.",
+  telemetry_unavailable_title: "Telemetria niedostępna",
+  telemetry_unavailable_body:  "Wybrane urządzenie nie udostępnia następujących danych telemetrycznych, dlatego te wartości nie są pokazywane w nagłówku.",
   editor_colors_open: "Zmień kolory",
   editor_colors_back: "Wróć do edytora",
   editor_colors_apply: "Zastosuj kolory",
@@ -1208,6 +1230,8 @@ TRANSLATIONS.cs = {
   editor_telemetry_toggle_label: "Telemetrie záhlaví",
   editor_telemetry_toggle_text:  "Zobrazit telemetrii v záhlaví karty",
   editor_telemetry_toggle_hint:  "Ve výchozím stavu zapnuto. Vypnutím skryjete řádky CPU, paměti a teploty v záhlaví.",
+  telemetry_unavailable_title: "Telemetrie není dostupná",
+  telemetry_unavailable_body:  "Vybrané zařízení neposkytuje následující telemetrická data, proto se tyto hodnoty v záhlaví nezobrazují.",
   editor_colors_open: "Změnit barvy",
   editor_colors_back: "Zpět do editoru",
   editor_colors_apply: "Použít barvy",

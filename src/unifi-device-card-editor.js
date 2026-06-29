@@ -797,6 +797,34 @@ class UnifiDeviceCardEditor extends HTMLElement {
       .filter((item) => item.count > 0);
   }
 
+
+  _unavailableTelemetryItems() {
+    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
+
+    return [
+      ["cpu_utilization", "cpu_utilization_entity"],
+      ["cpu_temperature", "cpu_temperature_entity"],
+      ["memory_utilization", "memory_utilization_entity"],
+      ["temperature", "temperature_entity"],
+    ]
+      .filter(([, entityKey]) => !this._deviceCtx?.[entityKey])
+      .map(([labelKey]) => this._t(labelKey));
+  }
+
+  _unavailableTelemetryHTML() {
+    const items = this._unavailableTelemetryItems();
+    if (!items.length) return "";
+
+    const list = `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+    return `
+      <div class="warn telemetry-missing">
+        <div class="warn-title">${escapeHtml(this._t("telemetry_unavailable_title"))}</div>
+        <div class="warn-body">${escapeHtml(this._t("telemetry_unavailable_body"))}</div>
+        ${list}
+      </div>
+    `;
+  }
+
   _warningHTML() {
     if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
@@ -1368,7 +1396,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
         </div>
 
-        <div id="warning_slot">${this._warningHTML()}</div>
+        <div id="warning_slot">${this._warningHTML()}${this._unavailableTelemetryHTML()}</div>
         </div>
 
         <div class="color-step ${colorStepOpen ? "" : "hidden"}">
@@ -1511,7 +1539,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!this._rendered || !this.shadowRoot) return;
     const slot = this.shadowRoot.getElementById("warning_slot");
     if (!slot) return;
-    slot.innerHTML = this._warningHTML();
+    slot.innerHTML = `${this._warningHTML()}${this._unavailableTelemetryHTML()}`;
   }
 
   _patchFields() {

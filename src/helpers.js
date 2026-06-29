@@ -373,12 +373,13 @@ function isSensorEntity(entity) {
   return lower(entity?.entity_id).startsWith("sensor.");
 }
 
-function findDeviceEntityByPatterns(entities, patterns = []) {
+function findDeviceEntityByPatterns(entities, patterns = [], candidateIsValid = null) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
     if (isPortLevelTelemetrySensor(entity)) continue;
     const text = entityText(entity);
     if (patterns.some((pattern) => text.includes(pattern))) {
+      if (candidateIsValid && !candidateIsValid(entity, text)) continue;
       return entity.entity_id;
     }
   }
@@ -421,16 +422,87 @@ function findCoreDeviceTelemetryEntity(entities, matchFn) {
   return null;
 }
 
-function findSystemStatEntity(entities, includePatterns = [], excludePatterns = []) {
+function findSystemStatEntity(entities, includePatterns = [], excludePatterns = [], candidateIsValid = null) {
   for (const entity of entities || []) {
     if (!isSensorEntity(entity)) continue;
     if (isPortLevelTelemetrySensor(entity)) continue;
     const text = entityText(entity);
     if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
     if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
+    if (candidateIsValid && !candidateIsValid(entity, text)) continue;
     return entity.entity_id;
   }
   return null;
+}
+
+
+const NON_TEMPERATURE_TELEMETRY_PATTERNS = [
+  "uptime",
+  "last_seen",
+  "last seen",
+  "lastseen",
+  "timestamp",
+  "date_time",
+  "datetime",
+  "date",
+  "time",
+  "duration",
+  "connected_at",
+  "updated_at",
+];
+
+const TEMPERATURE_TELEMETRY_TEXT_PATTERNS = [
+  "device_temperature",
+  "system_temperature",
+  "board_temperature",
+  "chassis_temperature",
+  "internal_temperature",
+  "ambient_temperature",
+  "sensor.temperature",
+];
+const ABBREVIATED_TEMPERATURE_TEXT_RE = /(?:^|[._\-\s])(?:device|system|board|chassis|internal|ambient)?[._\-\s]?temp(?:$|[._\-\s])/;
+
+function hasTemperatureDeviceClass(entity) {
+  return lower(entity?.device_class) === "temperature" || lower(entity?.original_device_class) === "temperature";
+}
+
+function hasNonTemperatureTelemetrySignal(entity, text = entityText(entity)) {
+  const deviceClass = lower(entity?.device_class);
+  const originalDeviceClass = lower(entity?.original_device_class);
+  if (["timestamp", "date", "datetime", "duration"].includes(deviceClass)) return true;
+  if (["timestamp", "date", "datetime", "duration"].includes(originalDeviceClass)) return true;
+  return NON_TEMPERATURE_TELEMETRY_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
+function hasTemperatureTextSignal(text) {
+  return (
+    TEMPERATURE_TELEMETRY_TEXT_PATTERNS.some((pattern) => text.includes(pattern)) ||
+    ABBREVIATED_TEMPERATURE_TEXT_RE.test(text)
+  );
+}
+
+function isValidTemperatureTelemetryEntity(entity, { allowSubTemperature = true } = {}) {
+  if (!isSensorEntity(entity)) return false;
+  if (isPortLevelTelemetrySensor(entity)) return false;
+
+  const text = entityText(entity);
+  if (hasNonTemperatureTelemetrySignal(entity, text)) return false;
+
+  if (hasTemperatureDeviceClass(entity)) return true;
+
+  const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+  if (parsed?.feature === "temperature") return true;
+  if (allowSubTemperature && parsed?.feature === "sub_temperature") return true;
+
+  const translationKey = lower(entity?.translation_key);
+  if (translationKey === "device_temperature") return true;
+  if (allowSubTemperature && translationKey === "device_sub_temperature") return true;
+
+  const uid = lower(entity?.unique_id);
+  if (uid.startsWith("device_temperature-")) return true;
+  if (allowSubTemperature && uid.startsWith("temperature-cpu-")) return true;
+
+  return hasTemperatureTextSignal(text);
 }
 
 const HEADER_TELEMETRY_MATCHERS = {
@@ -463,6 +535,10 @@ const HEADER_TELEMETRY_MATCHERS = {
 
 function matchesHeaderTelemetryTarget(entity, target) {
   if (!isSensorEntity(entity)) return false;
+
+  if ((target === "temperature" || target === "sub_temperature") && !isValidTemperatureTelemetryEntity(entity)) {
+    return false;
+  }
 
   const matcher = HEADER_TELEMETRY_MATCHERS[target];
   if (!matcher) return false;
@@ -540,11 +616,16 @@ export function getDeviceTelemetry(entities) {
       findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
     temperature_entity:
       coreDeviceTemperature ||
-      findDeviceEntityByPatterns(entities, ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"]) ||
+      findDeviceEntityByPatterns(
+        entities,
+        ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
+        (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
+      ) ||
       findSystemStatEntity(
         entities,
         ["temperature", "temp"],
-        ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"]
+        ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
+        (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
       ),
   };
 }
