@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.af8870d */
+/* UniFi Device Card 0.0.0-dev.dffbdf7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2548,6 +2548,8 @@ function getDeviceRebootEntity(entities) {
     const id = lower(entity.entity_id);
     const tk = lower(entity.translation_key || "");
     if (!id.startsWith("button.")) continue;
+    const deviceInfo = parseUnifiDeviceUniqueId(entity.unique_id);
+    if (deviceInfo?.feature === "restart") return entity.entity_id;
     if (id.includes("reboot") || id.includes("restart") || tk.includes("reboot") || tk.includes("restart")) {
       return entity.entity_id;
     }
@@ -2677,9 +2679,20 @@ function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
   const hasPortLikeId = hasIndexedPortId(id);
+  const portInfo = parseUnifiPortUniqueId(entity.unique_id);
   const tk = lower(entity.translation_key || "");
   const dc = lower(entity.device_class || "");
   const odc = lower(entity.original_device_class || "");
+  if (eid.startsWith("button.") && portInfo?.feature === "power_cycle") {
+    return "power_cycle_entity";
+  }
+  if (eid.startsWith("switch.") && portInfo?.feature === "port_control") {
+    return "port_switch_entity";
+  }
+  if (eid.startsWith("sensor.") && portInfo?.feature === "port_rx") return "rx_entity";
+  if (eid.startsWith("sensor.") && portInfo?.feature === "port_tx") return "tx_entity";
+  if (eid.startsWith("sensor.") && portInfo?.feature === "link_speed") return "speed_entity";
+  if (eid.startsWith("sensor.") && portInfo?.feature === "poe_power") return "poe_power_entity";
   if (eid.startsWith("button.") && (id.includes("power_cycle") || tk === "power_cycle" || id.includes("_restart") || id.includes("_reboot"))) {
     return "power_cycle_entity";
   }
@@ -5919,7 +5932,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.af8870d";
+var VERSION = "0.0.0-dev.dffbdf7";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
