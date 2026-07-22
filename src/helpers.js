@@ -1003,6 +1003,18 @@ export function getDeviceRebootEntity(entities) {
     const id = lower(entity.entity_id);
     const tk = lower(entity.translation_key || "");
     if (!id.startsWith("button.")) continue;
+
+    // The entity_id can be customized in Home Assistant.  The UniFi
+    // integration's device_restart unique_id remains stable in that case.
+    const deviceInfo = parseUnifiDeviceUniqueId(entity.unique_id);
+    if (deviceInfo?.feature === "restart") return entity.entity_id;
+
+    // Device classes are language-neutral metadata supplied by Home Assistant.
+    // Exclude UniFi port power-cycle buttons, which use the same restart class.
+    const portInfo = parseUnifiPortUniqueId(entity.unique_id);
+    const deviceClasses = [entity.device_class, entity.original_device_class].map(lower);
+    if (!portInfo && deviceClasses.includes("restart")) return entity.entity_id;
+
     if (
       id.includes("reboot") ||
       id.includes("restart") ||
@@ -1221,9 +1233,21 @@ function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id || "";
   const hasPortLikeId = hasIndexedPortId(id);
+  const portInfo = parseUnifiPortUniqueId(entity.unique_id);
   const tk = lower(entity.translation_key || "");
   const dc = lower(entity.device_class || "");
   const odc = lower(entity.original_device_class || "");
+
+  if (eid.startsWith("button.") && portInfo?.feature === "power_cycle") {
+    return "power_cycle_entity";
+  }
+  if (eid.startsWith("switch.") && portInfo?.feature === "port_control") {
+    return "port_switch_entity";
+  }
+  if (eid.startsWith("sensor.") && portInfo?.feature === "port_rx") return "rx_entity";
+  if (eid.startsWith("sensor.") && portInfo?.feature === "port_tx") return "tx_entity";
+  if (eid.startsWith("sensor.") && portInfo?.feature === "link_speed") return "speed_entity";
+  if (eid.startsWith("sensor.") && portInfo?.feature === "poe_power") return "poe_power_entity";
 
   if (
     eid.startsWith("button.") &&

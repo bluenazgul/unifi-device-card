@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.7.9]
+
+### 🐛 Bug Fixes
+- Show the UniFi device restart button when its Home Assistant entity ID has been renamed or localized by resolving its stable `device_restart-<mac>` unique ID and language-neutral device-class metadata.
+- Detect renamed or localized UniFi port sensors and switches through their stable port unique IDs.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [v0.7.8]
 
 ### 🐛 Bug Fixes
