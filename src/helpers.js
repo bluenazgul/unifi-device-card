@@ -1009,12 +1009,9 @@ export function getDeviceRebootEntity(entities) {
     const deviceInfo = parseUnifiDeviceUniqueId(entity.unique_id);
     if (deviceInfo?.feature === "restart") return entity.entity_id;
 
-    // Device classes are language-neutral metadata supplied by Home Assistant.
-    // Exclude UniFi port power-cycle buttons, which use the same restart class.
-    const portInfo = parseUnifiPortUniqueId(entity.unique_id);
-    const deviceClasses = [entity.device_class, entity.original_device_class].map(lower);
-    if (!portInfo && deviceClasses.includes("restart")) return entity.entity_id;
-
+    // A restart device class alone is ambiguous: UniFi port power-cycle
+    // buttons use it too, and older registry responses can omit unique_id.
+    // Keep the established entity-name/translation fallback for those rows.
     if (
       id.includes("reboot") ||
       id.includes("restart") ||
