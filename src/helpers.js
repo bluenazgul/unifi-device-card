@@ -2047,6 +2047,30 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   } else if (type === "switch") {
     layout = applyPortsPerRowOverride(layout, 8);
   }
+
+  if (layout?.supportsIntegratedPorts) {
+    const discoveredPortNumbers = discoveredPortsRaw
+      .map((port) => port?.port)
+      .filter((port) => Number.isInteger(port) && port > 0)
+      .sort((a, b) => a - b);
+
+    if (discoveredPortNumbers.length > 0) {
+      const portsPerRow = hasConfiguredPortsPerRow
+        ? configuredPortsPerRow
+        : discoveredPortNumbers.length;
+      const rows = [];
+      for (let i = 0; i < discoveredPortNumbers.length; i += portsPerRow) {
+        rows.push(discoveredPortNumbers.slice(i, i + portsPerRow));
+      }
+
+      layout = {
+        ...layout,
+        rows,
+        portCount: Math.max(...discoveredPortNumbers),
+      };
+    }
+  }
+
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);

@@ -16,7 +16,7 @@ function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-function apModel(displayModel) {
+function apModel(displayModel, options = {}) {
   return {
     kind: "access_point",
     frontStyle: "ap-disc",
@@ -25,6 +25,7 @@ function apModel(displayModel) {
     displayModel,
     theme: "white",
     specialSlots: [],
+    ...options,
   };
 }
 
@@ -130,7 +131,7 @@ export const MODEL_REGISTRY = {
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
   UAPACPRO: apModel("UAP AC Pro"),
-  UAPACIW: apModel("UAP AC In-Wall"),
+  UAPACIW: apModel("UAP AC In-Wall", { supportsIntegratedPorts: true }),
   UAPACM: apModel("UAP AC Mesh"),
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -144,14 +145,14 @@ export const MODEL_REGISTRY = {
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
   U6MESH: apModel("U6 Mesh"),
-  U6IW: apModel("U6 In-Wall"),
+  U6IW: apModel("U6 In-Wall", { supportsIntegratedPorts: true }),
   U6ENTERPRISE: apModel("U6 Enterprise"),
-  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall"),
+  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { supportsIntegratedPorts: true }),
   U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall"),
-  U7IW: apModel("U7 In-Wall"),
+  U7IW: apModel("U7 In-Wall", { supportsIntegratedPorts: true }),
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),

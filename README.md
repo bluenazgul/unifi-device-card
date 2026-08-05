@@ -76,6 +76,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
 - **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
+- **Combined In-Wall AP view** — UAP AC In-Wall, U6 In-Wall, U6 Enterprise In-Wall, and U7 In-Wall can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
 - **Built-in UI editor** — full card configuration without YAML
 - **Multi-language support** — translations available for English, German, Dutch, French, Spanish, Italian, Swedish, Danish, Norwegian, Finnish, Polish, and Czech
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
@@ -244,9 +245,10 @@ show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
 show_panel: true              # optional (default: true)
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
-ports_per_row: 8              # optional (switches only)
+ports_per_row: 8              # optional (switches and compatible In-Wall AP port sections only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
-port_size: 36                 # optional (switch/gateway front panel scale in px)
+port_size: 36                 # optional (switch/gateway and compatible In-Wall AP port scale in px)
+integrated_ports: true         # optional (compatible In-Wall APs only; false keeps AP-only view)
 ap_scale: 100                 # optional (AP size in %, 25-140)
 ap_compact_view: false        # optional (AP only; side-by-side compact AP layout)
 ap_compact_show_header_telemetry: false # optional (AP only; show header telemetry also in compact AP view)
@@ -288,10 +290,11 @@ wan2_port: none               # optional (gateway only)
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
-| `ports_per_row` | number | auto | Optional row width override for switch layouts. |
+| `ports_per_row` | number | auto | Optional row width override for switch layouts and compatible In-Wall AP integrated-port sections. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
-| `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
+| `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering and compatible In-Wall AP port sections (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
+| `integrated_ports` | boolean | `true` | Compatible In-Wall APs only: show the discovered integrated switch ports below the normal AP panel. Set `false` for AP-only rendering. |
 | `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
 | `ap_compact_show_header_telemetry` | boolean | `false` | AP only: keeps CPU/memory/temperature header telemetry visible in compact AP view. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
