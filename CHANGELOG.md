@@ -8,8 +8,28 @@
 ## [v0.7.9]
 
 ### ✨ Improvements
+### ATTENTION: this new features are untested as I dont own compatible Hardware
+- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style rendering whose display uses matching cellular sensor data when available.
 - Add a combined In-Wall AP view for UAP AC In-Wall, U6 In-Wall, U6 Enterprise In-Wall, and U7 In-Wall that keeps the standard AP details and can optionally show discovered integrated switch ports with port actions/details.
 - Add an editor/YAML toggle to disable integrated ports on compatible APs and keep the previous AP-only rendering.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+## [v0.7.9]
 
 ### 🐛 Bug Fixes
 - Show the UniFi device restart button when its Home Assistant entity ID has been renamed or localized by resolving its stable `device_restart-<mac>` unique ID and language-neutral device-class metadata.
