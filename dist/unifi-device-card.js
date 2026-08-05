@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.dffbdf7 */
+/* UniFi Device Card 0.0.0-dev.689aa83 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -7,7 +7,7 @@ function range(start, end) {
 function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
-function apModel(displayModel) {
+function apModel(displayModel, options = {}) {
   return {
     kind: "access_point",
     frontStyle: "ap-disc",
@@ -15,7 +15,8 @@ function apModel(displayModel) {
     portCount: 0,
     displayModel,
     theme: "white",
-    specialSlots: []
+    specialSlots: [],
+    ...options
   };
 }
 var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
@@ -88,7 +89,7 @@ var MODEL_REGISTRY = {
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
   UAPACPRO: apModel("UAP AC Pro"),
-  UAPACIW: apModel("UAP AC In-Wall"),
+  UAPACIW: apModel("UAP AC In-Wall", { supportsIntegratedPorts: true }),
   UAPACM: apModel("UAP AC Mesh"),
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -102,14 +103,14 @@ var MODEL_REGISTRY = {
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
   U6MESH: apModel("U6 Mesh"),
-  U6IW: apModel("U6 In-Wall"),
+  U6IW: apModel("U6 In-Wall", { supportsIntegratedPorts: true }),
   U6ENTERPRISE: apModel("U6 Enterprise"),
-  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall"),
+  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { supportsIntegratedPorts: true }),
   U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall"),
-  U7IW: apModel("U7 In-Wall"),
+  U7IW: apModel("U7 In-Wall", { supportsIntegratedPorts: true }),
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
@@ -3225,6 +3226,21 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   } else if (type === "switch") {
     layout = applyPortsPerRowOverride(layout, 8);
   }
+  if (layout?.supportsIntegratedPorts) {
+    const discoveredPortNumbers = discoveredPortsRaw.map((port) => port?.port).filter((port) => Number.isInteger(port) && port > 0).sort((a, b) => a - b);
+    if (discoveredPortNumbers.length > 0) {
+      const portsPerRow = hasConfiguredPortsPerRow ? configuredPortsPerRow : discoveredPortNumbers.length;
+      const rows = [];
+      for (let i = 0; i < discoveredPortNumbers.length; i += portsPerRow) {
+        rows.push(discoveredPortNumbers.slice(i, i + portsPerRow));
+      }
+      layout = {
+        ...layout,
+        rows,
+        portCount: Math.max(...discoveredPortNumbers)
+      };
+    }
+  }
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
@@ -3557,6 +3573,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label: "AP size",
     editor_ap_scale_hint: "Scales the AP device size in AP card mode.",
+    editor_integrated_ports_toggle_label: "Integrated ports",
+    editor_integrated_ports_toggle_text: "Show integrated switch ports",
+    editor_integrated_ports_toggle_hint: "For compatible In-Wall access points. Disable for the classic AP-only view.",
     editor_ap_compact_toggle_label: "AP layout",
     editor_ap_compact_toggle_text: "Use compact AP layout",
     editor_ap_compact_toggle_hint: "Only for access points. Places AP image and status details side by side.",
@@ -3732,6 +3751,9 @@ var TRANSLATIONS = {
     editor_port_size_hint: "Skaliert die Frontpanel-Portgr\xF6\xDFe f\xFCr Switches und Gateways.",
     editor_ap_scale_label: "AP-Gr\xF6\xDFe",
     editor_ap_scale_hint: "Skaliert die AP-Ger\xE4tegr\xF6\xDFe im AP-Kartenmodus.",
+    editor_integrated_ports_toggle_label: "Integrierte Ports",
+    editor_integrated_ports_toggle_text: "Integrierte Switch-Ports anzeigen",
+    editor_integrated_ports_toggle_hint: "F\xFCr kompatible In-Wall Access Points. Deaktivieren f\xFCr die klassische reine AP-Ansicht.",
     editor_ap_compact_toggle_label: "AP-Layout",
     editor_ap_compact_toggle_text: "Kompakte AP-Ansicht verwenden",
     editor_ap_compact_toggle_hint: "Nur f\xFCr Access Points. Zeigt AP-Bild und Statusdetails nebeneinander an.",
@@ -5049,6 +5071,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
+    if (next.integrated_ports !== false) delete next.integrated_ports;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
     this._dispatchConfig(next);
   }
@@ -5653,6 +5676,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
+    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const integratedPorts = this._config?.integrated_ports !== false;
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
@@ -5739,18 +5764,28 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchDevice ? `
+        ${isSwitchDevice || supportsIntegratedPorts ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
           <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchOrGateway ? `
+        ${isSwitchOrGateway || supportsIntegratedPorts ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
           <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
           <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
+        </div>` : ""}
+
+        ${supportsIntegratedPorts ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_integrated_ports_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="integrated_ports" type="checkbox" ${integratedPorts ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_integrated_ports_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_integrated_ports_toggle_hint"))}</div>
         </div>` : ""}
 
         ${isApDevice ? `
@@ -5895,6 +5930,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
     this.shadowRoot.getElementById("port_size")?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")?.addEventListener("change", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("integrated_ports")?.addEventListener("change", (ev) => this._emitConfig({ integrated_ports: ev.target.checked ? void 0 : false }));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
@@ -5932,7 +5968,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.dffbdf7";
+var VERSION = "0.0.0-dev.689aa83";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
@@ -7302,6 +7338,28 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-bottom: 0;
       }
 
+
+      .integrated-port-section {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, .9fr);
+        gap: 0;
+        border-top: 1px solid var(--udc-border);
+      }
+
+      .frontpanel.integrated-ports {
+        border-bottom: none;
+        border-right: 1px solid var(--udc-border);
+      }
+
+      .integrated-port-detail {
+        display: grid;
+        align-content: center;
+      }
+
+      .ap-layout.has-integrated-ports {
+        border-bottom: none;
+      }
+
       .ap-device {
         width: calc(225px * var(--udc-ap-scale));
         height: auto;
@@ -7803,7 +7861,133 @@ var UnifiDeviceCard = class extends HTMLElement {
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+
+      @media (max-width: 420px) {
+        .integrated-port-section {
+          grid-template-columns: 1fr;
+        }
+
+        .frontpanel.integrated-ports {
+          border-right: none;
+          border-bottom: 1px solid var(--udc-border);
+        }
+
+        .ap-layout.has-integrated-ports,
+        .ap-layout.compact.has-integrated-ports {
+          grid-template-columns: 1fr;
+        }
+
+        .ap-layout.compact.has-integrated-ports .frontpanel.ap-disc {
+          border-right: none;
+          border-bottom: 1px solid var(--udc-border);
+        }
+      }
+
     </style>`;
+  }
+  _integratedPortsEnabled(ctx) {
+    return !!ctx?.layout?.supportsIntegratedPorts && this._config?.integrated_ports !== false;
+  }
+  _renderPortDetail(selected) {
+    if (!selected) return `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
+    const linkUp = this._isPortConnected(selected);
+    const linkText = getPortLinkText(this._hass, selected);
+    const speedText = getPortSpeedText(this._hass, selected);
+    const poeStatus = getPoeStatus(this._hass, selected);
+    const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
+    const poeOn = poeStatus.active;
+    const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "\u2014";
+    const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
+    const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
+    const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
+    return `
+      <div class="detail-title">${this._escapeHtml(portTitle)}</div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
+          <div class="detail-value ${linkUp ? "online" : "offline"}">
+            ${this._escapeHtml(this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link")))}
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("speed"))}</div>
+          <div class="detail-value">${this._escapeHtml(speedText || "\u2014")}</div>
+        </div>
+        ${hasPoe ? `
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("poe"))}</div>
+          <div class="detail-value ${poeOn ? "online" : "offline"}">
+            ${this._escapeHtml(poeOn ? this._t("state_on") : this._t("state_off"))}
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("poe_power"))}</div>
+          <div class="detail-value">${this._escapeHtml(poePower || "\u2014")}</div>
+        </div>` : ""}
+        ${rxVal != null ? `
+        <div class="detail-item">
+          <div class="detail-label">RX</div>
+          <div class="detail-value">${this._escapeHtml(rxVal)}</div>
+        </div>` : ""}
+        ${txVal != null ? `
+        <div class="detail-item">
+          <div class="detail-label">TX</div>
+          <div class="detail-value">${this._escapeHtml(txVal)}</div>
+        </div>` : ""}
+      </div>
+      <div class="actions">
+        ${selected.port_switch_entity ? (() => {
+      const enabled = isOn(this._hass, selected.port_switch_entity);
+      const confirmDisableAttr = enabled ? ` data-confirm-disable="true" data-port-name="${this._escapeAttr(portTitle)}"` : "";
+      return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}"${confirmDisableAttr}>
+            ${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}
+          </button>`;
+    })() : ""}
+        ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${this._escapeAttr(selected.poe_switch_entity)}">
+          \u26A1 ${this._escapeHtml(this._t("poe"))}
+        </button>` : ""}
+        ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${this._escapeAttr(selected.power_cycle_entity)}">
+          \u21BA ${this._escapeHtml(this._t("power_cycle"))}
+        </button>` : ""}
+      </div>`;
+  }
+  _renderIntegratedPortSection(ctx) {
+    if (!this._integratedPortsEnabled(ctx) || !ctx?.numberedPorts?.length) return "";
+    const { specials, numbered } = this._buildSlotData(ctx);
+    const allSlots = [...specials, ...numbered];
+    if (!allSlots.length) return "";
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const portClientIndex = this._buildPortClientIndex();
+    const rows = this._buildEffectiveRows(ctx, numbered);
+    const layoutRows = rows.map((rowPorts) => {
+      const items = rowPorts.map((portNumber) => numbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex)).join("");
+      return items ? `<div class="port-row" style="--udc-cols: ${Math.max(1, rowPorts.length)};">${items}</div>` : "";
+    }).filter(Boolean).join("");
+    return `
+      <div class="integrated-port-section">
+        <div class="frontpanel integrated-ports theme-${this._safeClassToken(ctx?.layout?.theme || "white", "white")}">
+          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
+          ${layoutRows || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`}
+        </div>
+        <div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>
+      </div>`;
+  }
+  _attachPortActionHandlers(ctx) {
+    this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+    this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => {
+      const target = e.currentTarget;
+      if (target.dataset.confirmDisable === "true") {
+        const portName = target.dataset.portName || this._t("port_label");
+        const message = `${this._t("confirm_disable_port_title")}
+
+${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
+        if (!window.confirm(message)) return;
+      }
+      this._toggleEntity(target.dataset.entity);
+    });
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+    this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
+    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
   }
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
@@ -7840,7 +8024,7 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>
           </div>
 
-          <div class="ap-layout ${compactApView ? "compact" : ""}">
+          <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
             <div class="frontpanel ap-disc">
               <div class="ap-device">
                 <div class="ap-ring ${ledEnabled ? "online" : "off"}">
@@ -7880,8 +8064,10 @@ var UnifiDeviceCard = class extends HTMLElement {
               </div>
             </div>
           </div>
+
+          ${this._renderIntegratedPortSection(this._ctx)}
         </ha-card>`;
-      this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+      this._attachPortActionHandlers(this._ctx);
       this.shadowRoot.querySelector("[data-action='toggle-led']")?.addEventListener("click", () => this._toggleEntity(ledEntity));
       return;
     }
