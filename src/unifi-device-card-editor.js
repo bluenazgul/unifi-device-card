@@ -497,6 +497,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
+    if (next.integrated_ports !== false) delete next.integrated_ports;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
 
     this._dispatchConfig(next);
@@ -1214,6 +1215,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
+    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const integratedPorts = this._config?.integrated_ports !== false;
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
@@ -1319,18 +1322,28 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchDevice ? `
+        ${(isSwitchDevice || supportsIntegratedPorts) ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
           <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchOrGateway ? `
+        ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
           <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
           <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
+        </div>` : ""}
+
+        ${supportsIntegratedPorts ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_integrated_ports_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="integrated_ports" type="checkbox" ${integratedPorts ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_integrated_ports_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_integrated_ports_toggle_hint"))}</div>
         </div>` : ""}
 
         ${isApDevice ? `
@@ -1489,6 +1502,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
       ?.addEventListener("change", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("integrated_ports")
+      ?.addEventListener("change", (ev) => this._emitConfig({ integrated_ports: ev.target.checked ? undefined : false }));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")

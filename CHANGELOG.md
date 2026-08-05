@@ -2,6 +2,10 @@
 
 ## [v0.7.9]
 
+### ✨ Improvements
+- Add a combined In-Wall AP view for UAP AC In-Wall, U6 In-Wall, U6 Enterprise In-Wall, and U7 In-Wall that keeps the standard AP details and can optionally show discovered integrated switch ports with port actions/details.
+- Add an editor/YAML toggle to disable integrated ports on compatible APs and keep the previous AP-only rendering.
+
 ### 🐛 Bug Fixes
 - Show the UniFi device restart button when its Home Assistant entity ID has been renamed or localized by resolving its stable `device_restart-<mac>` unique ID and language-neutral device-class metadata.
 - Detect renamed or localized UniFi port sensors and switches through their stable port unique IDs.
