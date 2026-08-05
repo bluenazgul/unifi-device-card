@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.7.92-dev]
+
+### ✨ Improvements
+- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style rendering that shows firmware plus CPU/RAM activity on the device display.
+
 ## [v0.7.9]
 
 ### ✨ Improvements

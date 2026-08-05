@@ -564,6 +564,26 @@ class UnifiDeviceCard extends HTMLElement {
     return fallbackName;
   }
 
+  _fiveGPercent(entityId) {
+    const raw = this._numericState(entityId);
+    if (raw == null) return null;
+    return Math.max(0, Math.min(100, raw));
+  }
+
+  _fiveGBackupDisplayData() {
+    const cpuPercent = this._fiveGPercent(this._ctx?.cpu_utilization_entity);
+    const memoryPercent = this._fiveGPercent(this._ctx?.memory_utilization_entity);
+    const firmware = String(this._ctx?.firmware || "").trim();
+
+    return {
+      firmware: firmware ? `FW ${firmware}` : "FW —",
+      cpuPercent,
+      memoryPercent,
+      cpuBar: cpuPercent ?? 0,
+      memoryBar: memoryPercent ?? 0,
+    };
+  }
+
   _apUplinkTooltip(uplink) {
     if (!uplink) return "";
     const lines = [];
@@ -1655,7 +1675,8 @@ class UnifiDeviceCard extends HTMLElement {
         --udc-cols: 10;
       }
 
-      .frontpanel.ap-disc {
+      .frontpanel.ap-disc,
+      .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
         place-items: center;
@@ -1672,7 +1693,8 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: stretch;
       }
 
-      .ap-layout.compact .frontpanel.ap-disc {
+      .ap-layout.compact .frontpanel.ap-disc,
+      .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
         border-right: 1px solid var(--udc-border);
@@ -1680,6 +1702,10 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-layout.compact .ap-device {
         width: min(100%, calc(180px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-5g-device {
+        width: min(100%, calc(118px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -1728,6 +1754,136 @@ class UnifiDeviceCard extends HTMLElement {
           0 12px 22px rgba(0,0,0,.18);
         display: grid;
         place-items: center;
+      }
+
+      .ap-5g-device {
+        width: calc(132px * var(--udc-ap-scale));
+        height: calc(320px * var(--udc-ap-scale));
+        aspect-ratio: auto;
+        border-radius: calc(32px * var(--udc-ap-scale));
+        background: linear-gradient(90deg, #383b3e 0 13%, #f7f8f8 13% 87%, #383b3e 87% 100%);
+        box-shadow:
+          inset 11px 0 14px rgba(255,255,255,.5),
+          inset -11px 0 14px rgba(0,0,0,.08),
+          0 16px 28px rgba(0,0,0,.24);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ap-5g-face {
+        position: absolute;
+        inset: 0 15%;
+        border-radius: calc(24px * var(--udc-ap-scale));
+        background: linear-gradient(90deg, #f2f4f4 0%, #ffffff 44%, #eff2f2 100%);
+        box-shadow:
+          inset 8px 0 14px rgba(255,255,255,.68),
+          inset -8px 0 12px rgba(0,0,0,.04);
+      }
+
+      .ap-5g-display {
+        position: absolute;
+        left: 50%;
+        top: 61%;
+        width: 44%;
+        aspect-ratio: .74 / 1;
+        transform: translate(-50%, -50%);
+        border-radius: calc(7px * var(--udc-ap-scale));
+        background: linear-gradient(180deg, #071128 0%, #0d1733 64%, #07101f 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.22),
+          0 2px 5px rgba(0,0,0,.28);
+        color: #eaf3ff;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: calc(4px * var(--udc-ap-scale));
+        padding: calc(6px * var(--udc-ap-scale));
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        line-height: 1;
+        box-sizing: border-box;
+      }
+
+      .ap-5g-display-top {
+        font-size: calc(13px * var(--udc-ap-scale));
+      }
+
+      .ap-5g-bars {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        align-items: end;
+        gap: calc(1px * var(--udc-ap-scale));
+        height: calc(18px * var(--udc-ap-scale));
+      }
+
+      .ap-5g-bars span {
+        display: block;
+        border-radius: 1px;
+        background: #1fc56c;
+        box-shadow: 0 0 3px rgba(31,197,108,.35);
+      }
+
+      .ap-5g-bars span:nth-child(1) { height: 45%; }
+      .ap-5g-bars span:nth-child(2) { height: 58%; }
+      .ap-5g-bars span:nth-child(3) { height: 72%; }
+      .ap-5g-bars span:nth-child(4) { height: 86%; }
+      .ap-5g-bars span:nth-child(5) { height: 100%; }
+
+      .ap-5g-bars span.inactive {
+        background: rgba(198,216,237,.24);
+        box-shadow: none;
+      }
+
+      .ap-5g-firmware {
+        color: #c6d8ed;
+        font-size: calc(6px * var(--udc-ap-scale));
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .ap-5g-metrics {
+        align-self: end;
+        display: grid;
+        gap: calc(3px * var(--udc-ap-scale));
+      }
+
+      .ap-5g-metric {
+        display: grid;
+        grid-template-columns: calc(13px * var(--udc-ap-scale)) 1fr;
+        align-items: center;
+        gap: calc(3px * var(--udc-ap-scale));
+        color: #c6d8ed;
+        font-size: calc(5px * var(--udc-ap-scale));
+      }
+
+      .ap-5g-meter {
+        height: calc(4px * var(--udc-ap-scale));
+        border-radius: 999px;
+        background: rgba(255,255,255,.18);
+        overflow: hidden;
+      }
+
+      .ap-5g-meter span {
+        display: block;
+        width: var(--ap-5g-meter-value, 0%);
+        height: 100%;
+        border-radius: inherit;
+        background: #2aa7ff;
+      }
+
+      .ap-5g-meter.memory span {
+        background: #34d979;
+      }
+
+      .ap-5g-label {
+        position: absolute;
+        left: 50%;
+        top: 78%;
+        transform: translateX(-50%);
+        color: rgba(210,215,218,.58);
+        font-size: calc(10px * var(--udc-ap-scale));
+        white-space: nowrap;
       }
 
       .ap-ring {
@@ -2377,6 +2533,8 @@ class UnifiDeviceCard extends HTMLElement {
       const apUplink = this._apUplinkText(this._ctx?.ap_uplink);
       const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
+      const isFiveGBackup = this._ctx?.layout?.frontStyle === "ap-5g-backup";
+      const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData() : null;
 
       const headerTitle = this._title();
       const headerMetrics = compactApView && !this._apCompactHeaderTelemetryEnabled()
@@ -2404,12 +2562,26 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
-            <div class="frontpanel ap-disc">
+            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : "ap-disc"}">
+              ${isFiveGBackup ? `
+              <div class="ap-device ap-5g-device">
+                <div class="ap-5g-face"></div>
+                <div class="ap-5g-display">
+                  <div class="ap-5g-display-top">5G</div>
+                  <div class="ap-5g-bars">${[1, 2, 3, 4, 5].map((bar) => `<span class="${bar <= 4 ? "" : "inactive"}"></span>`).join("")}</div>
+                  <div class="ap-5g-firmware">${this._escapeHtml(fiveGDisplay.firmware)}</div>
+                  <div class="ap-5g-metrics">
+                    <div class="ap-5g-metric"><span>CPU</span><div class="ap-5g-meter"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.cpuBar}%`)}"></span></div></div>
+                    <div class="ap-5g-metric"><span>RAM</span><div class="ap-5g-meter memory"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.memoryBar}%`)}"></span></div></div>
+                  </div>
+                </div>
+                <div class="ap-5g-label">UniFi 5G</div>
+              </div>` : `
               <div class="ap-device">
                 <div class="ap-ring ${ledEnabled ? "online" : "off"}">
                   <div class="ap-logo">u</div>
                 </div>
-              </div>
+              </div>`}
             </div>
 
             <div class="section">

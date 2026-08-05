@@ -29,7 +29,7 @@ function apModel(displayModel, options = {}) {
   };
 }
 
-export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
+export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 
@@ -169,6 +169,7 @@ export const MODEL_REGISTRY = {
   UKULTRA: apModel("UK Ultra"),
   UBB: apModel("UBB"),
   UBBXG: apModel("UBB XG"),
+  UMBBE634: apModel("UniFi 5G Backup", { frontStyle: "ap-5g-backup" }),
   UAIRWIRE: apModel("U-AirWire"),
   UDB: apModel("Device Bridge"),
   UDBIOT: apModel("Device Bridge IoT"),
@@ -1048,6 +1049,8 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACM"))             return "UAPACM";
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
+    if (candidate.includes("UMBBE634"))           return "UMBBE634";
+    if (candidate.includes("UNIFI5GBACKUP"))      return "UMBBE634";
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
     if (candidate.includes("UAPACIW"))            return "UAPACIW";
     if (candidate.includes("UAPAC"))              return "UAPAC";
