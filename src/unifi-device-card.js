@@ -564,134 +564,24 @@ class UnifiDeviceCard extends HTMLElement {
     return fallbackName;
   }
 
-  _entitySearchText(entity) {
-    const attrs = entity?.attributes || {};
-    return [
-      entity?.entity_id,
-      entity?.unique_id,
-      entity?.original_name,
-      entity?.name,
-      entity?.translation_key,
-      attrs?.friendly_name,
-      attrs?.device_class,
-      attrs?.unit_of_measurement,
-    ].filter(Boolean).join(" ").toLowerCase();
-  }
-
-  _stateValue(entityId) {
-    const raw = String(this._hass?.states?.[entityId]?.state ?? "").trim();
-    if (!raw || raw === "unknown" || raw === "unavailable" || raw === "none") return "";
-    return raw;
-  }
-
-  _pickStateAttribute(obj, keys = []) {
-    const attrs = obj?.attributes || {};
-    for (const key of keys) {
-      const value = attrs[key];
-      if (value === undefined || value === null) continue;
-      const text = String(value).trim();
-      if (text && text !== "unknown" && text !== "unavailable" && text !== "none") return text;
-    }
-    return "";
-  }
-
-  _findDeviceStateByPatterns(includePatterns, excludePatterns = [], validator = null, attributeKeys = []) {
-    const registryEntities = (this._ctx?.entities || []).filter((entity) => entity?.entity_id);
-    const seen = new Set();
-    for (const registryEntity of registryEntities) {
-      const entityId = registryEntity.entity_id;
-      if (seen.has(entityId)) continue;
-      seen.add(entityId);
-      const obj = stateObj(this._hass, entityId);
-      if (!obj) continue;
-      const text = this._entitySearchText({ ...registryEntity, attributes: obj.attributes });
-      if (!includePatterns.some((pattern) => text.includes(pattern))) continue;
-      if (excludePatterns.some((pattern) => text.includes(pattern))) continue;
-      const stateValue = this._stateValue(entityId);
-      const attributeValue = this._pickStateAttribute(obj, attributeKeys);
-      const value = attributeValue || stateValue;
-      if (!value) continue;
-      if (validator && !validator(value, obj, text)) continue;
-      return { entityId, obj, value };
-    }
-    return null;
-  }
-
-  _formatCellularNumber(value, unit = "") {
-    const num = Number.parseFloat(String(value ?? "").replace(",", "."));
-    if (!Number.isFinite(num)) return "";
-    const rounded = Math.abs(num) >= 10 ? num.toFixed(0) : num.toFixed(1);
-    return `${rounded}${unit ? ` ${unit}` : ""}`;
-  }
-
-  _formatDataAmount(value, unit = "") {
-    const num = Number.parseFloat(String(value ?? "").replace(",", "."));
-    if (!Number.isFinite(num)) return "";
-    const normalizedUnit = String(unit || "").trim();
-    return `${num >= 10 ? num.toFixed(0) : num.toFixed(1)}${normalizedUnit ? ` ${normalizedUnit}` : ""}`;
+  _fiveGPercent(entityId) {
+    const raw = this._numericState(entityId);
+    if (raw == null) return null;
+    return Math.max(0, Math.min(100, raw));
   }
 
   _fiveGBackupDisplayData() {
-    const network = this._findDeviceStateByPatterns(
-      ["network type", "network_type", "radio access", "rat", "cellular technology", "technology", "device_cellular_network_type", "device_cellular_technology"],
-      ["clients", "uptime", "wan_latency"],
-      null,
-      ["network_type", "radio", "rat", "technology", "cellular_technology"]
-    )?.value || "5G";
-    const sim = this._findDeviceStateByPatterns(
-      ["sim", "esim", "device_cellular_sim", "device_sim"],
-      ["missing", "status"],
-      (value) => !/^\d{12,}$/.test(String(value).replace(/\D/g, "")),
-      ["sim", "sim_type", "cellular_sim"]
-    )?.value || "eSIM";
+    const cpuPercent = this._fiveGPercent(this._ctx?.cpu_utilization_entity);
+    const memoryPercent = this._fiveGPercent(this._ctx?.memory_utilization_entity);
+    const firmware = String(this._ctx?.firmware || "").trim();
 
-    const signalEntity = this._findDeviceStateByPatterns(
-      ["signal", "rssi", "rsrp", "dbm", "cellular", "device_cellular_signal", "device_cellular_rssi", "device_cellular_rsrp"],
-      ["quality", "clients", "uptime", "wan_latency"],
-      (value, obj) => Number.isFinite(Number.parseFloat(String(value).replace(",", "."))) || !!obj?.attributes?.unit_of_measurement,
-      ["signal", "rssi", "rsrp", "cellular_signal", "cellular_rssi", "cellular_rsrp"]
-    );
-    const signalNum = Number.parseFloat(String(signalEntity?.value ?? "").replace(",", "."));
-    const signalUnit = signalEntity?.obj?.attributes?.unit_of_measurement || (Number.isFinite(signalNum) ? "dBm" : "");
-    const signal = signalEntity
-      ? (Number.isFinite(signalNum) ? this._formatCellularNumber(signalNum, signalUnit) : formatState(this._hass, signalEntity.entityId))
-      : "—";
-
-    const signalBars = Number.isFinite(signalNum)
-      ? Math.max(1, Math.min(5, Math.ceil((signalNum + 115) / 12)))
-      : 4;
-
-    const carrier = this._findDeviceStateByPatterns(
-      ["carrier", "operator", "provider", "cellular network", "mobile network", "device_cellular_carrier", "device_cellular_operator"],
-      ["signal", "quality", "usage", "wan_latency"],
-      null,
-      ["carrier", "operator", "provider", "cellular_carrier", "cellular_operator"]
-    )?.value || "—";
-
-    const usedEntity = this._findDeviceStateByPatterns(
-      ["data used", "data_used", "data usage", "usage", "used data", "traffic used", "device_cellular_data_used", "device_cellular_data_usage"],
-      ["rx", "tx", "rate", "speed", "signal", "quality", "wan_latency"],
-      (value) => Number.isFinite(Number.parseFloat(String(value).replace(",", "."))),
-      ["data_used", "data_usage", "cellular_data_used", "cellular_data_usage"]
-    );
-    const limitEntity = this._findDeviceStateByPatterns(
-      ["data limit", "data_limit", "usage limit", "limit", "quota", "device_cellular_data_limit", "device_cellular_quota"],
-      ["rate", "speed", "signal", "quality", "wan_latency"],
-      (value) => Number.isFinite(Number.parseFloat(String(value).replace(",", "."))),
-      ["data_limit", "data_quota", "cellular_data_limit", "cellular_data_quota"]
-    );
-    const usedNum = Number.parseFloat(String(usedEntity?.value ?? "").replace(",", "."));
-    const limitNum = Number.parseFloat(String(limitEntity?.value ?? "").replace(",", "."));
-    const usedUnit = usedEntity?.obj?.attributes?.unit_of_measurement || "GB";
-    const limitUnit = limitEntity?.obj?.attributes?.unit_of_measurement || usedUnit;
-    const data = usedEntity
-      ? `${this._formatDataAmount(usedNum, usedUnit)}${limitEntity ? `/${this._formatDataAmount(limitNum, limitUnit)}` : ""}`
-      : "—";
-    const dataPercent = Number.isFinite(usedNum) && Number.isFinite(limitNum) && limitNum > 0
-      ? Math.max(0, Math.min(100, (usedNum / limitNum) * 100))
-      : 24;
-
-    return { network, sim, signalBars, signal, carrier, data, dataPercent };
+    return {
+      firmware: firmware ? `FW ${firmware}` : "FW —",
+      cpuPercent,
+      memoryPercent,
+      cpuBar: cpuPercent ?? 0,
+      memoryBar: memoryPercent ?? 0,
+    };
   }
 
   _apUplinkTooltip(uplink) {
@@ -1905,7 +1795,7 @@ class UnifiDeviceCard extends HTMLElement {
         color: #eaf3ff;
         display: grid;
         grid-template-rows: auto auto 1fr auto;
-        gap: calc(3px * var(--udc-ap-scale));
+        gap: calc(4px * var(--udc-ap-scale));
         padding: calc(6px * var(--udc-ap-scale));
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         font-weight: 700;
@@ -1914,15 +1804,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-5g-display-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: calc(11px * var(--udc-ap-scale));
-      }
-
-      .ap-5g-esim {
-        font-size: calc(7px * var(--udc-ap-scale));
-        color: #c6d8ed;
+        font-size: calc(13px * var(--udc-ap-scale));
       }
 
       .ap-5g-bars {
@@ -1951,48 +1833,47 @@ class UnifiDeviceCard extends HTMLElement {
         box-shadow: none;
       }
 
-      .ap-5g-signal {
-        color: #34d979;
-        font-size: calc(8px * var(--udc-ap-scale));
+      .ap-5g-firmware {
+        color: #c6d8ed;
+        font-size: calc(6px * var(--udc-ap-scale));
         text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      .ap-5g-carrier {
+      .ap-5g-metrics {
+        align-self: end;
         display: grid;
-        place-items: center;
         gap: calc(3px * var(--udc-ap-scale));
-        font-size: calc(8px * var(--udc-ap-scale));
-        text-align: center;
       }
 
-      .ap-5g-sim-icon {
-        width: calc(13px * var(--udc-ap-scale));
-        height: calc(15px * var(--udc-ap-scale));
-        border: 1px solid rgba(234,243,255,.8);
-        border-radius: 2px;
-        position: relative;
+      .ap-5g-metric {
+        display: grid;
+        grid-template-columns: calc(13px * var(--udc-ap-scale)) 1fr;
+        align-items: center;
+        gap: calc(3px * var(--udc-ap-scale));
+        color: #c6d8ed;
+        font-size: calc(5px * var(--udc-ap-scale));
       }
 
-      .ap-5g-sim-icon::after {
-        content: "";
-        position: absolute;
-        inset: 4px 3px 3px;
-        border: 1px solid rgba(234,243,255,.55);
-      }
-
-      .ap-5g-data {
-        font-size: calc(7px * var(--udc-ap-scale));
-        text-align: center;
-        color: #eaf3ff;
-      }
-
-      .ap-5g-data::after {
-        content: "";
-        display: block;
+      .ap-5g-meter {
         height: calc(4px * var(--udc-ap-scale));
-        margin-top: calc(3px * var(--udc-ap-scale));
         border-radius: 999px;
-        background: linear-gradient(90deg, #2aa7ff 0 var(--ap-5g-data-percent, 24%), rgba(255,255,255,.18) var(--ap-5g-data-percent, 24%) 100%);
+        background: rgba(255,255,255,.18);
+        overflow: hidden;
+      }
+
+      .ap-5g-meter span {
+        display: block;
+        width: var(--ap-5g-meter-value, 0%);
+        height: 100%;
+        border-radius: inherit;
+        background: #2aa7ff;
+      }
+
+      .ap-5g-meter.memory span {
+        background: #34d979;
       }
 
       .ap-5g-label {
@@ -2683,14 +2564,16 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
             <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : "ap-disc"}">
               ${isFiveGBackup ? `
-              <div class="ap-device ap-5g-device" style="--ap-5g-data-percent: ${this._escapeAttr(`${fiveGDisplay.dataPercent}%`)}">
+              <div class="ap-device ap-5g-device">
                 <div class="ap-5g-face"></div>
                 <div class="ap-5g-display">
-                  <div class="ap-5g-display-top"><span>${this._escapeHtml(fiveGDisplay.network)}</span><span class="ap-5g-esim">${this._escapeHtml(fiveGDisplay.sim)}</span></div>
-                  <div class="ap-5g-bars">${[1, 2, 3, 4, 5].map((bar) => `<span class="${bar <= fiveGDisplay.signalBars ? "" : "inactive"}"></span>`).join("")}</div>
-                  <div class="ap-5g-signal">${this._escapeHtml(fiveGDisplay.signal)}</div>
-                  <div class="ap-5g-carrier"><span class="ap-5g-sim-icon"></span><span>${this._escapeHtml(fiveGDisplay.carrier)}</span></div>
-                  <div class="ap-5g-data">${this._escapeHtml(fiveGDisplay.data)}</div>
+                  <div class="ap-5g-display-top">5G</div>
+                  <div class="ap-5g-bars">${[1, 2, 3, 4, 5].map((bar) => `<span class="${bar <= 4 ? "" : "inactive"}"></span>`).join("")}</div>
+                  <div class="ap-5g-firmware">${this._escapeHtml(fiveGDisplay.firmware)}</div>
+                  <div class="ap-5g-metrics">
+                    <div class="ap-5g-metric"><span>CPU</span><div class="ap-5g-meter"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.cpuBar}%`)}"></span></div></div>
+                    <div class="ap-5g-metric"><span>RAM</span><div class="ap-5g-meter memory"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.memoryBar}%`)}"></span></div></div>
+                  </div>
                 </div>
                 <div class="ap-5g-label">UniFi 5G</div>
               </div>` : `
