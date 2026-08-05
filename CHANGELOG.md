@@ -3,13 +3,8 @@
 ## [v0.7.92-dev]
 
 ### ✨ Improvements
-- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style rendering that shows firmware plus CPU/RAM activity on the device display.
-
-## [v0.7.9]
-
-### ✨ Improvements
 ### ATTENTION: this new features are untested as I dont own compatible Hardware
-- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style rendering whose display uses matching cellular sensor data when available.
+- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style rendering that shows firmware plus CPU/RAM activity on the device display.
 - Add a combined In-Wall AP view for UAP AC In-Wall, U6 In-Wall, U6 Enterprise In-Wall, and U7 In-Wall that keeps the standard AP details and can optionally show discovered integrated switch ports with port actions/details.
 - Add an editor/YAML toggle to disable integrated ports on compatible APs and keep the previous AP-only rendering.
 
