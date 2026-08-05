@@ -250,6 +250,7 @@ port_size: 36                 # optional (switch/gateway front panel scale in px
 ap_scale: 100                 # optional (AP size in %, 25-140)
 ap_compact_view: false        # optional (AP only; side-by-side compact AP layout)
 ap_compact_show_header_telemetry: false # optional (AP only; show header telemetry also in compact AP view)
+show_ap_ports: true           # optional (In-Wall AP only; show detected built-in switch ports)
 log_level: warn               # optional (error|warn|info|debug|trace)
 debug: false                  # optional shorthand (true => debug log level)
 edit_special_ports: false     # optional (switch/gateway only)
@@ -294,6 +295,7 @@ wan2_port: none               # optional (gateway only)
 | `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
 | `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
 | `ap_compact_show_header_telemetry` | boolean | `false` | AP only: keeps CPU/memory/temperature header telemetry visible in compact AP view. |
+| `show_ap_ports` | boolean | `true` | In-Wall AP only: shows detected built-in switch ports below the AP layout; set to `false` to keep the classic AP-only card. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
 | `debug` | boolean | `false` | Shorthand for enabling debug logging (`true` behaves like `log_level: debug` if `log_level` is not set). |
 | `edit_special_ports` | boolean | `false` | Switch/Gateway only: enables WAN/WAN2 selectors and manual special-port editing in the UI/editor. |

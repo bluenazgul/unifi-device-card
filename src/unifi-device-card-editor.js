@@ -498,6 +498,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
+    if (next.show_ap_ports !== false) delete next.show_ap_ports;
 
     this._dispatchConfig(next);
   }
@@ -704,6 +705,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _onApCompactHeaderTelemetryChange(ev) {
     const checked = !!ev.target.checked;
     this._emitConfig({ ap_compact_show_header_telemetry: checked ? true : undefined });
+  }
+
+  _onShowApPortsChange(ev) {
+    const checked = !!ev.target.checked;
+    this._emitConfig({ show_ap_ports: checked ? undefined : false });
   }
 
   _onWanPortChange(ev) {
@@ -1232,6 +1238,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const apScale = clampApScale(this._config?.ap_scale);
     const apCompactView = this._config?.ap_compact_view === true;
     const apCompactShowHeaderTelemetry = showTelemetry && this._config?.ap_compact_show_header_telemetry === true;
+    const showApPorts = this._config?.show_ap_ports !== false;
     const editSpecialPorts =
       this._config?.edit_special_ports === true ||
       !!this._config?.wan_port ||
@@ -1240,6 +1247,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const discoveredPorts = availablePortSlots
       .map((slot) => slot?.port)
       .filter((port) => Number.isInteger(port) && port > 0);
+    const isApWithSwitchPorts =
+      isApDevice &&
+      this._deviceCtx?.layout?.integratedSwitch === true &&
+      discoveredPorts.length > 0;
     const selectableSpecialPorts = Array.from(
       new Set([...collectLayoutPorts(this._deviceCtx?.layout), ...discoveredPorts])
     ).sort((a, b) => a - b);
@@ -1359,6 +1370,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <input id="ap_scale" type="range" min="25" max="140" step="1" value="${escapeAttr(apScale)}">
           <div class="hint">${escapeHtml(this._t("editor_ap_scale_hint"))}</div>
         </div>` : ""}` : ""}
+
+        ${isApWithSwitchPorts ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_ap_ports_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_ap_ports" type="checkbox" ${showApPorts ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_ap_ports_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_ap_ports_toggle_hint"))}</div>
+        </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -1493,6 +1514,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")
       ?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
+    this.shadowRoot.getElementById("show_ap_ports")
+      ?.addEventListener("change", (ev) => this._onShowApPortsChange(ev));
 
     this.shadowRoot.getElementById("background_opacity")
       ?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));

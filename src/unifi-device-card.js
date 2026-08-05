@@ -394,6 +394,12 @@ class UnifiDeviceCard extends HTMLElement {
     );
   }
 
+  _apSwitchPortsEnabled(ctx = this._ctx) {
+    if (ctx?.type !== "access_point") return false;
+    if (this._config?.show_ap_ports === false) return false;
+    return !!ctx?.layout?.integratedSwitch && (ctx?.numberedPorts || []).length > 0;
+  }
+
   _maxPortColumns() {
     const rows = this._ctx?.layout?.rows || [];
     const maxRowCols = rows.reduce((max, row) => Math.max(max, row.length || 0), 0);
@@ -1693,6 +1699,14 @@ class UnifiDeviceCard extends HTMLElement {
         margin-bottom: 0;
       }
 
+      .ap-switch-panel {
+        border-top: 1px solid var(--udc-border);
+      }
+
+      .ap-switch-panel .section {
+        border-top: 1px solid var(--udc-border);
+      }
+
       .ap-device {
         width: calc(225px * var(--udc-ap-scale));
         height: auto;
@@ -2197,6 +2211,136 @@ class UnifiDeviceCard extends HTMLElement {
     </style>`;
   }
 
+  _renderPortPanelHtml(ctx, options = {}) {
+    const slotData = this._buildSlotData(ctx);
+    const { specials: allSpecials, numbered: normalizedNumbered } = this._applySpecialPortSelection(
+      slotData.specials,
+      slotData.numbered
+    );
+
+    const allSlots = [...allSpecials, ...normalizedNumbered];
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const layoutTheme = ctx?.layout?.theme;
+    const theme = this._safeClassToken(layoutTheme || "dark", "dark");
+    const frontStyle = this._safeClassToken(ctx?.layout?.frontStyle || "single-row", "single-row");
+    const showPanel = this._config?.show_panel !== false && !!layoutTheme;
+    const specialPortsInUse = new Set(
+      allSpecials
+        .map((slot) => slot?.port)
+        .filter((port) => Number.isInteger(port))
+    );
+    const visibleNumbered = normalizedNumbered.filter((slot) => !specialPortsInUse.has(slot.port));
+    const reverseFrontpanel = this._rotate180Enabled(ctx);
+    const portClientIndex = this._buildPortClientIndex();
+    const oddEvenRows = this._shouldUseOddEvenRows(ctx, visibleNumbered);
+    const baseRowsRaw = this._buildEffectiveRows(ctx, visibleNumbered);
+    const baseRows = oddEvenRows ? this._applyOddEvenRows(baseRowsRaw) : baseRowsRaw;
+    const effectiveRows = reverseFrontpanel
+      ? baseRows.map((row) => [...row].reverse()).reverse()
+      : baseRows;
+    const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
+    const specialRow = renderedSpecials.length
+      ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>`
+      : "";
+    const layoutRows = effectiveRows
+      .map((rowPorts, rowIndex) => {
+        const oddEvenTopRow = oddEvenRows && rowIndex % 2 === 0;
+        const items = rowPorts
+          .map((portNumber) => visibleNumbered.find((p) => p.port === portNumber))
+          .filter(Boolean)
+          .map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow))
+          .join("");
+        const cols = Math.max(1, rowPorts.length);
+        return items
+          ? `<div class="port-row" style="--udc-cols: ${cols};">${items}</div>`
+          : "";
+      })
+      .filter(Boolean);
+    const panelRowsHtml = layoutRows.join("");
+    const panelPortsHtml = reverseFrontpanel
+      ? `${panelRowsHtml}${specialRow}`
+      : `${specialRow}${panelRowsHtml}`;
+    const panelContentHtml = panelPortsHtml || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`;
+    let detail = `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
+
+    if (selected) {
+      const linkUp = this._isPortConnected(selected);
+      const linkText = getPortLinkText(this._hass, selected);
+      const speedText = getPortSpeedText(this._hass, selected);
+      const poeStatus = getPoeStatus(this._hass, selected);
+      const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
+      const poeOn = poeStatus.active;
+      const poePower = selected.poe_power_entity ? formatState(this._hass, selected.poe_power_entity) : "—";
+      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity) : null;
+      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
+      const portTitle = selected.port_label
+        || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
+
+      detail = `
+        <div class="detail-title">${this._escapeHtml(portTitle)}</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
+            <div class="detail-value ${linkUp ? "online" : "offline"}">
+              ${this._escapeHtml(this._translateState(linkText) || (linkUp ? this._t("connected") : this._t("no_link")))}
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">${this._escapeHtml(this._t("speed"))}</div>
+            <div class="detail-value">${this._escapeHtml(speedText || "—")}</div>
+          </div>
+          ${hasPoe ? `
+          <div class="detail-item">
+            <div class="detail-label">${this._escapeHtml(this._t("poe"))}</div>
+            <div class="detail-value ${poeOn ? "online" : "offline"}">${this._escapeHtml(poeOn ? this._t("state_on") : this._t("state_off"))}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">${this._escapeHtml(this._t("poe_power"))}</div>
+            <div class="detail-value">${this._escapeHtml(poePower || "—")}</div>
+          </div>` : ""}
+          ${rxVal != null ? `<div class="detail-item"><div class="detail-label">RX</div><div class="detail-value">${this._escapeHtml(rxVal)}</div></div>` : ""}
+          ${txVal != null ? `<div class="detail-item"><div class="detail-label">TX</div><div class="detail-value">${this._escapeHtml(txVal)}</div></div>` : ""}
+        </div>
+        <div class="actions">
+          ${selected.port_switch_entity ? (() => {
+            const enabled = isOn(this._hass, selected.port_switch_entity);
+            const confirmDisableAttr = enabled ? ` data-confirm-disable="true" data-port-name="${this._escapeAttr(portTitle)}"` : "";
+            return `<button class="action-btn secondary" data-action="toggle-port" data-entity="${this._escapeAttr(selected.port_switch_entity)}"${confirmDisableAttr}>${this._escapeHtml(enabled ? this._t("port_disable") : this._t("port_enable"))}</button>`;
+          })() : ""}
+          ${selected.poe_switch_entity ? `<button class="action-btn primary${poeOn ? "" : " dimmed"}" data-action="toggle-poe" data-entity="${this._escapeAttr(selected.poe_switch_entity)}">⚡ ${this._escapeHtml(this._t("poe"))}</button>` : ""}
+          ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${this._escapeAttr(selected.power_cycle_entity)}">↺ ${this._escapeHtml(this._t("power_cycle"))}</button>` : ""}
+        </div>`;
+    }
+
+    return `
+      <div class="${options.wrapperClass || ""}">
+        <div class="frontpanel ${frontStyle} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
+          ${panelContentHtml}
+        </div>
+        <div class="section">${detail}</div>
+      </div>`;
+  }
+
+  _attachPortPanelListeners(ctx = this._ctx) {
+    this.shadowRoot.querySelectorAll(".port")
+      .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+    this.shadowRoot.querySelector("[data-action='toggle-port']")
+      ?.addEventListener("click", (e) => {
+        const target = e.currentTarget;
+        if (target.dataset.confirmDisable === "true") {
+          const portName = target.dataset.portName || this._t("port_label");
+          const message = `${this._t("confirm_disable_port_title")}\n\n${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
+          if (!window.confirm(message)) return;
+        }
+        this._toggleEntity(target.dataset.entity);
+      });
+    this.shadowRoot.querySelector("[data-action='toggle-poe']")
+      ?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
+    this.shadowRoot.querySelector("[data-action='power-cycle']")
+      ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
+  }
+
   _renderPanelAndDetail() {
     if (this._ctx?.type === "access_point") {
       this._syncUptimeRefreshTimer();
@@ -2215,6 +2359,9 @@ class UnifiDeviceCard extends HTMLElement {
       const headerMetrics = compactApView && !this._apCompactHeaderTelemetryEnabled()
         ? []
         : this._headerMetrics();
+      const apSwitchPanel = this._apSwitchPortsEnabled(this._ctx)
+        ? this._renderPortPanelHtml(this._ctx, { wrapperClass: "ap-switch-panel" })
+        : "";
 
       const escapedHeaderTitle = this._escapeHtml(headerTitle);
       const escapedSubtitle = this._escapeHtml(this._subtitle());
@@ -2276,12 +2423,14 @@ class UnifiDeviceCard extends HTMLElement {
               </div>
             </div>
           </div>
+          ${apSwitchPanel}
         </ha-card>`;
 
       this.shadowRoot.querySelector("[data-action='reboot-device']")
         ?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
       this.shadowRoot.querySelector("[data-action='toggle-led']")
         ?.addEventListener("click", () => this._toggleEntity(ledEntity));
+      if (apSwitchPanel) this._attachPortPanelListeners(this._ctx);
 
       return;
     }

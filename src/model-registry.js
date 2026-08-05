@@ -28,6 +28,16 @@ function apModel(displayModel) {
   };
 }
 
+function inWallApModel(displayModel, portCount = 4) {
+  return {
+    ...apModel(displayModel),
+    frontStyle: "single-row",
+    rows: [range(1, portCount)],
+    portCount,
+    integratedSwitch: true,
+  };
+}
+
 export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
@@ -130,7 +140,7 @@ export const MODEL_REGISTRY = {
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
   UAPACPRO: apModel("UAP AC Pro"),
-  UAPACIW: apModel("UAP AC In-Wall"),
+  UAPACIW: inWallApModel("UAP AC In-Wall", 2),
   UAPACM: apModel("UAP AC Mesh"),
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -144,14 +154,14 @@ export const MODEL_REGISTRY = {
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
   U6MESH: apModel("U6 Mesh"),
-  U6IW: apModel("U6 In-Wall"),
+  U6IW: inWallApModel("U6 In-Wall"),
   U6ENTERPRISE: apModel("U6 Enterprise"),
-  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall"),
+  U6ENTERPRISEIW: inWallApModel("U6 Enterprise In-Wall"),
   U6EXTENDER: apModel("U6 Extender"),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall"),
-  U7IW: apModel("U7 In-Wall"),
+  U7IW: inWallApModel("U7 In-Wall"),
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
@@ -1433,7 +1443,12 @@ export function getDeviceLayout(device, discoveredPorts = []) {
   }
 
   if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
-    return applyRj45LayoutHints({ modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] });
+    const registeredLayout = { modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] };
+    if (registeredLayout.integratedSwitch && maxDiscoveredPort > (registeredLayout.portCount || 0)) {
+      registeredLayout.rows = [range(1, maxDiscoveredPort)];
+      registeredLayout.portCount = maxDiscoveredPort;
+    }
+    return applyRj45LayoutHints(registeredLayout);
   }
 
   if (looksGatewayLike && inferredPortCount > 0) {

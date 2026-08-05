@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### ✨ Improvements
+- Show detected switch ports below the AP layout for UniFi In-Wall access points and add an editor toggle to keep the classic AP-only card when desired.
+
 ## [v0.7.9]
 
 ### 🐛 Bug Fixes
