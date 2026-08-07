@@ -131,7 +131,10 @@ export const MODEL_REGISTRY = {
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
   UAPACPRO: apModel("UAP AC Pro"),
-  UAPACIW: apModel("UAP AC In-Wall", { supportsIntegratedPorts: true }),
+  UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACM: apModel("UAP AC Mesh"),
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -145,21 +148,21 @@ export const MODEL_REGISTRY = {
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
   U6MESH: apModel("U6 Mesh"),
-  U6IW: apModel("U6 In-Wall", { supportsIntegratedPorts: true }),
+  U6IW: apModel("U6 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U6ENTERPRISE: apModel("U6 Enterprise"),
-  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { supportsIntegratedPorts: true }),
-  U6EXTENDER: apModel("U6 Extender"),
+  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  U6EXTENDER: apModel("U6 Extender", { frontStyle: "ap-in-wall" }),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
-  U7PROWALL: apModel("U7 Pro Wall"),
-  U7IW: apModel("U7 In-Wall", { supportsIntegratedPorts: true }),
+  U7PROWALL: apModel("U7 Pro Wall", { frontStyle: "ap-in-wall" }),
+  U7IW: apModel("U7 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   U7PROXG: apModel("U7 Pro XG"),
   U7PROXGS: apModel("U7 Pro XGS"),
-  U7PROXGWALL: apModel("U7 Pro XG Wall"),
+  U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor"),
   U6MESHPRO: apModel("U6 Mesh Pro"),
   E7: apModel("E7"),
@@ -1049,10 +1052,14 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACM"))             return "UAPACM";
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
+    if (candidate.includes("U7PG2"))              return "UAPACPRO";
     if (candidate.includes("UMBBE634"))           return "UMBBE634";
     if (candidate.includes("UNIFI5GBACKUP"))      return "UMBBE634";
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
+    if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW"))            return "UAPACIW";
+    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC"))              return "UAPAC";
     if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";
     if (candidate.includes("UAPFLEXHD"))          return "UAPFLEXHD";
@@ -1060,7 +1067,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPSHD"))             return "UAPSHD";
     if (candidate.includes("UAPXG"))              return "UAPXG";
     if (candidate.includes("UAPHD"))              return "UAPHD";
-    if (candidate.includes("U6ENTERPRISEIW"))     return "U6ENTERPRISEIW";
+    if (candidate.includes("U6ENTERPRISEIW") || candidate.includes("U6ENTERPRISEINWALL")) return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTIW"))            return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTERPRISE"))       return "U6ENTERPRISE";
     if (candidate.includes("U6ENT"))              return "U6ENTERPRISE";
@@ -1069,7 +1076,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("U6PRO"))              return "U6PRO";
     if (candidate.includes("U6LR"))               return "U6LR";
     if (candidate.includes("U6LITE"))             return "U6LITE";
-    if (candidate.includes("U6IW"))               return "U6IW";
+    if (candidate.includes("U6IW") || candidate.includes("U6INWALL")) return "U6IW";
     if (candidate.includes("U6EXTENDER"))         return "U6EXTENDER";
     if (candidate.includes("U6EXT"))              return "U6EXTENDER";
     if (candidate.includes("UAP6MP"))             return "U6PRO";

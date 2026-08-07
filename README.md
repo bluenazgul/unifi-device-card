@@ -69,14 +69,15 @@ If you like this project and want to support my work, you can donate via PayPal.
 ## Features
 
 - **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts
-- **Device-accurate styling** — white panel for Lite / Flex / Ultra / Cloud Gateway style devices, silver or dark layouts for rack devices like US 8 / UDM Pro / UDM SE
+- **Device-accurate styling** — light panels for Lite / Flex / Ultra / Cloud Gateway style devices, silver panels for known rack devices, and a dark fallback panel for unknown switch models
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
 - **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
 - **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
-- **Combined In-Wall AP view** — UAP AC In-Wall, U6 In-Wall, U6 Enterprise In-Wall, and U7 In-Wall can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
+- **Dedicated AP designs** — standard APs stay round, Wall/In-Wall APs and the U6 Extender use a scalable rectangular HTML design, and UniFi 5G Backup uses its own HTML device display
+- **Combined In-Wall AP view** — compatible In-Wall models can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
 - **Built-in UI editor** — full card configuration without YAML
 - **Multi-language support** — translations available for English, German, Dutch, French, Spanish, Italian, Swedish, Danish, Norwegian, Finnish, Polish, and Czech
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
@@ -92,6 +93,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | Model | Ports | Panel |
 |---|---|---|
 | UniFi Switch Compact 8 (`USC8`) | 8 | Silver |
+| UniFi Switch 8 (`US8`) | 8 | Silver |
 | UniFi Switch 8 60W (`US8P60`) | 8 | Silver |
 | UniFi Switch 8 150W (`US8P150`) | 8 + 2 SFP | Silver |
 | UniFi Switch 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
@@ -121,46 +123,64 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW Enterprise 24 PoE (`US624P`) | 24 + 2 SFP+ | Silver |
 | USW Enterprise 48 PoE (`US648P`) | 48 + 4 SFP+ | Silver |
 | USW Enterprise XG 24 (`USXG24`) | 24 + 2 SFP+ | Silver |
+| USW Flex XG (`USWFLEXXG`) | 4 + Uplink | White |
+| US XG 6 PoE (`USXG6POE`) | 6 | Silver |
+| USW WAN / WAN RJ45 (`USWWAN`, `USWWANRJ45`) | 4 | Silver |
+| USW Mission Critical (`USWMISSIONCRITICAL`) | 9 | Silver |
 | USW Industrial (`USWINDUSTRIAL`) | 8 + 2 SFP+ | Silver |
 | USW Aggregation (`USL8A`) | 8 SFP+ | Silver |
 | USW Pro Aggregation (`USAGGPRO`) | 28 SFP+ + 4 SFP28 | Silver |
 | USW Ultra (`USWULTRA`) | 8 | White |
 | USW Ultra 60W (`USWULTRA60W`) | 8 | White |
 | USW Ultra 210W (`USWULTRA210W`) | 8 | White |
+| USW Pro XG 8 PoE (`USWPROXG8POE`) | 8 + 2 SFP+ | Silver |
+| USW Pro XG 10 PoE (`USWPROXG10POE`) | 10 + 2 SFP+ | Silver |
+| USW Pro XG 24 / 24 PoE (`USWPROXG24`, `USWPROXG24POE`) | 24 + 2 SFP+ | Silver |
+| USW Pro XG 48 / 48 PoE (`USWPROXG48`, `USWPROXG48POE`) | 48 + 4 SFP+ | Silver |
+| USW Pro HD 24 / 24 PoE (`USWPROHD24`, `USWPROHD24POE`) | 24 + 2 SFP+ | Silver |
+| Enterprise Campus 24 PoE / 24S PoE (`ECS24POE`, `ECS24SPOE`) | 24 + 4 SFP28 | Silver |
+| Enterprise Campus 48 PoE / 48S PoE (`ECS48POE`, `ECS48SPOE`) | 48 + 4 SFP28 | Silver |
+| Enterprise Campus Aggregation (`ECSAGGREGATION`) | 32 SFP28 | Silver |
+| Enterprise Fortress Gateway (`EFG`) | Gateway ports | Silver |
+| Dream Machine Pro Max (`UDMPROMAX`) | 8 + WAN/SFP+ | Silver |
+| Dream Machine Beast (`UDMBEAST`) | 8 + WAN/SFP+ | Silver |
 | Dream Router 7 (`UDR7`) | 3 + WAN (RJ45) + SFP+ WAN | White |
 | Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
 | Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
 | Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |
+| Cloud Gateway Industrial (`UCGINDUSTRIAL`) | 4 + WAN + SFP+ | White |
 | Dream Machine (`UDM`) | 4 + WAN | White |
 | Dream Router (`UDR`) | 4 + WAN | White |
 | UDM Pro (`UDMPRO`) | 8 + WAN/SFP+ | Silver |
 | UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
+| UniFi Express / Express 7 (`UX`, `UX7`) | LAN + WAN | White |
+| Dream Router 5G Max (`UDR5GMAX`) | 4 + WAN | White |
+| Dream Wall (`UDW`) | Integrated gateway ports | White |
+| UXG Max (`UXGMAX`) | 4 + WAN | White |
+| UniFi Travel Router (`UTR`) | LAN + WAN | White |
 | UXG-Pro (`UXGPRO`) | 2 + WAN + SFP+ | Silver |
 | UXG-Lite (`UXGL`) | 1 + WAN | White |
 | UniFi Security Gateway (`UGW3`) | 2 + WAN | White |
 | USG Pro 4 (`UGW4`) | 2 + WAN + 2 SFP | Silver |
-| UAP AC Pro (`UAPACPRO`) | AP panel | White |
-| UAP AC Mesh (`UAPACM`) | AP panel | White |
-| U6+ (`U6PLUS`) | AP panel | White |
-| U6 Mesh (`U6MESH`) | AP panel | White |
-| U6 Extender (`U6EXTENDER`) | AP panel | White |
-| U7 In-Wall (`U7IW`) | AP panel | White |
-| U7 Mesh (`U7MSH`) | AP panel | White |
-| U7 LR (`U7LR`) | AP panel | White |
-| U7 Lite (`U7LITE`) | AP panel | White |
-| U7 Pro XG (`U7PROXG`) | AP panel | White |
-| U7 Pro XGS (`U7PROXGS`) | AP panel | White |
-| U6 Mesh Pro (`U6MESHPRO`) | AP panel | White |
-| Weitere AP-Familien (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) | AP panel | White |
+| USG XG 8 (`UGWXG`) | 8 + WAN | Silver |
 
-Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
+### Access Point Designs
+
+| Design | Explicitly recognized models | Display behavior |
+|---|---|---|
+| Round AP | UAP, UAP-LR, UAP-Outdoor5, UAP-Pro, UAP AC/Lite/LR/Pro, UAP AC Mesh/Mesh Pro, nanoHD, HD, XG, SHD, FlexHD, BeaconHD, U6 Lite/LR/Pro/Plus/Mesh/Enterprise/Mesh Pro, U7 Pro/Pro Max/LR/Mesh/Lite/Outdoor/Pro XG/Pro XGS/Pro Outdoor/Enterprise, E7/Campus/Audience, UK Ultra, UBB/UBB XG, U-AirWire, Device Bridge family, UWB-XG | Standard scalable circular HTML AP face |
+| Wall / In-Wall | UniFi AP In-Wall (`UAPIW`), UAP AC In-Wall (`UAPACIW`), UAP AC In-Wall Pro (`UAPACIWPRO`), UAP In-Wall HD (`UAPIWHD`), U6 In-Wall (`U6IW`), U6 Enterprise In-Wall (`U6ENTERPRISEIW`), U6 Extender (`U6EXTENDER`), U7 Pro Wall (`U7PROWALL`), U7 In-Wall (`U7IW`), U7 Pro XG Wall (`U7PROXGWALL`) | Scalable rectangular HTML device face; integrated port section is available only on models that expose switch ports |
+| 5G Backup | UniFi 5G Backup (`UMBBE634`) | Dedicated scalable HTML device and display with signal bars, uptime, CPU, and RAM |
+
+Unknown models from the `UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`, `UDB*`, `UBB*`, `UMBB*`, `UK*`, and related AP families fall back to the round AP design.
+
+Unknown switches are auto-detected by port count and use a generic dark panel. Explicitly recognized desktop switches use the light hardware design, while known rack and metal-chassis devices use the silver design. These hardware colors remain readable in both light and dark Home Assistant themes.
 
 ### Notes
 
-- Access points are supported through a generic AP panel (status/uptime/clients/reboot)
+- Access points use model-specific round, Wall/In-Wall, or 5G Backup HTML designs while sharing status, uptime, clients, and reboot details
 - Some models are still **layout-inferred** if no dedicated registry entry exists
-- WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
-- **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x
+- Light/silver switch designs describe the physical chassis; unknown switches use the dark fallback design
 
 > [!NOTE]
 > For best results, make sure the relevant UniFi switch and sensor entities are enabled in Home Assistant.  
