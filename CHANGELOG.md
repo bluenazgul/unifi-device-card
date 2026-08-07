@@ -2,6 +2,9 @@
 
 ## [v0.7.92-dev]
 
+### 🐛 Bug Fixes
+- Localize the uptime label on the UniFi 5G Backup display instead of always showing the English label.
+
 ### ✨ Improvements
 ### ATTENTION: this new features are untested as I dont own compatible Hardware
 - Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style HTML rendering that shows uptime plus CPU/RAM activity on the device display.

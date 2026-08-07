@@ -2629,7 +2629,7 @@ class UnifiDeviceCard extends HTMLElement {
                 <div class="ap-5g-display">
                   <div class="ap-5g-display-top">5G</div>
                   <div class="ap-5g-bars">${[1, 2, 3, 4, 5].map((bar) => `<span class="${bar <= 4 ? "" : "inactive"}"></span>`).join("")}</div>
-                  <div class="ap-5g-uptime">${this._escapeHtml(`Uptime ${fiveGDisplay.uptime}`)}</div>
+                  <div class="ap-5g-uptime">${this._escapeHtml(`${this._t("uptime")} ${fiveGDisplay.uptime}`)}</div>
                   <div class="ap-5g-metrics">
                     <div class="ap-5g-metric"><span>CPU</span><div class="ap-5g-meter"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.cpuBar}%`)}"></span></div></div>
                     <div class="ap-5g-metric"><span>RAM</span><div class="ap-5g-meter memory"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.memoryBar}%`)}"></span></div></div>
