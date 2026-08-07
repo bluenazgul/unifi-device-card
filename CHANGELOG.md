@@ -4,6 +4,7 @@
 
 ### 🐛 Bug Fixes
 - Localize the uptime label on the UniFi 5G Backup display instead of always showing the English label.
+- Keep switch panels to the white and silver/dark UniFi hardware colors while preserving configured label colors.
 
 ### ✨ Improvements
 ### ATTENTION: this new features are untested as I dont own compatible Hardware

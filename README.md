@@ -69,7 +69,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 ## Features
 
 - **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts
-- **Device-accurate styling** — light panels for Lite / Flex / Ultra / Cloud Gateway style devices, silver panels for known rack devices, and a dark fallback panel for unknown switch models
+- **Device-accurate styling** — white panels for Lite / Flex / Ultra / Cloud Gateway style devices and silver/dark panels for rack devices and unknown switch fallbacks
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
 - **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
@@ -174,13 +174,13 @@ If you like this project and want to support my work, you can donate via PayPal.
 
 Unknown models from the `UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`, `UDB*`, `UBB*`, `UMBB*`, `UK*`, and related AP families fall back to the round AP design.
 
-Unknown switches are auto-detected by port count and use a generic dark panel. Explicitly recognized desktop switches use the light hardware design, while known rack and metal-chassis devices use the silver design. These hardware colors remain readable in both light and dark Home Assistant themes.
+Unknown switches are auto-detected by port count and use the silver/dark hardware design (`#c4c5c8`). Explicitly recognized desktop switches use the white design. These are the two UniFi device color variants and are independent of the selected Home Assistant theme.
 
 ### Notes
 
 - Access points use model-specific round, Wall/In-Wall, or 5G Backup HTML designs while sharing status, uptime, clients, and reboot details
 - Some models are still **layout-inferred** if no dedicated registry entry exists
-- Light/silver switch designs describe the physical chassis; unknown switches use the dark fallback design
+- White and silver/dark switch designs describe the physical chassis; unknown switches use the silver/dark fallback design
 
 > [!NOTE]
 > For best results, make sure the relevant UniFi switch and sensor entities are enabled in Home Assistant.  

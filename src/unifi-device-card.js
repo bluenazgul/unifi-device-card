@@ -1586,8 +1586,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .frontpanel.theme-white { background: #d6d6d9; }
       .frontpanel.theme-silver { background: #c4c5c8; }
-      .frontpanel.theme-dark { background: #34373d; }
-      .frontpanel.theme-dark .panel-label { color: #d5d8de; }
+      .frontpanel.theme-dark { background: #c4c5c8; }
       .frontpanel.no-panel-bg { background: var(--udc-chrome-bg, transparent); }
 
       .panel-label {
@@ -2297,20 +2296,6 @@ class UnifiDeviceCard extends HTMLElement {
 
       .port.special.up .port-num {
         color: var(--udc-special-port-label-color, var(--udc-port-label-color, #414957));
-      }
-
-      .frontpanel.theme-dark .port-num {
-        color: var(--udc-port-label-color, #d5d8de);
-      }
-
-      .frontpanel.theme-dark .port.down .port-num {
-        color: var(--udc-port-label-color, #aeb4bd);
-      }
-
-      .frontpanel.theme-dark .port.special .port-num,
-      .frontpanel.theme-dark .port.special.down .port-num,
-      .frontpanel.theme-dark .port.special.up .port-num {
-        color: var(--udc-special-port-label-color, var(--udc-port-label-color, #d5d8de));
       }
 
       .port:hover .port-num,
