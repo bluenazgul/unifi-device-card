@@ -131,7 +131,10 @@ export const MODEL_REGISTRY = {
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
   UAPACPRO: apModel("UAP AC Pro"),
+  UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACM: apModel("UAP AC Mesh"),
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -1049,10 +1052,14 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACM"))             return "UAPACM";
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
+    if (candidate.includes("U7PG2"))              return "UAPACPRO";
     if (candidate.includes("UMBBE634"))           return "UMBBE634";
     if (candidate.includes("UNIFI5GBACKUP"))      return "UMBBE634";
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
+    if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW"))            return "UAPACIW";
+    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC"))              return "UAPAC";
     if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";
     if (candidate.includes("UAPFLEXHD"))          return "UAPFLEXHD";
