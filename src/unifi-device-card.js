@@ -570,13 +570,12 @@ class UnifiDeviceCard extends HTMLElement {
     return Math.max(0, Math.min(100, raw));
   }
 
-  _fiveGBackupDisplayData() {
+  _fiveGBackupDisplayData(uptime) {
     const cpuPercent = this._fiveGPercent(this._ctx?.cpu_utilization_entity);
     const memoryPercent = this._fiveGPercent(this._ctx?.memory_utilization_entity);
-    const firmware = String(this._ctx?.firmware || "").trim();
 
     return {
-      firmware: firmware ? `FW ${firmware}` : "FW —",
+      uptime: String(uptime || "—"),
       cpuPercent,
       memoryPercent,
       cpuBar: cpuPercent ?? 0,
@@ -1833,7 +1832,7 @@ class UnifiDeviceCard extends HTMLElement {
         box-shadow: none;
       }
 
-      .ap-5g-firmware {
+      .ap-5g-uptime {
         color: #c6d8ed;
         font-size: calc(6px * var(--udc-ap-scale));
         text-align: center;
@@ -2534,7 +2533,7 @@ class UnifiDeviceCard extends HTMLElement {
       const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const isFiveGBackup = this._ctx?.layout?.frontStyle === "ap-5g-backup";
-      const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData() : null;
+      const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData(uptime) : null;
 
       const headerTitle = this._title();
       const headerMetrics = compactApView && !this._apCompactHeaderTelemetryEnabled()
@@ -2569,7 +2568,7 @@ class UnifiDeviceCard extends HTMLElement {
                 <div class="ap-5g-display">
                   <div class="ap-5g-display-top">5G</div>
                   <div class="ap-5g-bars">${[1, 2, 3, 4, 5].map((bar) => `<span class="${bar <= 4 ? "" : "inactive"}"></span>`).join("")}</div>
-                  <div class="ap-5g-firmware">${this._escapeHtml(fiveGDisplay.firmware)}</div>
+                  <div class="ap-5g-uptime">${this._escapeHtml(`Uptime ${fiveGDisplay.uptime}`)}</div>
                   <div class="ap-5g-metrics">
                     <div class="ap-5g-metric"><span>CPU</span><div class="ap-5g-meter"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.cpuBar}%`)}"></span></div></div>
                     <div class="ap-5g-metric"><span>RAM</span><div class="ap-5g-meter memory"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.memoryBar}%`)}"></span></div></div>
