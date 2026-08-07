@@ -1675,6 +1675,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .frontpanel.ap-disc,
+      .frontpanel.ap-in-wall,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
@@ -1693,6 +1694,7 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-layout.compact .frontpanel.ap-disc,
+      .ap-layout.compact .frontpanel.ap-in-wall,
       .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
@@ -1705,6 +1707,10 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-layout.compact .ap-device.ap-5g-device {
         width: min(100%, calc(118px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-in-wall-device {
+        width: min(100%, calc(112px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -1883,6 +1889,45 @@ class UnifiDeviceCard extends HTMLElement {
         color: rgba(210,215,218,.58);
         font-size: calc(10px * var(--udc-ap-scale));
         white-space: nowrap;
+      }
+
+      .ap-in-wall-device {
+        width: calc(132px * var(--udc-ap-scale));
+        aspect-ratio: .64 / 1;
+        border-radius: calc(25px * var(--udc-ap-scale));
+        background: linear-gradient(145deg, #ffffff 0%, #f7f8f9 58%, #e9ecef 100%);
+        border: 1px solid rgba(150, 158, 166, .22);
+        box-shadow:
+          inset 8px 10px 15px rgba(255,255,255,.8),
+          inset -8px -10px 16px rgba(120,128,136,.08),
+          0 14px 24px rgba(0,0,0,.18);
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .ap-in-wall-led {
+        position: absolute;
+        top: 18%;
+        left: 50%;
+        width: calc(14px * var(--udc-ap-scale));
+        height: calc(3px * var(--udc-ap-scale));
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: var(--ap-ring-color, #62c8fa);
+        box-shadow: 0 0 6px color-mix(in srgb, var(--ap-ring-color, #62c8fa) 55%, transparent);
+      }
+
+      .ap-in-wall-led.off {
+        background: #aeb4ba;
+        box-shadow: none;
+      }
+
+      .ap-in-wall-logo {
+        color: rgba(180, 188, 195, .48);
+        font: 700 calc(34px * var(--udc-ap-scale))/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
+        transform: translateY(calc(5px * var(--udc-ap-scale)));
+        user-select: none;
       }
 
       .ap-ring {
@@ -2533,6 +2578,7 @@ class UnifiDeviceCard extends HTMLElement {
       const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const isFiveGBackup = this._ctx?.layout?.frontStyle === "ap-5g-backup";
+      const isInWallAp = this._ctx?.layout?.frontStyle === "ap-in-wall";
       const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData(uptime) : null;
 
       const headerTitle = this._title();
@@ -2561,7 +2607,7 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
-            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : "ap-disc"}">
+            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : (isInWallAp ? "ap-in-wall" : "ap-disc")}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
                 <div class="ap-5g-face"></div>
@@ -2575,6 +2621,10 @@ class UnifiDeviceCard extends HTMLElement {
                   </div>
                 </div>
                 <div class="ap-5g-label">UniFi 5G</div>
+              </div>` : isInWallAp ? `
+              <div class="ap-device ap-in-wall-device">
+                <div class="ap-in-wall-led ${ledEnabled ? "" : "off"}"></div>
+                <div class="ap-in-wall-logo">U</div>
               </div>` : `
               <div class="ap-device">
                 <div class="ap-ring ${ledEnabled ? "online" : "off"}">
