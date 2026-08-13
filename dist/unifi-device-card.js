@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.94-dev */
+/* UniFi Device Card 0.0.0-dev.6729b54 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -54,7 +54,10 @@ function applyRj45LayoutHints(layout) {
   const isSwitchOrGateway = layout?.kind === "switch" || layout?.kind === "gateway";
   return {
     ...layout,
-    rj45_odd_even: isSwitchOrGateway && !isExcluded && numberedRj45Count > 8
+    // A model may state the odd/even panel explicitly. Devices with eight or
+    // fewer ports fall below the automatic threshold but can still be built
+    // that way, the UDM Pro being the obvious one.
+    rj45_odd_even: typeof layout?.rj45_odd_even === "boolean" ? layout.rj45_odd_even : isSwitchOrGateway && !isExcluded && numberedRj45Count > 8
   };
 }
 function applyPortsPerRowOverride(layout, portsPerRow) {
@@ -202,15 +205,15 @@ var MODEL_REGISTRY = {
   // US 24 250W  — 24× 1G RJ45 PoE (all), 2× 1G SFP
   US24P250: {
     kind: "switch",
-    frontStyle: "eight-grid",
-    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24)],
     portCount: 26,
     displayModel: "US-24-250W",
     theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
-      { key: "sfp_1", label: "SFP 1", port: 25 },
-      { key: "sfp_2", label: "SFP 2", port: 26 }
+      { key: "sfp_1", label: "SFP 1", port: 25, row: 0 },
+      { key: "sfp_2", label: "SFP 2", port: 26, row: 1 }
     ]
   },
   // ══════════════════════════════════════════════════════════════════════════
@@ -530,7 +533,7 @@ var MODEL_REGISTRY = {
   USPM48: {
     kind: "switch",
     frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52,
     displayModel: "USW Pro Max 48",
     theme: "silver",
@@ -544,7 +547,7 @@ var MODEL_REGISTRY = {
   USPM48P: {
     kind: "switch",
     frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52,
     displayModel: "USW Pro Max 48 PoE",
     theme: "silver",
@@ -616,12 +619,17 @@ var MODEL_REGISTRY = {
   // US 16 XG  — 12× SFP+, 4× 10G RJ45
   USXG: {
     kind: "switch",
-    frontStyle: "single-row",
-    rows: [range(13, 16)],
+    frontStyle: "six-grid",
+    rows: [range(1, 12)],
     portCount: 16,
     displayModel: "US-16-XG",
     theme: "silver",
-    specialSlots: range(1, 12).map((p) => ({ key: `sfp_${p}`, label: `SFP+ ${p}`, port: p }))
+    specialSlots: [
+      { key: "rj45_13", label: "13", port: 13, media: "rj45", row: 0 },
+      { key: "rj45_14", label: "14", port: 14, media: "rj45", row: 0 },
+      { key: "rj45_15", label: "15", port: 15, media: "rj45", row: 1 },
+      { key: "rj45_16", label: "16", port: 16, media: "rj45", row: 1 }
+    ]
   },
   // USW Flex XG  — 4× 10G RJ45, 1× 1G RJ45 PoE-in/uplink
   USWFLEXXG: {
@@ -752,7 +760,7 @@ var MODEL_REGISTRY = {
     displayModel: "USW Ultra 60W",
     theme: "white",
     poePortRange: [1, 7],
-    specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }]
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 8, media: "rj45", row: 0 }]
   },
   USWULTRA210W: {
     kind: "switch",
@@ -1071,10 +1079,11 @@ var MODEL_REGISTRY = {
     portCount: 11,
     displayModel: "UDM Pro",
     theme: "silver",
+    rj45_odd_even: true,
     specialSlots: [
-      { key: "wan", label: "WAN", port: 9 },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 }
+      { key: "sfp_1", label: "SFP+ 1", port: 10, row: 0 },
+      { key: "wan", label: "WAN", port: 9, media: "rj45", row: 1 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11, row: 1 }
     ]
   },
   UDMPROSE: {
@@ -2974,6 +2983,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
           physical_key: slot.key,
           label: slot.label,
           media: slot.media ?? portData.media,
+          row: slot.row,
           kind: "special",
           port: slot.port ?? portData.port
         };
@@ -2987,6 +2997,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
         physical_key: slot.key,
         label: slot.label,
         media: slot.media ?? keyData.media,
+        row: slot.row,
         kind: "special",
         port: slot.port ?? keyData.port ?? null
       };
@@ -2997,6 +3008,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
       port: slot.port ?? null,
       label: slot.label,
       media: slot.media,
+      row: slot.row,
       kind: "special",
       link_entity: null,
       speed_entity: null,
@@ -6054,7 +6066,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.94-dev";
+var VERSION = "0.0.0-dev.6729b54";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6190,6 +6202,9 @@ var UnifiDeviceCard = class extends HTMLElement {
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._panelObserver?.disconnect();
+    this._panelObserver = null;
+    this._observedFrontPanel = null;
     this._clearUptimeRefreshTimer();
   }
   setConfig(config) {
@@ -6227,13 +6242,35 @@ var UnifiDeviceCard = class extends HTMLElement {
   getCardSize() {
     return this._cardSize || this._estimateCardSize();
   }
+  // Sections view sizing. Derived from the device type only, never from a
+  // measurement: getGridOptions() decides the width that a measurement would
+  // read back, so feeding one in would oscillate. Whatever width the card
+  // actually receives is handled by the row repacking in _buildEffectiveRows().
   getGridOptions() {
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const rendersNetworkPanel = layoutMode !== "ap" && (this._ctx?.type === "switch" || this._ctx?.type === "gateway");
-    return {
-      columns: rendersNetworkPanel ? "full" : 12,
-      rows: "auto"
-    };
+    if (!rendersNetworkPanel) {
+      return { columns: 12, rows: "auto" };
+    }
+    const layout = this._ctx?.layout;
+    const rows = layout?.rows || [];
+    let widest = 0;
+    if (layout?.rj45_odd_even === true) {
+      for (let i = 0; i < rows.length; i += 2) {
+        const pair = (rows[i]?.length || 0) + (rows[i + 1]?.length || 0);
+        widest = Math.max(widest, Math.ceil(pair / 2));
+      }
+    } else {
+      widest = rows.reduce((max, row) => Math.max(max, row.length), 0);
+    }
+    const perRow = /* @__PURE__ */ new Map();
+    for (const slot of layout?.specialSlots || []) {
+      if (Number.isInteger(slot?.row)) perRow.set(slot.row, (perRow.get(slot.row) || 0) + 1);
+    }
+    const slots = widest + Math.max(0, ...perRow.values());
+    const needed = slots * (this._portSize() + 4) + 28;
+    const columns = Math.min(48, Math.max(12, Math.ceil(needed / 36)));
+    return { columns, rows: "auto" };
   }
   _estimateCardSize() {
     if (!this._config?.device_id) return 4;
@@ -6261,12 +6298,32 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (nextSize === this._cardSize) return;
     this._cardSize = nextSize;
   }
+  // Watch the panel itself, not only the host. The host can keep its size
+  // while the panel gains room, and a sections view resizes the card after the
+  // first paint, so a host-only observer misses the change that decides how
+  // many ports fit in a row.
+  _observeFrontPanel() {
+    const panel = this.shadowRoot?.querySelector(".frontpanel");
+    if (!panel || panel === this._observedFrontPanel) return;
+    if (!this._panelObserver) {
+      this._panelObserver = new ResizeObserver(() => {
+        if (this._maxFittableColumns() === this._renderedFittableColumns) return;
+        this._render();
+      });
+    }
+    if (this._observedFrontPanel) this._panelObserver.unobserve(this._observedFrontPanel);
+    this._observedFrontPanel = panel;
+    this._panelObserver.observe(panel);
+  }
   _finalizeRender() {
     requestAnimationFrame(() => {
       this._updateCardSize();
       const panelWidth = this._measuredFrontPanelContentWidth();
       if (panelWidth <= 0) return;
-      if (Math.abs(panelWidth - this._lastMeasuredPanelWidth) < 1) return;
+      this._observeFrontPanel();
+      const widthChanged = Math.abs(panelWidth - this._lastMeasuredPanelWidth) >= 1;
+      const columnsChanged = this._maxFittableColumns() !== this._renderedFittableColumns;
+      if (!widthChanged && !columnsChanged) return;
       this._lastMeasuredPanelWidth = panelWidth;
       this._render();
     });
@@ -6872,8 +6929,9 @@ var UnifiDeviceCard = class extends HTMLElement {
     const knownPorts = new Set(baseRows.flat());
     const orderedPorts = numbered.map((slot) => slot?.port).filter((port) => Number.isInteger(port)).sort((a, b) => a - b);
     const extraPorts = numbered.map((slot) => slot?.port).filter((port) => Number.isInteger(port) && !knownPorts.has(port)).sort((a, b) => a - b);
-    if (!extraPorts.length && !baseRows.length && !orderedPorts.length) return [];
     const fitCols = this._maxFittableColumns();
+    this._renderedFittableColumns = fitCols;
+    if (!extraPorts.length && !baseRows.length && !orderedPorts.length) return [];
     if (!baseRows.length) {
       if (!Number.isFinite(fitCols) || extraPorts.length <= fitCols) return [extraPorts];
       const packed = [];
@@ -7178,6 +7236,12 @@ var UnifiDeviceCard = class extends HTMLElement {
   _styles() {
     return `<style>
       :host {
+        /* Fill the grid cell a sections view assigns. The section stretches
+           its items to the row height, but the stretch ends at an inline
+           host. In a masonry view the wrapper has no fixed height, so 100%
+           resolves to auto and nothing changes. */
+        display: block;
+        height: 100%;
         --udc-bg: #141820;
         --udc-surface: #1e2433;
         --udc-surf2: #252d3d;
@@ -7200,6 +7264,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         overflow: hidden;
         position: relative;
         isolation: isolate;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
       }
 
       .header {
@@ -7329,6 +7397,11 @@ var UnifiDeviceCard = class extends HTMLElement {
         position: relative;
         z-index: 0;
         overflow: hidden;
+        /* In a stretched card the slack collects here, between the header
+           and the panel. Panels, details and buttons of one sections view
+           row then line up even when a device shows fewer telemetry lines.
+           As a nested block in the AP layout this resolves to 0. */
+        margin-top: auto;
       }
 
       .frontpanel.theme-white { background: #d6d6d9; }
@@ -7358,6 +7431,12 @@ var UnifiDeviceCard = class extends HTMLElement {
         gap: 4px 6px;
         width: 100%;
         align-items: flex-start;
+      }
+
+      .port-row-side {
+        display: flex;
+        gap: 6px;
+        margin-left: 12px;
       }
 
       .frontpanel.rotate180-enabled .panel-label {
@@ -8303,6 +8382,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const renderApLayout = layoutMode !== "network" && (this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts);
     if (renderApLayout) {
+      this._renderedFittableColumns = this._maxFittableColumns();
       this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
@@ -8429,12 +8509,30 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     const baseRows = oddEvenRows ? this._applyOddEvenRows(baseRowsRaw) : baseRowsRaw;
     const effectiveRows = reverseFrontpanel ? baseRows.map((row) => [...row].reverse()).reverse() : baseRows;
     const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
-    const specialRow = renderedSpecials.length ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>` : "";
+    const sideSpecials = /* @__PURE__ */ new Map();
+    const topSpecials = [];
+    for (const slot of renderedSpecials) {
+      const row = slot?.row;
+      if (!Number.isInteger(row)) {
+        topSpecials.push(slot);
+        continue;
+      }
+      const index = reverseFrontpanel ? effectiveRows.length - 1 - row : row;
+      if (index < 0 || index >= effectiveRows.length) {
+        topSpecials.push(slot);
+        continue;
+      }
+      if (!sideSpecials.has(index)) sideSpecials.set(index, []);
+      sideSpecials.get(index).push(slot);
+    }
+    const specialRow = topSpecials.length ? `<div class="special-row">${topSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>` : "";
     const layoutRows = effectiveRows.map((rowPorts, rowIndex) => {
       const oddEvenTopRow = oddEvenRows && rowIndex % 2 === 0;
       const items = rowPorts.map((portNumber) => visibleNumbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow)).join("");
+      const sideItems = (sideSpecials.get(rowIndex) || []).map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow)).join("");
+      const side = sideItems ? `<div class="port-row-side">${sideItems}</div>` : "";
       const cols = Math.max(1, rowPorts.length);
-      return items ? `<div class="port-row" style="--udc-cols: ${cols};">${items}</div>` : "";
+      return items || side ? `<div class="port-row" style="--udc-cols: ${cols};">${items}${side}</div>` : "";
     }).filter(Boolean);
     const panelRowsHtml = layoutRows.join("");
     const panelPortsHtml = reverseFrontpanel ? `${panelRowsHtml}${specialRow}` : `${specialRow}${panelRowsHtml}`;
