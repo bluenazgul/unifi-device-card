@@ -24,6 +24,7 @@ import "./unifi-device-card-editor.js";
 const VERSION = __VERSION__;
 const DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
+const CONTEXT_REFRESH_INTERVAL = 31000;
 const LOG_STYLES = {
   badge: "background:#00AEEF;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
   version: "background:#2a2a2a;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
@@ -52,6 +53,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
+    this._contextLoadedAt = 0;
     this._resizeObserver = null;
     this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
@@ -200,6 +202,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._ctx = null;
       this._selectedKey = null;
       this._loadedDeviceId = null;
+      this._contextLoadedAt = 0;
       this._loading = false;
       if (this._hass && newDeviceId) {
         this._ensureLoaded();
@@ -224,10 +227,22 @@ class UnifiDeviceCard extends HTMLElement {
     return this._cardSize || this._estimateCardSize();
   }
 
+  getGridOptions() {
+    const layoutMode = this._deviceLayoutMode(this._ctx);
+    const rendersNetworkPanel = layoutMode !== "ap" && (
+      this._ctx?.type === "switch" || this._ctx?.type === "gateway"
+    );
+
+    return {
+      columns: rendersNetworkPanel ? "full" : 12,
+      rows: "auto",
+    };
+  }
+
   _estimateCardSize() {
     if (!this._config?.device_id) return 4;
     if (!this._ctx) return 5;
-    if (this._ctx?.type === "access_point") {
+    if (this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts) {
       if (this._apCompactViewEnabled()) return this._ctx?.ap_uplink ? 7 : 6;
       return this._ctx?.ap_uplink ? 9 : 8;
     }
@@ -255,7 +270,6 @@ class UnifiDeviceCard extends HTMLElement {
     const nextSize = Number.isFinite(measured) ? measured : this._estimateCardSize();
     if (nextSize === this._cardSize) return;
     this._cardSize = nextSize;
-    this.dispatchEvent(new Event("iron-resize", { bubbles: true, composed: true }));
   }
 
   _finalizeRender() {
@@ -296,7 +310,7 @@ class UnifiDeviceCard extends HTMLElement {
   _syncUptimeRefreshTimer() {
     const needsRefresh =
       this.isConnected &&
-      this._ctx?.type === "access_point" &&
+      (this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts) &&
       this._isTimestampUptimeEntity(this._ctx?.uptime_entity);
     if (!needsRefresh) {
       this._clearUptimeRefreshTimer();
@@ -379,7 +393,9 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _apCompactViewEnabled() {
-    return this._ctx?.type === "access_point" && this._config?.ap_compact_view === true;
+    return (
+      this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts
+    ) && this._config?.ap_compact_view === true;
   }
 
   _telemetryEnabled() {
@@ -388,7 +404,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _apCompactHeaderTelemetryEnabled() {
     return (
-      this._ctx?.type === "access_point" &&
+      (this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts) &&
       this._telemetryEnabled() &&
       this._config?.ap_compact_show_header_telemetry === true
     );
@@ -1144,12 +1160,13 @@ class UnifiDeviceCard extends HTMLElement {
     if (!this._hass || !this._config?.device_id) return;
 
     const currentId = this._config.device_id;
-    if (this._loadedDeviceId === currentId && this._ctx) return;
+    const refreshing = this._loadedDeviceId === currentId && !!this._ctx;
+    if (refreshing && Date.now() - this._contextLoadedAt < CONTEXT_REFRESH_INTERVAL) return;
     if (this._loading) return;
 
     this._loading = true;
-    this._log("debug", "loading device context");
-    this._render();
+    this._log("debug", refreshing ? "refreshing device context" : "loading device context");
+    if (!refreshing) this._render();
     const token = ++this._loadToken;
 
     try {
@@ -1158,6 +1175,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       this._ctx = ctx;
       this._loadedDeviceId = currentId;
+      this._contextLoadedAt = Date.now();
       const portSnapshot = this._buildPortDebugSnapshot(ctx);
       this._log("info", "context loaded", {
         type: ctx?.type || null,
@@ -1171,13 +1189,19 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       const { specials, numbered } = this._buildSlotData(ctx);
-      const first = specials[0] || numbered[0] || null;
-      this._selectedKey = first?.key || null;
+      const available = [...specials, ...numbered];
+      const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
+      if (!selectedStillExists) this._selectedKey = available[0]?.key || null;
     } catch (err) {
       this._log("error", "Failed to load device context", err);
       if (token !== this._loadToken) return;
-      this._ctx = null;
-      this._loadedDeviceId = null;
+      if (!refreshing) {
+        this._ctx = null;
+        this._loadedDeviceId = null;
+        this._contextLoadedAt = 0;
+      } else {
+        this._contextLoadedAt = Date.now();
+      }
     }
 
     this._loading = false;
@@ -1224,6 +1248,9 @@ class UnifiDeviceCard extends HTMLElement {
       { key: "cpu_temperature", entity: this._ctx.cpu_temperature_entity },
       { key: "memory_utilization", entity: this._ctx.memory_utilization_entity },
       { key: "temperature", entity: this._ctx.temperature_entity },
+      ...(this._ctx?.layout?.supportsIntegratedWifi
+        ? [{ key: "clients", entity: this._ctx.clients_entity, wholeNumber: true }]
+        : []),
     ];
 
     const seenEntities = new Set();
@@ -1232,11 +1259,11 @@ class UnifiDeviceCard extends HTMLElement {
         if (!item.entity) return false;
         if (seenEntities.has(item.entity)) return false;
         seenEntities.add(item.entity);
-        return formatState(this._hass, item.entity) !== "—";
+        return (item.wholeNumber ? this._wholeNumberState(item.entity) : formatState(this._hass, item.entity)) !== "—";
       })
       .map((item) => ({
         label: this._t(item.key),
-        value: formatState(this._hass, item.entity),
+        value: item.wholeNumber ? this._wholeNumberState(item.entity) : formatState(this._hass, item.entity),
       }));
   }
 
@@ -2443,7 +2470,17 @@ class UnifiDeviceCard extends HTMLElement {
 
 
   _integratedPortsEnabled(ctx) {
-    return !!ctx?.layout?.supportsIntegratedPorts && this._config?.integrated_ports !== false;
+    return !!ctx?.layout?.supportsIntegratedPorts && this._deviceLayoutMode(ctx) === "combined";
+  }
+
+  _deviceLayoutMode(ctx = this._ctx) {
+    const supportsLayouts = !!ctx?.layout?.supportsHybridLayouts || !!ctx?.layout?.supportsIntegratedPorts;
+    if (!supportsLayouts) return ctx?.type === "access_point" ? "ap" : "network";
+
+    const configured = String(this._config?.device_layout || "").toLowerCase();
+    if (["combined", "network", "ap"].includes(configured)) return configured;
+    if (this._config?.integrated_ports === false) return "ap";
+    return "combined";
   }
 
   _renderPortDetail(selected) {
@@ -2565,7 +2602,11 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
-    if (this._ctx?.type === "access_point") {
+    const layoutMode = this._deviceLayoutMode(this._ctx);
+    const renderApLayout = layoutMode !== "network" && (
+      this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts
+    );
+    if (renderApLayout) {
       this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
@@ -2578,7 +2619,8 @@ class UnifiDeviceCard extends HTMLElement {
       const apUplinkTooltip = this._apUplinkTooltip(this._ctx?.ap_uplink);
       const { ledEntity, ledEnabled, ringColor } = this._apLedState();
       const isFiveGBackup = this._ctx?.layout?.frontStyle === "ap-5g-backup";
-      const isInWallAp = this._ctx?.layout?.frontStyle === "ap-in-wall";
+      const apFrontStyle = this._ctx?.layout?.apFrontStyle || this._ctx?.layout?.frontStyle;
+      const isInWallAp = apFrontStyle === "ap-in-wall";
       const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData(uptime) : null;
 
       const headerTitle = this._title();

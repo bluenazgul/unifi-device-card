@@ -157,7 +157,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
 | UniFi Express / Express 7 (`UX`, `UX7`) | LAN + WAN | White |
 | Dream Router 5G Max (`UDR5GMAX`) | 4 + WAN | White |
-| Dream Wall (`UDW`) | Integrated gateway ports | White |
+| Dream Wall (`UDW`) | Integrated WiFi + 12 PoE LAN + 2.5 GbE WAN + 2 SFP+ | White |
 | UXG Max (`UXGMAX`) | 4 + WAN | White |
 | UniFi Travel Router (`UTR`) | LAN + WAN | White |
 | UXG-Pro (`UXGPRO`) | 2 + WAN + SFP+ | Silver |
@@ -271,6 +271,7 @@ ports_per_row: 8              # optional (switches and compatible In-Wall AP por
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
 port_size: 36                 # optional (switch/gateway and compatible In-Wall AP port scale in px)
 integrated_ports: true         # optional (compatible In-Wall APs only; false keeps AP-only view)
+device_layout: combined        # optional integrated device view: combined, network, or ap
 ap_scale: 100                 # optional (AP size in %, 25-140)
 ap_compact_view: false        # optional (AP only; side-by-side compact AP layout)
 ap_compact_show_header_telemetry: false # optional (AP only; show header telemetry also in compact AP view)
@@ -317,6 +318,7 @@ wan2_port: none               # optional (gateway only)
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering and compatible In-Wall AP port sections (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
 | `integrated_ports` | boolean | `true` | Compatible In-Wall APs only: show the discovered integrated switch ports below the normal AP panel. Set `false` for AP-only rendering. |
+| `device_layout` | string | `combined` | Dream Wall and compatible In-Wall devices: `combined`, `network`, or `ap`. The legacy `integrated_ports: false` remains an AP-only alias. |
 | `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
 | `ap_compact_show_header_telemetry` | boolean | `false` | AP only: keeps CPU/memory/temperature header telemetry visible in compact AP view. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
@@ -325,6 +327,10 @@ wan2_port: none               # optional (gateway only)
 | `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
 | `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
+
+In Home Assistant Sections views, Switch/Gateway layouts request the full available section width
+with automatic height. AP-only layouts keep the standard 12-column width. Explicit dashboard
+`grid_options` can still override these defaults.
 
 Header telemetry is read from Home Assistant's UniFi Network sensor entities. The card prefers the stable Home Assistant Core UniFi identifiers behind those entities, so renamed or localized CPU, memory, and temperature sensors can still be matched when Home Assistant exposes them.
 

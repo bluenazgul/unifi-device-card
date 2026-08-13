@@ -925,13 +925,18 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
   UDW: {
-    kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 16), [18]],
-    portCount: 20, displayModel: "Dream Wall", theme: "white",
+    kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 12)],
+    portCount: 15, displayModel: "Dream Wall", theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-in-wall",
     poePortRange: [1, 12],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ LAN", port: 17, media: "sfp_plus" },
-      { key: "wan", label: "2.5G WAN", port: 19, media: "rj45" },
-      { key: "sfp_2", label: "SFP+ WAN", port: 20, media: "sfp_plus" },
+      { key: "sfp_1", label: "SFP+ LAN", port: 13, apiPort: 17, media: "sfp_plus" },
+      { key: "wan", label: "2.5G WAN", port: 14, apiPort: 19, media: "rj45" },
+      { key: "sfp_2", label: "SFP+ WAN", port: 15, apiPort: 20, media: "sfp_plus" },
     ],
   },
   UXGMAX: {
@@ -1374,7 +1379,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UXGMAX") || text.includes("UXGB"))                                    return 5;
   if (text === "UXG")                                                                  return 2;
   if (text.includes("UXGFIBER"))                                                       return 7;
-  if (text === "UDW" || text.includes("DREAMWALL"))                                   return 20;
+  if (text === "UDW" || text.includes("DREAMWALL"))                                   return 15;
   if (text.includes("UXGPRO"))                                                        return 4;
   if (text.includes("UXGL"))                                                          return 2;
   if (text.includes("UGWXG") || text.includes("USGXG8"))                             return 9;
