@@ -3,6 +3,7 @@
 ## [v0.8.0]
 
 ### 🐛 Bug Fixes
+- Complete the integrated-port editor translations, localize port labels throughout the editor, and recognize Home Assistant locale codes that use underscores or the locale object.
 - Localize the uptime label on the UniFi 5G Backup display instead of always showing the English label.
 - Keep switch panels to the white and silver/dark UniFi hardware colors while preserving configured label colors.
 - Re-render the front panel when the number of ports that fit in a row changes. A card widened after its first paint kept the packing of the narrower one.

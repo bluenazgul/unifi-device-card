@@ -488,6 +488,9 @@ const TRANSLATIONS = {
     editor_device_layout_network: "Alleen Switch/Gateway",
     editor_device_layout_ap: "Alleen AP",
     editor_device_layout_hint: "Voor geïntegreerde In-Wall-apparaten. De gecombineerde indeling is standaard.",
+    editor_integrated_ports_toggle_label: "Geïntegreerde poorten",
+    editor_integrated_ports_toggle_text:  "Geïntegreerde switchpoorten weergeven",
+    editor_integrated_ports_toggle_hint:  "Voor compatibele In-Wall-accesspoints. Schakel dit uit voor de klassieke AP-weergave.",
     editor_ap_compact_toggle_label: "AP-indeling",
     editor_ap_compact_toggle_text:  "Compacte AP-weergave gebruiken",
     editor_ap_compact_toggle_hint:  "Alleen voor access points. Toont AP-afbeelding en statusdetails naast elkaar.",
@@ -679,6 +682,9 @@ const TRANSLATIONS = {
     editor_device_layout_network: "Switch/Gateway uniquement",
     editor_device_layout_ap: "AP uniquement",
     editor_device_layout_hint: "Pour les appareils In-Wall intégrés. La disposition combinée est utilisée par défaut.",
+    editor_integrated_ports_toggle_label: "Ports intégrés",
+    editor_integrated_ports_toggle_text:  "Afficher les ports du commutateur intégré",
+    editor_integrated_ports_toggle_hint:  "Pour les points d’accès In-Wall compatibles. Désactivez cette option pour l’affichage AP classique.",
     editor_ap_compact_toggle_label: "Disposition AP",
     editor_ap_compact_toggle_text:  "Utiliser la vue AP compacte",
     editor_ap_compact_toggle_hint:  "Uniquement pour les points d’accès. Affiche l’image AP et les détails d’état côte à côte.",
@@ -870,6 +876,9 @@ const TRANSLATIONS = {
     editor_device_layout_network: "Solo Switch/Gateway",
     editor_device_layout_ap: "Solo AP",
     editor_device_layout_hint: "Para dispositivos In-Wall integrados. El diseño combinado es el predeterminado.",
+    editor_integrated_ports_toggle_label: "Puertos integrados",
+    editor_integrated_ports_toggle_text:  "Mostrar los puertos del switch integrado",
+    editor_integrated_ports_toggle_hint:  "Para puntos de acceso In-Wall compatibles. Desactívalo para usar la vista clásica solo de AP.",
     editor_ap_compact_toggle_label: "Diseño AP",
     editor_ap_compact_toggle_text:  "Usar vista AP compacta",
     editor_ap_compact_toggle_hint:  "Solo para puntos de acceso. Muestra la imagen del AP y los detalles de estado lado a lado.",
@@ -1061,6 +1070,9 @@ const TRANSLATIONS = {
     editor_device_layout_network: "Solo Switch/Gateway",
     editor_device_layout_ap: "Solo AP",
     editor_device_layout_hint: "Per dispositivi In-Wall integrati. Il layout combinato è quello predefinito.",
+    editor_integrated_ports_toggle_label: "Porte integrate",
+    editor_integrated_ports_toggle_text:  "Mostra le porte dello switch integrato",
+    editor_integrated_ports_toggle_hint:  "Per access point In-Wall compatibili. Disattiva questa opzione per la visualizzazione AP classica.",
     editor_ap_compact_toggle_label: "Layout AP",
     editor_ap_compact_toggle_text:  "Usa vista AP compatta",
     editor_ap_compact_toggle_hint:  "Solo per access point. Mostra immagine AP e dettagli di stato affiancati.",
@@ -1286,7 +1298,7 @@ TRANSLATIONS.cs = {
  */
 export function getTranslations(lang) {
   if (!lang) return TRANSLATIONS.en;
-  const short = String(lang).split("-")[0].toLowerCase();
+  const short = String(lang).trim().split(/[-_]/)[0].toLowerCase();
   return TRANSLATIONS[short] || TRANSLATIONS.en;
 }
 
@@ -1295,7 +1307,7 @@ export function getTranslations(lang) {
  * Usage: t(hass, "loading")
  */
 export function t(hass, key) {
-  const lang = hass?.language || "en";
+  const lang = hass?.language || hass?.locale?.language || "en";
   const strings = getTranslations(lang);
   return strings[key] ?? TRANSLATIONS.en[key] ?? key;
 }

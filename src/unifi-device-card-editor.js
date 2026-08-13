@@ -17,7 +17,7 @@ function slotPortType(slot) {
 
 function slotDropdownLabel(slot, tFn) {
   const type = slotPortType(slot);
-  const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
+  const portNum = slot.port != null ? ` (${tFn("port_label")} ${slot.port})` : "";
 
   switch (type) {
     case "wan":
@@ -53,7 +53,7 @@ function buildGatewayRoleOptions(layout, tFn, { includeNone = false } = {}) {
   for (const portNum of allPortNums) {
     options.push({
       value: `port_${portNum}`,
-      label: `Port ${portNum} — ${tFn("editor_wan_port_lan")}`,
+      label: `${tFn("port_label")} ${portNum} — ${tFn("editor_wan_port_lan")}`,
       type: "lan",
       port: portNum,
     });
@@ -1397,7 +1397,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
             ${selectableSpecialPorts
-              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`)
+              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`)
               .join("")}
           </div>
           <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
