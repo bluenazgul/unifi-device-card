@@ -1,5 +1,7 @@
 # Changelog
 
+- Fix compact AP panels being pushed down in stretched cards while preserving their configured size, and keep the AP portion of combined In-Wall cards compact on narrow cards.
+
 ## [v0.8.0]
 
 ### 🐛 Bug Fixes

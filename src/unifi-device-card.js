@@ -1810,6 +1810,10 @@ class UnifiDeviceCard extends HTMLElement {
         padding: 4px 14px;
       }
 
+      .ap-layout > .frontpanel {
+        margin-top: 0;
+      }
+
       .ap-layout.compact {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -2550,15 +2554,10 @@ class UnifiDeviceCard extends HTMLElement {
           border-bottom: 1px solid var(--udc-border);
         }
 
-        .ap-layout.has-integrated-ports,
-        .ap-layout.compact.has-integrated-ports {
+        .ap-layout.has-integrated-ports:not(.compact) {
           grid-template-columns: 1fr;
         }
 
-        .ap-layout.compact.has-integrated-ports .frontpanel.ap-disc {
-          border-right: none;
-          border-bottom: 1px solid var(--udc-border);
-        }
       }
 
     </style>`;
