@@ -243,18 +243,41 @@ class UnifiDeviceCard extends HTMLElement {
       return { columns: 12, rows: "auto" };
     }
 
-    // Ask for width in proportion to the widest line the front panel has to
-    // draw. A section column is 12 grid columns wide, so 12 is one standard
-    // card and 24 is two. The section clamps the span to its own width
-    // (grid-column: span min(--column-size, --grid-column-count)), so asking
-    // for more than a narrow section holds is safe.
+    // Ask for the width the front panel actually needs, counted in slots on
+    // its widest line. Odd/even panels draw one pair of declared rows as two
+    // lines, so a pair of twelve is twelve wide, not twenty-four.
     const layout = this._ctx?.layout;
-    const widestRow = (layout?.rows || []).reduce((max, row) => Math.max(max, row.length), 0);
-    const slots = Math.max(widestRow, (layout?.specialSlots || []).length);
+    const rows = layout?.rows || [];
+    let widest = 0;
+    if (layout?.rj45_odd_even === true) {
+      for (let i = 0; i < rows.length; i += 2) {
+        const pair = (rows[i]?.length || 0) + (rows[i + 1]?.length || 0);
+        widest = Math.max(widest, Math.ceil(pair / 2));
+      }
+    } else {
+      widest = rows.reduce((max, row) => Math.max(max, row.length), 0);
+    }
 
-    if (slots <= 8) return { columns: 12, rows: "auto" };
-    if (slots <= 12) return { columns: 24, rows: "auto" };
-    return { columns: "full", rows: "auto" };
+    // Slots parked beside a row add to that line. Slots without a row form
+    // their own leading line, but that line wraps (.special-row is flex-wrap),
+    // so it adapts to the width the port rows need and does not add to the
+    // request. All-special panels (aggregation switches) fall back to the
+    // 12 column minimum below.
+    const perRow = new Map();
+    for (const slot of layout?.specialSlots || []) {
+      if (Number.isInteger(slot?.row)) perRow.set(slot.row, (perRow.get(slot.row) || 0) + 1);
+    }
+    const slots = widest + Math.max(0, ...perRow.values());
+
+    // A slot occupies port_size + 4px of pitch (40 at the default 36, the same
+    // pitch _maxFittableColumns measures with) and the panel adds 28px of
+    // padding. A grid column is a twelfth of a view column, which Home
+    // Assistant keeps between 320 and 500px, so ~36px per column sits in that
+    // range. Narrower viewports fall short of the request; the row repacking
+    // absorbs that.
+    const needed = slots * (this._portSize() + 4) + 28;
+    const columns = Math.min(48, Math.max(12, Math.ceil(needed / 36)));
+    return { columns, rows: "auto" };
   }
 
   _estimateCardSize() {
