@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.94-dev]
 
 ### 🐛 Bug Fixes
 - Keep the PoE toggle on ports that carry a name in the UniFi controller. The `poe-<mac>_<port>` unique_id prefix was not recognized, so the toggle was dropped for every port whose entity_id no longer contains `port_<n>`. The PoE power reading and the power cycle button have their own prefixes and were not affected.
