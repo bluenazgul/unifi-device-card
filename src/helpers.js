@@ -1631,6 +1631,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
           physical_key: slot.key,
           label: slot.label,
           media: slot.media ?? portData.media,
+          row: slot.row,
           kind: "special",
           port: slot.port ?? portData.port,
         };
@@ -1645,6 +1646,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
         physical_key: slot.key,
         label: slot.label,
         media: slot.media ?? keyData.media,
+        row: slot.row,
         kind: "special",
         port: slot.port ?? keyData.port ?? null,
       };
@@ -1656,6 +1658,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
       port: slot.port ?? null,
       label: slot.label,
       media: slot.media,
+      row: slot.row,
       kind: "special",
       link_entity: null,
       speed_entity: null,

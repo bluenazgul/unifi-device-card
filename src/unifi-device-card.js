@@ -1692,6 +1692,12 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: flex-start;
       }
 
+      .port-row-side {
+        display: flex;
+        gap: 6px;
+        margin-left: 12px;
+      }
+
       .frontpanel.rotate180-enabled .panel-label {
         text-align: right;
       }
@@ -2807,8 +2813,31 @@ class UnifiDeviceCard extends HTMLElement {
       : baseRows;
     const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
 
-    const specialRow = renderedSpecials.length
-      ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>`
+    // A slot may name the port row it belongs beside, which is how the real
+    // front panels put their SFP cages and WAN port next to the RJ45 block
+    // instead of above it. Slots without a row keep the leading row.
+    const sideSpecials = new Map();
+    const topSpecials = [];
+    for (const slot of renderedSpecials) {
+      const row = slot?.row;
+      if (!Number.isInteger(row)) {
+        topSpecials.push(slot);
+        continue;
+      }
+      const index = reverseFrontpanel ? effectiveRows.length - 1 - row : row;
+      // Repacking (force_sequential_ports, narrow cards) can leave fewer rows
+      // than the model declares. A slot that names a missing row joins the
+      // leading row instead of disappearing with it.
+      if (index < 0 || index >= effectiveRows.length) {
+        topSpecials.push(slot);
+        continue;
+      }
+      if (!sideSpecials.has(index)) sideSpecials.set(index, []);
+      sideSpecials.get(index).push(slot);
+    }
+
+    const specialRow = topSpecials.length
+      ? `<div class="special-row">${topSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>`
       : "";
 
     const layoutRows = effectiveRows
@@ -2820,9 +2849,14 @@ class UnifiDeviceCard extends HTMLElement {
           .map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow))
           .join("");
 
+        const sideItems = (sideSpecials.get(rowIndex) || [])
+          .map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow))
+          .join("");
+        const side = sideItems ? `<div class="port-row-side">${sideItems}</div>` : "";
+
         const cols = Math.max(1, rowPorts.length);
-        return items
-          ? `<div class="port-row" style="--udc-cols: ${cols};">${items}</div>`
+        return items || side
+          ? `<div class="port-row" style="--udc-cols: ${cols};">${items}${side}</div>`
           : "";
       })
       .filter(Boolean);
