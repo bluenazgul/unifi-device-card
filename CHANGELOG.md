@@ -1,42 +1,30 @@
 # Changelog
 
-## [Unreleased]
+## [v0.8.0]
 
 ### 🐛 Bug Fixes
+- Localize the uptime label on the UniFi 5G Backup display instead of always showing the English label.
+- Keep switch panels to the white and silver/dark UniFi hardware colors while preserving configured label colors.
 - Re-render the front panel when the number of ports that fit in a row changes. A card widened after its first paint kept the packing of the narrower one.
 - Fill the grid cell a sections view assigns, so cards in one row share the row height. The host element was inline and kept its content height, which left a row of cards with ragged bottom edges. The slack collects between the header and the front panel, so the panels, port details and buttons of one row line up even when a device reports fewer telemetry lines.
-
-### ✨ Improvements
-- Size a switch or gateway card by the width its front panel actually needs, instead of always requesting the full section width. Set `grid_options` on the card to override.
-- A special slot may name the port row it sits beside, so SFP cages and WAN ports render next to the RJ45 block rather than above it. Applied to the US-24-250W, the UDM Pro, the US-16-XG and the USW Ultra 60W. The UDM Pro and the USW Ultra 60W panels change through this. Models without a `row` on their slots render as before.
-- Draw the US-24-250W as two rows of twelve and the UDM Pro as two rows of four, matching their front panels.
-- Draw the USW Pro Max 48 and USW Pro Max 48 PoE as three rows of sixteen. Ubiquiti's own front panel data groups them by sixteen, not twelve.
-
-## [0.7.94-dev]
-
-### 🐛 Bug Fixes
 - Keep the PoE toggle on ports that carry a name in the UniFi controller. The `poe-<mac>_<port>` unique_id prefix was not recognized, so the toggle was dropped for every port whose entity_id no longer contains `port_<n>`. The PoE power reading and the power cycle button have their own prefixes and were not affected.
 - Render the Dream Wall (`UDW`) as an integrated WiFi gateway with 12 PoE LAN ports, its 2.5 GbE WAN, and two SFP+ ports; show its client sensor when Home Assistant exposes it.
 - Periodically refresh device metadata so telemetry entities that appear after Home Assistant starts no longer require a Home Assistant or card restart.
 - Add a layout selector for the Dream Wall and compatible In-Wall devices with combined Switch/Gateway + AP (default), network-only, and AP-only views.
 
 ### ✨ Improvements
+- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style HTML rendering that shows uptime plus CPU/RAM activity on the device display.
+- Add a dedicated, scalable HTML-rendered device design for legacy and current UniFi Wall/In-Wall APs and the U6 Extender while keeping other access points round; discovered integrated switch ports and their actions/details remain optional.
+- Add an editor/YAML toggle to disable integrated ports on compatible APs and keep the previous AP-only rendering.
+- Size a switch or gateway card by the width its front panel actually needs, instead of always requesting the full section width. Set `grid_options` on the card to override.
+- A special slot may name the port row it sits beside, so SFP cages and WAN ports render next to the RJ45 block rather than above it. Applied to the US-24-250W, the UDM Pro, the US-16-XG and the USW Ultra 60W. The UDM Pro and the USW Ultra 60W panels change through this. Models without a `row` on their slots render as before.
+- Draw the US-24-250W as two rows of twelve and the UDM Pro as two rows of four, matching their front panels.
+- Draw the USW Pro Max 48 and USW Pro Max 48 PoE as three rows of sixteen. Ubiquiti's own front panel data groups them by sixteen, not twelve.
 - Add the US-24-250W (`US24P250`). It resolved as a USW 24 PoE, whose PoE range covers ports 1 to 16, and therefore lost the PoE controls on ports 17 to 24. This model carries PoE on all 24 ports.
 - Add the US-16-XG (`USXG`) with its 12 SFP+ and 4 RJ45 ports. It had no entry and fell back to a generic 16 port RJ45 grid.
 - Map the `U7LT` and `U7HD` access point model codes to UAP AC Lite and UAP HD.
 - Support Home Assistant Sections resizing: Switch/Gateway views request the full section width, AP-only views retain a 12-column automatic-height size, and declared multi-row device layouts are preserved instead of being forced to eight ports per row.
 
-## [v0.7.92-dev]
-
-### 🐛 Bug Fixes
-- Localize the uptime label on the UniFi 5G Backup display instead of always showing the English label.
-- Keep switch panels to the white and silver/dark UniFi hardware colors while preserving configured label colors.
-
-### ✨ Improvements
-### ATTENTION: this new features are untested as I dont own compatible Hardware
-- Add UniFi 5G Backup (UMBBE634) recognition with a dedicated AP-style HTML rendering that shows uptime plus CPU/RAM activity on the device display.
-- Add a dedicated, scalable HTML-rendered device design for legacy and current UniFi Wall/In-Wall APs and the U6 Extender while keeping other access points round; discovered integrated switch ports and their actions/details remain optional.
-- Add an editor/YAML toggle to disable integrated ports on compatible APs and keep the previous AP-only rendering.
 
 ### ✨ Hints
 
