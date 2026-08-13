@@ -107,6 +107,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
 | USW 24 (`USL24`) | 24 + 2 SFP | Silver |
 | USW 24 PoE (`USL24P`, `USL24PB`, `USW24P`) | 24 + 2 SFP | Silver |
+| US-24-250W (`US24P250`) | 24 + 2 SFP | Silver |
 | USW 48 (`USL48`) | 48 + 4 SFP | Silver |
 | USW 48 PoE (`USL48P`, `USW48P`) | 48 + 4 SFP | Silver |
 | USW Pro 24 PoE (`US24PRO`) | 24 + 2 SFP+ | Silver |
@@ -123,6 +124,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW Enterprise 24 PoE (`US624P`) | 24 + 2 SFP+ | Silver |
 | USW Enterprise 48 PoE (`US648P`) | 48 + 4 SFP+ | Silver |
 | USW Enterprise XG 24 (`USXG24`) | 24 + 2 SFP+ | Silver |
+| US-16-XG (`USXG`) | 4 + 12 SFP+ | Silver |
 | USW Flex XG (`USWFLEXXG`) | 4 + Uplink | White |
 | US XG 6 PoE (`USXG6POE`) | 6 | Silver |
 | USW WAN / WAN RJ45 (`USWWAN`, `USWWANRJ45`) | 4 | Silver |
