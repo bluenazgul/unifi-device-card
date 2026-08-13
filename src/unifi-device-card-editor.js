@@ -498,6 +498,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.integrated_ports !== false) delete next.integrated_ports;
+    if (!["combined", "network", "ap"].includes(next.device_layout)) delete next.device_layout;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
 
     this._dispatchConfig(next);
@@ -531,6 +532,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       special_ports: undefined,
       edit_special_ports: undefined,
       ports_per_row: nextDevice?.type === "gateway" ? undefined : this._config?.ports_per_row,
+      device_layout: undefined,
+      integrated_ports: undefined,
     };
 
     if (!deviceId) {
@@ -1216,7 +1219,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const integratedPorts = this._config?.integrated_ports !== false;
+    const supportsLayoutSelection = this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout)
+      ? this._config.device_layout
+      : (this._config?.integrated_ports === false ? "ap" : "combined");
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
@@ -1336,17 +1343,18 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
         </div>` : ""}
 
-        ${supportsIntegratedPorts ? `
+        ${supportsLayoutSelection ? `
         <div class="field">
-          <label>${escapeHtml(this._t("editor_integrated_ports_toggle_label"))}</label>
-          <label class="checkbox-row">
-            <input id="integrated_ports" type="checkbox" ${integratedPorts ? "checked" : ""}>
-            <span>${escapeHtml(this._t("editor_integrated_ports_toggle_text"))}</span>
-          </label>
-          <div class="hint">${escapeHtml(this._t("editor_integrated_ports_toggle_hint"))}</div>
+          <label>${escapeHtml(this._t("editor_device_layout_label"))}</label>
+          <select id="device_layout">
+            <option value="combined" ${deviceLayout === "combined" ? "selected" : ""}>${escapeHtml(this._t("editor_device_layout_combined"))}</option>
+            <option value="network" ${deviceLayout === "network" ? "selected" : ""}>${escapeHtml(this._t("editor_device_layout_network"))}</option>
+            <option value="ap" ${deviceLayout === "ap" ? "selected" : ""}>${escapeHtml(this._t("editor_device_layout_ap"))}</option>
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_device_layout_hint"))}</div>
         </div>` : ""}
 
-        ${isApDevice ? `
+        ${supportsApLayout ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ap_compact_toggle_label"))}</label>
           <label class="checkbox-row">
@@ -1502,8 +1510,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
       ?.addEventListener("change", (ev) => this._onApScaleInput(ev));
-    this.shadowRoot.getElementById("integrated_ports")
-      ?.addEventListener("change", (ev) => this._emitConfig({ integrated_ports: ev.target.checked ? undefined : false }));
+    this.shadowRoot.getElementById("device_layout")
+      ?.addEventListener("change", (ev) => this._emitConfig({
+        device_layout: ev.target.value === "combined" ? undefined : ev.target.value,
+        integrated_ports: undefined,
+      }));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")

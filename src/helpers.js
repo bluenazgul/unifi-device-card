@@ -1617,8 +1617,9 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
   const layoutSpecials = layout?.specialSlots || [];
 
   const merged = layoutSpecials.map((slot) => {
-    if (slot.port != null) {
-      const portData = byPort.get(slot.port);
+    const discoveryPort = slot.apiPort ?? slot.port;
+    if (discoveryPort != null) {
+      const portData = byPort.get(discoveryPort);
       if (portData) {
         return {
           ...portData,
@@ -1627,6 +1628,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
           label: slot.label,
           media: slot.media ?? portData.media,
           kind: "special",
+          port: slot.port ?? portData.port,
         };
       }
     }
@@ -2047,7 +2049,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
 
   if (hasConfiguredPortsPerRow) {
     layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
-  } else if (type === "switch") {
+  } else if (type === "switch" && !(layout?.rows?.length > 1)) {
     layout = applyPortsPerRowOverride(layout, 8);
   }
 
