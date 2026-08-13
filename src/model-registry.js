@@ -227,6 +227,18 @@ export const MODEL_REGISTRY = {
     ],
   },
 
+  // US 24 250W  — 24× 1G RJ45 PoE (all), 2× 1G SFP
+  US24P250: {
+    kind: "switch", frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26, displayModel: "US-24-250W", theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP 1", port: 25 },
+      { key: "sfp_2", label: "SFP 2", port: 26 },
+    ],
+  },
+
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 2 Standard (USW-*)
   // ══════════════════════════════════════════════════════════════════════════
@@ -550,6 +562,13 @@ export const MODEL_REGISTRY = {
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
       { key: "sfp_2", label: "SFP+ 2", port: 26 },
     ],
+  },
+
+  // US 16 XG  — 12× SFP+, 4× 10G RJ45
+  USXG: {
+    kind: "switch", frontStyle: "single-row", rows: [range(13, 16)],
+    portCount: 16, displayModel: "US-16-XG", theme: "silver",
+    specialSlots: range(1, 12).map((p) => ({ key: `sfp_${p}`, label: `SFP+ ${p}`, port: p })),
   },
 
   // USW Flex XG  — 4× 10G RJ45, 1× 1G RJ45 PoE-in/uplink
@@ -1053,6 +1072,8 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
     if (candidate.includes("U7PG2"))              return "UAPACPRO";
+    if (candidate === "U7LT")                     return "UAPACLITE";
+    if (candidate === "U7HD")                     return "UAPHD";
     if (candidate.includes("UMBBE634"))           return "UMBBE634";
     if (candidate.includes("UNIFI5GBACKUP"))      return "UMBBE634";
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
