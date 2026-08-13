@@ -1238,6 +1238,9 @@ function classifyPortEntity(entity, isSpecial = false) {
   if (eid.startsWith("button.") && portInfo?.feature === "power_cycle") {
     return "power_cycle_entity";
   }
+  if (eid.startsWith("switch.") && portInfo?.feature === "poe_control") {
+    return "poe_switch_entity";
+  }
   if (eid.startsWith("switch.") && portInfo?.feature === "port_control") {
     return "port_switch_entity";
   }

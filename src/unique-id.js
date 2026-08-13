@@ -8,6 +8,7 @@ import { normalizeMac } from "./identity.js";
 const PORT_FEATURE_PREFIXES = {
   port: "port_control",
   power_cycle: "power_cycle",
+  poe: "poe_control",
   poe_power: "poe_power",
   port_rx: "port_rx",
   port_tx: "port_tx",
