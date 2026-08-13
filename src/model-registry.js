@@ -75,7 +75,13 @@ function applyRj45LayoutHints(layout) {
 
   return {
     ...layout,
-    rj45_odd_even: isSwitchOrGateway && !isExcluded && numberedRj45Count > 8,
+    // A model may state the odd/even panel explicitly. Devices with eight or
+    // fewer ports fall below the automatic threshold but can still be built
+    // that way, the UDM Pro being the obvious one.
+    rj45_odd_even:
+      typeof layout?.rj45_odd_even === "boolean"
+        ? layout.rj45_odd_even
+        : isSwitchOrGateway && !isExcluded && numberedRj45Count > 8,
   };
 }
 
@@ -229,13 +235,13 @@ export const MODEL_REGISTRY = {
 
   // US 24 250W  — 24× 1G RJ45 PoE (all), 2× 1G SFP
   US24P250: {
-    kind: "switch", frontStyle: "eight-grid",
-    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    kind: "switch", frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24)],
     portCount: 26, displayModel: "US-24-250W", theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
-      { key: "sfp_1", label: "SFP 1", port: 25 },
-      { key: "sfp_2", label: "SFP 2", port: 26 },
+      { key: "sfp_1", label: "SFP 1", port: 25, row: 0 },
+      { key: "sfp_2", label: "SFP 2", port: 26, row: 1 },
     ],
   },
 
@@ -493,7 +499,7 @@ export const MODEL_REGISTRY = {
   // USW Pro Max 48 (PoE / non-PoE)  — 48× RJ45, 4× SFP+
   USPM48: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52, displayModel: "USW Pro Max 48", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 49 },
@@ -504,7 +510,7 @@ export const MODEL_REGISTRY = {
   },
   USPM48P: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52, displayModel: "USW Pro Max 48 PoE", theme: "silver",
     poePortRange: [1, 48],
     specialSlots: [
@@ -566,9 +572,14 @@ export const MODEL_REGISTRY = {
 
   // US 16 XG  — 12× SFP+, 4× 10G RJ45
   USXG: {
-    kind: "switch", frontStyle: "single-row", rows: [range(13, 16)],
+    kind: "switch", frontStyle: "six-grid", rows: [range(1, 12)],
     portCount: 16, displayModel: "US-16-XG", theme: "silver",
-    specialSlots: range(1, 12).map((p) => ({ key: `sfp_${p}`, label: `SFP+ ${p}`, port: p })),
+    specialSlots: [
+      { key: "rj45_13", label: "13", port: 13, media: "rj45", row: 0 },
+      { key: "rj45_14", label: "14", port: 14, media: "rj45", row: 0 },
+      { key: "rj45_15", label: "15", port: 15, media: "rj45", row: 1 },
+      { key: "rj45_16", label: "16", port: 16, media: "rj45", row: 1 },
+    ],
   },
 
   // USW Flex XG  — 4× 10G RJ45, 1× 1G RJ45 PoE-in/uplink
@@ -669,7 +680,7 @@ export const MODEL_REGISTRY = {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 7)],
     portCount: 8, displayModel: "USW Ultra 60W", theme: "white",
     poePortRange: [1, 7],
-    specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }],
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 8, media: "rj45", row: 0 }],
   },
   USWULTRA210W: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 7)],
@@ -894,10 +905,11 @@ export const MODEL_REGISTRY = {
   UDMPRO: {
     kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 8)],
     portCount: 11, displayModel: "UDM Pro", theme: "silver",
+    rj45_odd_even: true,
     specialSlots: [
-      { key: "wan",   label: "WAN",    port: 9  },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10, row: 0 },
+      { key: "wan",   label: "WAN",    port: 9,  media: "rj45", row: 1 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11, row: 1 },
     ],
   },
   UDMPROSE: {

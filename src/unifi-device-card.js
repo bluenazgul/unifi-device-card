@@ -184,6 +184,9 @@ class UnifiDeviceCard extends HTMLElement {
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._panelObserver?.disconnect();
+    this._panelObserver = null;
+    this._observedFrontPanel = null;
     this._clearUptimeRefreshTimer();
   }
 
@@ -227,16 +230,54 @@ class UnifiDeviceCard extends HTMLElement {
     return this._cardSize || this._estimateCardSize();
   }
 
+  // Sections view sizing. Derived from the device type only, never from a
+  // measurement: getGridOptions() decides the width that a measurement would
+  // read back, so feeding one in would oscillate. Whatever width the card
+  // actually receives is handled by the row repacking in _buildEffectiveRows().
   getGridOptions() {
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const rendersNetworkPanel = layoutMode !== "ap" && (
       this._ctx?.type === "switch" || this._ctx?.type === "gateway"
     );
+    if (!rendersNetworkPanel) {
+      return { columns: 12, rows: "auto" };
+    }
 
-    return {
-      columns: rendersNetworkPanel ? "full" : 12,
-      rows: "auto",
-    };
+    // Ask for the width the front panel actually needs, counted in slots on
+    // its widest line. Odd/even panels draw one pair of declared rows as two
+    // lines, so a pair of twelve is twelve wide, not twenty-four.
+    const layout = this._ctx?.layout;
+    const rows = layout?.rows || [];
+    let widest = 0;
+    if (layout?.rj45_odd_even === true) {
+      for (let i = 0; i < rows.length; i += 2) {
+        const pair = (rows[i]?.length || 0) + (rows[i + 1]?.length || 0);
+        widest = Math.max(widest, Math.ceil(pair / 2));
+      }
+    } else {
+      widest = rows.reduce((max, row) => Math.max(max, row.length), 0);
+    }
+
+    // Slots parked beside a row add to that line. Slots without a row form
+    // their own leading line, but that line wraps (.special-row is flex-wrap),
+    // so it adapts to the width the port rows need and does not add to the
+    // request. All-special panels (aggregation switches) fall back to the
+    // 12 column minimum below.
+    const perRow = new Map();
+    for (const slot of layout?.specialSlots || []) {
+      if (Number.isInteger(slot?.row)) perRow.set(slot.row, (perRow.get(slot.row) || 0) + 1);
+    }
+    const slots = widest + Math.max(0, ...perRow.values());
+
+    // A slot occupies port_size + 4px of pitch (40 at the default 36, the same
+    // pitch _maxFittableColumns measures with) and the panel adds 28px of
+    // padding. A grid column is a twelfth of a view column, which Home
+    // Assistant keeps between 320 and 500px, so ~36px per column sits in that
+    // range. Narrower viewports fall short of the request; the row repacking
+    // absorbs that.
+    const needed = slots * (this._portSize() + 4) + 28;
+    const columns = Math.min(48, Math.max(12, Math.ceil(needed / 36)));
+    return { columns, rows: "auto" };
   }
 
   _estimateCardSize() {
@@ -272,13 +313,42 @@ class UnifiDeviceCard extends HTMLElement {
     this._cardSize = nextSize;
   }
 
+  // Watch the panel itself, not only the host. The host can keep its size
+  // while the panel gains room, and a sections view resizes the card after the
+  // first paint, so a host-only observer misses the change that decides how
+  // many ports fit in a row.
+  _observeFrontPanel() {
+    const panel = this.shadowRoot?.querySelector(".frontpanel");
+    if (!panel || panel === this._observedFrontPanel) return;
+
+    if (!this._panelObserver) {
+      this._panelObserver = new ResizeObserver(() => {
+        if (this._maxFittableColumns() === this._renderedFittableColumns) return;
+        this._render();
+      });
+    }
+    if (this._observedFrontPanel) this._panelObserver.unobserve(this._observedFrontPanel);
+    this._observedFrontPanel = panel;
+    this._panelObserver.observe(panel);
+  }
+
   _finalizeRender() {
     requestAnimationFrame(() => {
       this._updateCardSize();
 
       const panelWidth = this._measuredFrontPanelContentWidth();
       if (panelWidth <= 0) return;
-      if (Math.abs(panelWidth - this._lastMeasuredPanelWidth) < 1) return;
+
+      // The panel width alone is not enough. The card can be widened after its
+      // first paint - a sections view applies the column span in its own render
+      // pass - and the width then matches on the next measurement while the
+      // ports are still packed for the old one. Compare the column count the
+      // DOM was actually built with as well.
+      this._observeFrontPanel();
+
+      const widthChanged = Math.abs(panelWidth - this._lastMeasuredPanelWidth) >= 1;
+      const columnsChanged = this._maxFittableColumns() !== this._renderedFittableColumns;
+      if (!widthChanged && !columnsChanged) return;
 
       this._lastMeasuredPanelWidth = panelWidth;
       this._render();
@@ -1077,9 +1147,14 @@ class UnifiDeviceCard extends HTMLElement {
       .filter((port) => Number.isInteger(port) && !knownPorts.has(port))
       .sort((a, b) => a - b);
 
-    if (!extraPorts.length && !baseRows.length && !orderedPorts.length) return [];
-
     const fitCols = this._maxFittableColumns();
+    // Remember the column count this layout was built with, so _finalizeRender
+    // can tell a stale panel from a settled one. Record it before the empty
+    // early return: a panel with no ports must settle too, or _finalizeRender
+    // re-renders it on every frame.
+    this._renderedFittableColumns = fitCols;
+
+    if (!extraPorts.length && !baseRows.length && !orderedPorts.length) return [];
 
     if (!baseRows.length) {
       if (!Number.isFinite(fitCols) || extraPorts.length <= fitCols) return [extraPorts];
@@ -1458,6 +1533,12 @@ class UnifiDeviceCard extends HTMLElement {
   _styles() {
     return `<style>
       :host {
+        /* Fill the grid cell a sections view assigns. The section stretches
+           its items to the row height, but the stretch ends at an inline
+           host. In a masonry view the wrapper has no fixed height, so 100%
+           resolves to auto and nothing changes. */
+        display: block;
+        height: 100%;
         --udc-bg: #141820;
         --udc-surface: #1e2433;
         --udc-surf2: #252d3d;
@@ -1480,6 +1561,10 @@ class UnifiDeviceCard extends HTMLElement {
         overflow: hidden;
         position: relative;
         isolation: isolate;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
       }
 
       .header {
@@ -1609,6 +1694,11 @@ class UnifiDeviceCard extends HTMLElement {
         position: relative;
         z-index: 0;
         overflow: hidden;
+        /* In a stretched card the slack collects here, between the header
+           and the panel. Panels, details and buttons of one sections view
+           row then line up even when a device shows fewer telemetry lines.
+           As a nested block in the AP layout this resolves to 0. */
+        margin-top: auto;
       }
 
       .frontpanel.theme-white { background: #d6d6d9; }
@@ -1638,6 +1728,12 @@ class UnifiDeviceCard extends HTMLElement {
         gap: 4px 6px;
         width: 100%;
         align-items: flex-start;
+      }
+
+      .port-row-side {
+        display: flex;
+        gap: 6px;
+        margin-left: 12px;
       }
 
       .frontpanel.rotate180-enabled .panel-label {
@@ -2607,6 +2703,12 @@ class UnifiDeviceCard extends HTMLElement {
       this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts
     );
     if (renderApLayout) {
+      // The AP disc renders a .frontpanel too, so _finalizeRender measures it
+      // and compares _maxFittableColumns() against _renderedFittableColumns.
+      // Record the value here as well, or an AP card re-renders every frame.
+      // In-Wall APs with an integrated port grid overwrite it in
+      // _buildEffectiveRows.
+      this._renderedFittableColumns = this._maxFittableColumns();
       this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
@@ -2749,8 +2851,31 @@ class UnifiDeviceCard extends HTMLElement {
       : baseRows;
     const renderedSpecials = reverseFrontpanel ? [...allSpecials].reverse() : allSpecials;
 
-    const specialRow = renderedSpecials.length
-      ? `<div class="special-row">${renderedSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>`
+    // A slot may name the port row it belongs beside, which is how the real
+    // front panels put their SFP cages and WAN port next to the RJ45 block
+    // instead of above it. Slots without a row keep the leading row.
+    const sideSpecials = new Map();
+    const topSpecials = [];
+    for (const slot of renderedSpecials) {
+      const row = slot?.row;
+      if (!Number.isInteger(row)) {
+        topSpecials.push(slot);
+        continue;
+      }
+      const index = reverseFrontpanel ? effectiveRows.length - 1 - row : row;
+      // Repacking (force_sequential_ports, narrow cards) can leave fewer rows
+      // than the model declares. A slot that names a missing row joins the
+      // leading row instead of disappearing with it.
+      if (index < 0 || index >= effectiveRows.length) {
+        topSpecials.push(slot);
+        continue;
+      }
+      if (!sideSpecials.has(index)) sideSpecials.set(index, []);
+      sideSpecials.get(index).push(slot);
+    }
+
+    const specialRow = topSpecials.length
+      ? `<div class="special-row">${topSpecials.map((s) => this._renderPortButton(s, selected?.key, portClientIndex)).join("")}</div>`
       : "";
 
     const layoutRows = effectiveRows
@@ -2762,9 +2887,14 @@ class UnifiDeviceCard extends HTMLElement {
           .map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow))
           .join("");
 
+        const sideItems = (sideSpecials.get(rowIndex) || [])
+          .map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex, oddEvenTopRow))
+          .join("");
+        const side = sideItems ? `<div class="port-row-side">${sideItems}</div>` : "";
+
         const cols = Math.max(1, rowPorts.length);
-        return items
-          ? `<div class="port-row" style="--udc-cols: ${cols};">${items}</div>`
+        return items || side
+          ? `<div class="port-row" style="--udc-cols: ${cols};">${items}${side}</div>`
           : "";
       })
       .filter(Boolean);
