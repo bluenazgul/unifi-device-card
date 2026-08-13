@@ -68,14 +68,17 @@ If you like this project and want to support my work, you can donate via PayPal.
 
 ## Features
 
-- **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts
-- **Device-accurate styling** — white panel for Lite / Flex / Ultra / Cloud Gateway style devices, silver or dark layouts for rack devices like US 8 / UDM Pro / UDM SE
+- **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts, with SFP cages and WAN ports drawn beside their port row where the hardware places them
+- **Sections view sizing** — the card asks Home Assistant for the width its front panel needs, so a 24 port switch gets a wider card than an access point without any configuration; set `grid_options` on the card to override. Cards in one row fill the row height, so their bottom edges line up.
+- **Device-accurate styling** — white panels for Lite / Flex / Ultra / Cloud Gateway style devices and silver/dark panels for rack devices and unknown switch fallbacks
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
 - **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
 - **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
+- **Dedicated AP designs** — standard APs stay round, Wall/In-Wall APs and the U6 Extender use a scalable rectangular HTML design, and UniFi 5G Backup uses its own HTML device display
+- **Combined In-Wall AP view** — compatible In-Wall models can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
 - **Built-in UI editor** — full card configuration without YAML
 - **Multi-language support** — translations available for English, German, Dutch, French, Spanish, Italian, Swedish, Danish, Norwegian, Finnish, Polish, and Czech
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
@@ -91,6 +94,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | Model | Ports | Panel |
 |---|---|---|
 | UniFi Switch Compact 8 (`USC8`) | 8 | Silver |
+| UniFi Switch 8 (`US8`) | 8 | Silver |
 | UniFi Switch 8 60W (`US8P60`) | 8 | Silver |
 | UniFi Switch 8 150W (`US8P150`) | 8 + 2 SFP | Silver |
 | UniFi Switch 16 PoE 150W (`US16P150`) | 16 + 2 SFP | Silver |
@@ -104,6 +108,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW 16 PoE (`USL16P`) | 16 + 2 SFP | Silver |
 | USW 24 (`USL24`) | 24 + 2 SFP | Silver |
 | USW 24 PoE (`USL24P`, `USL24PB`, `USW24P`) | 24 + 2 SFP | Silver |
+| US-24-250W (`US24P250`) | 24 + 2 SFP | Silver |
 | USW 48 (`USL48`) | 48 + 4 SFP | Silver |
 | USW 48 PoE (`USL48P`, `USW48P`) | 48 + 4 SFP | Silver |
 | USW Pro 24 PoE (`US24PRO`) | 24 + 2 SFP+ | Silver |
@@ -120,46 +125,65 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW Enterprise 24 PoE (`US624P`) | 24 + 2 SFP+ | Silver |
 | USW Enterprise 48 PoE (`US648P`) | 48 + 4 SFP+ | Silver |
 | USW Enterprise XG 24 (`USXG24`) | 24 + 2 SFP+ | Silver |
+| US-16-XG (`USXG`) | 4 + 12 SFP+ | Silver |
+| USW Flex XG (`USWFLEXXG`) | 4 + Uplink | White |
+| US XG 6 PoE (`USXG6POE`) | 6 | Silver |
+| USW WAN / WAN RJ45 (`USWWAN`, `USWWANRJ45`) | 4 | Silver |
+| USW Mission Critical (`USWMISSIONCRITICAL`) | 9 | Silver |
 | USW Industrial (`USWINDUSTRIAL`) | 8 + 2 SFP+ | Silver |
 | USW Aggregation (`USL8A`) | 8 SFP+ | Silver |
 | USW Pro Aggregation (`USAGGPRO`) | 28 SFP+ + 4 SFP28 | Silver |
 | USW Ultra (`USWULTRA`) | 8 | White |
 | USW Ultra 60W (`USWULTRA60W`) | 8 | White |
 | USW Ultra 210W (`USWULTRA210W`) | 8 | White |
+| USW Pro XG 8 PoE (`USWPROXG8POE`) | 8 + 2 SFP+ | Silver |
+| USW Pro XG 10 PoE (`USWPROXG10POE`) | 10 + 2 SFP+ | Silver |
+| USW Pro XG 24 / 24 PoE (`USWPROXG24`, `USWPROXG24POE`) | 24 + 2 SFP+ | Silver |
+| USW Pro XG 48 / 48 PoE (`USWPROXG48`, `USWPROXG48POE`) | 48 + 4 SFP+ | Silver |
+| USW Pro HD 24 / 24 PoE (`USWPROHD24`, `USWPROHD24POE`) | 24 + 2 SFP+ | Silver |
+| Enterprise Campus 24 PoE / 24S PoE (`ECS24POE`, `ECS24SPOE`) | 24 + 4 SFP28 | Silver |
+| Enterprise Campus 48 PoE / 48S PoE (`ECS48POE`, `ECS48SPOE`) | 48 + 4 SFP28 | Silver |
+| Enterprise Campus Aggregation (`ECSAGGREGATION`) | 32 SFP28 | Silver |
+| Enterprise Fortress Gateway (`EFG`) | Gateway ports | Silver |
+| Dream Machine Pro Max (`UDMPROMAX`) | 8 + WAN/SFP+ | Silver |
+| Dream Machine Beast (`UDMBEAST`) | 8 + WAN/SFP+ | Silver |
 | Dream Router 7 (`UDR7`) | 3 + WAN (RJ45) + SFP+ WAN | White |
 | Cloud Gateway Ultra (`UCGULTRA`, `UDRULT`) | 4 + WAN | White |
 | Cloud Gateway Max (`UCGMAX`) | 4 + WAN | White |
 | Cloud Gateway Fiber (`UCGFIBER`) | 4 + WAN + 2 SFP+ | White |
+| Cloud Gateway Industrial (`UCGINDUSTRIAL`) | 4 + WAN + SFP+ | White |
 | Dream Machine (`UDM`) | 4 + WAN | White |
 | Dream Router (`UDR`) | 4 + WAN | White |
 | UDM Pro (`UDMPRO`) | 8 + WAN/SFP+ | Silver |
 | UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
+| UniFi Express / Express 7 (`UX`, `UX7`) | LAN + WAN | White |
+| Dream Router 5G Max (`UDR5GMAX`) | 4 + WAN | White |
+| Dream Wall (`UDW`) | Integrated WiFi + 12 PoE LAN + 2.5 GbE WAN + 2 SFP+ | White |
+| UXG Max (`UXGMAX`) | 4 + WAN | White |
+| UniFi Travel Router (`UTR`) | LAN + WAN | White |
 | UXG-Pro (`UXGPRO`) | 2 + WAN + SFP+ | Silver |
 | UXG-Lite (`UXGL`) | 1 + WAN | White |
 | UniFi Security Gateway (`UGW3`) | 2 + WAN | White |
 | USG Pro 4 (`UGW4`) | 2 + WAN + 2 SFP | Silver |
-| UAP AC Pro (`UAPACPRO`) | AP panel | White |
-| UAP AC Mesh (`UAPACM`) | AP panel | White |
-| U6+ (`U6PLUS`) | AP panel | White |
-| U6 Mesh (`U6MESH`) | AP panel | White |
-| U6 Extender (`U6EXTENDER`) | AP panel | White |
-| U7 In-Wall (`U7IW`) | AP panel | White |
-| U7 Mesh (`U7MSH`) | AP panel | White |
-| U7 LR (`U7LR`) | AP panel | White |
-| U7 Lite (`U7LITE`) | AP panel | White |
-| U7 Pro XG (`U7PROXG`) | AP panel | White |
-| U7 Pro XGS (`U7PROXGS`) | AP panel | White |
-| U6 Mesh Pro (`U6MESHPRO`) | AP panel | White |
-| Weitere AP-Familien (`UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`) | AP panel | White |
+| USG XG 8 (`UGWXG`) | 8 + WAN | Silver |
 
-Unknown models are auto-detected by port count and fall back to a generic dark theme where possible.
+### Access Point Designs
+
+| Design | Explicitly recognized models | Display behavior |
+|---|---|---|
+| Round AP | UAP, UAP-LR, UAP-Outdoor5, UAP-Pro, UAP AC/Lite/LR/Pro, UAP AC Mesh/Mesh Pro, nanoHD, HD, XG, SHD, FlexHD, BeaconHD, U6 Lite/LR/Pro/Plus/Mesh/Enterprise/Mesh Pro, U7 Pro/Pro Max/LR/Mesh/Lite/Outdoor/Pro XG/Pro XGS/Pro Outdoor/Enterprise, E7/Campus/Audience, UK Ultra, UBB/UBB XG, U-AirWire, Device Bridge family, UWB-XG | Standard scalable circular HTML AP face |
+| Wall / In-Wall | UniFi AP In-Wall (`UAPIW`), UAP AC In-Wall (`UAPACIW`), UAP AC In-Wall Pro (`UAPACIWPRO`), UAP In-Wall HD (`UAPIWHD`), U6 In-Wall (`U6IW`), U6 Enterprise In-Wall (`U6ENTERPRISEIW`), U6 Extender (`U6EXTENDER`), U7 Pro Wall (`U7PROWALL`), U7 In-Wall (`U7IW`), U7 Pro XG Wall (`U7PROXGWALL`) | Scalable rectangular HTML device face; integrated port section is available only on models that expose switch ports |
+| 5G Backup | UniFi 5G Backup (`UMBBE634`) | Dedicated scalable HTML device and display with signal bars, uptime, CPU, and RAM |
+
+Unknown models from the `UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`, `UDB*`, `UBB*`, `UMBB*`, `UK*`, and related AP families fall back to the round AP design.
+
+Unknown switches are auto-detected by port count and use the silver/dark hardware design (`#c4c5c8`). Explicitly recognized desktop switches use the white design. These are the two UniFi device color variants and are independent of the selected Home Assistant theme.
 
 ### Notes
 
-- Access points are supported through a generic AP panel (status/uptime/clients/reboot)
+- Access points use model-specific round, Wall/In-Wall, or 5G Backup HTML designs while sharing status, uptime, clients, and reboot details
 - Some models are still **layout-inferred** if no dedicated registry entry exists
-- WAN / SFP handling for **UDM Pro** and **UDM SE** was improved in v0.2.x
-- **US 16 PoE 150W** and **USW Pro 24** were added with dedicated layouts in v0.2.x
+- White and silver/dark switch designs describe the physical chassis; unknown switches use the silver/dark fallback design
 
 > [!NOTE]
 > For best results, make sure the relevant UniFi switch and sensor entities are enabled in Home Assistant.  
@@ -244,9 +268,11 @@ show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
 show_panel: true              # optional (default: true)
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
-ports_per_row: 8              # optional (switches only)
+ports_per_row: 8              # optional (switches and compatible In-Wall AP port sections only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
-port_size: 36                 # optional (switch/gateway front panel scale in px)
+port_size: 36                 # optional (switch/gateway and compatible In-Wall AP port scale in px)
+integrated_ports: true         # optional (compatible In-Wall APs only; false keeps AP-only view)
+device_layout: combined        # optional integrated device view: combined, network, or ap
 ap_scale: 100                 # optional (AP size in %, 25-140)
 ap_compact_view: false        # optional (AP only; side-by-side compact AP layout)
 ap_compact_show_header_telemetry: false # optional (AP only; show header telemetry also in compact AP view)
@@ -288,10 +314,12 @@ wan2_port: none               # optional (gateway only)
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
-| `ports_per_row` | number | auto | Optional row width override for switch layouts. |
+| `ports_per_row` | number | auto | Optional row width override for switch layouts and compatible In-Wall AP integrated-port sections. Without it, a model with declared rows keeps them, and only single-row fallbacks use 8 per row. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
-| `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering (special and numbered ports are unified). |
+| `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering and compatible In-Wall AP port sections (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
+| `integrated_ports` | boolean | `true` | Compatible In-Wall APs only: show the discovered integrated switch ports below the normal AP panel. Set `false` for AP-only rendering. |
+| `device_layout` | string | `combined` | Dream Wall and compatible In-Wall devices: `combined`, `network`, or `ap`. The legacy `integrated_ports: false` remains an AP-only alias. |
 | `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
 | `ap_compact_show_header_telemetry` | boolean | `false` | AP only: keeps CPU/memory/temperature header telemetry visible in compact AP view. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |
@@ -300,6 +328,10 @@ wan2_port: none               # optional (gateway only)
 | `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
 | `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
+
+In Home Assistant Sections views, Switch/Gateway layouts request the full available section width
+with automatic height. AP-only layouts keep the standard 12-column width. Explicit dashboard
+`grid_options` can still override these defaults.
 
 Header telemetry is read from Home Assistant's UniFi Network sensor entities. The card prefers the stable Home Assistant Core UniFi identifiers behind those entities, so renamed or localized CPU, memory, and temperature sensors can still be matched when Home Assistant exposes them.
 

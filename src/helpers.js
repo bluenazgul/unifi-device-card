@@ -1238,6 +1238,9 @@ function classifyPortEntity(entity, isSpecial = false) {
   if (eid.startsWith("button.") && portInfo?.feature === "power_cycle") {
     return "power_cycle_entity";
   }
+  if (eid.startsWith("switch.") && portInfo?.feature === "poe_control") {
+    return "poe_switch_entity";
+  }
   if (eid.startsWith("switch.") && portInfo?.feature === "port_control") {
     return "port_switch_entity";
   }
@@ -1600,7 +1603,11 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   }
 
   for (const port of discoveredPorts) {
-    if (!layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port)) {
+    if (
+      !layout?.preserveDeclaredRows &&
+      !layoutPorts.includes(port.port) &&
+      !specialPortNumbers.has(port.port)
+    ) {
       merged.push(port);
     }
   }
@@ -1614,8 +1621,9 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
   const layoutSpecials = layout?.specialSlots || [];
 
   const merged = layoutSpecials.map((slot) => {
-    if (slot.port != null) {
-      const portData = byPort.get(slot.port);
+    const discoveryPort = slot.apiPort ?? slot.port;
+    if (discoveryPort != null) {
+      const portData = byPort.get(discoveryPort);
       if (portData) {
         return {
           ...portData,
@@ -1623,7 +1631,9 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
           physical_key: slot.key,
           label: slot.label,
           media: slot.media ?? portData.media,
+          row: slot.row,
           kind: "special",
+          port: slot.port ?? portData.port,
         };
       }
     }
@@ -1636,6 +1646,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
         physical_key: slot.key,
         label: slot.label,
         media: slot.media ?? keyData.media,
+        row: slot.row,
         kind: "special",
         port: slot.port ?? keyData.port ?? null,
       };
@@ -1647,6 +1658,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
       port: slot.port ?? null,
       label: slot.label,
       media: slot.media,
+      row: slot.row,
       kind: "special",
       link_entity: null,
       speed_entity: null,
@@ -2044,9 +2056,37 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
 
   if (hasConfiguredPortsPerRow) {
     layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
-  } else if (type === "switch") {
+  } else if (type === "switch" && !(layout?.rows?.length > 1)) {
+    // A model that declares more than one row has described its own front panel;
+    // keep that grouping. Single-row layouts are the generic fallback and still
+    // get the 8-per-row default. Rows too wide for the card are repacked later
+    // by _buildEffectiveRows().
     layout = applyPortsPerRowOverride(layout, 8);
   }
+
+  if (layout?.supportsIntegratedPorts) {
+    const discoveredPortNumbers = discoveredPortsRaw
+      .map((port) => port?.port)
+      .filter((port) => Number.isInteger(port) && port > 0)
+      .sort((a, b) => a - b);
+
+    if (discoveredPortNumbers.length > 0) {
+      const portsPerRow = hasConfiguredPortsPerRow
+        ? configuredPortsPerRow
+        : discoveredPortNumbers.length;
+      const rows = [];
+      for (let i = 0; i < discoveredPortNumbers.length; i += portsPerRow) {
+        rows.push(discoveredPortNumbers.slice(i, i + portsPerRow));
+      }
+
+      layout = {
+        ...layout,
+        rows,
+        portCount: Math.max(...discoveredPortNumbers),
+      };
+    }
+  }
+
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);

@@ -16,7 +16,7 @@ function normalizeModelKey(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-function apModel(displayModel) {
+function apModel(displayModel, options = {}) {
   return {
     kind: "access_point",
     frontStyle: "ap-disc",
@@ -25,10 +25,11 @@ function apModel(displayModel) {
     displayModel,
     theme: "white",
     specialSlots: [],
+    ...options,
   };
 }
 
-export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
+export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 
@@ -74,7 +75,13 @@ function applyRj45LayoutHints(layout) {
 
   return {
     ...layout,
-    rj45_odd_even: isSwitchOrGateway && !isExcluded && numberedRj45Count > 8,
+    // A model may state the odd/even panel explicitly. Devices with eight or
+    // fewer ports fall below the automatic threshold but can still be built
+    // that way, the UDM Pro being the obvious one.
+    rj45_odd_even:
+      typeof layout?.rj45_odd_even === "boolean"
+        ? layout.rj45_odd_even
+        : isSwitchOrGateway && !isExcluded && numberedRj45Count > 8,
   };
 }
 
@@ -130,7 +137,10 @@ export const MODEL_REGISTRY = {
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
   UAPACPRO: apModel("UAP AC Pro"),
-  UAPACIW: apModel("UAP AC In-Wall"),
+  UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACM: apModel("UAP AC Mesh"),
   UAPACMPRO: apModel("UAP AC Mesh Pro"),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -144,21 +154,21 @@ export const MODEL_REGISTRY = {
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
   U6MESH: apModel("U6 Mesh"),
-  U6IW: apModel("U6 In-Wall"),
+  U6IW: apModel("U6 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U6ENTERPRISE: apModel("U6 Enterprise"),
-  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall"),
-  U6EXTENDER: apModel("U6 Extender"),
+  U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  U6EXTENDER: apModel("U6 Extender", { frontStyle: "ap-in-wall" }),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
-  U7PROWALL: apModel("U7 Pro Wall"),
-  U7IW: apModel("U7 In-Wall"),
+  U7PROWALL: apModel("U7 Pro Wall", { frontStyle: "ap-in-wall" }),
+  U7IW: apModel("U7 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor"),
   U7PROXG: apModel("U7 Pro XG"),
   U7PROXGS: apModel("U7 Pro XGS"),
-  U7PROXGWALL: apModel("U7 Pro XG Wall"),
+  U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor"),
   U6MESHPRO: apModel("U6 Mesh Pro"),
   E7: apModel("E7"),
@@ -168,6 +178,7 @@ export const MODEL_REGISTRY = {
   UKULTRA: apModel("UK Ultra"),
   UBB: apModel("UBB"),
   UBBXG: apModel("UBB XG"),
+  UMBBE634: apModel("UniFi 5G Backup", { frontStyle: "ap-5g-backup" }),
   UAIRWIRE: apModel("U-AirWire"),
   UDB: apModel("Device Bridge"),
   UDBIOT: apModel("Device Bridge IoT"),
@@ -219,6 +230,18 @@ export const MODEL_REGISTRY = {
     specialSlots: [
       { key: "sfp_1", label: "SFP 1", port: 17 },
       { key: "sfp_2", label: "SFP 2", port: 18 },
+    ],
+  },
+
+  // US 24 250W  — 24× 1G RJ45 PoE (all), 2× 1G SFP
+  US24P250: {
+    kind: "switch", frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24)],
+    portCount: 26, displayModel: "US-24-250W", theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP 1", port: 25, row: 0 },
+      { key: "sfp_2", label: "SFP 2", port: 26, row: 1 },
     ],
   },
 
@@ -476,7 +499,7 @@ export const MODEL_REGISTRY = {
   // USW Pro Max 48 (PoE / non-PoE)  — 48× RJ45, 4× SFP+
   USPM48: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52, displayModel: "USW Pro Max 48", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 49 },
@@ -487,7 +510,7 @@ export const MODEL_REGISTRY = {
   },
   USPM48P: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52, displayModel: "USW Pro Max 48 PoE", theme: "silver",
     poePortRange: [1, 48],
     specialSlots: [
@@ -544,6 +567,18 @@ export const MODEL_REGISTRY = {
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
       { key: "sfp_2", label: "SFP+ 2", port: 26 },
+    ],
+  },
+
+  // US 16 XG  — 12× SFP+, 4× 10G RJ45
+  USXG: {
+    kind: "switch", frontStyle: "six-grid", rows: [range(1, 12)],
+    portCount: 16, displayModel: "US-16-XG", theme: "silver",
+    specialSlots: [
+      { key: "rj45_13", label: "13", port: 13, media: "rj45", row: 0 },
+      { key: "rj45_14", label: "14", port: 14, media: "rj45", row: 0 },
+      { key: "rj45_15", label: "15", port: 15, media: "rj45", row: 1 },
+      { key: "rj45_16", label: "16", port: 16, media: "rj45", row: 1 },
     ],
   },
 
@@ -645,7 +680,7 @@ export const MODEL_REGISTRY = {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 7)],
     portCount: 8, displayModel: "USW Ultra 60W", theme: "white",
     poePortRange: [1, 7],
-    specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }],
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 8, media: "rj45", row: 0 }],
   },
   USWULTRA210W: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 7)],
@@ -870,10 +905,11 @@ export const MODEL_REGISTRY = {
   UDMPRO: {
     kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 8)],
     portCount: 11, displayModel: "UDM Pro", theme: "silver",
+    rj45_odd_even: true,
     specialSlots: [
-      { key: "wan",   label: "WAN",    port: 9  },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 },
+      { key: "sfp_1", label: "SFP+ 1", port: 10, row: 0 },
+      { key: "wan",   label: "WAN",    port: 9,  media: "rj45", row: 1 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11, row: 1 },
     ],
   },
   UDMPROSE: {
@@ -901,13 +937,18 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
   UDW: {
-    kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 16), [18]],
-    portCount: 20, displayModel: "Dream Wall", theme: "white",
+    kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 12)],
+    portCount: 15, displayModel: "Dream Wall", theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-in-wall",
     poePortRange: [1, 12],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ LAN", port: 17, media: "sfp_plus" },
-      { key: "wan", label: "2.5G WAN", port: 19, media: "rj45" },
-      { key: "sfp_2", label: "SFP+ WAN", port: 20, media: "sfp_plus" },
+      { key: "sfp_1", label: "SFP+ LAN", port: 13, apiPort: 17, media: "sfp_plus" },
+      { key: "wan", label: "2.5G WAN", port: 14, apiPort: 19, media: "rj45" },
+      { key: "sfp_2", label: "SFP+ WAN", port: 15, apiPort: 20, media: "sfp_plus" },
     ],
   },
   UXGMAX: {
@@ -1047,8 +1088,16 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACM"))             return "UAPACM";
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
+    if (candidate.includes("U7PG2"))              return "UAPACPRO";
+    if (candidate === "U7LT")                     return "UAPACLITE";
+    if (candidate === "U7HD")                     return "UAPHD";
+    if (candidate.includes("UMBBE634"))           return "UMBBE634";
+    if (candidate.includes("UNIFI5GBACKUP"))      return "UMBBE634";
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
+    if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW"))            return "UAPACIW";
+    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC"))              return "UAPAC";
     if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";
     if (candidate.includes("UAPFLEXHD"))          return "UAPFLEXHD";
@@ -1056,7 +1105,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPSHD"))             return "UAPSHD";
     if (candidate.includes("UAPXG"))              return "UAPXG";
     if (candidate.includes("UAPHD"))              return "UAPHD";
-    if (candidate.includes("U6ENTERPRISEIW"))     return "U6ENTERPRISEIW";
+    if (candidate.includes("U6ENTERPRISEIW") || candidate.includes("U6ENTERPRISEINWALL")) return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTIW"))            return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTERPRISE"))       return "U6ENTERPRISE";
     if (candidate.includes("U6ENT"))              return "U6ENTERPRISE";
@@ -1065,7 +1114,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("U6PRO"))              return "U6PRO";
     if (candidate.includes("U6LR"))               return "U6LR";
     if (candidate.includes("U6LITE"))             return "U6LITE";
-    if (candidate.includes("U6IW"))               return "U6IW";
+    if (candidate.includes("U6IW") || candidate.includes("U6INWALL")) return "U6IW";
     if (candidate.includes("U6EXTENDER"))         return "U6EXTENDER";
     if (candidate.includes("U6EXT"))              return "U6EXTENDER";
     if (candidate.includes("UAP6MP"))             return "U6PRO";
@@ -1342,7 +1391,7 @@ export function inferPortCountFromModel(device) {
   if (text.includes("UXGMAX") || text.includes("UXGB"))                                    return 5;
   if (text === "UXG")                                                                  return 2;
   if (text.includes("UXGFIBER"))                                                       return 7;
-  if (text === "UDW" || text.includes("DREAMWALL"))                                   return 20;
+  if (text === "UDW" || text.includes("DREAMWALL"))                                   return 15;
   if (text.includes("UXGPRO"))                                                        return 4;
   if (text.includes("UXGL"))                                                          return 2;
   if (text.includes("UGWXG") || text.includes("USGXG8"))                             return 9;

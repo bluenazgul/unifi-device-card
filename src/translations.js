@@ -87,6 +87,14 @@ const TRANSLATIONS = {
     editor_port_size_hint:  "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label:  "AP size",
     editor_ap_scale_hint:   "Scales the AP device size in AP card mode.",
+    editor_device_layout_label: "Device layout",
+    editor_device_layout_combined: "Switch/Gateway and AP layout",
+    editor_device_layout_network: "Switch/Gateway only",
+    editor_device_layout_ap: "AP only",
+    editor_device_layout_hint: "For integrated In-Wall devices. The combined layout is the default.",
+    editor_integrated_ports_toggle_label: "Integrated ports",
+    editor_integrated_ports_toggle_text:  "Show integrated switch ports",
+    editor_integrated_ports_toggle_hint:  "For compatible In-Wall access points. Disable for the classic AP-only view.",
     editor_ap_compact_toggle_label: "AP layout",
     editor_ap_compact_toggle_text:  "Use compact AP layout",
     editor_ap_compact_toggle_hint:  "Only for access points. Places AP image and status details side by side.",
@@ -277,6 +285,14 @@ const TRANSLATIONS = {
     editor_port_size_hint:  "Skaliert die Frontpanel-Portgröße für Switches und Gateways.",
     editor_ap_scale_label:  "AP-Größe",
     editor_ap_scale_hint:   "Skaliert die AP-Gerätegröße im AP-Kartenmodus.",
+    editor_device_layout_label: "Gerätelayout",
+    editor_device_layout_combined: "Switch/Gateway- und AP-Layout",
+    editor_device_layout_network: "Nur Switch/Gateway",
+    editor_device_layout_ap: "Nur AP",
+    editor_device_layout_hint: "Für integrierte In-Wall-Geräte. Das kombinierte Layout ist Standard.",
+    editor_integrated_ports_toggle_label: "Integrierte Ports",
+    editor_integrated_ports_toggle_text:  "Integrierte Switch-Ports anzeigen",
+    editor_integrated_ports_toggle_hint:  "Für kompatible In-Wall Access Points. Deaktivieren für die klassische reine AP-Ansicht.",
     editor_ap_compact_toggle_label: "AP-Layout",
     editor_ap_compact_toggle_text:  "Kompakte AP-Ansicht verwenden",
     editor_ap_compact_toggle_hint:  "Nur für Access Points. Zeigt AP-Bild und Statusdetails nebeneinander an.",
@@ -467,6 +483,14 @@ const TRANSLATIONS = {
     editor_port_size_hint:  "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
     editor_ap_scale_label:  "AP-grootte",
     editor_ap_scale_hint:   "Schaalt de AP-apparaatgrootte in AP-kaartmodus.",
+    editor_device_layout_label: "Apparaatindeling",
+    editor_device_layout_combined: "Switch/Gateway- en AP-indeling",
+    editor_device_layout_network: "Alleen Switch/Gateway",
+    editor_device_layout_ap: "Alleen AP",
+    editor_device_layout_hint: "Voor geïntegreerde In-Wall-apparaten. De gecombineerde indeling is standaard.",
+    editor_integrated_ports_toggle_label: "Geïntegreerde poorten",
+    editor_integrated_ports_toggle_text:  "Geïntegreerde switchpoorten weergeven",
+    editor_integrated_ports_toggle_hint:  "Voor compatibele In-Wall-accesspoints. Schakel dit uit voor de klassieke AP-weergave.",
     editor_ap_compact_toggle_label: "AP-indeling",
     editor_ap_compact_toggle_text:  "Compacte AP-weergave gebruiken",
     editor_ap_compact_toggle_hint:  "Alleen voor access points. Toont AP-afbeelding en statusdetails naast elkaar.",
@@ -653,6 +677,14 @@ const TRANSLATIONS = {
     editor_port_size_hint:  "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
     editor_ap_scale_label:  "Taille AP",
     editor_ap_scale_hint:   "Ajuste la taille de l’appareil AP en mode carte AP.",
+    editor_device_layout_label: "Disposition de l’appareil",
+    editor_device_layout_combined: "Disposition Switch/Gateway et AP",
+    editor_device_layout_network: "Switch/Gateway uniquement",
+    editor_device_layout_ap: "AP uniquement",
+    editor_device_layout_hint: "Pour les appareils In-Wall intégrés. La disposition combinée est utilisée par défaut.",
+    editor_integrated_ports_toggle_label: "Ports intégrés",
+    editor_integrated_ports_toggle_text:  "Afficher les ports du commutateur intégré",
+    editor_integrated_ports_toggle_hint:  "Pour les points d’accès In-Wall compatibles. Désactivez cette option pour l’affichage AP classique.",
     editor_ap_compact_toggle_label: "Disposition AP",
     editor_ap_compact_toggle_text:  "Utiliser la vue AP compacte",
     editor_ap_compact_toggle_hint:  "Uniquement pour les points d’accès. Affiche l’image AP et les détails d’état côte à côte.",
@@ -839,6 +871,14 @@ const TRANSLATIONS = {
     editor_port_size_hint:  "Ajusta el tamaño de puertos del panel frontal para switches y gateways.",
     editor_ap_scale_label:  "Tamaño AP",
     editor_ap_scale_hint:   "Escala el tamaño del dispositivo AP en modo tarjeta AP.",
+    editor_device_layout_label: "Diseño del dispositivo",
+    editor_device_layout_combined: "Diseño Switch/Gateway y AP",
+    editor_device_layout_network: "Solo Switch/Gateway",
+    editor_device_layout_ap: "Solo AP",
+    editor_device_layout_hint: "Para dispositivos In-Wall integrados. El diseño combinado es el predeterminado.",
+    editor_integrated_ports_toggle_label: "Puertos integrados",
+    editor_integrated_ports_toggle_text:  "Mostrar los puertos del switch integrado",
+    editor_integrated_ports_toggle_hint:  "Para puntos de acceso In-Wall compatibles. Desactívalo para usar la vista clásica solo de AP.",
     editor_ap_compact_toggle_label: "Diseño AP",
     editor_ap_compact_toggle_text:  "Usar vista AP compacta",
     editor_ap_compact_toggle_hint:  "Solo para puntos de acceso. Muestra la imagen del AP y los detalles de estado lado a lado.",
@@ -1025,6 +1065,14 @@ const TRANSLATIONS = {
     editor_port_size_hint:  "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
     editor_ap_scale_label:  "Dimensione AP",
     editor_ap_scale_hint:   "Scala la dimensione del dispositivo AP in modalità card AP.",
+    editor_device_layout_label: "Layout dispositivo",
+    editor_device_layout_combined: "Layout Switch/Gateway e AP",
+    editor_device_layout_network: "Solo Switch/Gateway",
+    editor_device_layout_ap: "Solo AP",
+    editor_device_layout_hint: "Per dispositivi In-Wall integrati. Il layout combinato è quello predefinito.",
+    editor_integrated_ports_toggle_label: "Porte integrate",
+    editor_integrated_ports_toggle_text:  "Mostra le porte dello switch integrato",
+    editor_integrated_ports_toggle_hint:  "Per access point In-Wall compatibili. Disattiva questa opzione per la visualizzazione AP classica.",
     editor_ap_compact_toggle_label: "Layout AP",
     editor_ap_compact_toggle_text:  "Usa vista AP compatta",
     editor_ap_compact_toggle_hint:  "Solo per access point. Mostra immagine AP e dettagli di stato affiancati.",
@@ -1250,7 +1298,7 @@ TRANSLATIONS.cs = {
  */
 export function getTranslations(lang) {
   if (!lang) return TRANSLATIONS.en;
-  const short = String(lang).split("-")[0].toLowerCase();
+  const short = String(lang).trim().split(/[-_]/)[0].toLowerCase();
   return TRANSLATIONS[short] || TRANSLATIONS.en;
 }
 
@@ -1259,7 +1307,7 @@ export function getTranslations(lang) {
  * Usage: t(hass, "loading")
  */
 export function t(hass, key) {
-  const lang = hass?.language || "en";
+  const lang = hass?.language || hass?.locale?.language || "en";
   const strings = getTranslations(lang);
   return strings[key] ?? TRANSLATIONS.en[key] ?? key;
 }

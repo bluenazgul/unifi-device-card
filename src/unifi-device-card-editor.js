@@ -17,7 +17,7 @@ function slotPortType(slot) {
 
 function slotDropdownLabel(slot, tFn) {
   const type = slotPortType(slot);
-  const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
+  const portNum = slot.port != null ? ` (${tFn("port_label")} ${slot.port})` : "";
 
   switch (type) {
     case "wan":
@@ -53,7 +53,7 @@ function buildGatewayRoleOptions(layout, tFn, { includeNone = false } = {}) {
   for (const portNum of allPortNums) {
     options.push({
       value: `port_${portNum}`,
-      label: `Port ${portNum} — ${tFn("editor_wan_port_lan")}`,
+      label: `${tFn("port_label")} ${portNum} — ${tFn("editor_wan_port_lan")}`,
       type: "lan",
       port: portNum,
     });
@@ -497,6 +497,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     next.ap_scale = clampApScale(next.ap_scale);
     if (next.ap_scale === 100) delete next.ap_scale;
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
+    if (next.integrated_ports !== false) delete next.integrated_ports;
+    if (!["combined", "network", "ap"].includes(next.device_layout)) delete next.device_layout;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
 
     this._dispatchConfig(next);
@@ -530,6 +532,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       special_ports: undefined,
       edit_special_ports: undefined,
       ports_per_row: nextDevice?.type === "gateway" ? undefined : this._config?.ports_per_row,
+      device_layout: undefined,
+      integrated_ports: undefined,
     };
 
     if (!deviceId) {
@@ -1214,6 +1218,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
+    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const supportsLayoutSelection = this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout)
+      ? this._config.device_layout
+      : (this._config?.integrated_ports === false ? "ap" : "combined");
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
@@ -1319,21 +1329,32 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchDevice ? `
+        ${(isSwitchDevice || supportsIntegratedPorts) ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
           <input id="ports_per_row" type="text" inputmode="numeric" value="${escapeAttr(portsPerRow)}">
           <div class="hint">${escapeHtml(this._t("editor_ports_per_row_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchOrGateway ? `
+        ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
           <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
           <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
         </div>` : ""}
 
-        ${isApDevice ? `
+        ${supportsLayoutSelection ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_device_layout_label"))}</label>
+          <select id="device_layout">
+            <option value="combined" ${deviceLayout === "combined" ? "selected" : ""}>${escapeHtml(this._t("editor_device_layout_combined"))}</option>
+            <option value="network" ${deviceLayout === "network" ? "selected" : ""}>${escapeHtml(this._t("editor_device_layout_network"))}</option>
+            <option value="ap" ${deviceLayout === "ap" ? "selected" : ""}>${escapeHtml(this._t("editor_device_layout_ap"))}</option>
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_device_layout_hint"))}</div>
+        </div>` : ""}
+
+        ${supportsApLayout ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ap_compact_toggle_label"))}</label>
           <label class="checkbox-row">
@@ -1376,7 +1397,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
             ${selectableSpecialPorts
-              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`)
+              .map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`)
               .join("")}
           </div>
           <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
@@ -1489,6 +1510,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onPortSizeInput(ev));
     this.shadowRoot.getElementById("ap_scale")
       ?.addEventListener("change", (ev) => this._onApScaleInput(ev));
+    this.shadowRoot.getElementById("device_layout")
+      ?.addEventListener("change", (ev) => this._emitConfig({
+        device_layout: ev.target.value === "combined" ? undefined : ev.target.value,
+        integrated_ports: undefined,
+      }));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")
