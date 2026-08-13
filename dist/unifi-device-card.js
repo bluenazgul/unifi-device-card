@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6729b54 */
+/* UniFi Device Card 0.0.0-dev.4e09a64 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4003,6 +4003,9 @@ var TRANSLATIONS = {
     editor_device_layout_network: "Alleen Switch/Gateway",
     editor_device_layout_ap: "Alleen AP",
     editor_device_layout_hint: "Voor ge\xEFntegreerde In-Wall-apparaten. De gecombineerde indeling is standaard.",
+    editor_integrated_ports_toggle_label: "Ge\xEFntegreerde poorten",
+    editor_integrated_ports_toggle_text: "Ge\xEFntegreerde switchpoorten weergeven",
+    editor_integrated_ports_toggle_hint: "Voor compatibele In-Wall-accesspoints. Schakel dit uit voor de klassieke AP-weergave.",
     editor_ap_compact_toggle_label: "AP-indeling",
     editor_ap_compact_toggle_text: "Compacte AP-weergave gebruiken",
     editor_ap_compact_toggle_hint: "Alleen voor access points. Toont AP-afbeelding en statusdetails naast elkaar.",
@@ -4180,6 +4183,9 @@ var TRANSLATIONS = {
     editor_device_layout_network: "Switch/Gateway uniquement",
     editor_device_layout_ap: "AP uniquement",
     editor_device_layout_hint: "Pour les appareils In-Wall int\xE9gr\xE9s. La disposition combin\xE9e est utilis\xE9e par d\xE9faut.",
+    editor_integrated_ports_toggle_label: "Ports int\xE9gr\xE9s",
+    editor_integrated_ports_toggle_text: "Afficher les ports du commutateur int\xE9gr\xE9",
+    editor_integrated_ports_toggle_hint: "Pour les points d\u2019acc\xE8s In-Wall compatibles. D\xE9sactivez cette option pour l\u2019affichage AP classique.",
     editor_ap_compact_toggle_label: "Disposition AP",
     editor_ap_compact_toggle_text: "Utiliser la vue AP compacte",
     editor_ap_compact_toggle_hint: "Uniquement pour les points d\u2019acc\xE8s. Affiche l\u2019image AP et les d\xE9tails d\u2019\xE9tat c\xF4te \xE0 c\xF4te.",
@@ -4357,6 +4363,9 @@ var TRANSLATIONS = {
     editor_device_layout_network: "Solo Switch/Gateway",
     editor_device_layout_ap: "Solo AP",
     editor_device_layout_hint: "Para dispositivos In-Wall integrados. El dise\xF1o combinado es el predeterminado.",
+    editor_integrated_ports_toggle_label: "Puertos integrados",
+    editor_integrated_ports_toggle_text: "Mostrar los puertos del switch integrado",
+    editor_integrated_ports_toggle_hint: "Para puntos de acceso In-Wall compatibles. Desact\xEDvalo para usar la vista cl\xE1sica solo de AP.",
     editor_ap_compact_toggle_label: "Dise\xF1o AP",
     editor_ap_compact_toggle_text: "Usar vista AP compacta",
     editor_ap_compact_toggle_hint: "Solo para puntos de acceso. Muestra la imagen del AP y los detalles de estado lado a lado.",
@@ -4534,6 +4543,9 @@ var TRANSLATIONS = {
     editor_device_layout_network: "Solo Switch/Gateway",
     editor_device_layout_ap: "Solo AP",
     editor_device_layout_hint: "Per dispositivi In-Wall integrati. Il layout combinato \xE8 quello predefinito.",
+    editor_integrated_ports_toggle_label: "Porte integrate",
+    editor_integrated_ports_toggle_text: "Mostra le porte dello switch integrato",
+    editor_integrated_ports_toggle_hint: "Per access point In-Wall compatibili. Disattiva questa opzione per la visualizzazione AP classica.",
     editor_ap_compact_toggle_label: "Layout AP",
     editor_ap_compact_toggle_text: "Usa vista AP compatta",
     editor_ap_compact_toggle_hint: "Solo per access point. Mostra immagine AP e dettagli di stato affiancati.",
@@ -4739,11 +4751,11 @@ TRANSLATIONS.cs = {
 };
 function getTranslations(lang) {
   if (!lang) return TRANSLATIONS.en;
-  const short = String(lang).split("-")[0].toLowerCase();
+  const short = String(lang).trim().split(/[-_]/)[0].toLowerCase();
   return TRANSLATIONS[short] || TRANSLATIONS.en;
 }
 function t(hass, key) {
-  const lang = hass?.language || "en";
+  const lang = hass?.language || hass?.locale?.language || "en";
   const strings = getTranslations(lang);
   return strings[key] ?? TRANSLATIONS.en[key] ?? key;
 }
@@ -4758,7 +4770,7 @@ function slotPortType(slot) {
 }
 function slotDropdownLabel(slot, tFn) {
   const type = slotPortType(slot);
-  const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
+  const portNum = slot.port != null ? ` (${tFn("port_label")} ${slot.port})` : "";
   switch (type) {
     case "wan":
       return `${slot.label}${portNum}`;
@@ -4788,7 +4800,7 @@ function buildGatewayRoleOptions(layout, tFn, { includeNone = false } = {}) {
   for (const portNum of allPortNums) {
     options.push({
       value: `port_${portNum}`,
-      label: `Port ${portNum} \u2014 ${tFn("editor_wan_port_lan")}`,
+      label: `${tFn("port_label")} ${portNum} \u2014 ${tFn("editor_wan_port_lan")}`,
       type: "lan",
       port: portNum
     });
@@ -5925,7 +5937,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         <div class="field">
           <label>${escapeHtml(this._t("editor_custom_special_ports_label"))}</label>
           <div id="special_ports_list" class="port-toggle-list">
-            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">Port ${escapeHtml(port)}</button>`).join("")}
+            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedSpecialPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`).join("")}
           </div>
           <div class="hint">${escapeHtml(this._t("editor_custom_special_ports_hint"))}</div>
         </div>` : ""}
@@ -6066,7 +6078,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6729b54";
+var VERSION = "0.0.0-dev.4e09a64";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
