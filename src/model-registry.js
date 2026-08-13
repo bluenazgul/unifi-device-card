@@ -1072,6 +1072,8 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
     if (candidate.includes("U7PG2"))              return "UAPACPRO";
+    if (candidate === "U7LT")                     return "UAPACLITE";
+    if (candidate === "U7HD")                     return "UAPHD";
     if (candidate.includes("UMBBE634"))           return "UMBBE634";
     if (candidate.includes("UNIFI5GBACKUP"))      return "UMBBE634";
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
