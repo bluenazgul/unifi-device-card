@@ -229,8 +229,8 @@ export const MODEL_REGISTRY = {
 
   // US 24 250W  — 24× 1G RJ45 PoE (all), 2× 1G SFP
   US24P250: {
-    kind: "switch", frontStyle: "eight-grid",
-    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    kind: "switch", frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24)],
     portCount: 26, displayModel: "US-24-250W", theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
