@@ -1,10 +1,9 @@
 # Changelog
 
-- Fix compact AP panels being pushed down in stretched cards while preserving their configured size, and keep the AP portion of combined In-Wall cards compact on narrow cards.
-
 ## [v0.8.0]
 
 ### 🐛 Bug Fixes
+- Fix compact AP panels being pushed down in stretched cards while preserving their configured size, and keep the AP portion of combined In-Wall cards compact on narrow cards.
 - Complete the integrated-port editor translations, localize port labels throughout the editor, and recognize Home Assistant locale codes that use underscores or the locale object.
 - Localize the uptime label on the UniFi 5G Backup display instead of always showing the English label.
 - Keep switch panels to the white and silver/dark UniFi hardware colors while preserving configured label colors.
