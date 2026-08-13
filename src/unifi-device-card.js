@@ -227,6 +227,10 @@ class UnifiDeviceCard extends HTMLElement {
     return this._cardSize || this._estimateCardSize();
   }
 
+  // Sections view sizing. Derived from the device type only, never from a
+  // measurement: getGridOptions() decides the width that a measurement would
+  // read back, so feeding one in would oscillate. Whatever width the card
+  // actually receives is handled by the row repacking in _buildEffectiveRows().
   getGridOptions() {
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const rendersNetworkPanel = layoutMode !== "ap" && (

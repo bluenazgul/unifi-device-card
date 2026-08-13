@@ -2054,6 +2054,10 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   if (hasConfiguredPortsPerRow) {
     layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
   } else if (type === "switch" && !(layout?.rows?.length > 1)) {
+    // A model that declares more than one row has described its own front panel;
+    // keep that grouping. Single-row layouts are the generic fallback and still
+    // get the 8-per-row default. Rows too wide for the card are repacked later
+    // by _buildEffectiveRows().
     layout = applyPortsPerRowOverride(layout, 8);
   }
 
