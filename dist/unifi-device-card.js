@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.93-dev */
+/* UniFi Device Card 0.0.0-dev.832df0a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -197,6 +197,20 @@ var MODEL_REGISTRY = {
     specialSlots: [
       { key: "sfp_1", label: "SFP 1", port: 17 },
       { key: "sfp_2", label: "SFP 2", port: 18 }
+    ]
+  },
+  // US 24 250W  — 24× 1G RJ45 PoE (all), 2× 1G SFP
+  US24P250: {
+    kind: "switch",
+    frontStyle: "eight-grid",
+    rows: [range(1, 8), range(9, 16), range(17, 24)],
+    portCount: 26,
+    displayModel: "US-24-250W",
+    theme: "silver",
+    poePortRange: [1, 24],
+    specialSlots: [
+      { key: "sfp_1", label: "SFP 1", port: 25 },
+      { key: "sfp_2", label: "SFP 2", port: 26 }
     ]
   },
   // ══════════════════════════════════════════════════════════════════════════
@@ -598,6 +612,16 @@ var MODEL_REGISTRY = {
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
       { key: "sfp_2", label: "SFP+ 2", port: 26 }
     ]
+  },
+  // US 16 XG  — 12× SFP+, 4× 10G RJ45
+  USXG: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(13, 16)],
+    portCount: 16,
+    displayModel: "US-16-XG",
+    theme: "silver",
+    specialSlots: range(1, 12).map((p) => ({ key: `sfp_${p}`, label: `SFP+ ${p}`, port: p }))
   },
   // USW Flex XG  — 4× 10G RJ45, 1× 1G RJ45 PoE-in/uplink
   USWFLEXXG: {
@@ -1214,6 +1238,8 @@ function resolveModelKey(device) {
     if (candidate.includes("UAPACLR")) return "UAPACLR";
     if (candidate.includes("UAPACLITE")) return "UAPACLITE";
     if (candidate.includes("U7PG2")) return "UAPACPRO";
+    if (candidate === "U7LT") return "UAPACLITE";
+    if (candidate === "U7HD") return "UAPHD";
     if (candidate.includes("UMBBE634")) return "UMBBE634";
     if (candidate.includes("UNIFI5GBACKUP")) return "UMBBE634";
     if (candidate.includes("UAPACPRO")) return "UAPACPRO";
@@ -1712,6 +1738,7 @@ function findDeviceByMac(devices, mac) {
 var PORT_FEATURE_PREFIXES = {
   port: "port_control",
   power_cycle: "power_cycle",
+  poe: "poe_control",
   poe_power: "poe_power",
   port_rx: "port_rx",
   port_tx: "port_tx",
@@ -2696,6 +2723,9 @@ function classifyPortEntity(entity, isSpecial = false) {
   const odc = lower(entity.original_device_class || "");
   if (eid.startsWith("button.") && portInfo?.feature === "power_cycle") {
     return "power_cycle_entity";
+  }
+  if (eid.startsWith("switch.") && portInfo?.feature === "poe_control") {
+    return "poe_switch_entity";
   }
   if (eid.startsWith("switch.") && portInfo?.feature === "port_control") {
     return "port_switch_entity";
@@ -5978,7 +6008,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.93-dev";
+var VERSION = "0.0.0-dev.832df0a";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var LOG_STYLES = {
