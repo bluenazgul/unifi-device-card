@@ -1603,7 +1603,11 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   }
 
   for (const port of discoveredPorts) {
-    if (!layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port)) {
+    if (
+      !layout?.preserveDeclaredRows &&
+      !layoutPorts.includes(port.port) &&
+      !specialPortNumbers.has(port.port)
+    ) {
       merged.push(port);
     }
   }

@@ -930,6 +930,7 @@ export const MODEL_REGISTRY = {
     supportsIntegratedWifi: true,
     supportsIntegratedPorts: true,
     supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
     apFrontStyle: "ap-in-wall",
     poePortRange: [1, 12],
     specialSlots: [
