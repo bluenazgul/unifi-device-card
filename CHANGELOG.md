@@ -4,6 +4,7 @@
 
 ### 🐛 Bug Fixes
 - Re-render the front panel when the number of ports that fit in a row changes. A card widened after its first paint kept the packing of the narrower one.
+- Fill the grid cell a sections view assigns, so cards in one row share the row height. The host element was inline and kept its content height, which left a row of cards with ragged bottom edges.
 
 ### ✨ Improvements
 - Size a switch or gateway card by the width its front panel actually needs, instead of always requesting the full section width. Set `grid_options` on the card to override.

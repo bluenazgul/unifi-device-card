@@ -69,7 +69,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 ## Features
 
 - **Realistic front-panel view** — ports laid out close to the physical device, including dual-row, six-grid, quad-row, compact gateway, and special WAN/SFP slot layouts, with SFP cages and WAN ports drawn beside their port row where the hardware places them
-- **Sections view sizing** — the card asks Home Assistant for the width its front panel needs, so a 24 port switch gets a wider card than an access point without any configuration; set `grid_options` on the card to override
+- **Sections view sizing** — the card asks Home Assistant for the width its front panel needs, so a 24 port switch gets a wider card than an access point without any configuration; set `grid_options` on the card to override. Cards in one row fill the row height, so their bottom edges line up.
 - **Device-accurate styling** — white panels for Lite / Flex / Ultra / Cloud Gateway style devices and silver/dark panels for rack devices and unknown switch fallbacks
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
 - **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation

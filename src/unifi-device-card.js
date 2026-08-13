@@ -1533,6 +1533,12 @@ class UnifiDeviceCard extends HTMLElement {
   _styles() {
     return `<style>
       :host {
+        /* Fill the grid cell a sections view assigns. The section stretches
+           its items to the row height, but the stretch ends at an inline
+           host. In a masonry view the wrapper has no fixed height, so 100%
+           resolves to auto and nothing changes. */
+        display: block;
+        height: 100%;
         --udc-bg: #141820;
         --udc-surface: #1e2433;
         --udc-surf2: #252d3d;
@@ -1555,6 +1561,8 @@ class UnifiDeviceCard extends HTMLElement {
         overflow: hidden;
         position: relative;
         isolation: isolate;
+        height: 100%;
+        box-sizing: border-box;
       }
 
       .header {
