@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+- Keep the PoE toggle on ports that carry a name in the UniFi controller. The `poe-<mac>_<port>` unique_id prefix was not recognized, so the toggle was dropped for every port whose entity_id no longer contains `port_<n>`. The PoE power reading and the power cycle button have their own prefixes and were not affected.
+
+### ✨ Improvements
+- Add the US-24-250W (`US24P250`). It resolved as a USW 24 PoE, whose PoE range covers ports 1 to 16, and therefore lost the PoE controls on ports 17 to 24. This model carries PoE on all 24 ports.
+- Add the US-16-XG (`USXG`) with its 12 SFP+ and 4 RJ45 ports. It had no entry and fell back to a generic 16 port RJ45 grid.
+- Map the `U7LT` and `U7HD` access point model codes to UAP AC Lite and UAP HD.
+
 ## [v0.7.92-dev]
 
 ### 🐛 Bug Fixes
