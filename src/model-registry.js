@@ -680,7 +680,7 @@ export const MODEL_REGISTRY = {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 7)],
     portCount: 8, displayModel: "USW Ultra 60W", theme: "white",
     poePortRange: [1, 7],
-    specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }],
+    specialSlots: [{ key: "uplink", label: "Uplink", port: 8, media: "rj45", row: 0 }],
   },
   USWULTRA210W: {
     kind: "switch", frontStyle: "single-row", rows: [range(1, 7)],
