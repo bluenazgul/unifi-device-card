@@ -1563,6 +1563,8 @@ class UnifiDeviceCard extends HTMLElement {
         isolation: isolate;
         height: 100%;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
       }
 
       .header {
@@ -1692,6 +1694,11 @@ class UnifiDeviceCard extends HTMLElement {
         position: relative;
         z-index: 0;
         overflow: hidden;
+        /* In a stretched card the slack collects here, between the header
+           and the panel. Panels, details and buttons of one sections view
+           row then line up even when a device shows fewer telemetry lines.
+           As a nested block in the AP layout this resolves to 0. */
+        margin-top: auto;
       }
 
       .frontpanel.theme-white { background: #d6d6d9; }
