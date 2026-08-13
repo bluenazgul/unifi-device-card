@@ -499,7 +499,7 @@ export const MODEL_REGISTRY = {
   // USW Pro Max 48 (PoE / non-PoE)  — 48× RJ45, 4× SFP+
   USPM48: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52, displayModel: "USW Pro Max 48", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 49 },
@@ -510,7 +510,7 @@ export const MODEL_REGISTRY = {
   },
   USPM48P: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [range(1, 16), range(17, 32), range(33, 48)],
     portCount: 52, displayModel: "USW Pro Max 48 PoE", theme: "silver",
     poePortRange: [1, 48],
     specialSlots: [

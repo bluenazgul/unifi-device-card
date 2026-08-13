@@ -10,6 +10,7 @@
 - Size a switch or gateway card by the width its front panel actually needs, instead of always requesting the full section width. Set `grid_options` on the card to override.
 - A special slot may name the port row it sits beside, so SFP cages and WAN ports render next to the RJ45 block rather than above it. Applied to the US-24-250W, the UDM Pro, the US-16-XG and the USW Ultra 60W. The UDM Pro and the USW Ultra 60W panels change through this. Models without a `row` on their slots render as before.
 - Draw the US-24-250W as two rows of twelve and the UDM Pro as two rows of four, matching their front panels.
+- Draw the USW Pro Max 48 and USW Pro Max 48 PoE as three rows of sixteen. Ubiquiti's own front panel data groups them by sixteen, not twelve.
 
 ## [0.7.94-dev]
 
