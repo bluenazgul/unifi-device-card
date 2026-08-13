@@ -184,6 +184,9 @@ class UnifiDeviceCard extends HTMLElement {
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    this._panelObserver?.disconnect();
+    this._panelObserver = null;
+    this._observedFrontPanel = null;
     this._clearUptimeRefreshTimer();
   }
 
@@ -287,6 +290,25 @@ class UnifiDeviceCard extends HTMLElement {
     this._cardSize = nextSize;
   }
 
+  // Watch the panel itself, not only the host. The host can keep its size
+  // while the panel gains room, and a sections view resizes the card after the
+  // first paint, so a host-only observer misses the change that decides how
+  // many ports fit in a row.
+  _observeFrontPanel() {
+    const panel = this.shadowRoot?.querySelector(".frontpanel");
+    if (!panel || panel === this._observedFrontPanel) return;
+
+    if (!this._panelObserver) {
+      this._panelObserver = new ResizeObserver(() => {
+        if (this._maxFittableColumns() === this._renderedFittableColumns) return;
+        this._render();
+      });
+    }
+    if (this._observedFrontPanel) this._panelObserver.unobserve(this._observedFrontPanel);
+    this._observedFrontPanel = panel;
+    this._panelObserver.observe(panel);
+  }
+
   _finalizeRender() {
     requestAnimationFrame(() => {
       this._updateCardSize();
@@ -299,6 +321,8 @@ class UnifiDeviceCard extends HTMLElement {
       // pass - and the width then matches on the next measurement while the
       // ports are still packed for the old one. Compare the column count the
       // DOM was actually built with as well.
+      this._observeFrontPanel();
+
       const widthChanged = Math.abs(panelWidth - this._lastMeasuredPanelWidth) >= 1;
       const columnsChanged = this._maxFittableColumns() !== this._renderedFittableColumns;
       if (!widthChanged && !columnsChanged) return;
