@@ -5,7 +5,6 @@ import {
   formatUptimeState,
   getDeviceContext,
   getPoeStatus,
-  getPortLinkText,
   getPortSpeedText,
   hasTraffic,
   isUptimeTimestampState,
@@ -1482,7 +1481,7 @@ class UnifiDeviceCard extends HTMLElement {
     const mergedCount = Math.max(clientInfo?.count || 0, indexedCount);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      this._translateState(getPortLinkText(this._hass, slot)),
+      this._translateState(linkUp ? "connected" : "no_link"),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
       mergedCount > 0 ? `${this._t("clients")}: ${mergedCount}` : null,
@@ -2590,7 +2589,7 @@ class UnifiDeviceCard extends HTMLElement {
     if (!selected) return `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
 
     const linkUp = this._isPortConnected(selected);
-    const linkText = getPortLinkText(this._hass, selected);
+    const linkText = linkUp ? "connected" : "no_link";
     const speedText = getPortSpeedText(this._hass, selected);
     const poeStatus = getPoeStatus(this._hass, selected);
     const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
@@ -2916,7 +2915,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (selected) {
       const linkUp = this._isPortConnected(selected);
-      const linkText = getPortLinkText(this._hass, selected);
+      const linkText = linkUp ? "connected" : "no_link";
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
       const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
