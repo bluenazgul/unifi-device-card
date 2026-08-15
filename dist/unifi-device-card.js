@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.35db425 */
+/* UniFi Device Card 0.0.0-dev.f4ef491 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -120,11 +120,12 @@ var MODEL_REGISTRY = {
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
-  U7OUTDOOR: apModel("U7 Outdoor"),
+  U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
+  UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U7PROXG: apModel("U7 Pro XG"),
   U7PROXGS: apModel("U7 Pro XGS"),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
-  U7PROOUTDOOR: apModel("U7 Pro Outdoor"),
+  U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U6MESHPRO: apModel("U6 Mesh Pro"),
   E7: apModel("E7"),
   U7ENTERPRISE: apModel("U7 Enterprise"),
@@ -1266,12 +1267,16 @@ function resolveModelKey(device) {
     if (candidate.includes("UAPFLEXHD")) return "UAPFLEXHD";
     if (candidate.includes("UAPBEACONHD")) return "UAPBEACONHD";
     if (candidate.includes("UAPSHD")) return "UAPSHD";
+    if (candidate.includes("UXSDM")) return "UWBXG";
+    if (candidate.includes("UCXG")) return "UAPXG";
     if (candidate.includes("UAPXG")) return "UAPXG";
+    if (candidate.includes("U7NHD")) return "UAPNANOHD";
     if (candidate.includes("UAPHD")) return "UAPHD";
     if (candidate.includes("U6ENTERPRISEIW") || candidate.includes("U6ENTERPRISEINWALL")) return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTIW")) return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTERPRISE")) return "U6ENTERPRISE";
     if (candidate.includes("U6ENT")) return "U6ENTERPRISE";
+    if (candidate === "U6M") return "U6MESH";
     if (candidate.includes("U6MESH")) return "U6MESH";
     if (candidate.includes("U6PLUS")) return "U6PLUS";
     if (candidate.includes("U6PRO")) return "U6PRO";
@@ -1286,8 +1291,10 @@ function resolveModelKey(device) {
     if (candidate.includes("UAL6")) return "U6LITE";
     if (candidate.includes("UAM6")) return "U6MESH";
     if (candidate.includes("U6MESHPRO")) return "U6MESHPRO";
+    if (candidate.includes("U7MP")) return "UAPACMPRO";
     if (candidate.includes("U7IW")) return "U7IW";
     if (candidate.includes("U7INWALL")) return "U7IW";
+    if (candidate.includes("UAPA6A5")) return "U7IW";
     if (candidate.includes("G7LR")) return "U7LR";
     if (candidate.includes("U7LR")) return "U7LR";
     if (candidate.includes("U7MSH")) return "U7MSH";
@@ -1298,13 +1305,17 @@ function resolveModelKey(device) {
     if (candidate.includes("U7ENT")) return "U7ENTERPRISE";
     if (candidate.includes("U7PROXGWALL")) return "U7PROXGWALL";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
+    if (candidate.includes("UAPA6A4")) return "U7PROXGS";
     if (candidate.includes("U7PROXGS")) return "U7PROXGS";
     if (candidate.includes("U7PROXG")) return "U7PROXG";
     if (candidate.includes("U7PROMAX")) return "U7PROMAX";
+    if (candidate.includes("UAPA6B0")) return "U7PROOUTDOOR";
     if (candidate.includes("U7PROOUTDOOR")) return "U7PROOUTDOOR";
     if (candidate.includes("U7PRO")) return "U7PRO";
     if (candidate.includes("U7OUTDOOR")) return "U7OUTDOOR";
+    if (candidate.includes("UKPW")) return "UKPW";
     if (candidate.includes("UWBXG")) return "UWBXG";
+    if (candidate.includes("UAPA6B1")) return "E7CAMPUS";
     if (candidate.includes("E7CAMPUS")) return "E7CAMPUS";
     if (candidate.includes("E7AUDIENCE")) return "E7AUDIENCE";
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
@@ -6126,7 +6137,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.35db425";
+var VERSION = "0.0.0-dev.f4ef491";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7569,6 +7580,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .frontpanel.ap-disc,
       .frontpanel.ap-in-wall,
+      .frontpanel.ap-u7-outdoor,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
@@ -7592,6 +7604,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .ap-layout.compact .frontpanel.ap-disc,
       .ap-layout.compact .frontpanel.ap-in-wall,
+      .ap-layout.compact .frontpanel.ap-u7-outdoor,
       .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
@@ -7608,6 +7621,10 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .ap-layout.compact .ap-device.ap-in-wall-device {
         width: min(100%, calc(112px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-u7-outdoor-device {
+        width: min(100%, calc(150px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -7825,6 +7842,45 @@ var UnifiDeviceCard = class extends HTMLElement {
         font: 700 calc(34px * var(--udc-ap-scale))/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
         transform: translateY(calc(5px * var(--udc-ap-scale)));
         user-select: none;
+      }
+
+      .ap-u7-outdoor-device {
+        width: calc(184px * var(--udc-ap-scale));
+        aspect-ratio: .82 / 1;
+        border-radius: calc(35px * var(--udc-ap-scale));
+        background: linear-gradient(145deg, #ffffff 0%, #f5f6f7 58%, #e5e8ea 100%);
+        border: 1px solid rgba(150, 158, 166, .18);
+        box-shadow:
+          inset 9px 11px 17px rgba(255,255,255,.85),
+          inset -9px -11px 18px rgba(120,128,136,.09),
+          0 14px 24px rgba(0,0,0,.18);
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .ap-u7-outdoor-logo {
+        color: rgba(180, 188, 195, .42);
+        font: 700 calc(37px * var(--udc-ap-scale))/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
+        transform: translateY(calc(-10px * var(--udc-ap-scale)));
+        user-select: none;
+      }
+
+      .ap-u7-outdoor-led {
+        position: absolute;
+        left: 50%;
+        bottom: 17%;
+        width: calc(4px * var(--udc-ap-scale));
+        height: calc(4px * var(--udc-ap-scale));
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: var(--ap-ring-color, #62c8fa);
+        box-shadow: 0 0 6px color-mix(in srgb, var(--ap-ring-color, #62c8fa) 65%, transparent);
+      }
+
+      .ap-u7-outdoor-led.off {
+        background: #aeb4ba;
+        box-shadow: none;
       }
 
       .ap-ring {
@@ -8463,6 +8519,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       const isFiveGBackup = this._ctx?.layout?.frontStyle === "ap-5g-backup";
       const apFrontStyle = this._ctx?.layout?.apFrontStyle || this._ctx?.layout?.frontStyle;
       const isInWallAp = apFrontStyle === "ap-in-wall";
+      const isU7Outdoor = apFrontStyle === "ap-u7-outdoor";
       const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData(uptime) : null;
       const headerTitle2 = this._title();
       const headerMetrics2 = compactApView && !this._apCompactHeaderTelemetryEnabled() ? [] : this._headerMetrics();
@@ -8487,7 +8544,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           </div>
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
-            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : isInWallAp ? "ap-in-wall" : "ap-disc"}">
+            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : isInWallAp ? "ap-in-wall" : isU7Outdoor ? "ap-u7-outdoor" : "ap-disc"}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
                 <div class="ap-5g-face"></div>
@@ -8505,6 +8562,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
               <div class="ap-device ap-in-wall-device">
                 <div class="ap-in-wall-led ${ledEnabled ? "" : "off"}"></div>
                 <div class="ap-in-wall-logo">U</div>
+              </div>` : isU7Outdoor ? `
+              <div class="ap-device ap-u7-outdoor-device">
+                <div class="ap-u7-outdoor-logo">U</div>
+                <div class="ap-u7-outdoor-led ${ledEnabled ? "" : "off"}"></div>
               </div>` : `
               <div class="ap-device">
                 <div class="ap-ring ${ledEnabled ? "online" : "off"}">
