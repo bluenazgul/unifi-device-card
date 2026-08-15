@@ -280,6 +280,9 @@ log_level: warn               # optional (error|warn|info|debug|trace)
 debug: false                  # optional shorthand (true => debug log level)
 edit_special_ports: false     # optional (switch/gateway only)
 special_ports: [1, 2, 9]      # optional (switch/gateway only)
+trust_link_speed_ports:        # optional (switch/gateway and compatible integrated ports)
+  - 3
+  - 7
 wan_port: auto                # optional (gateway only)
 wan2_port: none               # optional (gateway only)
 ```
@@ -326,6 +329,7 @@ wan2_port: none               # optional (gateway only)
 | `debug` | boolean | `false` | Shorthand for enabling debug logging (`true` behaves like `log_level: debug` if `log_level` is not set). |
 | `edit_special_ports` | boolean | `false` | Switch/Gateway only: enables WAN/WAN2 selectors and manual special-port editing in the UI/editor. |
 | `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
+| `trust_link_speed_ports` | array<number> | `[]` | Ports whose positive link-speed value is trusted even at 10 Mbit/s. By default, the RJ45 ghost-link guard treats speeds up to and including 10 Mbit/s as disconnected when no link, traffic, client, or PoE signal confirms the connection. Select only ports with a genuine 10 Mbit/s link; `0`, `unknown`, and `unavailable` remain disconnected. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
 | `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
 

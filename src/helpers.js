@@ -28,6 +28,14 @@ function lower(value) {
   return normalize(value).toLowerCase();
 }
 
+export function normalizePositivePortNumbers(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value
+    .map((entry) => Number(entry))
+    .filter((port) => Number.isInteger(port) && port > 0)))
+    .sort((a, b) => a - b);
+}
+
 function entityText(entity) {
   const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object"
     ? Object.values(entity.translation_placeholders)
@@ -2368,7 +2376,7 @@ export function isSfpLikePort(port) {
   return text.includes("sfp") || text.includes("10g");
 }
 
-export function isPortConnected(hass, port) {
+export function isPortConnected(hass, port, { trustLowSpeedLink = false } = {}) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
@@ -2404,7 +2412,7 @@ export function isPortConnected(hass, port) {
       // Some setups report persistent 10 Mbit on idle/disconnected copper ports.
       // If no explicit link sensor exists and we have neither traffic, clients, nor PoE activity,
       // treat 10 Mbit as not connected to avoid false "up" LEDs.
-      if (!isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
+      if (!trustLowSpeedLink && !isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
         const hasActiveTraffic = hasTraffic(hass, port);
         const clientCount = portObservedClientCount(hass, port);
         const poeActive = getPoeStatus(hass, port).active;
