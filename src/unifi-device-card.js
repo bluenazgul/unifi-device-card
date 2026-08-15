@@ -1806,6 +1806,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .frontpanel.ap-disc,
       .frontpanel.ap-in-wall,
+      .frontpanel.ap-u7-outdoor,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
