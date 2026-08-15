@@ -14,6 +14,7 @@ import {
   isPortConnected,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
+  normalizePositivePortNumbers,
   parseLinkSpeedMbit,
   stateObj,
 } from "./helpers.js";
@@ -192,7 +193,13 @@ class UnifiDeviceCard extends HTMLElement {
 
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
-    const newConfig = config || {};
+    const newConfig = { ...(config || {}) };
+    const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
+    if (trustLinkSpeedPorts.length) {
+      newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
+    } else {
+      delete newConfig.trust_link_speed_ports;
+    }
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
     this._log("info", "setConfig", {
@@ -1350,11 +1357,12 @@ class UnifiDeviceCard extends HTMLElement {
    * link speed itself drops to 0 (cable genuinely removed).
    */
   _isPortConnected(port) {
+    const trustLowSpeedLink = this._config?.trust_link_speed_ports?.includes(port?.port) === true;
     if (isSfpLikePort(port)) {
       const key = port?.key || port?.physical_key;
       if (key) {
         if (hasTraffic(this._hass, port)) this._sfpConnectedSeen.add(key);
-        const result = isPortConnected(this._hass, port);
+        const result = isPortConnected(this._hass, port, { trustLowSpeedLink });
         if (!result && this._sfpConnectedSeen.has(key)) {
           // Port was live before — only keep sticky when speed entity confirms
           // the link is still up (> 0). A null means no speed entity exists so
@@ -1368,7 +1376,7 @@ class UnifiDeviceCard extends HTMLElement {
         return result;
       }
     }
-    return isPortConnected(this._hass, port);
+    return isPortConnected(this._hass, port, { trustLowSpeedLink });
   }
 
   _connectedCount(allSlots) {

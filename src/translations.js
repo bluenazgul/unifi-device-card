@@ -83,6 +83,8 @@ const TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Enable to show WAN/WAN2 selectors and customize which ports appear in the top special row.",
     editor_custom_special_ports_label: "Special ports (top row)",
     editor_custom_special_ports_hint:  "Click to toggle ports in the upper special row. Unselected ports move to the normal grid.",
+    editor_trust_link_speed_ports_label: "Trust 10 Mbit/s link speed on ports",
+    editor_trust_link_speed_ports_hint: "Only select ports with a real 10 Mbit/s connection. This disables the false-link protection for the selected port.",
     editor_port_size_label: "Port size",
     editor_port_size_hint:  "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label:  "AP size",
@@ -281,6 +283,8 @@ const TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Aktivieren, um WAN/WAN2-Auswahl anzuzeigen und festzulegen, welche Ports in der oberen Spezial-Reihe erscheinen.",
     editor_custom_special_ports_label: "Spezial-Ports (obere Reihe)",
     editor_custom_special_ports_hint:  "Per Klick Ports in der oberen Spezial-Reihe umschalten. Nicht gewählte Ports erscheinen im normalen Grid.",
+    editor_trust_link_speed_ports_label: "10-Mbit/s-Link-Speed an Ports vertrauen",
+    editor_trust_link_speed_ports_hint: "Nur für Ports mit einer echten 10-Mbit/s-Verbindung auswählen. Dadurch wird der Schutz vor fälschlich gemeldeten Links für den ausgewählten Port deaktiviert.",
     editor_port_size_label: "Portgröße",
     editor_port_size_hint:  "Skaliert die Frontpanel-Portgröße für Switches und Gateways.",
     editor_ap_scale_label:  "AP-Größe",
@@ -479,6 +483,8 @@ const TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Inschakelen om WAN/WAN2-selectie te tonen en te bepalen welke poorten in de bovenste speciale rij staan.",
     editor_custom_special_ports_label: "Speciale poorten (bovenste rij)",
     editor_custom_special_ports_hint:  "Klik om poorten in de bovenste speciale rij te wisselen. Niet-geselecteerde poorten gaan naar het normale raster.",
+    editor_trust_link_speed_ports_label: "Vertrouw 10 Mbit/s-linksnelheid op poorten",
+    editor_trust_link_speed_ports_hint: "Selecteer alleen poorten met een echte 10 Mbit/s-verbinding. Dit schakelt de beveiliging tegen foutief gemelde links voor de geselecteerde poort uit.",
     editor_port_size_label: "Poortgrootte",
     editor_port_size_hint:  "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
     editor_ap_scale_label:  "AP-grootte",
@@ -673,6 +679,8 @@ const TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Activez pour afficher les sélecteurs WAN/WAN2 et choisir quels ports apparaissent dans la ligne spéciale supérieure.",
     editor_custom_special_ports_label: "Ports spéciaux (ligne du haut)",
     editor_custom_special_ports_hint:  "Cliquez pour basculer les ports de la ligne spéciale supérieure. Les ports non sélectionnés passent dans la grille normale.",
+    editor_trust_link_speed_ports_label: "Faire confiance au débit de liaison 10 Mbit/s",
+    editor_trust_link_speed_ports_hint: "Sélectionnez uniquement les ports avec une véritable connexion à 10 Mbit/s. Cela désactive la protection contre les liaisons signalées à tort pour le port sélectionné.",
     editor_port_size_label: "Taille des ports",
     editor_port_size_hint:  "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
     editor_ap_scale_label:  "Taille AP",
@@ -867,6 +875,8 @@ const TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Activa para mostrar selectores WAN/WAN2 y elegir qué puertos aparecen en la fila especial superior.",
     editor_custom_special_ports_label: "Puertos especiales (fila superior)",
     editor_custom_special_ports_hint:  "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadrícula normal.",
+    editor_trust_link_speed_ports_label: "Confiar en enlaces de 10 Mbit/s por puerto",
+    editor_trust_link_speed_ports_hint: "Selecciona solo puertos con una conexión real de 10 Mbit/s. Esto desactiva la protección contra enlaces notificados erróneamente para el puerto seleccionado.",
     editor_port_size_label: "Tamaño de puerto",
     editor_port_size_hint:  "Ajusta el tamaño de puertos del panel frontal para switches y gateways.",
     editor_ap_scale_label:  "Tamaño AP",
@@ -1061,6 +1071,8 @@ const TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Abilita per mostrare i selettori WAN/WAN2 e scegliere quali porte appaiono nella riga speciale superiore.",
     editor_custom_special_ports_label: "Porte speciali (riga superiore)",
     editor_custom_special_ports_hint:  "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
+    editor_trust_link_speed_ports_label: "Considera attendibile il link a 10 Mbit/s",
+    editor_trust_link_speed_ports_hint: "Seleziona solo porte con una connessione reale a 10 Mbit/s. Questa opzione disattiva la protezione dai link segnalati erroneamente per la porta selezionata.",
     editor_port_size_label: "Dimensione porta",
     editor_port_size_hint:  "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
     editor_ap_scale_label:  "Dimensione AP",
@@ -1185,6 +1197,8 @@ const TRANSLATIONS = {
 
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Lita på 10 Mbit/s länkhastighet för portar",
+  editor_trust_link_speed_ports_hint: "Välj endast portar med en verklig 10 Mbit/s-anslutning. Detta inaktiverar skyddet mot felaktigt rapporterade länkar för den valda porten.",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text:  "Visa telemetridata i kortets header",
   editor_telemetry_toggle_hint:  "Aktiverat som standard. Inaktivera för att dölja CPU-, minnes- och temperaturrader i headern.",
@@ -1203,6 +1217,8 @@ TRANSLATIONS.sv = {
 
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Stol på 10 Mbit/s-linkhastighed for porte",
+  editor_trust_link_speed_ports_hint: "Vælg kun porte med en ægte 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mod fejlagtigt rapporterede links for den valgte port.",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text:  "Vis telemetridata i kortets header",
   editor_telemetry_toggle_hint:  "Aktiveret som standard. Slå fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
@@ -1221,6 +1237,8 @@ TRANSLATIONS.da = {
 
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Stol på 10 Mbit/s-linkhastighet for porter",
+  editor_trust_link_speed_ports_hint: "Velg bare porter med en reell 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mot feilrapporterte linker for den valgte porten.",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text:  "Vis telemetridata i kortoverskriften",
   editor_telemetry_toggle_hint:  "Aktivert som standard. Slå av for å skjule CPU-, minne- og temperaturrader i overskriften.",
@@ -1239,6 +1257,8 @@ TRANSLATIONS.no = {
 
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Luota porttien 10 Mbit/s linkkinopeuteen",
+  editor_trust_link_speed_ports_hint: "Valitse vain portit, joissa on todellinen 10 Mbit/s yhteys. Tämä poistaa virheellisesti ilmoitettujen linkkien suojauksen käytöstä valitussa portissa.",
   editor_telemetry_toggle_label: "Otsakkeen telemetria",
   editor_telemetry_toggle_text:  "Näytä telemetriatiedot kortin otsakkeessa",
   editor_telemetry_toggle_hint:  "Käytössä oletuksena. Poista käytöstä piilottaaksesi CPU-, muisti- ja lämpötilarivit otsakkeesta.",
@@ -1257,6 +1277,8 @@ TRANSLATIONS.fi = {
 
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Ufaj prędkości łącza 10 Mbit/s na portach",
+  editor_trust_link_speed_ports_hint: "Wybieraj tylko porty z rzeczywistym połączeniem 10 Mbit/s. Wyłącza to ochronę przed błędnie zgłaszanymi łączami dla wybranego portu.",
   editor_telemetry_toggle_label: "Telemetria nagłówka",
   editor_telemetry_toggle_text:  "Pokaż dane telemetryczne w nagłówku karty",
   editor_telemetry_toggle_hint:  "Domyślnie włączone. Wyłącz, aby ukryć w nagłówku wiersze CPU, pamięci i temperatury.",
@@ -1275,6 +1297,8 @@ TRANSLATIONS.pl = {
 
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Důvěřovat rychlosti linky 10 Mbit/s na portech",
+  editor_trust_link_speed_ports_hint: "Vyberte pouze porty se skutečným připojením 10 Mbit/s. Tím se pro vybraný port vypne ochrana proti chybně hlášeným linkám.",
   editor_telemetry_toggle_label: "Telemetrie záhlaví",
   editor_telemetry_toggle_text:  "Zobrazit telemetrii v záhlaví karty",
   editor_telemetry_toggle_hint:  "Ve výchozím stavu zapnuto. Vypnutím skryjete řádky CPU, paměti a teploty v záhlaví.",
