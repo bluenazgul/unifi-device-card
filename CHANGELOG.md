@@ -4,6 +4,8 @@
 
 ### 🐛 Bug Fixes
 - Allow genuine 10 Mbit/s RJ45 connections to opt out of ghost-link protection on selected ports through `trust_link_speed_ports` and the card editor, with consistent link status text throughout the card.
+- Recognize the U7 Outdoor (`UKPW`) and U7 Pro Outdoor (`UAPA6B0`) controller identifiers and render both devices with a dedicated outdoor enclosure and lower status LED.
+- Map additional raw UniFi AP identifiers for the UAP XG, nanoHD, AC Mesh Pro, U6 Mesh, U7 In-Wall, U7 Pro XGS, E7 Campus, and BaseStation XG to their existing device layouts.
 
 ## [v0.8.0]
 

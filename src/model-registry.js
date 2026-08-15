@@ -165,11 +165,12 @@ export const MODEL_REGISTRY = {
   U7LR: apModel("U7 LR"),
   U7MSH: apModel("U7 Mesh"),
   U7LITE: apModel("U7 Lite"),
-  U7OUTDOOR: apModel("U7 Outdoor"),
+  U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
+  UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U7PROXG: apModel("U7 Pro XG"),
   U7PROXGS: apModel("U7 Pro XGS"),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
-  U7PROOUTDOOR: apModel("U7 Pro Outdoor"),
+  U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U6MESHPRO: apModel("U6 Mesh Pro"),
   E7: apModel("E7"),
   U7ENTERPRISE: apModel("U7 Enterprise"),
@@ -1103,12 +1104,16 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPFLEXHD"))          return "UAPFLEXHD";
     if (candidate.includes("UAPBEACONHD"))        return "UAPBEACONHD";
     if (candidate.includes("UAPSHD"))             return "UAPSHD";
+    if (candidate.includes("UXSDM"))              return "UWBXG";
+    if (candidate.includes("UCXG"))               return "UAPXG";
     if (candidate.includes("UAPXG"))              return "UAPXG";
+    if (candidate.includes("U7NHD"))              return "UAPNANOHD";
     if (candidate.includes("UAPHD"))              return "UAPHD";
     if (candidate.includes("U6ENTERPRISEIW") || candidate.includes("U6ENTERPRISEINWALL")) return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTIW"))            return "U6ENTERPRISEIW";
     if (candidate.includes("U6ENTERPRISE"))       return "U6ENTERPRISE";
     if (candidate.includes("U6ENT"))              return "U6ENTERPRISE";
+    if (candidate === "U6M")                      return "U6MESH";
     if (candidate.includes("U6MESH"))             return "U6MESH";
     if (candidate.includes("U6PLUS"))             return "U6PLUS";
     if (candidate.includes("U6PRO"))              return "U6PRO";
@@ -1123,8 +1128,10 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAL6"))               return "U6LITE";
     if (candidate.includes("UAM6"))               return "U6MESH";
     if (candidate.includes("U6MESHPRO"))          return "U6MESHPRO";
+    if (candidate.includes("U7MP"))               return "UAPACMPRO";
     if (candidate.includes("U7IW"))               return "U7IW";
     if (candidate.includes("U7INWALL"))           return "U7IW";
+    if (candidate.includes("UAPA6A5"))            return "U7IW";
     if (candidate.includes("G7LR"))               return "U7LR";
     if (candidate.includes("U7LR"))               return "U7LR";
     if (candidate.includes("U7MSH"))              return "U7MSH";
@@ -1135,13 +1142,17 @@ export function resolveModelKey(device) {
     if (candidate.includes("U7ENT"))              return "U7ENTERPRISE";
     if (candidate.includes("U7PROXGWALL"))        return "U7PROXGWALL";
     if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
+    if (candidate.includes("UAPA6A4"))            return "U7PROXGS";
     if (candidate.includes("U7PROXGS"))           return "U7PROXGS";
     if (candidate.includes("U7PROXG"))            return "U7PROXG";
     if (candidate.includes("U7PROMAX"))           return "U7PROMAX";
+    if (candidate.includes("UAPA6B0"))            return "U7PROOUTDOOR";
     if (candidate.includes("U7PROOUTDOOR"))       return "U7PROOUTDOOR";
     if (candidate.includes("U7PRO"))              return "U7PRO";
     if (candidate.includes("U7OUTDOOR"))          return "U7OUTDOOR";
+    if (candidate.includes("UKPW"))               return "UKPW";
     if (candidate.includes("UWBXG"))              return "UWBXG";
+    if (candidate.includes("UAPA6B1"))            return "E7CAMPUS";
     if (candidate.includes("E7CAMPUS"))           return "E7CAMPUS";
     if (candidate.includes("E7AUDIENCE"))         return "E7AUDIENCE";
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";

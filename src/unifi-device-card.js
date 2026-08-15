@@ -1806,6 +1806,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .frontpanel.ap-disc,
       .frontpanel.ap-in-wall,
+      .frontpanel.ap-u7-outdoor,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
@@ -1829,6 +1830,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-layout.compact .frontpanel.ap-disc,
       .ap-layout.compact .frontpanel.ap-in-wall,
+      .ap-layout.compact .frontpanel.ap-u7-outdoor,
       .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
@@ -1845,6 +1847,10 @@ class UnifiDeviceCard extends HTMLElement {
 
       .ap-layout.compact .ap-device.ap-in-wall-device {
         width: min(100%, calc(112px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-u7-outdoor-device {
+        width: min(100%, calc(150px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -2062,6 +2068,45 @@ class UnifiDeviceCard extends HTMLElement {
         font: 700 calc(34px * var(--udc-ap-scale))/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
         transform: translateY(calc(5px * var(--udc-ap-scale)));
         user-select: none;
+      }
+
+      .ap-u7-outdoor-device {
+        width: calc(184px * var(--udc-ap-scale));
+        aspect-ratio: .82 / 1;
+        border-radius: calc(35px * var(--udc-ap-scale));
+        background: linear-gradient(145deg, #ffffff 0%, #f5f6f7 58%, #e5e8ea 100%);
+        border: 1px solid rgba(150, 158, 166, .18);
+        box-shadow:
+          inset 9px 11px 17px rgba(255,255,255,.85),
+          inset -9px -11px 18px rgba(120,128,136,.09),
+          0 14px 24px rgba(0,0,0,.18);
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .ap-u7-outdoor-logo {
+        color: rgba(180, 188, 195, .42);
+        font: 700 calc(37px * var(--udc-ap-scale))/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
+        transform: translateY(calc(-10px * var(--udc-ap-scale)));
+        user-select: none;
+      }
+
+      .ap-u7-outdoor-led {
+        position: absolute;
+        left: 50%;
+        bottom: 17%;
+        width: calc(4px * var(--udc-ap-scale));
+        height: calc(4px * var(--udc-ap-scale));
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: var(--ap-ring-color, #62c8fa);
+        box-shadow: 0 0 6px color-mix(in srgb, var(--ap-ring-color, #62c8fa) 65%, transparent);
+      }
+
+      .ap-u7-outdoor-led.off {
+        background: #aeb4ba;
+        box-shadow: none;
       }
 
       .ap-ring {
@@ -2729,6 +2774,7 @@ class UnifiDeviceCard extends HTMLElement {
       const isFiveGBackup = this._ctx?.layout?.frontStyle === "ap-5g-backup";
       const apFrontStyle = this._ctx?.layout?.apFrontStyle || this._ctx?.layout?.frontStyle;
       const isInWallAp = apFrontStyle === "ap-in-wall";
+      const isU7Outdoor = apFrontStyle === "ap-u7-outdoor";
       const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData(uptime) : null;
 
       const headerTitle = this._title();
@@ -2757,7 +2803,7 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
-            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : (isInWallAp ? "ap-in-wall" : "ap-disc")}">
+            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : (isInWallAp ? "ap-in-wall" : (isU7Outdoor ? "ap-u7-outdoor" : "ap-disc"))}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
                 <div class="ap-5g-face"></div>
@@ -2775,6 +2821,10 @@ class UnifiDeviceCard extends HTMLElement {
               <div class="ap-device ap-in-wall-device">
                 <div class="ap-in-wall-led ${ledEnabled ? "" : "off"}"></div>
                 <div class="ap-in-wall-logo">U</div>
+              </div>` : isU7Outdoor ? `
+              <div class="ap-device ap-u7-outdoor-device">
+                <div class="ap-u7-outdoor-logo">U</div>
+                <div class="ap-u7-outdoor-led ${ledEnabled ? "" : "off"}"></div>
               </div>` : `
               <div class="ap-device">
                 <div class="ap-ring ${ledEnabled ? "online" : "off"}">

@@ -77,7 +77,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
 - **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
-- **Dedicated AP designs** — standard APs stay round, Wall/In-Wall APs and the U6 Extender use a scalable rectangular HTML design, and UniFi 5G Backup uses its own HTML device display
+- **Dedicated AP designs** — standard APs stay round, Wall/In-Wall APs and the U6 Extender use a scalable rectangular HTML design, U7 Outdoor models use their matching rounded-rectangle design with a lower status LED, and UniFi 5G Backup uses its own HTML device display
 - **Combined In-Wall AP view** — compatible In-Wall models can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
 - **Built-in UI editor** — full card configuration without YAML
 - **Multi-language support** — translations available for English, German, Dutch, French, Spanish, Italian, Swedish, Danish, Norwegian, Finnish, Polish, and Czech
