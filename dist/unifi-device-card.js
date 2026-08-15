@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.7.9 */
+/* UniFi Device Card 0.0.0-dev.35db425 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1963,6 +1963,10 @@ function normalize(value) {
 function lower(value) {
   return normalize(value).toLowerCase();
 }
+function normalizePositivePortNumbers(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.map((entry) => Number(entry)).filter((port) => Number.isInteger(port) && port > 0))).sort((a, b) => a - b);
+}
 function entityText(entity) {
   const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object" ? Object.values(entity.translation_placeholders) : [];
   return lower(
@@ -3515,7 +3519,7 @@ function isSfpLikePort(port) {
   ].filter(Boolean).join(" ").toLowerCase();
   return text.includes("sfp") || text.includes("10g");
 }
-function isPortConnected(hass, port) {
+function isPortConnected(hass, port, { trustLowSpeedLink = false } = {}) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
@@ -3527,7 +3531,7 @@ function isPortConnected(hass, port) {
   const speedMbit = parseLinkSpeedMbit(hass, port.speed_entity);
   if (speedMbit != null) {
     if (speedMbit > 0) {
-      if (!isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
+      if (!trustLowSpeedLink && !isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
         const hasActiveTraffic = hasTraffic(hass, port);
         const clientCount = portObservedClientCount(hass, port);
         const poeActive = getPoeStatus(hass, port).active;
@@ -3548,9 +3552,6 @@ function isPortConnected(hass, port) {
     return true;
   }
   return false;
-}
-function getPortLinkText(hass, port) {
-  return isPortConnected(hass, port) ? "connected" : "no_link";
 }
 function getPortSpeedText(hass, port) {
   const s = stateValue(hass, port.speed_entity);
@@ -3628,6 +3629,8 @@ var TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Enable to show WAN/WAN2 selectors and customize which ports appear in the top special row.",
     editor_custom_special_ports_label: "Special ports (top row)",
     editor_custom_special_ports_hint: "Click to toggle ports in the upper special row. Unselected ports move to the normal grid.",
+    editor_trust_link_speed_ports_label: "Trust 10 Mbit/s link speed on ports",
+    editor_trust_link_speed_ports_hint: "Only select ports with a real 10 Mbit/s connection. This disables the false-link protection for the selected port.",
     editor_port_size_label: "Port size",
     editor_port_size_hint: "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label: "AP size",
@@ -3811,6 +3814,8 @@ var TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Aktivieren, um WAN/WAN2-Auswahl anzuzeigen und festzulegen, welche Ports in der oberen Spezial-Reihe erscheinen.",
     editor_custom_special_ports_label: "Spezial-Ports (obere Reihe)",
     editor_custom_special_ports_hint: "Per Klick Ports in der oberen Spezial-Reihe umschalten. Nicht gew\xE4hlte Ports erscheinen im normalen Grid.",
+    editor_trust_link_speed_ports_label: "10-Mbit/s-Link-Speed an Ports vertrauen",
+    editor_trust_link_speed_ports_hint: "Nur f\xFCr Ports mit einer echten 10-Mbit/s-Verbindung ausw\xE4hlen. Dadurch wird der Schutz vor f\xE4lschlich gemeldeten Links f\xFCr den ausgew\xE4hlten Port deaktiviert.",
     editor_port_size_label: "Portgr\xF6\xDFe",
     editor_port_size_hint: "Skaliert die Frontpanel-Portgr\xF6\xDFe f\xFCr Switches und Gateways.",
     editor_ap_scale_label: "AP-Gr\xF6\xDFe",
@@ -3994,6 +3999,8 @@ var TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Inschakelen om WAN/WAN2-selectie te tonen en te bepalen welke poorten in de bovenste speciale rij staan.",
     editor_custom_special_ports_label: "Speciale poorten (bovenste rij)",
     editor_custom_special_ports_hint: "Klik om poorten in de bovenste speciale rij te wisselen. Niet-geselecteerde poorten gaan naar het normale raster.",
+    editor_trust_link_speed_ports_label: "Vertrouw 10 Mbit/s-linksnelheid op poorten",
+    editor_trust_link_speed_ports_hint: "Selecteer alleen poorten met een echte 10 Mbit/s-verbinding. Dit schakelt de beveiliging tegen foutief gemelde links voor de geselecteerde poort uit.",
     editor_port_size_label: "Poortgrootte",
     editor_port_size_hint: "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
     editor_ap_scale_label: "AP-grootte",
@@ -4174,6 +4181,8 @@ var TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Activez pour afficher les s\xE9lecteurs WAN/WAN2 et choisir quels ports apparaissent dans la ligne sp\xE9ciale sup\xE9rieure.",
     editor_custom_special_ports_label: "Ports sp\xE9ciaux (ligne du haut)",
     editor_custom_special_ports_hint: "Cliquez pour basculer les ports de la ligne sp\xE9ciale sup\xE9rieure. Les ports non s\xE9lectionn\xE9s passent dans la grille normale.",
+    editor_trust_link_speed_ports_label: "Faire confiance au d\xE9bit de liaison 10 Mbit/s",
+    editor_trust_link_speed_ports_hint: "S\xE9lectionnez uniquement les ports avec une v\xE9ritable connexion \xE0 10 Mbit/s. Cela d\xE9sactive la protection contre les liaisons signal\xE9es \xE0 tort pour le port s\xE9lectionn\xE9.",
     editor_port_size_label: "Taille des ports",
     editor_port_size_hint: "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
     editor_ap_scale_label: "Taille AP",
@@ -4354,6 +4363,8 @@ var TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Activa para mostrar selectores WAN/WAN2 y elegir qu\xE9 puertos aparecen en la fila especial superior.",
     editor_custom_special_ports_label: "Puertos especiales (fila superior)",
     editor_custom_special_ports_hint: "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadr\xEDcula normal.",
+    editor_trust_link_speed_ports_label: "Confiar en enlaces de 10 Mbit/s por puerto",
+    editor_trust_link_speed_ports_hint: "Selecciona solo puertos con una conexi\xF3n real de 10 Mbit/s. Esto desactiva la protecci\xF3n contra enlaces notificados err\xF3neamente para el puerto seleccionado.",
     editor_port_size_label: "Tama\xF1o de puerto",
     editor_port_size_hint: "Ajusta el tama\xF1o de puertos del panel frontal para switches y gateways.",
     editor_ap_scale_label: "Tama\xF1o AP",
@@ -4534,6 +4545,8 @@ var TRANSLATIONS = {
     editor_edit_special_ports_toggle_hint: "Abilita per mostrare i selettori WAN/WAN2 e scegliere quali porte appaiono nella riga speciale superiore.",
     editor_custom_special_ports_label: "Porte speciali (riga superiore)",
     editor_custom_special_ports_hint: "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
+    editor_trust_link_speed_ports_label: "Considera attendibile il link a 10 Mbit/s",
+    editor_trust_link_speed_ports_hint: "Seleziona solo porte con una connessione reale a 10 Mbit/s. Questa opzione disattiva la protezione dai link segnalati erroneamente per la porta selezionata.",
     editor_port_size_label: "Dimensione porta",
     editor_port_size_hint: "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
     editor_ap_scale_label: "Dimensione AP",
@@ -4649,6 +4662,8 @@ var TRANSLATIONS = {
 };
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Lita p\xE5 10 Mbit/s l\xE4nkhastighet f\xF6r portar",
+  editor_trust_link_speed_ports_hint: "V\xE4lj endast portar med en verklig 10 Mbit/s-anslutning. Detta inaktiverar skyddet mot felaktigt rapporterade l\xE4nkar f\xF6r den valda porten.",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Visa telemetridata i kortets header",
   editor_telemetry_toggle_hint: "Aktiverat som standard. Inaktivera f\xF6r att d\xF6lja CPU-, minnes- och temperaturrader i headern.",
@@ -4666,6 +4681,8 @@ TRANSLATIONS.sv = {
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Stol p\xE5 10 Mbit/s-linkhastighed for porte",
+  editor_trust_link_speed_ports_hint: "V\xE6lg kun porte med en \xE6gte 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mod fejlagtigt rapporterede links for den valgte port.",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Vis telemetridata i kortets header",
   editor_telemetry_toggle_hint: "Aktiveret som standard. Sl\xE5 fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
@@ -4683,6 +4700,8 @@ TRANSLATIONS.da = {
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Stol p\xE5 10 Mbit/s-linkhastighet for porter",
+  editor_trust_link_speed_ports_hint: "Velg bare porter med en reell 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mot feilrapporterte linker for den valgte porten.",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Vis telemetridata i kortoverskriften",
   editor_telemetry_toggle_hint: "Aktivert som standard. Sl\xE5 av for \xE5 skjule CPU-, minne- og temperaturrader i overskriften.",
@@ -4700,6 +4719,8 @@ TRANSLATIONS.no = {
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Luota porttien 10 Mbit/s linkkinopeuteen",
+  editor_trust_link_speed_ports_hint: "Valitse vain portit, joissa on todellinen 10 Mbit/s yhteys. T\xE4m\xE4 poistaa virheellisesti ilmoitettujen linkkien suojauksen k\xE4yt\xF6st\xE4 valitussa portissa.",
   editor_telemetry_toggle_label: "Otsakkeen telemetria",
   editor_telemetry_toggle_text: "N\xE4yt\xE4 telemetriatiedot kortin otsakkeessa",
   editor_telemetry_toggle_hint: "K\xE4yt\xF6ss\xE4 oletuksena. Poista k\xE4yt\xF6st\xE4 piilottaaksesi CPU-, muisti- ja l\xE4mp\xF6tilarivit otsakkeesta.",
@@ -4717,6 +4738,8 @@ TRANSLATIONS.fi = {
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "Ufaj pr\u0119dko\u015Bci \u0142\u0105cza 10 Mbit/s na portach",
+  editor_trust_link_speed_ports_hint: "Wybieraj tylko porty z rzeczywistym po\u0142\u0105czeniem 10 Mbit/s. Wy\u0142\u0105cza to ochron\u0119 przed b\u0142\u0119dnie zg\u0142aszanymi \u0142\u0105czami dla wybranego portu.",
   editor_telemetry_toggle_label: "Telemetria nag\u0142\xF3wka",
   editor_telemetry_toggle_text: "Poka\u017C dane telemetryczne w nag\u0142\xF3wku karty",
   editor_telemetry_toggle_hint: "Domy\u015Blnie w\u0142\u0105czone. Wy\u0142\u0105cz, aby ukry\u0107 w nag\u0142\xF3wku wiersze CPU, pami\u0119ci i temperatury.",
@@ -4734,6 +4757,8 @@ TRANSLATIONS.pl = {
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_trust_link_speed_ports_label: "D\u016Fv\u011B\u0159ovat rychlosti linky 10 Mbit/s na portech",
+  editor_trust_link_speed_ports_hint: "Vyberte pouze porty se skute\u010Dn\xFDm p\u0159ipojen\xEDm 10 Mbit/s. T\xEDm se pro vybran\xFD port vypne ochrana proti chybn\u011B hl\xE1\u0161en\xFDm link\xE1m.",
   editor_telemetry_toggle_label: "Telemetrie z\xE1hlav\xED",
   editor_telemetry_toggle_text: "Zobrazit telemetrii v z\xE1hlav\xED karty",
   editor_telemetry_toggle_hint: "Ve v\xFDchoz\xEDm stavu zapnuto. Vypnut\xEDm skryjete \u0159\xE1dky CPU, pam\u011Bti a teploty v z\xE1hlav\xED.",
@@ -4915,7 +4940,7 @@ function normalizeHexColor(value) {
 }
 function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
-  const normalized = value.map((entry) => Number.parseInt(entry, 10)).filter((num) => Number.isInteger(num) && num > 0);
+  const normalized = value.map((entry) => Number(entry)).filter((num) => Number.isInteger(num) && num > 0);
   return Array.from(new Set(normalized)).sort((a, b) => a - b);
 }
 function collectLayoutPorts(layout) {
@@ -5149,6 +5174,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (hasManualWanSelection) next.edit_special_ports = true;
     next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
     if (!next.custom_special_ports.length) delete next.custom_special_ports;
+    next.trust_link_speed_ports = normalizeSpecialPortNumbers(next.trust_link_speed_ports);
+    if (!next.trust_link_speed_ports.length) delete next.trust_link_speed_ports;
     next.special_ports = normalizeSpecialPortNumbers(next.special_ports);
     if (!next.special_ports.length && next.edit_special_ports === true && !keepExplicitSpecialPorts) {
       next.special_ports = collectDefaultSpecialPorts(this._deviceCtx?.layout);
@@ -5200,6 +5227,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       custom_special_ports: void 0,
       special_ports: void 0,
       edit_special_ports: void 0,
+      trust_link_speed_ports: void 0,
       ports_per_row: nextDevice?.type === "gateway" ? void 0 : this._config?.ports_per_row,
       device_layout: void 0,
       integrated_ports: void 0
@@ -5395,6 +5423,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._emitConfig({
       special_ports: normalizeSpecialPortNumbers(next)
     });
+  }
+  _onTrustLinkSpeedPortToggle(ev) {
+    const button = ev.target?.closest?.("[data-port]");
+    if (!button) return;
+    const port = Number(button.dataset.port);
+    if (!Number.isInteger(port) || port < 1) return;
+    const current = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
+    const next = current.includes(port) ? current.filter((entry) => entry !== port) : [...current, port];
+    this._emitConfig({ trust_link_speed_ports: next });
   }
   _warningItems() {
     const hint = this._entityHint;
@@ -5807,6 +5844,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       /* @__PURE__ */ new Set([...collectLayoutPorts(this._deviceCtx?.layout), ...discoveredPorts])
     ).sort((a, b) => a - b);
     const customSpecialPortOptions = selectableSpecialPorts;
+    const selectedTrustedLinkSpeedPorts = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
     const selectedSpecialPorts = editSpecialPorts ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout) : [];
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
     const buttonThemeStyle = this._draftButtonThemeStyle !== false;
@@ -5882,6 +5920,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
           <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
           <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
+        </div>` : ""}
+
+        ${isSwitchOrGateway || supportsIntegratedPorts ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_trust_link_speed_ports_label"))}</label>
+          <div id="trust_link_speed_ports_list" class="port-toggle-list">
+            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedTrustedLinkSpeedPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`).join("")}
+          </div>
+          <div class="hint">${escapeHtml(this._t("editor_trust_link_speed_ports_hint"))}</div>
         </div>` : ""}
 
         ${supportsLayoutSelection ? `
@@ -6050,6 +6097,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("wan2_port")?.addEventListener("change", (ev) => this._onWan2PortChange(ev));
     this.shadowRoot.getElementById("edit_special_ports")?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
     this.shadowRoot.getElementById("special_ports_list")?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
+    this.shadowRoot.getElementById("trust_link_speed_ports_list")?.addEventListener("click", (ev) => this._onTrustLinkSpeedPortToggle(ev));
     this.shadowRoot.getElementById("open_color_editor")?.addEventListener("click", () => this._onOpenColorStep());
     this.shadowRoot.getElementById("back_from_color_editor")?.addEventListener("click", () => this._onBackFromColorStep());
     this.shadowRoot.getElementById("reset_all_colors")?.addEventListener("click", () => this._onResetAllColors());
@@ -6078,7 +6126,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.7.9";
+var VERSION = "0.0.0-dev.35db425";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6221,7 +6269,13 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
-    const newConfig = config || {};
+    const newConfig = { ...config || {} };
+    const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
+    if (trustLinkSpeedPorts.length) {
+      newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
+    } else {
+      delete newConfig.trust_link_speed_ports;
+    }
     const newDeviceId = newConfig?.device_id || null;
     this._config = newConfig;
     this._log("info", "setConfig", {
@@ -7102,11 +7156,12 @@ var UnifiDeviceCard = class extends HTMLElement {
    * link speed itself drops to 0 (cable genuinely removed).
    */
   _isPortConnected(port) {
+    const trustLowSpeedLink = this._config?.trust_link_speed_ports?.includes(port?.port) === true;
     if (isSfpLikePort(port)) {
       const key = port?.key || port?.physical_key;
       if (key) {
         if (hasTraffic(this._hass, port)) this._sfpConnectedSeen.add(key);
-        const result = isPortConnected(this._hass, port);
+        const result = isPortConnected(this._hass, port, { trustLowSpeedLink });
         if (!result && this._sfpConnectedSeen.has(key)) {
           const speedMbit = parseLinkSpeedMbit(this._hass, port?.speed_entity);
           if (speedMbit != null && speedMbit > 0) return true;
@@ -7115,7 +7170,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         return result;
       }
     }
-    return isPortConnected(this._hass, port);
+    return isPortConnected(this._hass, port, { trustLowSpeedLink });
   }
   _connectedCount(allSlots) {
     return allSlots.filter((s) => this._isPortConnected(s)).length;
@@ -7196,7 +7251,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const mergedCount = Math.max(clientInfo?.count || 0, indexedCount);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
-      this._translateState(getPortLinkText(this._hass, slot)),
+      this._translateState(linkUp ? "connected" : "no_link"),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
       mergedCount > 0 ? `${this._t("clients")}: ${mergedCount}` : null,
@@ -7523,6 +7578,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         position: relative;
         overflow: hidden;
         padding: 4px 14px;
+      }
+
+      .ap-layout > .frontpanel {
+        margin-top: 0;
       }
 
       .ap-layout.compact {
@@ -8265,15 +8324,10 @@ var UnifiDeviceCard = class extends HTMLElement {
           border-bottom: 1px solid var(--udc-border);
         }
 
-        .ap-layout.has-integrated-ports,
-        .ap-layout.compact.has-integrated-ports {
+        .ap-layout.has-integrated-ports:not(.compact) {
           grid-template-columns: 1fr;
         }
 
-        .ap-layout.compact.has-integrated-ports .frontpanel.ap-disc {
-          border-right: none;
-          border-bottom: 1px solid var(--udc-border);
-        }
       }
 
     </style>`;
@@ -8292,7 +8346,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   _renderPortDetail(selected) {
     if (!selected) return `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
     const linkUp = this._isPortConnected(selected);
-    const linkText = getPortLinkText(this._hass, selected);
+    const linkText = linkUp ? "connected" : "no_link";
     const speedText = getPortSpeedText(this._hass, selected);
     const poeStatus = getPoeStatus(this._hass, selected);
     const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
@@ -8552,7 +8606,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     let detail = `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`;
     if (selected) {
       const linkUp = this._isPortConnected(selected);
-      const linkText = getPortLinkText(this._hass, selected);
+      const linkText = linkUp ? "connected" : "no_link";
       const speedText = getPortSpeedText(this._hass, selected);
       const poeStatus = getPoeStatus(this._hass, selected);
       const hasPoe = !!(selected.poe_switch_entity || selected.poe_power_entity || selected.power_cycle_entity);
