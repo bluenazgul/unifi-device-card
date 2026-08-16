@@ -619,41 +619,53 @@ function prioritizeAvailableTelemetryEntities(entities, hass) {
     .map(({ entity }) => entity);
 }
 
+function preferUsableTelemetryMatch(entityIds, hass) {
+  const matches = entityIds.filter(Boolean);
+  if (!hass?.states) return matches[0] || null;
+
+  return matches.find((entityId) => {
+    const state = hass.states[entityId];
+    return state && state.state !== "unknown" && state.state !== "unavailable";
+  }) || matches[0] || null;
+}
+
 export function getDeviceTelemetry(entities, hass = null) {
   const candidates = prioritizeAvailableTelemetryEntities(entities, hass);
   const coreCpuUtilization = findHeaderTelemetryEntity(candidates, "cpu_utilization");
   const coreCpuTemperature = findHeaderTelemetryEntity(candidates, "cpu_temperature");
   const coreMemoryUtilization = findHeaderTelemetryEntity(candidates, "memory_utilization");
-  const coreDeviceTemperature =
-    findHeaderTelemetryEntity(candidates, "temperature") ||
-    findFallbackSubTemperatureEntity(candidates);
 
   return {
-    cpu_utilization_entity:
-      coreCpuUtilization ||
-      findDeviceEntityByPatterns(candidates, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
+    cpu_utilization_entity: preferUsableTelemetryMatch([
+      coreCpuUtilization,
+      findDeviceEntityByPatterns(candidates, ["cpu_utilization", "cpu_usage", "processor_utilization"]),
       findSystemStatEntity(candidates, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
-    cpu_temperature_entity:
-      coreCpuTemperature ||
-      findDeviceEntityByPatterns(candidates, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) ||
+    ], hass),
+    cpu_temperature_entity: preferUsableTelemetryMatch([
+      coreCpuTemperature,
+      findDeviceEntityByPatterns(candidates, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]),
       findSystemStatEntity(candidates, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
-    memory_utilization_entity:
-      coreMemoryUtilization ||
-      findDeviceEntityByPatterns(candidates, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
+    ], hass),
+    memory_utilization_entity: preferUsableTelemetryMatch([
+      coreMemoryUtilization,
+      findDeviceEntityByPatterns(candidates, ["memory_utilization", "memory_usage", "ram_utilization"]),
       findSystemStatEntity(candidates, ["memory", "ram"], ["temperature", "temp", "slot"]),
-    temperature_entity:
-      coreDeviceTemperature ||
+    ], hass),
+    temperature_entity: preferUsableTelemetryMatch([
+      findHeaderTelemetryEntity(candidates, "temperature"),
+      findFallbackSubTemperatureEntity(candidates),
       findDeviceEntityByPatterns(
         candidates,
         ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
-      ) ||
+      ),
       findSystemStatEntity(
         candidates,
         ["temperature", "temp"],
         ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
       ),
+    ], hass),
   };
 }
 
