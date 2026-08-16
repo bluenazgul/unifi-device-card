@@ -2193,6 +2193,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     identity,
     capabilities,
     entities,
+    telemetry_entities: telemetryEntities.length > 0 ? telemetryEntities : entities,
     type,
     layout,
     specialPorts,

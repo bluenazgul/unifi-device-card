@@ -4,6 +4,7 @@ import {
   formatState,
   formatUptimeState,
   getDeviceContext,
+  getDeviceTelemetry,
   getPoeStatus,
   getPortSpeedText,
   hasTraffic,
@@ -230,9 +231,30 @@ class UnifiDeviceCard extends HTMLElement {
     this._hass = hass;
     this._ensureLoaded();
     this._log("trace", "hass update");
-    if (!previousHass || !this._ctx || this._hasRelevantStateChanges(previousHass, hass)) {
+    const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
+  }
+
+  _refreshTelemetrySelection(previousHass = null) {
+    const candidates = this._ctx?.telemetry_entities;
+    if (!Array.isArray(candidates) || !candidates.length) return false;
+    if (
+      previousHass &&
+      !candidates.some((entity) => previousHass.states?.[entity.entity_id] !== this._hass?.states?.[entity.entity_id])
+    ) {
+      return false;
+    }
+
+    const telemetry = getDeviceTelemetry(candidates, this._hass);
+    let changed = false;
+    for (const [key, entityId] of Object.entries(telemetry)) {
+      if (this._ctx[key] === entityId) continue;
+      this._ctx[key] = entityId;
+      changed = true;
+    }
+    return changed;
   }
 
   getCardSize() {
