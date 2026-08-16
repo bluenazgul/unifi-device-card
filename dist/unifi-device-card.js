@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.01-dev */
+/* UniFi Device Card 0.0.0-dev.6eaac2d */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1225,6 +1225,14 @@ var MODEL_REGISTRY = {
     ]
   }
 };
+function getFakeDevices() {
+  return Object.entries(MODEL_REGISTRY).map(([modelKey, model]) => ({
+    id: `fake:${modelKey}`,
+    label: model.displayModel,
+    model: model.displayModel,
+    type: model.kind
+  }));
+}
 function resolveModelKey(device) {
   const candidates = [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).map(normalizeModelKey);
   for (const candidate of candidates) {
@@ -2086,7 +2094,8 @@ function normalizePortsPerRowForCache(cardConfig) {
   return String(Math.floor(raw));
 }
 function getDeviceContextCacheKey(deviceId, cardConfig) {
-  return `${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
+  const source = cardConfig?.fake_device === true ? "fake" : "real";
+  return `${source}::${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
 }
 function getContextCacheStore(map, hass) {
   if (!map.has(hass)) map.set(hass, /* @__PURE__ */ new Map());
@@ -2623,7 +2632,8 @@ function getDeviceRebootEntity(entities) {
   }
   return null;
 }
-async function getUnifiDevices(hass) {
+async function getUnifiDevices(hass, cardConfig = null) {
+  if (cardConfig?.fake_device === true) return getFakeDevices();
   const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const results = [];
@@ -3258,6 +3268,52 @@ function filterPortsByLayout(discoveredPorts, layout) {
   return discoveredPorts.filter((port) => allowed.has(port.port));
 }
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
+  const isFakeDevice = String(deviceId).startsWith("fake:");
+  if (cardConfig?.fake_device === true && !isFakeDevice) return null;
+  if (isFakeDevice) {
+    if (cardConfig?.fake_device !== true) return null;
+    const modelKey = String(deviceId).slice(5);
+    const model = MODEL_REGISTRY[modelKey];
+    if (!model) return null;
+    let layout2 = getDeviceLayout({ model: modelKey });
+    const configuredPortsPerRow2 = Number.parseInt(cardConfig?.ports_per_row, 10);
+    if (Number.isFinite(configuredPortsPerRow2) && configuredPortsPerRow2 > 0) {
+      layout2 = applyPortsPerRowOverride(layout2, configuredPortsPerRow2);
+    }
+    const device2 = {
+      id: deviceId,
+      name: model.displayModel,
+      model: model.displayModel,
+      manufacturer: "Ubiquiti"
+    };
+    return {
+      device: device2,
+      identity: buildNormalizedDeviceIdentity(device2),
+      capabilities: {},
+      entities: [],
+      type: model.kind,
+      layout: layout2,
+      specialPorts: mergeSpecialsWithLayout(layout2, [], []),
+      numberedPorts: mergePortsWithLayout(layout2, []),
+      name: model.displayModel,
+      model: model.displayModel,
+      manufacturer: "Ubiquiti",
+      firmware: "",
+      online_entity: null,
+      led_switch_entity: null,
+      led_color_entity: null,
+      uptime_entity: null,
+      clients_entity: null,
+      ap_status_entity: null,
+      ap_uplink: null,
+      reboot_entity: null,
+      cpu_utilization_entity: null,
+      cpu_temperature_entity: null,
+      memory_utilization_entity: null,
+      temperature_entity: null,
+      fake_device: true
+    };
+  }
   const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   const device = devices.find((d) => d.id === deviceId);
@@ -5005,12 +5061,36 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
+    const prevFakeMode = this._config?.fake_device === true;
     this._config = config || {};
+    const nextFakeMode = this._config?.fake_device === true;
     this._syncDraftColors();
     const nextDeviceId = this._config?.device_id || "";
-    if (this._hass && nextDeviceId) {
+    if (prevFakeMode !== nextFakeMode) {
+      ++this._loadToken;
+      ++this._entityHintToken;
+      ++this._deviceCtxToken;
+      this._devices = [];
+      this._loaded = false;
+      this._loading = false;
+      this._entityHint = null;
+      this._entityHintLoading = false;
+      this._deviceCtx = null;
+      this._deviceCtxLoading = false;
+      this._lastHintDeviceId = null;
+      this._lastCtxDeviceId = null;
+      if (this._hass) this._loadDevices();
+    }
+    const selectionMatchesMode = nextFakeMode ? nextDeviceId.startsWith("fake:") : !nextDeviceId.startsWith("fake:");
+    if (this._hass && nextDeviceId && selectionMatchesMode) {
       if (nextDeviceId !== prevDeviceId) {
-        this._loadEntityHint(nextDeviceId);
+        ++this._entityHintToken;
+        ++this._deviceCtxToken;
+        this._entityHint = null;
+        this._deviceCtx = null;
+        this._lastHintDeviceId = null;
+        this._lastCtxDeviceId = null;
+        if (!nextFakeMode) this._loadEntityHint(nextDeviceId);
       }
       if (nextDeviceId !== prevDeviceId || !this._deviceCtx) {
         this._loadDeviceCtx(nextDeviceId);
@@ -5035,7 +5115,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     }
     const deviceId = this._config?.device_id || "";
     if (deviceId) {
-      if (deviceId !== this._lastHintDeviceId) {
+      if (this._config?.fake_device !== true && deviceId !== this._lastHintDeviceId) {
         this._loadEntityHint(deviceId);
       }
       if (deviceId !== this._lastCtxDeviceId || !this._deviceCtx) {
@@ -5093,7 +5173,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._render();
     const token = ++this._loadToken;
     try {
-      const devices = await getUnifiDevices(this._hass);
+      const devices = await getUnifiDevices(this._hass, this._config);
       if (token !== this._loadToken) return;
       this._devices = devices;
       this._loaded = true;
@@ -5132,9 +5212,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     try {
       const result = await getDeviceContext(this._hass, deviceId, this._config);
       if (token !== this._deviceCtxToken) return;
-      if (result) {
-        this._deviceCtx = result;
-      }
+      this._deviceCtx = result;
     } catch (err) {
       console.error("[unifi-device-card] failed to load device context for editor", err);
       if (token !== this._deviceCtxToken) return;
@@ -6137,7 +6215,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.01-dev";
+var VERSION = "0.0.0-dev.6eaac2d";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6280,6 +6358,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
+    const oldFakeMode = this._config?.fake_device === true;
     const newConfig = { ...config || {} };
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
@@ -6288,12 +6367,14 @@ var UnifiDeviceCard = class extends HTMLElement {
       delete newConfig.trust_link_speed_ports;
     }
     const newDeviceId = newConfig?.device_id || null;
+    const newFakeMode = newConfig?.fake_device === true;
     this._config = newConfig;
     this._log("info", "setConfig", {
       device_id: newDeviceId || null,
       log_level: this._configuredLogLevel()
     });
-    if (oldDeviceId !== newDeviceId) {
+    if (oldDeviceId !== newDeviceId || oldFakeMode !== newFakeMode) {
+      ++this._loadToken;
       this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
