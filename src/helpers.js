@@ -2013,7 +2013,10 @@ function filterPortsByLayout(discoveredPorts, layout) {
 }
 
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
-  if (String(deviceId).startsWith("fake:")) {
+  const isFakeDevice = String(deviceId).startsWith("fake:");
+  if (cardConfig?.fake_device === true && !isFakeDevice) return null;
+
+  if (isFakeDevice) {
     if (cardConfig?.fake_device !== true) return null;
     const modelKey = String(deviceId).slice(5);
     const model = MODEL_REGISTRY[modelKey];

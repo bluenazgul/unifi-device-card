@@ -275,7 +275,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
       this._loaded = false;
       this._loading = false;
       this._entityHint = null;
+      this._entityHintLoading = false;
       this._deviceCtx = null;
+      this._deviceCtxLoading = false;
       this._lastHintDeviceId = null;
       this._lastCtxDeviceId = null;
       if (this._hass) this._loadDevices();
