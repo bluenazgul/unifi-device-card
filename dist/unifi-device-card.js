@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.02-dev */
+/* UniFi Device Card 0.0.0-dev.4f71bbc */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3417,6 +3417,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     identity,
     capabilities,
     entities,
+    telemetry_entities: telemetryEntities.length > 0 ? telemetryEntities : entities,
     type,
     layout,
     specialPorts,
@@ -6250,7 +6251,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.02-dev";
+var VERSION = "0.0.0-dev.4f71bbc";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6428,9 +6429,25 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._hass = hass;
     this._ensureLoaded();
     this._log("trace", "hass update");
-    if (!previousHass || !this._ctx || this._hasRelevantStateChanges(previousHass, hass)) {
+    const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
+  }
+  _refreshTelemetrySelection(previousHass = null) {
+    const candidates = this._ctx?.telemetry_entities;
+    if (!Array.isArray(candidates) || !candidates.length) return false;
+    if (previousHass && !candidates.some((entity) => previousHass.states?.[entity.entity_id] !== this._hass?.states?.[entity.entity_id])) {
+      return false;
+    }
+    const telemetry = getDeviceTelemetry(candidates, this._hass);
+    let changed = false;
+    for (const [key, entityId] of Object.entries(telemetry)) {
+      if (this._ctx[key] === entityId) continue;
+      this._ctx[key] = entityId;
+      changed = true;
+    }
+    return changed;
   }
   getCardSize() {
     return this._cardSize || this._estimateCardSize();
