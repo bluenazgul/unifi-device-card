@@ -2,7 +2,9 @@ import {
   AP_MODEL_PREFIXES,
   applyPortsPerRowOverride,
   GATEWAY_MODEL_PREFIXES,
+  getFakeDevices,
   getDeviceLayout,
+  MODEL_REGISTRY,
   resolveModelKey,
   SWITCH_MODEL_PREFIXES,
 } from "./model-registry.js";
@@ -217,7 +219,8 @@ function normalizePortsPerRowForCache(cardConfig) {
 }
 
 function getDeviceContextCacheKey(deviceId, cardConfig) {
-  return `${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
+  const source = cardConfig?.fake_device === true ? "fake" : "real";
+  return `${source}::${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
 }
 
 function getContextCacheStore(map, hass) {
@@ -1036,7 +1039,9 @@ export function getDeviceRebootEntity(entities) {
 // Public: device list for editor
 // ─────────────────────────────────────────────────
 
-export async function getUnifiDevices(hass) {
+export async function getUnifiDevices(hass, cardConfig = null) {
+  if (cardConfig?.fake_device === true) return getFakeDevices();
+
   const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
@@ -2008,6 +2013,54 @@ function filterPortsByLayout(discoveredPorts, layout) {
 }
 
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
+  if (String(deviceId).startsWith("fake:")) {
+    if (cardConfig?.fake_device !== true) return null;
+    const modelKey = String(deviceId).slice(5);
+    const model = MODEL_REGISTRY[modelKey];
+    if (!model) return null;
+
+    let layout = getDeviceLayout({ model: modelKey });
+    const configuredPortsPerRow = Number.parseInt(cardConfig?.ports_per_row, 10);
+    if (Number.isFinite(configuredPortsPerRow) && configuredPortsPerRow > 0) {
+      layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
+    }
+
+    const device = {
+      id: deviceId,
+      name: model.displayModel,
+      model: model.displayModel,
+      manufacturer: "Ubiquiti",
+    };
+
+    return {
+      device,
+      identity: buildNormalizedDeviceIdentity(device),
+      capabilities: {},
+      entities: [],
+      type: model.kind,
+      layout,
+      specialPorts: mergeSpecialsWithLayout(layout, [], []),
+      numberedPorts: mergePortsWithLayout(layout, []),
+      name: model.displayModel,
+      model: model.displayModel,
+      manufacturer: "Ubiquiti",
+      firmware: "",
+      online_entity: null,
+      led_switch_entity: null,
+      led_color_entity: null,
+      uptime_entity: null,
+      clients_entity: null,
+      ap_status_entity: null,
+      ap_uplink: null,
+      reboot_entity: null,
+      cpu_utilization_entity: null,
+      cpu_temperature_entity: null,
+      memory_utilization_entity: null,
+      temperature_entity: null,
+      fake_device: true,
+    };
+  }
+
   const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 

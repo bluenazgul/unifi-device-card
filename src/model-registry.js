@@ -1004,6 +1004,15 @@ export const MODEL_REGISTRY = {
   },
 };
 
+export function getFakeDevices() {
+  return Object.entries(MODEL_REGISTRY).map(([modelKey, model]) => ({
+    id: `fake:${modelKey}`,
+    label: model.displayModel,
+    model: model.displayModel,
+    type: model.kind,
+  }));
+}
+
 export function validateModelLayoutEntry(key, entry) {
   const issues = [];
   const rows = Array.isArray(entry?.rows) ? entry.rows : [];

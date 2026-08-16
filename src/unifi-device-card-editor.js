@@ -261,13 +261,38 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
+    const prevFakeMode = this._config?.fake_device === true;
     this._config = config || {};
+    const nextFakeMode = this._config?.fake_device === true;
     this._syncDraftColors();
 
     const nextDeviceId = this._config?.device_id || "";
-    if (this._hass && nextDeviceId) {
+    if (prevFakeMode !== nextFakeMode) {
+      ++this._loadToken;
+      ++this._entityHintToken;
+      ++this._deviceCtxToken;
+      this._devices = [];
+      this._loaded = false;
+      this._loading = false;
+      this._entityHint = null;
+      this._deviceCtx = null;
+      this._lastHintDeviceId = null;
+      this._lastCtxDeviceId = null;
+      if (this._hass) this._loadDevices();
+    }
+
+    const selectionMatchesMode = nextFakeMode
+      ? nextDeviceId.startsWith("fake:")
+      : !nextDeviceId.startsWith("fake:");
+    if (this._hass && nextDeviceId && selectionMatchesMode) {
       if (nextDeviceId !== prevDeviceId) {
-        this._loadEntityHint(nextDeviceId);
+        ++this._entityHintToken;
+        ++this._deviceCtxToken;
+        this._entityHint = null;
+        this._deviceCtx = null;
+        this._lastHintDeviceId = null;
+        this._lastCtxDeviceId = null;
+        if (!nextFakeMode) this._loadEntityHint(nextDeviceId);
       }
       if (nextDeviceId !== prevDeviceId || !this._deviceCtx) {
         this._loadDeviceCtx(nextDeviceId);
@@ -295,7 +320,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const deviceId = this._config?.device_id || "";
     if (deviceId) {
-      if (deviceId !== this._lastHintDeviceId) {
+      if (this._config?.fake_device !== true && deviceId !== this._lastHintDeviceId) {
         this._loadEntityHint(deviceId);
       }
       if (deviceId !== this._lastCtxDeviceId || !this._deviceCtx) {
@@ -365,7 +390,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const token = ++this._loadToken;
     try {
-      const devices = await getUnifiDevices(this._hass);
+      const devices = await getUnifiDevices(this._hass, this._config);
       if (token !== this._loadToken) return;
       this._devices = devices;
       this._loaded = true;
@@ -413,9 +438,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       const result = await getDeviceContext(this._hass, deviceId, this._config);
       if (token !== this._deviceCtxToken) return;
 
-      if (result) {
-        this._deviceCtx = result;
-      }
+      this._deviceCtx = result;
     } catch (err) {
       console.error("[unifi-device-card] failed to load device context for editor", err);
       if (token !== this._deviceCtxToken) return;
