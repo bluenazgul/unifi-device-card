@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.02-dev */
+/* UniFi Device Card 0.0.0-dev.13cb45c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2366,25 +2366,60 @@ function classifyHeaderTelemetryWarningType(entity) {
   if (matchesHeaderTelemetryTarget(entity, "sub_temperature")) return "header_temperature";
   return null;
 }
-function getDeviceTelemetry(entities) {
-  const coreCpuUtilization = findHeaderTelemetryEntity(entities, "cpu_utilization");
-  const coreCpuTemperature = findHeaderTelemetryEntity(entities, "cpu_temperature");
-  const coreMemoryUtilization = findHeaderTelemetryEntity(entities, "memory_utilization");
-  const coreDeviceTemperature = findHeaderTelemetryEntity(entities, "temperature") || findFallbackSubTemperatureEntity(entities);
+function prioritizeAvailableTelemetryEntities(entities, hass) {
+  if (!hass?.states) return entities || [];
+  return (entities || []).map((entity, index) => {
+    const state = hass.states[entity?.entity_id];
+    const hasUsableState = !!state && state.state !== "unknown" && state.state !== "unavailable";
+    return { entity, index, hasUsableState };
+  }).sort(
+    (left, right) => Number(right.hasUsableState) - Number(left.hasUsableState) || left.index - right.index
+  ).map(({ entity }) => entity);
+}
+function preferUsableTelemetryMatch(entityIds, hass) {
+  const matches = entityIds.filter(Boolean);
+  if (!hass?.states) return matches[0] || null;
+  return matches.find((entityId) => {
+    const state = hass.states[entityId];
+    return state && state.state !== "unknown" && state.state !== "unavailable";
+  }) || matches[0] || null;
+}
+function getDeviceTelemetry(entities, hass = null) {
+  const candidates = prioritizeAvailableTelemetryEntities(entities, hass);
+  const coreCpuUtilization = findHeaderTelemetryEntity(candidates, "cpu_utilization");
+  const coreCpuTemperature = findHeaderTelemetryEntity(candidates, "cpu_temperature");
+  const coreMemoryUtilization = findHeaderTelemetryEntity(candidates, "memory_utilization");
   return {
-    cpu_utilization_entity: coreCpuUtilization || findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) || findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
-    cpu_temperature_entity: coreCpuTemperature || findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) || findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
-    memory_utilization_entity: coreMemoryUtilization || findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) || findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
-    temperature_entity: coreDeviceTemperature || findDeviceEntityByPatterns(
-      entities,
-      ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
-      (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
-    ) || findSystemStatEntity(
-      entities,
-      ["temperature", "temp"],
-      ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
-      (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
-    )
+    cpu_utilization_entity: preferUsableTelemetryMatch([
+      coreCpuUtilization,
+      findDeviceEntityByPatterns(candidates, ["cpu_utilization", "cpu_usage", "processor_utilization"]),
+      findSystemStatEntity(candidates, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"])
+    ], hass),
+    cpu_temperature_entity: preferUsableTelemetryMatch([
+      coreCpuTemperature,
+      findDeviceEntityByPatterns(candidates, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]),
+      findSystemStatEntity(candidates, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"])
+    ], hass),
+    memory_utilization_entity: preferUsableTelemetryMatch([
+      coreMemoryUtilization,
+      findDeviceEntityByPatterns(candidates, ["memory_utilization", "memory_usage", "ram_utilization"]),
+      findSystemStatEntity(candidates, ["memory", "ram"], ["temperature", "temp", "slot"])
+    ], hass),
+    temperature_entity: preferUsableTelemetryMatch([
+      findHeaderTelemetryEntity(candidates, "temperature"),
+      findFallbackSubTemperatureEntity(candidates),
+      findDeviceEntityByPatterns(
+        candidates,
+        ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
+        (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
+      ),
+      findSystemStatEntity(
+        candidates,
+        ["temperature", "temp"],
+        ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
+        (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
+      )
+    ], hass)
   };
 }
 function getDeviceOnlineEntity(entities) {
@@ -3374,7 +3409,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
-  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
+  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities, hass);
   const deviceStats = getDeviceStatEntities(entities);
   const apUplink = type === "access_point" ? resolveAccessPointUplink(hass, entities, devices) : null;
   return {
@@ -6215,7 +6250,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.02-dev";
+var VERSION = "0.0.0-dev.13cb45c";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
