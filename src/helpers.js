@@ -604,36 +604,52 @@ function classifyHeaderTelemetryWarningType(entity) {
   return null;
 }
 
-export function getDeviceTelemetry(entities) {
-  const coreCpuUtilization = findHeaderTelemetryEntity(entities, "cpu_utilization");
-  const coreCpuTemperature = findHeaderTelemetryEntity(entities, "cpu_temperature");
-  const coreMemoryUtilization = findHeaderTelemetryEntity(entities, "memory_utilization");
+function prioritizeAvailableTelemetryEntities(entities, hass) {
+  if (!hass?.states) return entities || [];
+
+  return (entities || [])
+    .map((entity, index) => {
+      const state = hass.states[entity?.entity_id];
+      const hasUsableState = !!state && state.state !== "unknown" && state.state !== "unavailable";
+      return { entity, index, hasUsableState };
+    })
+    .sort((left, right) =>
+      Number(right.hasUsableState) - Number(left.hasUsableState) || left.index - right.index
+    )
+    .map(({ entity }) => entity);
+}
+
+export function getDeviceTelemetry(entities, hass = null) {
+  const candidates = prioritizeAvailableTelemetryEntities(entities, hass);
+  const coreCpuUtilization = findHeaderTelemetryEntity(candidates, "cpu_utilization");
+  const coreCpuTemperature = findHeaderTelemetryEntity(candidates, "cpu_temperature");
+  const coreMemoryUtilization = findHeaderTelemetryEntity(candidates, "memory_utilization");
   const coreDeviceTemperature =
-    findHeaderTelemetryEntity(entities, "temperature") ||
-    findFallbackSubTemperatureEntity(entities);
+    findHeaderTelemetryEntity(candidates, "temperature") ||
+    findFallbackSubTemperatureEntity(candidates);
 
   return {
     cpu_utilization_entity:
       coreCpuUtilization ||
-      findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
-      findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
+      findDeviceEntityByPatterns(candidates, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
+      findSystemStatEntity(candidates, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
     cpu_temperature_entity:
       coreCpuTemperature ||
-      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) ||
-      findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
+      findDeviceEntityByPatterns(candidates, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) ||
+      findSystemStatEntity(candidates, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
     memory_utilization_entity:
       coreMemoryUtilization ||
-      findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
-      findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
+      findDeviceEntityByPatterns(candidates, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
+      findSystemStatEntity(candidates, ["memory", "ram"], ["temperature", "temp", "slot"]),
     temperature_entity:
       coreDeviceTemperature ||
       findDeviceEntityByPatterns(
-        entities,
+        candidates,
         ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
       ) ||
       findSystemStatEntity(
-        entities,
+        candidates,
         ["temperature", "temp"],
         ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
@@ -2154,7 +2170,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
-  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
+  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities, hass);
   const deviceStats = getDeviceStatEntities(entities);
   const apUplink = type === "access_point"
     ? resolveAccessPointUplink(hass, entities, devices)
