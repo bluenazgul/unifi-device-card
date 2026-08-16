@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.8.01-dev]
+## [v0.8.02-dev]
 
 ### 🐛 Bug Fixes
 - Allow genuine 10 Mbit/s RJ45 connections to opt out of ghost-link protection on selected ports through `trust_link_speed_ports` and the card editor, with consistent link status text throughout the card.
