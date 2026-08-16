@@ -192,6 +192,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
+    const oldFakeMode = this._config?.fake_device === true;
     const newConfig = { ...(config || {}) };
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
@@ -200,13 +201,15 @@ class UnifiDeviceCard extends HTMLElement {
       delete newConfig.trust_link_speed_ports;
     }
     const newDeviceId = newConfig?.device_id || null;
+    const newFakeMode = newConfig?.fake_device === true;
     this._config = newConfig;
     this._log("info", "setConfig", {
       device_id: newDeviceId || null,
       log_level: this._configuredLogLevel(),
     });
 
-    if (oldDeviceId !== newDeviceId) {
+    if (oldDeviceId !== newDeviceId || oldFakeMode !== newFakeMode) {
+      ++this._loadToken;
       this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
