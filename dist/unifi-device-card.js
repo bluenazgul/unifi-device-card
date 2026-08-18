@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.03-dev */
+/* UniFi Device Card 0.0.0-dev.9a23339 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -6251,7 +6251,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.03-dev";
+var VERSION = "0.0.0-dev.9a23339";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7810,9 +7810,9 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .ap-5g-device {
         width: calc(132px * var(--udc-ap-scale));
-        height: calc(320px * var(--udc-ap-scale));
-        aspect-ratio: auto;
-        border-radius: calc(32px * var(--udc-ap-scale));
+        height: auto;
+        aspect-ratio: 132 / 320;
+        border-radius: 24.24% / 10%;
         background: linear-gradient(90deg, #383b3e 0 13%, #f7f8f8 13% 87%, #383b3e 87% 100%);
         box-shadow:
           inset 11px 0 14px rgba(255,255,255,.5),
@@ -7820,12 +7820,13 @@ var UnifiDeviceCard = class extends HTMLElement {
           0 16px 28px rgba(0,0,0,.24);
         position: relative;
         overflow: hidden;
+        container-type: inline-size;
       }
 
       .ap-5g-face {
         position: absolute;
         inset: 0 15%;
-        border-radius: calc(24px * var(--udc-ap-scale));
+        border-radius: 18.18cqw;
         background: linear-gradient(90deg, #f2f4f4 0%, #ffffff 44%, #eff2f2 100%);
         box-shadow:
           inset 8px 0 14px rgba(255,255,255,.68),
@@ -7839,7 +7840,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         width: 44%;
         aspect-ratio: .74 / 1;
         transform: translate(-50%, -50%);
-        border-radius: calc(7px * var(--udc-ap-scale));
+        border-radius: 5.3cqw;
         background: linear-gradient(180deg, #071128 0%, #0d1733 64%, #07101f 100%);
         box-shadow:
           inset 0 1px 0 rgba(255,255,255,.22),
@@ -7847,8 +7848,8 @@ var UnifiDeviceCard = class extends HTMLElement {
         color: #eaf3ff;
         display: grid;
         grid-template-rows: auto auto 1fr auto;
-        gap: calc(4px * var(--udc-ap-scale));
-        padding: calc(6px * var(--udc-ap-scale));
+        gap: 3.03cqw;
+        padding: 4.55cqw;
         font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         font-weight: 700;
         line-height: 1;
@@ -7856,15 +7857,15 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-5g-display-top {
-        font-size: calc(13px * var(--udc-ap-scale));
+        font-size: 9.85cqw;
       }
 
       .ap-5g-bars {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         align-items: end;
-        gap: calc(1px * var(--udc-ap-scale));
-        height: calc(18px * var(--udc-ap-scale));
+        gap: .76cqw;
+        height: 13.64cqw;
       }
 
       .ap-5g-bars span {
@@ -7887,8 +7888,15 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .ap-5g-uptime {
         color: #c6d8ed;
-        font-size: calc(6px * var(--udc-ap-scale));
+        display: grid;
+        gap: .76cqw;
+        font-size: 3.79cqw;
+        line-height: 1;
         text-align: center;
+      }
+
+      .ap-5g-uptime-value {
+        color: #eaf3ff;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -7897,20 +7905,20 @@ var UnifiDeviceCard = class extends HTMLElement {
       .ap-5g-metrics {
         align-self: end;
         display: grid;
-        gap: calc(3px * var(--udc-ap-scale));
+        gap: 2.27cqw;
       }
 
       .ap-5g-metric {
         display: grid;
-        grid-template-columns: calc(13px * var(--udc-ap-scale)) 1fr;
+        grid-template-columns: 9.85cqw 1fr;
         align-items: center;
-        gap: calc(3px * var(--udc-ap-scale));
+        gap: 2.27cqw;
         color: #c6d8ed;
-        font-size: calc(5px * var(--udc-ap-scale));
+        font-size: 3.79cqw;
       }
 
       .ap-5g-meter {
-        height: calc(4px * var(--udc-ap-scale));
+        height: 3.03cqw;
         border-radius: 999px;
         background: rgba(255,255,255,.18);
         overflow: hidden;
@@ -7934,7 +7942,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         top: 78%;
         transform: translateX(-50%);
         color: rgba(210,215,218,.58);
-        font-size: calc(10px * var(--udc-ap-scale));
+        font-size: 7.58cqw;
         white-space: nowrap;
       }
 
@@ -8684,7 +8692,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
                 <div class="ap-5g-display">
                   <div class="ap-5g-display-top">5G</div>
                   <div class="ap-5g-bars">${[1, 2, 3, 4, 5].map((bar) => `<span class="${bar <= 4 ? "" : "inactive"}"></span>`).join("")}</div>
-                  <div class="ap-5g-uptime">${this._escapeHtml(`${this._t("uptime")} ${fiveGDisplay.uptime}`)}</div>
+                  <div class="ap-5g-uptime">
+                    <span>${this._escapeHtml(`${this._t("uptime")}:`)}</span>
+                    <span class="ap-5g-uptime-value">${this._escapeHtml(fiveGDisplay.uptime)}</span>
+                  </div>
                   <div class="ap-5g-metrics">
                     <div class="ap-5g-metric"><span>CPU</span><div class="ap-5g-meter"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.cpuBar}%`)}"></span></div></div>
                     <div class="ap-5g-metric"><span>RAM</span><div class="ap-5g-meter memory"><span style="--ap-5g-meter-value: ${this._escapeAttr(`${fiveGDisplay.memoryBar}%`)}"></span></div></div>
