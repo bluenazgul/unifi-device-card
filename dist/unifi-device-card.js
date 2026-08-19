@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.04-dev */
+/* UniFi Device Card 0.0.0-dev.c6fa075 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -116,9 +116,12 @@ var MODEL_REGISTRY = {
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall", { frontStyle: "ap-in-wall" }),
-  U7IW: apModel("U7 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  U7LR: apModel("U7 LR"),
-  U7MSH: apModel("U7 Mesh", { frontStyle: "ap-mesh-column" }),
+  U7IW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  U7LR: apModel("UAP AC LR"),
+  U7MSH: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
+  G7LR: apModel("U7 LR"),
+  UAPA6A5: apModel("U7 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  U7MESH: apModel("U7 Mesh", { frontStyle: "ap-mesh-column" }),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
@@ -1301,12 +1304,12 @@ function resolveModelKey(device) {
     if (candidate.includes("U6MESHPRO")) return "U6MESHPRO";
     if (candidate.includes("U7MP")) return "UAPACMPRO";
     if (candidate.includes("U7IW")) return "U7IW";
-    if (candidate.includes("U7INWALL")) return "U7IW";
-    if (candidate.includes("UAPA6A5")) return "U7IW";
-    if (candidate.includes("G7LR")) return "U7LR";
+    if (candidate.includes("U7INWALL")) return "UAPA6A5";
+    if (candidate.includes("UAPA6A5")) return "UAPA6A5";
+    if (candidate.includes("G7LR")) return "G7LR";
     if (candidate.includes("U7LR")) return "U7LR";
     if (candidate.includes("U7MSH")) return "U7MSH";
-    if (candidate.includes("U7MESH")) return "U7MSH";
+    if (candidate.includes("U7MESH")) return "U7MESH";
     if (candidate.includes("U7LITE")) return "U7LITE";
     if (candidate.includes("U7ULTRA")) return "U7LITE";
     if (candidate.includes("U7UKU")) return "UKULTRA";
@@ -6251,7 +6254,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.04-dev";
+var VERSION = "0.0.0-dev.c6fa075";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
