@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.7b18063 */
+/* UniFi Device Card 0.0.0-dev.e0c42e5 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1255,8 +1255,8 @@ function resolveModelKey(device) {
     if (candidate === "U5O") return "UAPOUTDOOR5";
     if (candidate.includes("UAPLR")) return "UAPLR";
     if (candidate.includes("UAPPRO")) return "UAPPRO";
+    if (candidate.includes("UAPACMESHPRO") || candidate.includes("UAPACMPRO")) return "UAPACMPRO";
     if (candidate.includes("UAPACMESH")) return "UAPACM";
-    if (candidate.includes("UAPACMPRO")) return "UAPACMPRO";
     if (candidate.includes("UAPACM")) return "UAPACM";
     if (candidate.includes("UAPACLR")) return "UAPACLR";
     if (candidate.includes("UAPACLITE")) return "UAPACLITE";
@@ -1333,7 +1333,7 @@ function resolveModelKey(device) {
     if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
     if (candidate.includes("UDBPROSECTOR") || candidate.includes("DEVICEBRIDGEPROSECTOR")) return "UDBPROSECTOR";
     if (candidate.includes("UDBPRO") || candidate.includes("DEVICEBRIDGEPRO")) return "UDBPRO";
-    if (candidate.includes("UDBSWITCH")) return "UDBSWITCH";
+    if (candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBSWITCH";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
@@ -6251,7 +6251,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.7b18063";
+var VERSION = "0.0.0-dev.e0c42e5";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;

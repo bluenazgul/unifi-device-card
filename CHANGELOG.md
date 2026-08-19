@@ -4,6 +4,8 @@
 
 ### 🐛 Bug Fixes
 - Fix the UniFi 5G device display content scaling when compact AP cards are narrowed, and place its uptime value below the label so it fits the display.
+- Resolve the descriptive `UAP AC Mesh Pro` model name before the broader AC Mesh alias so it keeps the outdoor-panel design.
+- Resolve the descriptive `Device Bridge Switch` model name to `UDBSWITCH` instead of falling through to the base Device Bridge enclosure.
 
 ### ✨ Improvements
 - Render confirmed non-round AP, mesh, extender, outdoor panel, sector, and bridge models with reusable scalable HTML/CSS enclosure families while retaining the round fallback for unknown APs.

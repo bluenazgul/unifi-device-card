@@ -1103,8 +1103,8 @@ export function resolveModelKey(device) {
     if (candidate === "U5O")                      return "UAPOUTDOOR5";
     if (candidate.includes("UAPLR"))              return "UAPLR";
     if (candidate.includes("UAPPRO"))             return "UAPPRO";
+    if (candidate.includes("UAPACMESHPRO") || candidate.includes("UAPACMPRO")) return "UAPACMPRO";
     if (candidate.includes("UAPACMESH"))          return "UAPACM";
-    if (candidate.includes("UAPACMPRO"))          return "UAPACMPRO";
     if (candidate.includes("UAPACM"))             return "UAPACM";
     if (candidate.includes("UAPACLR"))            return "UAPACLR";
     if (candidate.includes("UAPACLITE"))          return "UAPACLITE";
@@ -1181,7 +1181,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
     if (candidate.includes("UDBPROSECTOR") || candidate.includes("DEVICEBRIDGEPROSECTOR")) return "UDBPROSECTOR";
     if (candidate.includes("UDBPRO") || candidate.includes("DEVICEBRIDGEPRO")) return "UDBPRO";
-    if (candidate.includes("UDBSWITCH"))          return "UDBSWITCH";
+    if (candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBSWITCH";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
