@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.8.03-dev]
+## [v0.8.04-dev]
 
 ### 🐛 Bug Fixes
 - Fix the UniFi 5G device display content scaling when compact AP cards are narrowed, and place its uptime value below the label so it fits the display.
