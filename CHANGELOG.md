@@ -3,6 +3,7 @@
 ## [v0.8.04-dev]
 
 ### 🐛 Bug Fixes
+- Correct the legacy UniFi board identifiers `U7LR`, `U7IW`, and `U7MSH` to UAP AC LR, UAP AC In-Wall, and UAP AC Mesh, while keeping the current U7 LR (`G7LR`), U7 In-Wall (`UAPA6A5`), and descriptive U7 Mesh model on their own designs.
 - Fix the UniFi 5G device display content scaling when compact AP cards are narrowed, and place its uptime value below the label so it fits the display.
 - Resolve the descriptive `UAP AC Mesh Pro` model name before the broader AC Mesh alias so it keeps the outdoor-panel design.
 - Resolve the descriptive `Device Bridge Switch` model name to `UDBSWITCH` instead of falling through to the base Device Bridge enclosure.
