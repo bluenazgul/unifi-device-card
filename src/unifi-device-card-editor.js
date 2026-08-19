@@ -195,7 +195,7 @@ function normalizeSpecialPortNumbers(value) {
   if (!Array.isArray(value)) return [];
 
   const normalized = value
-    .map((entry) => Number.parseInt(entry, 10))
+    .map((entry) => Number(entry))
     .filter((num) => Number.isInteger(num) && num > 0);
 
   return Array.from(new Set(normalized)).sort((a, b) => a - b);
@@ -261,13 +261,40 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
+    const prevFakeMode = this._config?.fake_device === true;
     this._config = config || {};
+    const nextFakeMode = this._config?.fake_device === true;
     this._syncDraftColors();
 
     const nextDeviceId = this._config?.device_id || "";
-    if (this._hass && nextDeviceId) {
+    if (prevFakeMode !== nextFakeMode) {
+      ++this._loadToken;
+      ++this._entityHintToken;
+      ++this._deviceCtxToken;
+      this._devices = [];
+      this._loaded = false;
+      this._loading = false;
+      this._entityHint = null;
+      this._entityHintLoading = false;
+      this._deviceCtx = null;
+      this._deviceCtxLoading = false;
+      this._lastHintDeviceId = null;
+      this._lastCtxDeviceId = null;
+      if (this._hass) this._loadDevices();
+    }
+
+    const selectionMatchesMode = nextFakeMode
+      ? nextDeviceId.startsWith("fake:")
+      : !nextDeviceId.startsWith("fake:");
+    if (this._hass && nextDeviceId && selectionMatchesMode) {
       if (nextDeviceId !== prevDeviceId) {
-        this._loadEntityHint(nextDeviceId);
+        ++this._entityHintToken;
+        ++this._deviceCtxToken;
+        this._entityHint = null;
+        this._deviceCtx = null;
+        this._lastHintDeviceId = null;
+        this._lastCtxDeviceId = null;
+        if (!nextFakeMode) this._loadEntityHint(nextDeviceId);
       }
       if (nextDeviceId !== prevDeviceId || !this._deviceCtx) {
         this._loadDeviceCtx(nextDeviceId);
@@ -295,7 +322,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const deviceId = this._config?.device_id || "";
     if (deviceId) {
-      if (deviceId !== this._lastHintDeviceId) {
+      if (this._config?.fake_device !== true && deviceId !== this._lastHintDeviceId) {
         this._loadEntityHint(deviceId);
       }
       if (deviceId !== this._lastCtxDeviceId || !this._deviceCtx) {
@@ -365,7 +392,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     const token = ++this._loadToken;
     try {
-      const devices = await getUnifiDevices(this._hass);
+      const devices = await getUnifiDevices(this._hass, this._config);
       if (token !== this._loadToken) return;
       this._devices = devices;
       this._loaded = true;
@@ -413,9 +440,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       const result = await getDeviceContext(this._hass, deviceId, this._config);
       if (token !== this._deviceCtxToken) return;
 
-      if (result) {
-        this._deviceCtx = result;
-      }
+      this._deviceCtx = result;
     } catch (err) {
       console.error("[unifi-device-card] failed to load device context for editor", err);
       if (token !== this._deviceCtxToken) return;
@@ -470,6 +495,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (hasManualWanSelection) next.edit_special_ports = true;
     next.custom_special_ports = normalizeSpecialPortNumbers(next.custom_special_ports);
     if (!next.custom_special_ports.length) delete next.custom_special_ports;
+    next.trust_link_speed_ports = normalizeSpecialPortNumbers(next.trust_link_speed_ports);
+    if (!next.trust_link_speed_ports.length) delete next.trust_link_speed_ports;
     next.special_ports = normalizeSpecialPortNumbers(next.special_ports);
     if (
       !next.special_ports.length &&
@@ -531,6 +558,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       custom_special_ports: undefined,
       special_ports: undefined,
       edit_special_ports: undefined,
+      trust_link_speed_ports: undefined,
       ports_per_row: nextDevice?.type === "gateway" ? undefined : this._config?.ports_per_row,
       device_layout: undefined,
       integrated_ports: undefined,
@@ -773,6 +801,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._emitConfig({
       special_ports: normalizeSpecialPortNumbers(next),
     });
+  }
+
+  _onTrustLinkSpeedPortToggle(ev) {
+    const button = ev.target?.closest?.("[data-port]");
+    if (!button) return;
+
+    const port = Number(button.dataset.port);
+    if (!Number.isInteger(port) || port < 1) return;
+
+    const current = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
+    const next = current.includes(port)
+      ? current.filter((entry) => entry !== port)
+      : [...current, port];
+    this._emitConfig({ trust_link_speed_ports: next });
   }
 
   _warningItems() {
@@ -1254,6 +1296,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       new Set([...collectLayoutPorts(this._deviceCtx?.layout), ...discoveredPorts])
     ).sort((a, b) => a - b);
     const customSpecialPortOptions = selectableSpecialPorts;
+    const selectedTrustedLinkSpeedPorts = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
     const selectedSpecialPorts = editSpecialPorts
       ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
@@ -1341,6 +1384,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <label>${escapeHtml(this._t("editor_port_size_label"))}: ${escapeHtml(portSize)}px</label>
           <input id="port_size" type="range" min="24" max="52" step="1" value="${escapeAttr(portSize)}">
           <div class="hint">${escapeHtml(this._t("editor_port_size_hint"))}</div>
+        </div>` : ""}
+
+        ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_trust_link_speed_ports_label"))}</label>
+          <div id="trust_link_speed_ports_list" class="port-toggle-list">
+            ${selectableSpecialPorts
+              .map((port) => `<button type="button" class="port-toggle ${selectedTrustedLinkSpeedPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`)
+              .join("")}
+          </div>
+          <div class="hint">${escapeHtml(this._t("editor_trust_link_speed_ports_hint"))}</div>
         </div>` : ""}
 
         ${supportsLayoutSelection ? `
@@ -1536,6 +1590,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
     this.shadowRoot.getElementById("special_ports_list")
       ?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
+    this.shadowRoot.getElementById("trust_link_speed_ports_list")
+      ?.addEventListener("click", (ev) => this._onTrustLinkSpeedPortToggle(ev));
 
     this.shadowRoot.getElementById("open_color_editor")
       ?.addEventListener("click", () => this._onOpenColorStep());

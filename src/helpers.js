@@ -2,7 +2,9 @@ import {
   AP_MODEL_PREFIXES,
   applyPortsPerRowOverride,
   GATEWAY_MODEL_PREFIXES,
+  getFakeDevices,
   getDeviceLayout,
+  MODEL_REGISTRY,
   resolveModelKey,
   SWITCH_MODEL_PREFIXES,
 } from "./model-registry.js";
@@ -26,6 +28,14 @@ function normalize(value) {
 
 function lower(value) {
   return normalize(value).toLowerCase();
+}
+
+export function normalizePositivePortNumbers(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value
+    .map((entry) => Number(entry))
+    .filter((port) => Number.isInteger(port) && port > 0)))
+    .sort((a, b) => a - b);
 }
 
 function entityText(entity) {
@@ -209,7 +219,8 @@ function normalizePortsPerRowForCache(cardConfig) {
 }
 
 function getDeviceContextCacheKey(deviceId, cardConfig) {
-  return `${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
+  const source = cardConfig?.fake_device === true ? "fake" : "real";
+  return `${source}::${deviceId}::${normalizePortsPerRowForCache(cardConfig) || "auto"}`;
 }
 
 function getContextCacheStore(map, hass) {
@@ -593,40 +604,68 @@ function classifyHeaderTelemetryWarningType(entity) {
   return null;
 }
 
-export function getDeviceTelemetry(entities) {
-  const coreCpuUtilization = findHeaderTelemetryEntity(entities, "cpu_utilization");
-  const coreCpuTemperature = findHeaderTelemetryEntity(entities, "cpu_temperature");
-  const coreMemoryUtilization = findHeaderTelemetryEntity(entities, "memory_utilization");
-  const coreDeviceTemperature =
-    findHeaderTelemetryEntity(entities, "temperature") ||
-    findFallbackSubTemperatureEntity(entities);
+function prioritizeAvailableTelemetryEntities(entities, hass) {
+  if (!hass?.states) return entities || [];
+
+  return (entities || [])
+    .map((entity, index) => {
+      const state = hass.states[entity?.entity_id];
+      const hasUsableState = !!state && state.state !== "unknown" && state.state !== "unavailable";
+      return { entity, index, hasUsableState };
+    })
+    .sort((left, right) =>
+      Number(right.hasUsableState) - Number(left.hasUsableState) || left.index - right.index
+    )
+    .map(({ entity }) => entity);
+}
+
+function preferUsableTelemetryMatch(entityIds, hass) {
+  const matches = entityIds.filter(Boolean);
+  if (!hass?.states) return matches[0] || null;
+
+  return matches.find((entityId) => {
+    const state = hass.states[entityId];
+    return state && state.state !== "unknown" && state.state !== "unavailable";
+  }) || matches[0] || null;
+}
+
+export function getDeviceTelemetry(entities, hass = null) {
+  const candidates = prioritizeAvailableTelemetryEntities(entities, hass);
+  const coreCpuUtilization = findHeaderTelemetryEntity(candidates, "cpu_utilization");
+  const coreCpuTemperature = findHeaderTelemetryEntity(candidates, "cpu_temperature");
+  const coreMemoryUtilization = findHeaderTelemetryEntity(candidates, "memory_utilization");
 
   return {
-    cpu_utilization_entity:
-      coreCpuUtilization ||
-      findDeviceEntityByPatterns(entities, ["cpu_utilization", "cpu_usage", "processor_utilization"]) ||
-      findSystemStatEntity(entities, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
-    cpu_temperature_entity:
-      coreCpuTemperature ||
-      findDeviceEntityByPatterns(entities, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]) ||
-      findSystemStatEntity(entities, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
-    memory_utilization_entity:
-      coreMemoryUtilization ||
-      findDeviceEntityByPatterns(entities, ["memory_utilization", "memory_usage", "ram_utilization"]) ||
-      findSystemStatEntity(entities, ["memory", "ram"], ["temperature", "temp", "slot"]),
-    temperature_entity:
-      coreDeviceTemperature ||
+    cpu_utilization_entity: preferUsableTelemetryMatch([
+      coreCpuUtilization,
+      findDeviceEntityByPatterns(candidates, ["cpu_utilization", "cpu_usage", "processor_utilization"]),
+      findSystemStatEntity(candidates, ["cpu"], ["temperature", "temp", "clock", "frequency", "fan"]),
+    ], hass),
+    cpu_temperature_entity: preferUsableTelemetryMatch([
+      coreCpuTemperature,
+      findDeviceEntityByPatterns(candidates, ["cpu_temperature", "processor_temperature", "temperature_cpu", "temperature-cpu"]),
+      findSystemStatEntity(candidates, ["cpu_temp", "cpu_temperature", "processor_temperature", "temperature_cpu", "cpu"], ["utilization", "usage", "clock", "frequency"]),
+    ], hass),
+    memory_utilization_entity: preferUsableTelemetryMatch([
+      coreMemoryUtilization,
+      findDeviceEntityByPatterns(candidates, ["memory_utilization", "memory_usage", "ram_utilization"]),
+      findSystemStatEntity(candidates, ["memory", "ram"], ["temperature", "temp", "slot"]),
+    ], hass),
+    temperature_entity: preferUsableTelemetryMatch([
+      findHeaderTelemetryEntity(candidates, "temperature"),
+      findFallbackSubTemperatureEntity(candidates),
       findDeviceEntityByPatterns(
-        entities,
+        candidates,
         ["device_temperature", "system_temperature", "board_temperature", "chassis_temperature"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
-      ) ||
+      ),
       findSystemStatEntity(
-        entities,
+        candidates,
         ["temperature", "temp"],
         ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
       ),
+    ], hass),
   };
 }
 
@@ -1028,7 +1067,9 @@ export function getDeviceRebootEntity(entities) {
 // Public: device list for editor
 // ─────────────────────────────────────────────────
 
-export async function getUnifiDevices(hass) {
+export async function getUnifiDevices(hass, cardConfig = null) {
+  if (cardConfig?.fake_device === true) return getFakeDevices();
+
   const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
@@ -2000,6 +2041,57 @@ function filterPortsByLayout(discoveredPorts, layout) {
 }
 
 async function buildDeviceContext(hass, deviceId, cardConfig = null) {
+  const isFakeDevice = String(deviceId).startsWith("fake:");
+  if (cardConfig?.fake_device === true && !isFakeDevice) return null;
+
+  if (isFakeDevice) {
+    if (cardConfig?.fake_device !== true) return null;
+    const modelKey = String(deviceId).slice(5);
+    const model = MODEL_REGISTRY[modelKey];
+    if (!model) return null;
+
+    let layout = getDeviceLayout({ model: modelKey });
+    const configuredPortsPerRow = Number.parseInt(cardConfig?.ports_per_row, 10);
+    if (Number.isFinite(configuredPortsPerRow) && configuredPortsPerRow > 0) {
+      layout = applyPortsPerRowOverride(layout, configuredPortsPerRow);
+    }
+
+    const device = {
+      id: deviceId,
+      name: model.displayModel,
+      model: model.displayModel,
+      manufacturer: "Ubiquiti",
+    };
+
+    return {
+      device,
+      identity: buildNormalizedDeviceIdentity(device),
+      capabilities: {},
+      entities: [],
+      type: model.kind,
+      layout,
+      specialPorts: mergeSpecialsWithLayout(layout, [], []),
+      numberedPorts: mergePortsWithLayout(layout, []),
+      name: model.displayModel,
+      model: model.displayModel,
+      manufacturer: "Ubiquiti",
+      firmware: "",
+      online_entity: null,
+      led_switch_entity: null,
+      led_color_entity: null,
+      uptime_entity: null,
+      clients_entity: null,
+      ap_status_entity: null,
+      ap_uplink: null,
+      reboot_entity: null,
+      cpu_utilization_entity: null,
+      cpu_temperature_entity: null,
+      memory_utilization_entity: null,
+      temperature_entity: null,
+      fake_device: true,
+    };
+  }
+
   const { devices, entitiesByDevice, allEntitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
@@ -2090,7 +2182,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const numberedPorts = filterPortsByLayout(discoveredPortsRaw, layout);
   const specialPorts = discoverSpecialPorts(entities);
   const telemetryEntities = allEntities.filter((entity) => !entity?.disabled_by);
-  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities);
+  const telemetry = getDeviceTelemetry(telemetryEntities.length > 0 ? telemetryEntities : entities, hass);
   const deviceStats = getDeviceStatEntities(entities);
   const apUplink = type === "access_point"
     ? resolveAccessPointUplink(hass, entities, devices)
@@ -2101,6 +2193,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     identity,
     capabilities,
     entities,
+    telemetry_entities: telemetryEntities.length > 0 ? telemetryEntities : entities,
     type,
     layout,
     specialPorts,
@@ -2368,7 +2461,7 @@ export function isSfpLikePort(port) {
   return text.includes("sfp") || text.includes("10g");
 }
 
-export function isPortConnected(hass, port) {
+export function isPortConnected(hass, port, { trustLowSpeedLink = false } = {}) {
   if (port.link_entity) {
     const s = lower(stateValue(hass, port.link_entity));
     if (["on", "true", "connected", "up", "active"].includes(s)) return true;
@@ -2404,7 +2497,7 @@ export function isPortConnected(hass, port) {
       // Some setups report persistent 10 Mbit on idle/disconnected copper ports.
       // If no explicit link sensor exists and we have neither traffic, clients, nor PoE activity,
       // treat 10 Mbit as not connected to avoid false "up" LEDs.
-      if (!isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
+      if (!trustLowSpeedLink && !isSfpLikePort(port) && !port?.link_entity && speedMbit <= 10) {
         const hasActiveTraffic = hasTraffic(hass, port);
         const clientCount = portObservedClientCount(hass, port);
         const poeActive = getPoeStatus(hass, port).active;
