@@ -1,12 +1,17 @@
 # Changelog
 
-## [v0.8.04-dev]
+## [v0.8.1]
 
 ### 🐛 Bug Fixes
 - Correct the legacy UniFi board identifiers `U7LR`, `U7IW`, and `U7MSH` to UAP AC LR, UAP AC In-Wall, and UAP AC Mesh, while keeping the current U7 LR (`G7LR`), U7 In-Wall (`UAPA6A5`), and descriptive U7 Mesh model on their own designs.
 - Fix the UniFi 5G device display content scaling when compact AP cards are narrowed, and place its uptime value below the label so it fits the display.
 - Resolve the descriptive `UAP AC Mesh Pro` model name before the broader AC Mesh alias so it keeps the outdoor-panel design.
 - Resolve the descriptive `Device Bridge Switch` model name to `UDBSWITCH` instead of falling through to the base Device Bridge enclosure.
+- Re-evaluate duplicate telemetry sensors as Home Assistant states change instead of keeping an unavailable sensor selected from the initial card load.
+- Prefer the UniFi telemetry entity with a currently usable Home Assistant state when duplicate registry candidates exist.
+- Allow genuine 10 Mbit/s RJ45 connections to opt out of ghost-link protection on selected ports through `trust_link_speed_ports` and the card editor, with consistent link status text throughout the card.
+- Recognize the U7 Outdoor (`UKPW`) and U7 Pro Outdoor (`UAPA6B0`) controller identifiers and render both devices with a dedicated outdoor enclosure and lower status LED.
+- Map additional raw UniFi AP identifiers for the UAP XG, nanoHD, AC Mesh Pro, U6 Mesh, U7 In-Wall, U7 Pro XGS, E7 Campus, and BaseStation XG to their existing device layouts.
 
 ### ✨ Improvements
 - Render confirmed non-round AP, mesh, extender, outdoor panel, sector, and bridge models with reusable scalable HTML/CSS enclosure families while retaining the round fallback for unknown APs.
@@ -29,14 +34,22 @@
 - Keep every new shaped AP enclosure fully visible in normal and compact layouts, including external antennas and tall device bodies.
 - Apply the existing AP size setting (`ap_scale`, 25–140%) consistently to every new shaped design in both normal and compact layouts, matching the `ap-disc` behavior.
 
-## [v0.8.02-dev]
 
-### 🐛 Bug Fixes
-- Re-evaluate duplicate telemetry sensors as Home Assistant states change instead of keeping an unavailable sensor selected from the initial card load.
-- Prefer the UniFi telemetry entity with a currently usable Home Assistant state when duplicate registry candidates exist.
-- Allow genuine 10 Mbit/s RJ45 connections to opt out of ghost-link protection on selected ports through `trust_link_speed_ports` and the card editor, with consistent link status text throughout the card.
-- Recognize the U7 Outdoor (`UKPW`) and U7 Pro Outdoor (`UAPA6B0`) controller identifiers and render both devices with a dedicated outdoor enclosure and lower status LED.
-- Map additional raw UniFi AP identifiers for the UAP XG, nanoHD, AC Mesh Pro, U6 Mesh, U7 In-Wall, U7 Pro XGS, E7 Campus, and BaseStation XG to their existing device layouts.
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
 
 ## [v0.8.0]
 
