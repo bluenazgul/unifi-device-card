@@ -171,8 +171,24 @@ If you like this project and want to support my work, you can donate via PayPal.
 
 | Design | Explicitly recognized models | Display behavior |
 |---|---|---|
-| Round AP | UAP, UAP-LR, UAP-Outdoor5, UAP-Pro, UAP AC/Lite/LR/Pro, UAP AC Mesh/Mesh Pro, nanoHD, HD, XG, SHD, FlexHD, BeaconHD, U6 Lite/LR/Pro/Plus/Mesh/Enterprise/Mesh Pro, U7 Pro/Pro Max/LR/Mesh/Lite/Outdoor/Pro XG/Pro XGS/Pro Outdoor/Enterprise, E7/Campus/Audience, UK Ultra, UBB/UBB XG, U-AirWire, Device Bridge family, UWB-XG | Standard scalable circular HTML AP face |
-| Wall / In-Wall | UniFi AP In-Wall (`UAPIW`), UAP AC In-Wall (`UAPACIW`), UAP AC In-Wall Pro (`UAPACIWPRO`), UAP In-Wall HD (`UAPIWHD`), U6 In-Wall (`U6IW`), U6 Enterprise In-Wall (`U6ENTERPRISEIW`), U6 Extender (`U6EXTENDER`), U7 Pro Wall (`U7PROWALL`), U7 In-Wall (`U7IW`), U7 Pro XG Wall (`U7PROXGWALL`) | Scalable rectangular HTML device face; integrated port section is available only on models that expose switch ports |
+| Round AP | UAP, UAP-LR, UAP-Pro, UAP AC/Lite/LR/Pro, nanoHD, HD, XG, SHD, U6 Lite/LR/Pro/Plus/Enterprise, U7 Pro/Pro Max/LR/Lite/Pro XG/Pro XGS | Standard scalable circular HTML AP face and safe fallback for unknown APs |
+| Wall / In-Wall | UniFi AP In-Wall (`UAPIW`), UAP AC In-Wall (`UAPACIW`), UAP AC In-Wall Pro (`UAPACIWPRO`), UAP In-Wall HD (`UAPIWHD`), U6 In-Wall (`U6IW`), U6 Enterprise In-Wall (`U6ENTERPRISEIW`), U7 Pro Wall (`U7PROWALL`), U7 In-Wall (`U7IW`), U7 Pro XG Wall (`U7PROXGWALL`) | Scalable rectangular HTML device face; integrated port section is available only on models that expose switch ports |
+| Mesh column | FlexHD, U6 Mesh, U7 Mesh | Identical tall, rounded scalable enclosure for all three models, with the LED ring around the top cap |
+| Antenna mesh | UAP-Outdoor5 | Scalable narrow enclosure with external antennas |
+| AC Mesh | UAP AC Mesh | Scalable slim capsule enclosure with two long angled antennas |
+| U6 Mesh Pro | U6 Mesh Pro | Scalable narrow rectangular enclosure with a horizontal front LED |
+| Outdoor panel | UAP AC Mesh Pro, UK Ultra | Scalable weatherproof panel enclosure |
+| Extender | BeaconHD, U6 Extender | Scalable wall-plug extender enclosure |
+| Device Bridge Pro Sector | UDB-Pro-Sector | Scalable tall rounded sector enclosure without a front LED |
+| Building Bridge | UBB, UBB XG | Scalable circular enclosure with LED status shown as an edge glow and no front LED |
+| Device Bridge | UDB | Scalable tall enclosure with five vertical front status LEDs and an upper antenna connector |
+| Device Bridge IoT | UDB-IoT | Scalable compact enclosure with five vertical front status LEDs and a tall upper antenna |
+| Device Bridge Pro | UDB-Pro | Scalable circular enclosure with LED status shown as an edge glow and no front LED |
+| Bridge | U-AirWire, Device Bridge Switch | Scalable directional bridge enclosure |
+| E7 | E7, U7 Enterprise, E7 Campus | Scalable rounded-square enclosure; LED status is rendered as an edge glow because the front has no visible LED |
+| E7 Audience | E7-Audience | Scalable wide rounded enclosure with a lower center connection and LED edge glow; no front LED is shown |
+| WiFi BaseStation XG | UWB-XG | Scalable wide enclosure with lower antenna connections and an LED edge glow |
+| U7 Outdoor | U7 Outdoor (`U7OUTDOOR`, `UKPW`), U7 Pro Outdoor (`U7PROOUTDOOR`) | Dedicated scalable outdoor enclosure with lower status LED |
 | 5G Backup | UniFi 5G Backup (`UMBBE634`) | Dedicated scalable HTML device and display with signal bars, uptime, CPU, and RAM |
 
 Unknown models from the `UAP*`, `U6*`, `U7*`, `E7*`, `UWB*`, `UDB*`, `UBB*`, `UMBB*`, `UK*`, and related AP families fall back to the round AP design.
@@ -181,7 +197,7 @@ Unknown switches are auto-detected by port count and use the silver/dark hardwar
 
 ### Notes
 
-- Access points use model-specific round, Wall/In-Wall, or 5G Backup HTML designs while sharing status, uptime, clients, and reboot details
+- Access points use reusable, model-specific scalable HTML/CSS designs while sharing status, uptime, clients, and reboot details
 - Some models are still **layout-inferred** if no dedicated registry entry exists
 - White and silver/dark switch designs describe the physical chassis; unknown switches use the silver/dark fallback design
 
@@ -320,7 +336,7 @@ wan2_port: none               # optional (gateway only)
 | `ports_per_row` | number | auto | Optional row width override for switch layouts and compatible In-Wall AP integrated-port sections. Without it, a model with declared rows keeps them, and only single-row fallbacks use 8 per row. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering and compatible In-Wall AP port sections (special and numbered ports are unified). |
-| `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for AP card mode. |
+| `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for every AP design, including model-specific shaped devices in normal and compact AP layouts. |
 | `integrated_ports` | boolean | `true` | Compatible In-Wall APs only: show the discovered integrated switch ports below the normal AP panel. Set `false` for AP-only rendering. |
 | `device_layout` | string | `combined` | Dream Wall and compatible In-Wall devices: `combined`, `network`, or `ap`. The legacy `integrated_ports: false` remains an AP-only alias. |
 | `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |

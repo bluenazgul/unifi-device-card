@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9a23339 */
+/* UniFi Device Card 0.0.0-dev.7b18063 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -86,7 +86,7 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   UAP: { ...apModel("UAP"), apLedDefaultColor: "#33d35d" },
   UAPLR: { ...apModel("UAP-LR"), apLedDefaultColor: "#33d35d" },
-  UAPOUTDOOR5: { ...apModel("UAP-Outdoor5"), apLedDefaultColor: "#33d35d" },
+  UAPOUTDOOR5: { ...apModel("UAP-Outdoor5", { frontStyle: "ap-mesh-antenna" }), apLedDefaultColor: "#33d35d" },
   UAPPRO: apModel("UAP-Pro"),
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
@@ -96,29 +96,29 @@ var MODEL_REGISTRY = {
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  UAPACM: apModel("UAP AC Mesh"),
-  UAPACMPRO: apModel("UAP AC Mesh Pro"),
+  UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
+  UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
   UAPHD: apModel("UAP HD"),
   UAPXG: apModel("UAP XG"),
   UAPSHD: apModel("UAP SHD"),
-  UAPFLEXHD: apModel("UAP FlexHD"),
-  UAPBEACONHD: apModel("UAP BeaconHD"),
+  UAPFLEXHD: apModel("UAP FlexHD", { frontStyle: "ap-mesh-column" }),
+  UAPBEACONHD: apModel("UAP BeaconHD", { frontStyle: "ap-extender" }),
   U6LITE: apModel("U6 Lite"),
   U6LR: apModel("U6 LR"),
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
-  U6MESH: apModel("U6 Mesh"),
+  U6MESH: apModel("U6 Mesh", { frontStyle: "ap-mesh-column" }),
   U6IW: apModel("U6 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U6ENTERPRISE: apModel("U6 Enterprise"),
   U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  U6EXTENDER: apModel("U6 Extender", { frontStyle: "ap-in-wall" }),
+  U6EXTENDER: apModel("U6 Extender", { frontStyle: "ap-extender" }),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall", { frontStyle: "ap-in-wall" }),
   U7IW: apModel("U7 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U7LR: apModel("U7 LR"),
-  U7MSH: apModel("U7 Mesh"),
+  U7MSH: apModel("U7 Mesh", { frontStyle: "ap-mesh-column" }),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
@@ -126,22 +126,22 @@ var MODEL_REGISTRY = {
   U7PROXGS: apModel("U7 Pro XGS"),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
-  U6MESHPRO: apModel("U6 Mesh Pro"),
-  E7: apModel("E7"),
-  U7ENTERPRISE: apModel("U7 Enterprise"),
-  E7CAMPUS: apModel("E7 Campus"),
-  E7AUDIENCE: apModel("E7 Audience"),
-  UKULTRA: apModel("UK Ultra"),
-  UBB: apModel("UBB"),
-  UBBXG: apModel("UBB XG"),
+  U6MESHPRO: apModel("U6 Mesh Pro", { frontStyle: "ap-mesh-pro" }),
+  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7AUDIENCE: apModel("E7 Audience", { frontStyle: "ap-e7-audience", apEdgeGlow: true }),
+  UKULTRA: apModel("UK Ultra", { frontStyle: "ap-outdoor-panel" }),
+  UBB: apModel("UBB", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
+  UBBXG: apModel("UBB XG", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
   UMBBE634: apModel("UniFi 5G Backup", { frontStyle: "ap-5g-backup" }),
-  UAIRWIRE: apModel("U-AirWire"),
-  UDB: apModel("Device Bridge"),
-  UDBIOT: apModel("Device Bridge IoT"),
-  UDBSWITCH: apModel("Device Bridge Switch"),
-  UDBPRO: apModel("Device Bridge Pro"),
-  UDBPROSECTOR: apModel("Device Bridge Pro Sector"),
-  UWBXG: apModel("UWB-XG"),
+  UAIRWIRE: apModel("U-AirWire", { frontStyle: "ap-bridge" }),
+  UDB: apModel("Device Bridge", { frontStyle: "ap-device-bridge" }),
+  UDBIOT: apModel("Device Bridge IoT", { frontStyle: "ap-device-bridge-iot" }),
+  UDBSWITCH: apModel("Device Bridge Switch", { frontStyle: "ap-bridge" }),
+  UDBPRO: apModel("Device Bridge Pro", { frontStyle: "ap-device-bridge-pro", apEdgeGlow: true }),
+  UDBPROSECTOR: apModel("Device Bridge Pro Sector", { frontStyle: "ap-device-bridge-sector" }),
+  UWBXG: apModel("UWB-XG", { frontStyle: "ap-basestation", apEdgeGlow: true }),
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
   // ══════════════════════════════════════════════════════════════════════════
@@ -1328,13 +1328,13 @@ function resolveModelKey(device) {
     if (candidate.includes("E7AUDIENCE")) return "E7AUDIENCE";
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
     if (candidate.includes("UKULTRA")) return "UKULTRA";
-    if (candidate.includes("UBBXG")) return "UBBXG";
+    if (candidate.includes("UBBXG") || candidate.includes("BUILDINGBRIDGEXG")) return "UBBXG";
     if (candidate === "UBB" || candidate.includes("BUILDINGBRIDGE")) return "UBB";
     if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
-    if (candidate.includes("UDBPROSECTOR")) return "UDBPROSECTOR";
-    if (candidate.includes("UDBPRO")) return "UDBPRO";
+    if (candidate.includes("UDBPROSECTOR") || candidate.includes("DEVICEBRIDGEPROSECTOR")) return "UDBPROSECTOR";
+    if (candidate.includes("UDBPRO") || candidate.includes("DEVICEBRIDGEPRO")) return "UDBPRO";
     if (candidate.includes("UDBSWITCH")) return "UDBSWITCH";
-    if (candidate.includes("UDBIOT")) return "UDBIOT";
+    if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
@@ -6251,7 +6251,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9a23339";
+var VERSION = "0.0.0-dev.7b18063";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7714,6 +7714,22 @@ var UnifiDeviceCard = class extends HTMLElement {
       .frontpanel.ap-disc,
       .frontpanel.ap-in-wall,
       .frontpanel.ap-u7-outdoor,
+      .frontpanel.ap-mesh-column,
+      .frontpanel.ap-mesh-antenna,
+      .frontpanel.ap-ac-mesh,
+      .frontpanel.ap-mesh-pro,
+      .frontpanel.ap-outdoor-panel,
+      .frontpanel.ap-extender,
+      .frontpanel.ap-sector,
+      .frontpanel.ap-bridge,
+      .frontpanel.ap-device-bridge,
+      .frontpanel.ap-device-bridge-iot,
+      .frontpanel.ap-device-bridge-pro,
+      .frontpanel.ap-device-bridge-sector,
+      .frontpanel.ap-building-bridge,
+      .frontpanel.ap-e7,
+      .frontpanel.ap-e7-audience,
+      .frontpanel.ap-basestation,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
@@ -7729,6 +7745,30 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-top: 0;
       }
 
+      .frontpanel.ap-ac-mesh {
+        min-height: calc((330px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .frontpanel.ap-mesh-antenna {
+        min-height: calc((300px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .frontpanel.ap-mesh-pro {
+        min-height: calc((280px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .frontpanel.ap-device-bridge {
+        min-height: calc((280px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .frontpanel.ap-device-bridge-iot {
+        min-height: calc((250px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .frontpanel.ap-device-bridge-sector {
+        min-height: calc((310px * var(--udc-ap-scale)) + 34px);
+      }
+
       .ap-layout.compact {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -7738,10 +7778,38 @@ var UnifiDeviceCard = class extends HTMLElement {
       .ap-layout.compact .frontpanel.ap-disc,
       .ap-layout.compact .frontpanel.ap-in-wall,
       .ap-layout.compact .frontpanel.ap-u7-outdoor,
+      .ap-layout.compact .frontpanel.ap-mesh-column,
+      .ap-layout.compact .frontpanel.ap-mesh-antenna,
+      .ap-layout.compact .frontpanel.ap-ac-mesh,
+      .ap-layout.compact .frontpanel.ap-mesh-pro,
+      .ap-layout.compact .frontpanel.ap-outdoor-panel,
+      .ap-layout.compact .frontpanel.ap-extender,
+      .ap-layout.compact .frontpanel.ap-sector,
+      .ap-layout.compact .frontpanel.ap-bridge,
+      .ap-layout.compact .frontpanel.ap-device-bridge,
+      .ap-layout.compact .frontpanel.ap-device-bridge-iot,
+      .ap-layout.compact .frontpanel.ap-device-bridge-pro,
+      .ap-layout.compact .frontpanel.ap-device-bridge-sector,
+      .ap-layout.compact .frontpanel.ap-building-bridge,
+      .ap-layout.compact .frontpanel.ap-e7,
+      .ap-layout.compact .frontpanel.ap-e7-audience,
+      .ap-layout.compact .frontpanel.ap-basestation,
       .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
         border-right: 1px solid var(--udc-border);
+      }
+
+      .ap-layout.compact > .frontpanel:not(.ap-disc):not(.ap-in-wall):not(.ap-u7-outdoor):not(.ap-5g-backup) {
+        min-height: calc((225px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .ap-layout.compact > .frontpanel.ap-mesh-antenna {
+        min-height: calc((280px * var(--udc-ap-scale)) + 34px);
+      }
+
+      .ap-layout.compact > .frontpanel.ap-ac-mesh {
+        min-height: calc((250px * var(--udc-ap-scale)) + 34px);
       }
 
       .ap-layout.compact .ap-device {
@@ -7758,6 +7826,26 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       .ap-layout.compact .ap-device.ap-u7-outdoor-device {
         width: min(100%, calc(150px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-shaped-device {
+        width: min(100%, calc(105px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-ac-mesh-device {
+        width: min(100%, calc(48px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-device-bridge-device {
+        width: min(100%, calc(90px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-device-bridge-iot-device {
+        width: min(100%, calc(85px * var(--udc-ap-scale)));
+      }
+
+      .ap-layout.compact .ap-device.ap-device-bridge-sector-device {
+        width: min(100%, calc(85px * var(--udc-ap-scale)));
       }
 
       .ap-layout.compact .section {
@@ -8022,6 +8110,326 @@ var UnifiDeviceCard = class extends HTMLElement {
       .ap-u7-outdoor-led.off {
         background: #aeb4ba;
         box-shadow: none;
+      }
+
+      .ap-shaped-device {
+        width: calc(122px * var(--udc-ap-scale));
+        aspect-ratio: .48 / 1;
+        border-radius: calc(54px * var(--udc-ap-scale));
+        background: linear-gradient(145deg, #fff 0%, #f3f5f6 62%, #dfe3e6 100%);
+        border: 1px solid rgba(150, 158, 166, .2);
+        box-shadow: inset 8px 10px 15px rgba(255,255,255,.8), inset -8px -10px 16px rgba(120,128,136,.08), 0 14px 24px rgba(0,0,0,.18);
+        position: relative;
+      }
+
+      .ap-shaped-logo {
+        position: absolute;
+        left: 50%; top: 45%;
+        transform: translate(-50%, -50%);
+        color: rgba(170, 180, 187, .44);
+        font: 700 calc(30px * var(--udc-ap-scale))/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .ap-shaped-led {
+        position: absolute;
+        left: 50%; bottom: 10%;
+        width: calc(5px * var(--udc-ap-scale)); height: calc(5px * var(--udc-ap-scale));
+        transform: translateX(-50%); border-radius: 50%;
+        background: var(--ap-ring-color, #62c8fa);
+        box-shadow: 0 0 7px color-mix(in srgb, var(--ap-ring-color, #62c8fa) 65%, transparent);
+      }
+
+      .ap-shaped-led.off { background: #aeb4ba; box-shadow: none; }
+
+      .ap-mesh-column-device {
+        border-radius: 48% 48% 30% 30% / 12% 12% 7% 7%;
+        background: linear-gradient(90deg, #e5e8ea 0%, #fff 36%, #f8f9f9 61%, #d8dcdf 100%);
+      }
+
+      .ap-mesh-column-device::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        box-sizing: border-box;
+        left: -1px;
+        top: -1px;
+        width: calc(100% + 2px);
+        height: 17%;
+        border: max(2px, calc(3px * var(--udc-ap-scale))) solid var(--ap-ring-color, #62c8fa);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 40%, #fff 0%, #f4f6f7 58%, #dce1e4 100%);
+        box-shadow: 0 0 calc(9px * var(--udc-ap-scale)) color-mix(in srgb, var(--ap-ring-color, #62c8fa) 58%, transparent);
+      }
+
+      .ap-mesh-column-device.off::before {
+        border-color: #aeb4ba;
+        box-shadow: none;
+      }
+
+      .ap-mesh-column-device .ap-shaped-logo {
+        z-index: 2;
+        top: 7.5%;
+        font-size: calc(17px * var(--udc-ap-scale));
+      }
+
+      .ap-mesh-column-device .ap-shaped-led { display: none; }
+
+      .ap-mesh-antenna-device { width: calc(105px * var(--udc-ap-scale)); aspect-ratio: .55 / 1; border-radius: calc(22px * var(--udc-ap-scale)); transform: translateY(calc(15px * var(--udc-ap-scale))); }
+      .ap-mesh-antenna-device::before,
+      .ap-mesh-antenna-device::after {
+        content: ""; position: absolute; bottom: 94%; width: 17%; height: 35%;
+        border-radius: 999px; background: linear-gradient(90deg, #dfe3e6, #fff 48%, #d9dde0);
+        box-shadow: 0 4px 5px rgba(0,0,0,.12);
+      }
+      .ap-mesh-antenna-device::before { left: 15%; transform: rotate(-5deg); }
+      .ap-mesh-antenna-device::after { right: 15%; transform: rotate(5deg); }
+
+      .ap-ac-mesh-device {
+        width: calc(72px * var(--udc-ap-scale));
+        aspect-ratio: .35 / 1;
+        border-radius: 24% 24% 50% 50% / 8% 8% 13% 13%;
+        background: linear-gradient(90deg, #e1e5e7 0%, #fff 38%, #f7f8f8 64%, #d6dbde 100%);
+        transform: translateY(calc(24px * var(--udc-ap-scale)));
+      }
+
+      .ap-ac-mesh-device::before,
+      .ap-ac-mesh-device::after {
+        content: "";
+        position: absolute;
+        bottom: 94%;
+        width: 16%;
+        height: 58%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #d9dde0, #fff 48%, #d5dadd);
+        box-shadow: 0 3px 5px rgba(0,0,0,.13);
+        transform-origin: 50% 100%;
+      }
+
+      .ap-ac-mesh-device::before { left: 12%; transform: rotate(-43deg); }
+      .ap-ac-mesh-device::after { right: 12%; transform: rotate(43deg); }
+
+      .ap-ac-mesh-device .ap-shaped-logo {
+        top: 49%;
+        font-size: calc(22px * var(--udc-ap-scale));
+      }
+
+      .ap-mesh-pro-device {
+        width: calc(145px * var(--udc-ap-scale));
+        aspect-ratio: .55 / 1;
+        border-radius: 3% / 2%;
+        background: linear-gradient(90deg, #e1e5e7 0%, #f8f9f9 13%, #f5f7f7 87%, #d8dddf 100%);
+      }
+
+      .ap-mesh-pro-device .ap-shaped-logo {
+        top: 49%;
+        font-size: calc(28px * var(--udc-ap-scale));
+      }
+
+      .ap-mesh-pro-device .ap-shaped-led {
+        bottom: 25%;
+        width: calc(18px * var(--udc-ap-scale));
+        height: calc(3px * var(--udc-ap-scale));
+        border-radius: 999px;
+      }
+
+      .ap-outdoor-panel-device { width: calc(164px * var(--udc-ap-scale)); aspect-ratio: .68 / 1; border-radius: calc(25px * var(--udc-ap-scale)); }
+      .ap-extender-device { width: calc(130px * var(--udc-ap-scale)); aspect-ratio: .62 / 1; border-radius: calc(28px * var(--udc-ap-scale)); }
+      .ap-extender-device::after { content: ""; position: absolute; left: 50%; bottom: 5%; width: 27%; height: 7%; transform: translateX(-50%); border-radius: 2px; background: #d8dcdf; }
+      .ap-sector-device { width: calc(180px * var(--udc-ap-scale)); aspect-ratio: .78 / 1; border-radius: 50% 50% 14% 14% / 18% 18% 8% 8%; }
+      .ap-sector-device::before { content: ""; position: absolute; inset: 7% 8% 12%; border: 1px solid rgba(165,174,181,.24); border-radius: inherit; }
+      .ap-bridge-device { width: calc(176px * var(--udc-ap-scale)); aspect-ratio: 1 / 1; border-radius: 50%; }
+      .ap-bridge-device::before { content: ""; position: absolute; inset: 9%; border: 2px solid rgba(177,185,191,.25); border-radius: 50%; }
+
+      .ap-device-bridge-device {
+        width: calc(115px * var(--udc-ap-scale));
+        aspect-ratio: .45 / 1;
+        border-radius: 14% / 7%;
+        background: linear-gradient(90deg, #dfe3e5 0%, #fff 34%, #f7f8f8 68%, #d7dcde 100%);
+      }
+
+      .ap-device-bridge-device::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 14%;
+        width: calc(3px * var(--udc-ap-scale));
+        height: calc(3px * var(--udc-ap-scale));
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: var(--ap-ring-color, #62c8fa);
+        box-shadow:
+          0 calc(7px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa),
+          0 calc(14px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa),
+          0 calc(21px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa),
+          0 calc(28px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa);
+      }
+
+      .ap-device-bridge-device.off::before {
+        background: #aeb4ba;
+        box-shadow:
+          0 calc(7px * var(--udc-ap-scale)) 0 #aeb4ba,
+          0 calc(14px * var(--udc-ap-scale)) 0 #aeb4ba,
+          0 calc(21px * var(--udc-ap-scale)) 0 #aeb4ba,
+          0 calc(28px * var(--udc-ap-scale)) 0 #aeb4ba;
+      }
+
+      .ap-device-bridge-device::after {
+        content: "";
+        position: absolute;
+        left: 47%;
+        bottom: 99%;
+        width: 6%;
+        height: 4%;
+        border-radius: 2px 2px 0 0;
+        background: #62686c;
+      }
+
+      .ap-device-bridge-device .ap-shaped-led { display: none; }
+
+      .ap-device-bridge-iot-device {
+        width: calc(125px * var(--udc-ap-scale));
+        aspect-ratio: .75 / 1;
+        border-radius: 8% / 6%;
+        background: linear-gradient(90deg, #dfe3e5 0%, #fff 34%, #f7f8f8 68%, #d7dcde 100%);
+      }
+
+      .ap-device-bridge-iot-device::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 27%;
+        width: calc(3px * var(--udc-ap-scale));
+        height: calc(3px * var(--udc-ap-scale));
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: var(--ap-ring-color, #62c8fa);
+        box-shadow:
+          0 calc(7px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa),
+          0 calc(14px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa),
+          0 calc(21px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa),
+          0 calc(28px * var(--udc-ap-scale)) 0 var(--ap-ring-color, #62c8fa);
+      }
+
+      .ap-device-bridge-iot-device.off::before {
+        background: #aeb4ba;
+        box-shadow:
+          0 calc(7px * var(--udc-ap-scale)) 0 #aeb4ba,
+          0 calc(14px * var(--udc-ap-scale)) 0 #aeb4ba,
+          0 calc(21px * var(--udc-ap-scale)) 0 #aeb4ba,
+          0 calc(28px * var(--udc-ap-scale)) 0 #aeb4ba;
+      }
+
+      .ap-device-bridge-iot-device::after {
+        content: "";
+        position: absolute;
+        left: 39%;
+        bottom: 98%;
+        width: 22%;
+        height: 48%;
+        border-radius: 45% 45% 10% 10% / 8% 8% 4% 4%;
+        background: linear-gradient(90deg, #d9dddf, #fff 48%, #d4d9dc);
+        border-bottom: 1px solid rgba(150,158,166,.3);
+        box-shadow: 0 3px 5px rgba(0,0,0,.12);
+      }
+
+      .ap-device-bridge-iot-device .ap-shaped-logo {
+        top: 73%;
+        font-size: calc(25px * var(--udc-ap-scale));
+      }
+
+      .ap-device-bridge-iot-device .ap-shaped-led { display: none; }
+
+      .ap-device-bridge-sector-device {
+        width: calc(120px * var(--udc-ap-scale));
+        aspect-ratio: .42 / 1;
+        border-radius: 18% 18% 24% 24% / 6% 6% 5% 5%;
+        background: linear-gradient(90deg, #dce1e3 0%, #fff 31%, #f7f8f8 67%, #d5dadd 100%);
+      }
+
+      .ap-device-bridge-sector-device .ap-shaped-logo {
+        top: 56%;
+        font-size: calc(24px * var(--udc-ap-scale));
+      }
+
+      .ap-device-bridge-sector-device .ap-shaped-led { display: none; }
+
+      .ap-building-bridge-device,
+      .ap-device-bridge-pro-device {
+        width: calc(210px * var(--udc-ap-scale));
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 30%, #fff 0%, #f5f7f8 52%, #dfe4e7 100%);
+      }
+
+      .ap-basestation-device {
+        width: calc(235px * var(--udc-ap-scale));
+        aspect-ratio: 1.9 / 1;
+        border-radius: 12% / 22%;
+      }
+
+      .ap-basestation-device::before {
+        content: "";
+        position: absolute;
+        left: 28%;
+        top: 98%;
+        width: 44%;
+        height: 18%;
+        background: linear-gradient(90deg, transparent 0 8%, #eef0f1 8% 25%, transparent 25% 75%, #eef0f1 75% 92%, transparent 92%);
+        filter: drop-shadow(0 2px 2px rgba(0,0,0,.15));
+      }
+
+      .ap-basestation-device::after {
+        content: "";
+        position: absolute;
+        left: 45%;
+        top: 99%;
+        width: 10%;
+        height: 7%;
+        border-radius: 0 0 4px 4px;
+        background: #30363a;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 2px 3px rgba(0,0,0,.2);
+      }
+
+      .ap-e7-audience-device {
+        width: calc(235px * var(--udc-ap-scale));
+        aspect-ratio: 2 / 1;
+        border-radius: 11% / 22%;
+      }
+
+      .ap-e7-audience-device::after {
+        content: "";
+        position: absolute;
+        left: 43%;
+        top: 98%;
+        width: 14%;
+        height: 8%;
+        border-radius: 0 0 5px 5px;
+        background: #30363a;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 2px 3px rgba(0,0,0,.2);
+      }
+
+      .ap-shaped-device.edge-glow {
+        box-shadow:
+          inset 8px 10px 15px rgba(255,255,255,.82),
+          inset -8px -10px 16px rgba(120,128,136,.08),
+          0 0 0 max(1px, calc(2px * var(--udc-ap-scale))) var(--ap-ring-color, #62c8fa),
+          0 0 calc(16px * var(--udc-ap-scale)) color-mix(in srgb, var(--ap-ring-color, #62c8fa) 58%, transparent),
+          0 14px 24px rgba(0,0,0,.18);
+      }
+
+      .ap-shaped-device.edge-glow.off {
+        box-shadow:
+          inset 8px 10px 15px rgba(255,255,255,.82),
+          inset -8px -10px 16px rgba(120,128,136,.08),
+          0 14px 24px rgba(0,0,0,.18);
+      }
+
+      .ap-shaped-device.edge-glow .ap-shaped-led { display: none; }
+
+      .ap-e7-device {
+        width: calc(210px * var(--udc-ap-scale));
+        aspect-ratio: 1 / 1;
+        border-radius: 23%;
       }
 
       .ap-ring {
@@ -8661,6 +9069,26 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       const apFrontStyle = this._ctx?.layout?.apFrontStyle || this._ctx?.layout?.frontStyle;
       const isInWallAp = apFrontStyle === "ap-in-wall";
       const isU7Outdoor = apFrontStyle === "ap-u7-outdoor";
+      const shapedApStyles = /* @__PURE__ */ new Set([
+        "ap-mesh-column",
+        "ap-mesh-antenna",
+        "ap-ac-mesh",
+        "ap-mesh-pro",
+        "ap-outdoor-panel",
+        "ap-extender",
+        "ap-sector",
+        "ap-bridge",
+        "ap-device-bridge",
+        "ap-device-bridge-iot",
+        "ap-device-bridge-pro",
+        "ap-device-bridge-sector",
+        "ap-building-bridge",
+        "ap-e7",
+        "ap-e7-audience",
+        "ap-basestation"
+      ]);
+      const renderedApStyle = isFiveGBackup || isInWallAp || isU7Outdoor || shapedApStyles.has(apFrontStyle) ? apFrontStyle : "ap-disc";
+      const usesApEdgeGlow = !!this._ctx?.layout?.apEdgeGlow;
       const fiveGDisplay = isFiveGBackup ? this._fiveGBackupDisplayData(uptime) : null;
       const headerTitle2 = this._title();
       const headerMetrics2 = compactApView && !this._apCompactHeaderTelemetryEnabled() ? [] : this._headerMetrics();
@@ -8685,7 +9113,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           </div>
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
-            <div class="frontpanel ${isFiveGBackup ? "ap-5g-backup" : isInWallAp ? "ap-in-wall" : isU7Outdoor ? "ap-u7-outdoor" : "ap-disc"}">
+            <div class="frontpanel ${renderedApStyle}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
                 <div class="ap-5g-face"></div>
@@ -8710,6 +9138,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
               <div class="ap-device ap-u7-outdoor-device">
                 <div class="ap-u7-outdoor-logo">U</div>
                 <div class="ap-u7-outdoor-led ${ledEnabled ? "" : "off"}"></div>
+              </div>` : shapedApStyles.has(apFrontStyle) ? `
+              <div class="ap-device ap-shaped-device ${apFrontStyle}-device${usesApEdgeGlow ? " edge-glow" : ""}${ledEnabled ? "" : " off"}">
+                <div class="ap-shaped-logo">U</div>
+                <div class="ap-shaped-led ${ledEnabled ? "" : "off"}"></div>
               </div>` : `
               <div class="ap-device">
                 <div class="ap-ring ${ledEnabled ? "online" : "off"}">

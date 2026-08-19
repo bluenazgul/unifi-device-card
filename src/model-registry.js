@@ -33,6 +33,12 @@ export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMES
 export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 
+export const AP_FRONT_STYLES = new Set([
+  "ap-disc", "ap-in-wall", "ap-u7-outdoor", "ap-5g-backup",
+  "ap-mesh-column", "ap-mesh-antenna", "ap-ac-mesh", "ap-mesh-pro", "ap-outdoor-panel",
+  "ap-extender", "ap-sector", "ap-bridge", "ap-device-bridge", "ap-device-bridge-iot", "ap-device-bridge-pro", "ap-device-bridge-sector", "ap-building-bridge", "ap-e7", "ap-e7-audience", "ap-basestation",
+]);
+
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model, device?.hw_version]
     .filter(Boolean)
@@ -131,7 +137,7 @@ export const MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   UAP: { ...apModel("UAP"), apLedDefaultColor: "#33d35d" },
   UAPLR: { ...apModel("UAP-LR"), apLedDefaultColor: "#33d35d" },
-  UAPOUTDOOR5: { ...apModel("UAP-Outdoor5"), apLedDefaultColor: "#33d35d" },
+  UAPOUTDOOR5: { ...apModel("UAP-Outdoor5", { frontStyle: "ap-mesh-antenna" }), apLedDefaultColor: "#33d35d" },
   UAPPRO: apModel("UAP-Pro"),
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
@@ -141,29 +147,29 @@ export const MODEL_REGISTRY = {
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  UAPACM: apModel("UAP AC Mesh"),
-  UAPACMPRO: apModel("UAP AC Mesh Pro"),
+  UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
+  UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
   UAPHD: apModel("UAP HD"),
   UAPXG: apModel("UAP XG"),
   UAPSHD: apModel("UAP SHD"),
-  UAPFLEXHD: apModel("UAP FlexHD"),
-  UAPBEACONHD: apModel("UAP BeaconHD"),
+  UAPFLEXHD: apModel("UAP FlexHD", { frontStyle: "ap-mesh-column" }),
+  UAPBEACONHD: apModel("UAP BeaconHD", { frontStyle: "ap-extender" }),
   U6LITE: apModel("U6 Lite"),
   U6LR: apModel("U6 LR"),
   U6PRO: apModel("U6 Pro"),
   U6PLUS: apModel("U6+"),
-  U6MESH: apModel("U6 Mesh"),
+  U6MESH: apModel("U6 Mesh", { frontStyle: "ap-mesh-column" }),
   U6IW: apModel("U6 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U6ENTERPRISE: apModel("U6 Enterprise"),
   U6ENTERPRISEIW: apModel("U6 Enterprise In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  U6EXTENDER: apModel("U6 Extender", { frontStyle: "ap-in-wall" }),
+  U6EXTENDER: apModel("U6 Extender", { frontStyle: "ap-extender" }),
   U7PRO: apModel("U7 Pro"),
   U7PROMAX: apModel("U7 Pro Max"),
   U7PROWALL: apModel("U7 Pro Wall", { frontStyle: "ap-in-wall" }),
   U7IW: apModel("U7 In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   U7LR: apModel("U7 LR"),
-  U7MSH: apModel("U7 Mesh"),
+  U7MSH: apModel("U7 Mesh", { frontStyle: "ap-mesh-column" }),
   U7LITE: apModel("U7 Lite"),
   U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
@@ -171,22 +177,22 @@ export const MODEL_REGISTRY = {
   U7PROXGS: apModel("U7 Pro XGS"),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
-  U6MESHPRO: apModel("U6 Mesh Pro"),
-  E7: apModel("E7"),
-  U7ENTERPRISE: apModel("U7 Enterprise"),
-  E7CAMPUS: apModel("E7 Campus"),
-  E7AUDIENCE: apModel("E7 Audience"),
-  UKULTRA: apModel("UK Ultra"),
-  UBB: apModel("UBB"),
-  UBBXG: apModel("UBB XG"),
+  U6MESHPRO: apModel("U6 Mesh Pro", { frontStyle: "ap-mesh-pro" }),
+  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7AUDIENCE: apModel("E7 Audience", { frontStyle: "ap-e7-audience", apEdgeGlow: true }),
+  UKULTRA: apModel("UK Ultra", { frontStyle: "ap-outdoor-panel" }),
+  UBB: apModel("UBB", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
+  UBBXG: apModel("UBB XG", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
   UMBBE634: apModel("UniFi 5G Backup", { frontStyle: "ap-5g-backup" }),
-  UAIRWIRE: apModel("U-AirWire"),
-  UDB: apModel("Device Bridge"),
-  UDBIOT: apModel("Device Bridge IoT"),
-  UDBSWITCH: apModel("Device Bridge Switch"),
-  UDBPRO: apModel("Device Bridge Pro"),
-  UDBPROSECTOR: apModel("Device Bridge Pro Sector"),
-  UWBXG: apModel("UWB-XG"),
+  UAIRWIRE: apModel("U-AirWire", { frontStyle: "ap-bridge" }),
+  UDB: apModel("Device Bridge", { frontStyle: "ap-device-bridge" }),
+  UDBIOT: apModel("Device Bridge IoT", { frontStyle: "ap-device-bridge-iot" }),
+  UDBSWITCH: apModel("Device Bridge Switch", { frontStyle: "ap-bridge" }),
+  UDBPRO: apModel("Device Bridge Pro", { frontStyle: "ap-device-bridge-pro", apEdgeGlow: true }),
+  UDBPROSECTOR: apModel("Device Bridge Pro Sector", { frontStyle: "ap-device-bridge-sector" }),
+  UWBXG: apModel("UWB-XG", { frontStyle: "ap-basestation", apEdgeGlow: true }),
 
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 1 (US-*)
@@ -1020,6 +1026,10 @@ export function validateModelLayoutEntry(key, entry) {
   const specialPorts = (entry?.specialSlots || []).map((s) => s?.port).filter((p) => Number.isInteger(p));
   const allPorts = [...numberedPorts, ...specialPorts];
 
+  if (entry?.kind === "access_point" && !AP_FRONT_STYLES.has(entry?.frontStyle)) {
+    issues.push(`unknown access point frontStyle: ${entry?.frontStyle}`);
+  }
+
   const duplicates = allPorts.filter((p, i) => allPorts.indexOf(p) !== i);
   if (duplicates.length) {
     issues.push(`duplicate port numbers: ${[...new Set(duplicates)].join(", ")}`);
@@ -1166,13 +1176,13 @@ export function resolveModelKey(device) {
     if (candidate.includes("E7AUDIENCE"))         return "E7AUDIENCE";
     if (candidate === "E7" || candidate.startsWith("E7")) return "E7";
     if (candidate.includes("UKULTRA"))            return "UKULTRA";
-    if (candidate.includes("UBBXG"))              return "UBBXG";
+    if (candidate.includes("UBBXG") || candidate.includes("BUILDINGBRIDGEXG")) return "UBBXG";
     if (candidate === "UBB" || candidate.includes("BUILDINGBRIDGE")) return "UBB";
     if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
-    if (candidate.includes("UDBPROSECTOR"))       return "UDBPROSECTOR";
-    if (candidate.includes("UDBPRO"))             return "UDBPRO";
+    if (candidate.includes("UDBPROSECTOR") || candidate.includes("DEVICEBRIDGEPROSECTOR")) return "UDBPROSECTOR";
+    if (candidate.includes("UDBPRO") || candidate.includes("DEVICEBRIDGEPRO")) return "UDBPRO";
     if (candidate.includes("UDBSWITCH"))          return "UDBSWITCH";
-    if (candidate.includes("UDBIOT"))             return "UDBIOT";
+    if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";

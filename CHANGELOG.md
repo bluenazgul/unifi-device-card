@@ -5,6 +5,27 @@
 ### 🐛 Bug Fixes
 - Fix the UniFi 5G device display content scaling when compact AP cards are narrowed, and place its uptime value below the label so it fits the display.
 
+### ✨ Improvements
+- Render confirmed non-round AP, mesh, extender, outdoor panel, sector, and bridge models with reusable scalable HTML/CSS enclosure families while retaining the round fallback for unknown APs.
+  - Mesh column: FlexHD uses the same tall rounded enclosure as U6 Mesh and U7 Mesh, with LED status shown by the illuminated ring around the top cap.
+  - Antenna mesh: UAP-Outdoor5.
+  - AC Mesh: UAP AC Mesh uses a slim capsule enclosure with two long angled antennas.
+  - U6 Mesh Pro: U6 Mesh Pro uses a narrow rectangular enclosure with a horizontal front LED.
+  - Outdoor panel: UAP AC Mesh Pro and UK Ultra.
+  - Extender: BeaconHD and U6 Extender.
+  - Device Bridge Pro Sector: UDB-Pro-Sector uses a tall rounded sector enclosure without a front LED.
+  - Building Bridge: UBB and UBB XG use a circular enclosure with LED status shown only as an edge glow.
+  - Device Bridge: UDB uses a tall enclosure with five vertical front status LEDs and an upper antenna connector.
+  - Device Bridge IoT: UDB-IoT uses a compact enclosure with five vertical front status LEDs and a tall upper antenna.
+  - Device Bridge Pro: UDB-Pro uses a circular enclosure with LED status shown only as an edge glow.
+  - Bridge: U-AirWire and Device Bridge Switch.
+  - E7: E7, U7 Enterprise, and E7 Campus use a rounded-square enclosure and show LED status as an edge glow rather than a front LED.
+  - E7 Audience: E7-Audience uses a wide rounded enclosure with a lower center connection and LED status shown only as an edge glow.
+  - WiFi BaseStation XG: UWB-XG uses a wide rounded enclosure with lower antenna connections and LED status shown as an edge glow.
+- Validate AP design names statically in the model registry while preserving the existing round, In-Wall, U7 Outdoor, integrated-port, and 5G Backup behavior.
+- Keep every new shaped AP enclosure fully visible in normal and compact layouts, including external antennas and tall device bodies.
+- Apply the existing AP size setting (`ap_scale`, 25–140%) consistently to every new shaped design in both normal and compact layouts, matching the `ap-disc` behavior.
+
 ## [v0.8.02-dev]
 
 ### 🐛 Bug Fixes
