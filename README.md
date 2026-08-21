@@ -140,7 +140,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW Pro XG 10 PoE (`USWPROXG10POE`) | 10 + 2 SFP+ | Silver |
 | USW Pro XG 24 / 24 PoE (`USWPROXG24`, `USWPROXG24POE`) | 24 + 2 SFP+ | Silver |
 | USW Pro XG 48 / 48 PoE (`USWPROXG48`, `USWPROXG48POE`) | 48 + 4 SFP+ | Silver |
-| USW Pro HD 24 / 24 PoE (`USWPROHD24`, `USWPROHD24POE`) | 24 + 2 SFP+ | Silver |
+| USW Pro HD 24 / 24 PoE (`USWPROHD24`, `USWPROHD24POE`) | 24 + 4 SFP+ | Silver |
 | Enterprise Campus 24 PoE / 24S PoE (`ECS24POE`, `ECS24SPOE`) | 24 + 4 SFP28 | Silver |
 | Enterprise Campus 48 PoE / 48S PoE (`ECS48POE`, `ECS48SPOE`) | 48 + 4 SFP28 | Silver |
 | Enterprise Campus Aggregation (`ECSAGGREGATION`) | 32 SFP28 | Silver |
