@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c6fa075 */
+/* UniFi Device Card 0.0.0-dev.6ed5c52 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -863,25 +863,29 @@ var MODEL_REGISTRY = {
     kind: "switch",
     frontStyle: "eight-grid",
     rows: [range(1, 8), range(9, 16), range(17, 24)],
-    portCount: 26,
+    portCount: 28,
     displayModel: "USW Pro HD 24",
     theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+      { key: "sfp_2", label: "SFP+ 2", port: 26 },
+      { key: "sfp_3", label: "SFP+ 3", port: 27 },
+      { key: "sfp_4", label: "SFP+ 4", port: 28 }
     ]
   },
   USWPROHD24POE: {
     kind: "switch",
     frontStyle: "eight-grid",
     rows: [range(1, 8), range(9, 16), range(17, 24)],
-    portCount: 26,
+    portCount: 28,
     displayModel: "USW Pro HD 24 PoE",
     theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+      { key: "sfp_2", label: "SFP+ 2", port: 26 },
+      { key: "sfp_3", label: "SFP+ 3", port: 27 },
+      { key: "sfp_4", label: "SFP+ 4", port: 28 }
     ]
   },
   ECS24POE: {
@@ -1588,7 +1592,8 @@ function inferPortCountFromModel(device) {
   if (text.includes("USXG24") || text.includes("ENTERPRISEXG24")) return 26;
   if (text.includes("US68P") || text.includes("ENTERPRISE8POE")) return 10;
   if (text.includes("USWPROXG48")) return 52;
-  if (text.includes("USWPROXG24") || text.includes("USWPROHD24")) return 26;
+  if (text.includes("USWPROHD24")) return 28;
+  if (text.includes("USWPROXG24")) return 26;
   if (text.includes("USWPROXG10POE")) return 12;
   if (text.includes("USWPROXG8POE")) return 10;
   if (text.includes("USWWANRJ45")) return 4;
@@ -6254,7 +6259,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c6fa075";
+var VERSION = "0.0.0-dev.6ed5c52";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
