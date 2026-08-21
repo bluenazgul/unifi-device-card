@@ -766,20 +766,24 @@ export const MODEL_REGISTRY = {
   USWPROHD24: {
     kind: "switch", frontStyle: "eight-grid",
     rows: [range(1, 8), range(9, 16), range(17, 24)],
-    portCount: 26, displayModel: "USW Pro HD 24", theme: "silver",
+    portCount: 28, displayModel: "USW Pro HD 24", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
       { key: "sfp_2", label: "SFP+ 2", port: 26 },
+      { key: "sfp_3", label: "SFP+ 3", port: 27 },
+      { key: "sfp_4", label: "SFP+ 4", port: 28 },
     ],
   },
   USWPROHD24POE: {
     kind: "switch", frontStyle: "eight-grid",
     rows: [range(1, 8), range(9, 16), range(17, 24)],
-    portCount: 26, displayModel: "USW Pro HD 24 PoE", theme: "silver",
+    portCount: 28, displayModel: "USW Pro HD 24 PoE", theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
       { key: "sfp_2", label: "SFP+ 2", port: 26 },
+      { key: "sfp_3", label: "SFP+ 3", port: 27 },
+      { key: "sfp_4", label: "SFP+ 4", port: 28 },
     ],
   },
   ECS24POE: {
@@ -1462,7 +1466,8 @@ export function inferPortCountFromModel(device) {
   if (text.includes("USXG24")   || text.includes("ENTERPRISEXG24"))                  return 26;
   if (text.includes("US68P")    || text.includes("ENTERPRISE8POE"))                  return 10;
   if (text.includes("USWPROXG48"))                                                   return 52;
-  if (text.includes("USWPROXG24") || text.includes("USWPROHD24"))                     return 26;
+  if (text.includes("USWPROHD24"))                                                    return 28;
+  if (text.includes("USWPROXG24"))                                                    return 26;
   if (text.includes("USWPROXG10POE"))                                                 return 12;
   if (text.includes("USWPROXG8POE"))                                                  return 10;
   if (text.includes("USWWANRJ45"))                                                     return 4;

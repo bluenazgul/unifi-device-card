@@ -1,5 +1,26 @@
 # Changelog
 
+## [v0.8.2]
+
+### 🐛 Bug Fixes
+- Show all four SFP+ ports on the USW Pro HD 24 and USW Pro HD 24 PoE.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
 ## [v0.8.1]
 
 ### 🐛 Bug Fixes
