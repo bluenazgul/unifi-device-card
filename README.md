@@ -54,7 +54,7 @@ I try to save money to get an Cloud Gateway Max in future to replace my Cloud Ga
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
 
-If you like this project and want to support my work, you can donate via PayPal.
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
 
 <a href="https://www.paypal.me/bluenazgul">
   <img
@@ -63,6 +63,8 @@ If you like this project and want to support my work, you can donate via PayPal.
     width="220"
   />
 </a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 ---
 
@@ -73,6 +75,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Device-accurate styling** — white panels for Lite / Flex / Ultra / Cloud Gateway style devices and silver/dark panels for rack devices and unknown switch fallbacks
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
 - **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation
+- **Direct device access** — click the model and firmware line to open the selected device in Home Assistant, including its disabled entities
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
@@ -140,7 +143,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 | USW Pro XG 10 PoE (`USWPROXG10POE`) | 10 + 2 SFP+ | Silver |
 | USW Pro XG 24 / 24 PoE (`USWPROXG24`, `USWPROXG24POE`) | 24 + 2 SFP+ | Silver |
 | USW Pro XG 48 / 48 PoE (`USWPROXG48`, `USWPROXG48POE`) | 48 + 4 SFP+ | Silver |
-| USW Pro HD 24 / 24 PoE (`USWPROHD24`, `USWPROHD24POE`) | 24 + 2 SFP+ | Silver |
+| USW Pro HD 24 / 24 PoE (`USWPROHD24`, `USWPROHD24POE`) | 24 + 4 SFP+ | Silver |
 | Enterprise Campus 24 PoE / 24S PoE (`ECS24POE`, `ECS24SPOE`) | 24 + 4 SFP28 | Silver |
 | Enterprise Campus 48 PoE / 48S PoE (`ECS48POE`, `ECS48SPOE`) | 48 + 4 SFP28 | Silver |
 | Enterprise Campus Aggregation (`ECSAGGREGATION`) | 32 SFP28 | Silver |
@@ -283,6 +286,7 @@ background_opacity: 85        # optional (0-100)
 show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
 show_panel: true              # optional (default: true)
+dynamic_port_details: false   # optional; show details only after a port is selected
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
 ports_per_row: 8              # optional (switches and compatible In-Wall AP port sections only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
@@ -332,6 +336,7 @@ wan2_port: none               # optional (gateway only)
 | `button_border_color` | string | default/theme | Optional custom secondary button border color. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
+| `dynamic_port_details` | boolean | `false` | Switch/Gateway and compatible integrated ports: starts without a selected port, shows details after a port click, and hides them when that port is clicked again. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
 | `ports_per_row` | number | auto | Optional row width override for switch layouts and compatible In-Wall AP integrated-port sections. Without it, a model with declared rows keeps them, and only single-row fallbacks use 8 per row. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |

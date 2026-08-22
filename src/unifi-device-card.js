@@ -203,7 +203,10 @@ class UnifiDeviceCard extends HTMLElement {
     }
     const newDeviceId = newConfig?.device_id || null;
     const newFakeMode = newConfig?.fake_device === true;
+    const dynamicPortDetailsEnabled = newConfig.dynamic_port_details === true;
+    const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
     this._config = newConfig;
+    if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
     this._log("info", "setConfig", {
       device_id: newDeviceId || null,
       log_level: this._configuredLogLevel(),
@@ -326,8 +329,7 @@ class UnifiDeviceCard extends HTMLElement {
     const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const panelRows = this._buildEffectiveRows(this._ctx, visibleNumbered).length + (specials.length ? 1 : 0);
     const selected = [...specials, ...visibleNumbered].find((slot) => slot.key === this._selectedKey)
-      || specials[0]
-      || visibleNumbered[0]
+      || (this._config?.dynamic_port_details === true ? null : specials[0] || visibleNumbered[0])
       || null;
     const hasPoe = !!(selected?.poe_switch_entity || selected?.poe_power_entity || selected?.power_cycle_entity);
     const hasTraffic = !!(selected?.rx_entity || selected?.tx_entity);
@@ -1297,7 +1299,11 @@ class UnifiDeviceCard extends HTMLElement {
       const { specials, numbered } = this._buildSlotData(ctx);
       const available = [...specials, ...numbered];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
-      if (!selectedStillExists) this._selectedKey = available[0]?.key || null;
+      if (!selectedStillExists) {
+        this._selectedKey = this._config?.dynamic_port_details === true
+          ? null
+          : available[0]?.key || null;
+      }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
       if (token !== this._loadToken) return;
@@ -1315,7 +1321,9 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _selectKey(key) {
-    this._selectedKey = key;
+    this._selectedKey = this._config?.dynamic_port_details === true && this._selectedKey === key
+      ? null
+      : key;
     this._render();
   }
 
@@ -1344,6 +1352,27 @@ class UnifiDeviceCard extends HTMLElement {
     const fw = this._ctx?.firmware;
     const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
     return fw ? `${model} · FW ${fw}` : model;
+  }
+
+  _openDevicePage() {
+    const deviceId = this._config?.device_id;
+    if (!deviceId || this._ctx?.fake_device === true) return;
+
+    const path = `/config/devices/device/${encodeURIComponent(deviceId)}`;
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new Event("location-changed"));
+  }
+
+  _attachDeviceLinkHandler() {
+    const link = this.shadowRoot?.querySelector("[data-action='open-device']");
+    if (!link) return;
+
+    link.addEventListener("click", () => this._openDevicePage());
+    link.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      this._openDevicePage();
+    });
   }
 
   _headerMetrics() {
@@ -1636,6 +1665,23 @@ class UnifiDeviceCard extends HTMLElement {
       .subtitle {
         font-size: 0.73rem;
         color: var(--udc-meta-color, var(--udc-muted));
+      }
+
+      .subtitle.device-link {
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      .subtitle.device-link:hover,
+      .subtitle.device-link:focus-visible {
+        color: var(--primary-color, var(--udc-meta-color, var(--udc-muted)));
+        text-decoration: underline;
+      }
+
+      .subtitle.device-link:focus-visible {
+        outline: 2px solid var(--primary-color, currentColor);
+        outline-offset: 2px;
+        border-radius: 2px;
       }
 
       .meta-list {
@@ -3146,7 +3192,9 @@ class UnifiDeviceCard extends HTMLElement {
     const allSlots = [...specials, ...numbered];
     if (!allSlots.length) return "";
 
-    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const selected = allSlots.find((p) => p.key === this._selectedKey)
+      || (this._config?.dynamic_port_details === true ? null : allSlots[0])
+      || null;
     const portClientIndex = this._buildPortClientIndex();
     const rows = this._buildEffectiveRows(ctx, numbered);
     const layoutRows = rows.map((rowPorts) => {
@@ -3164,7 +3212,7 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
           ${layoutRows || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`}
         </div>
-        <div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>
+        ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
       </div>`;
   }
 
@@ -3238,7 +3286,7 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-              <div class="subtitle">${escapedSubtitle}</div>
+              <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
               ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
                 <div class="meta-row">
                   <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -3325,6 +3373,7 @@ class UnifiDeviceCard extends HTMLElement {
         </ha-card>`;
 
       this._attachPortActionHandlers(this._ctx);
+      this._attachDeviceLinkHandler();
       this.shadowRoot.querySelector("[data-action='toggle-led']")
         ?.addEventListener("click", () => this._toggleEntity(ledEntity));
 
@@ -3339,7 +3388,9 @@ class UnifiDeviceCard extends HTMLElement {
     );
 
     const allSlots = [...allSpecials, ...normalizedNumbered];
-    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const selected = allSlots.find((p) => p.key === this._selectedKey)
+      || (this._config?.dynamic_port_details === true ? null : allSlots[0])
+      || null;
     const connected = this._connectedCount(allSlots);
     const layoutTheme = ctx?.layout?.theme;
     const theme = this._safeClassToken(layoutTheme || "dark", "dark");
@@ -3495,7 +3546,7 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-            <div class="subtitle">${escapedSubtitle}</div>
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
                 <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -3513,11 +3564,13 @@ class UnifiDeviceCard extends HTMLElement {
           ${panelContentHtml}
         </div>
 
-        <div class="section">${detail}</div>
+        ${selected || this._config?.dynamic_port_details !== true ? `<div class="section">${detail}</div>` : ""}
       </ha-card>`;
 
     this.shadowRoot.querySelectorAll(".port")
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+
+    this._attachDeviceLinkHandler();
 
     this.shadowRoot.querySelector("[data-action='toggle-port']")
       ?.addEventListener("click", (e) => {

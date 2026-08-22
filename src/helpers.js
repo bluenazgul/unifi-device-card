@@ -669,6 +669,18 @@ export function getDeviceTelemetry(entities, hass = null) {
   };
 }
 
+export function getUnavailableHeaderTelemetryKeys(deviceContext) {
+  if (!deviceContext) return [];
+
+  const unavailable = [];
+  if (!deviceContext.cpu_utilization_entity) unavailable.push("cpu_utilization");
+  if (!deviceContext.memory_utilization_entity) unavailable.push("memory_utilization");
+  if (!deviceContext.cpu_temperature_entity && !deviceContext.temperature_entity) {
+    unavailable.push("temperature");
+  }
+  return unavailable;
+}
+
 export function getDeviceOnlineEntity(entities) {
   for (const entity of entities || []) {
     const id = lower(entity.entity_id);

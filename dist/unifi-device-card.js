@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.1 */
+/* UniFi Device Card 0.8.11-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -863,25 +863,29 @@ var MODEL_REGISTRY = {
     kind: "switch",
     frontStyle: "eight-grid",
     rows: [range(1, 8), range(9, 16), range(17, 24)],
-    portCount: 26,
+    portCount: 28,
     displayModel: "USW Pro HD 24",
     theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+      { key: "sfp_2", label: "SFP+ 2", port: 26 },
+      { key: "sfp_3", label: "SFP+ 3", port: 27 },
+      { key: "sfp_4", label: "SFP+ 4", port: 28 }
     ]
   },
   USWPROHD24POE: {
     kind: "switch",
     frontStyle: "eight-grid",
     rows: [range(1, 8), range(9, 16), range(17, 24)],
-    portCount: 26,
+    portCount: 28,
     displayModel: "USW Pro HD 24 PoE",
     theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+      { key: "sfp_2", label: "SFP+ 2", port: 26 },
+      { key: "sfp_3", label: "SFP+ 3", port: 27 },
+      { key: "sfp_4", label: "SFP+ 4", port: 28 }
     ]
   },
   ECS24POE: {
@@ -1588,7 +1592,8 @@ function inferPortCountFromModel(device) {
   if (text.includes("USXG24") || text.includes("ENTERPRISEXG24")) return 26;
   if (text.includes("US68P") || text.includes("ENTERPRISE8POE")) return 10;
   if (text.includes("USWPROXG48")) return 52;
-  if (text.includes("USWPROXG24") || text.includes("USWPROHD24")) return 26;
+  if (text.includes("USWPROHD24")) return 28;
+  if (text.includes("USWPROXG24")) return 26;
   if (text.includes("USWPROXG10POE")) return 12;
   if (text.includes("USWPROXG8POE")) return 10;
   if (text.includes("USWWANRJ45")) return 4;
@@ -2424,6 +2429,16 @@ function getDeviceTelemetry(entities, hass = null) {
       )
     ], hass)
   };
+}
+function getUnavailableHeaderTelemetryKeys(deviceContext) {
+  if (!deviceContext) return [];
+  const unavailable = [];
+  if (!deviceContext.cpu_utilization_entity) unavailable.push("cpu_utilization");
+  if (!deviceContext.memory_utilization_entity) unavailable.push("memory_utilization");
+  if (!deviceContext.cpu_temperature_entity && !deviceContext.temperature_entity) {
+    unavailable.push("temperature");
+  }
+  return unavailable;
 }
 function getDeviceOnlineEntity(entities) {
   for (const entity of entities || []) {
@@ -3727,6 +3742,9 @@ var TRANSLATIONS = {
     editor_panel_toggle_label: "Front panel",
     editor_panel_toggle_text: "Show front panel hardware view",
     editor_panel_toggle_hint: "Enabled by default. Disable to hide the visual front panel.",
+    editor_dynamic_port_details_label: "Dynamic port details",
+    editor_dynamic_port_details_text: "Show port details on selection",
+    editor_dynamic_port_details_hint: "Starts with no selected port. Click a port to show its details; click it again to hide them.",
     editor_ports_per_row_label: "Ports per row (optional)",
     editor_ports_per_row_hint: "Only for switches. Leave empty for automatic layout, or set a number (for example 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Force sequential ports",
@@ -3912,6 +3930,9 @@ var TRANSLATIONS = {
     editor_panel_toggle_label: "Frontpanel",
     editor_panel_toggle_text: "Hardware-Frontpanel anzeigen",
     editor_panel_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet die visuelle Port-Ansicht aus.",
+    editor_dynamic_port_details_label: "Dynamische Portdetails",
+    editor_dynamic_port_details_text: "Portdetails bei Auswahl anzeigen",
+    editor_dynamic_port_details_hint: "Startet ohne ausgew\xE4hlten Port. Klicke einen Port an, um Details anzuzeigen, und erneut, um sie auszublenden.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
     editor_ports_per_row_hint: "Nur f\xFCr Switches. Leer lassen f\xFCr automatisches Layout oder Zahl setzen (z. B. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Ports fortlaufend erzwingen",
@@ -4097,6 +4118,9 @@ var TRANSLATIONS = {
     editor_panel_toggle_label: "Frontpaneel",
     editor_panel_toggle_text: "Hardware-frontpaneel tonen",
     editor_panel_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt de visuele poortweergave.",
+    editor_dynamic_port_details_label: "Dynamische poortdetails",
+    editor_dynamic_port_details_text: "Poortdetails tonen na selectie",
+    editor_dynamic_port_details_hint: "Start zonder geselecteerde poort. Klik op een poort voor details en klik opnieuw om ze te verbergen.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
     editor_ports_per_row_hint: "Alleen voor switches. Leeg laten voor automatische layout of een getal instellen (bijv. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Opeenvolgende poorten forceren",
@@ -4279,6 +4303,9 @@ var TRANSLATIONS = {
     editor_panel_toggle_label: "Panneau avant",
     editor_panel_toggle_text: "Afficher la vue mat\xE9rielle du panneau avant",
     editor_panel_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer la vue visuelle des ports.",
+    editor_dynamic_port_details_label: "D\xE9tails de port dynamiques",
+    editor_dynamic_port_details_text: "Afficher les d\xE9tails \xE0 la s\xE9lection",
+    editor_dynamic_port_details_hint: "D\xE9marre sans port s\xE9lectionn\xE9. Cliquez sur un port pour afficher ses d\xE9tails, puis \xE0 nouveau pour les masquer.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
     editor_ports_per_row_hint: "Uniquement pour les switches. Laissez vide pour la mise en page automatique ou d\xE9finissez un nombre (ex. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forcer l\u2019ordre s\xE9quentiel des ports",
@@ -4461,6 +4488,9 @@ var TRANSLATIONS = {
     editor_panel_toggle_label: "Panel frontal",
     editor_panel_toggle_text: "Mostrar vista de hardware del panel frontal",
     editor_panel_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar la vista visual del panel.",
+    editor_dynamic_port_details_label: "Detalles de puerto din\xE1micos",
+    editor_dynamic_port_details_text: "Mostrar detalles al seleccionar",
+    editor_dynamic_port_details_hint: "Comienza sin ning\xFAn puerto seleccionado. Haz clic en un puerto para ver sus detalles y otra vez para ocultarlos.",
     editor_ports_per_row_label: "Puertos por fila (opcional)",
     editor_ports_per_row_hint: "Solo para switches. D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico o define un n\xFAmero (p. ej. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forzar puertos secuenciales",
@@ -4643,6 +4673,9 @@ var TRANSLATIONS = {
     editor_panel_toggle_label: "Pannello frontale",
     editor_panel_toggle_text: "Mostra la vista hardware del pannello frontale",
     editor_panel_toggle_hint: "Abilitato per default. Disattivalo per nascondere la vista visiva dei porti.",
+    editor_dynamic_port_details_label: "Dettagli porta dinamici",
+    editor_dynamic_port_details_text: "Mostra dettagli alla selezione",
+    editor_dynamic_port_details_hint: "Inizia senza una porta selezionata. Fai clic su una porta per i dettagli e di nuovo per nasconderli.",
     editor_ports_per_row_label: "Porte per riga (opzionale)",
     editor_ports_per_row_hint: "Solo per switch. Lascia vuoto per layout automatico o imposta un numero (es. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forza porte sequenziali",
@@ -5319,6 +5352,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
     if (!next.ports_per_row) delete next.ports_per_row;
@@ -5479,6 +5513,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const checked = !!ev.target.checked;
     this._emitConfig({ show_panel: checked ? void 0 : false });
   }
+  _onDynamicPortDetailsChange(ev) {
+    this._emitConfig({ dynamic_port_details: ev.target.checked ? true : void 0 });
+  }
   _onPortsPerRowChange(ev) {
     this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
   }
@@ -5584,12 +5621,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _unavailableTelemetryItems() {
     if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
-    return [
-      ["cpu_utilization", "cpu_utilization_entity"],
-      ["cpu_temperature", "cpu_temperature_entity"],
-      ["memory_utilization", "memory_utilization_entity"],
-      ["temperature", "temperature_entity"]
-    ].filter(([, entityKey]) => !this._deviceCtx?.[entityKey]).map(([labelKey]) => this._t(labelKey));
+    return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
   _unavailableTelemetryHTML() {
     const items = this._unavailableTelemetryItems();
@@ -5953,6 +5985,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
+    const dynamicPortDetails = this._config?.dynamic_port_details === true;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
@@ -6034,6 +6067,16 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
+        </div>` : ""}
+
+        ${isSwitchOrGateway || supportsIntegratedPorts ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_dynamic_port_details_label"))}</label>
+          <label class="checkbox-row">
+            <input id="dynamic_port_details" type="checkbox" ${dynamicPortDetails ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_dynamic_port_details_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_dynamic_port_details_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchDevice || supportsIntegratedPorts ? `
@@ -6207,6 +6250,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("show_name")?.addEventListener("change", (ev) => this._onShowNameChange(ev));
     this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
+    this.shadowRoot.getElementById("dynamic_port_details")?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
     this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
@@ -6254,7 +6298,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.1";
+var VERSION = "0.8.11-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6407,7 +6451,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     const newDeviceId = newConfig?.device_id || null;
     const newFakeMode = newConfig?.fake_device === true;
+    const dynamicPortDetailsEnabled = newConfig.dynamic_port_details === true;
+    const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
     this._config = newConfig;
+    if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
     this._log("info", "setConfig", {
       device_id: newDeviceId || null,
       log_level: this._configuredLogLevel()
@@ -6498,7 +6545,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     );
     const visibleNumbered = numbered.filter((slot) => !specialPortsInUse.has(slot.port));
     const panelRows = this._buildEffectiveRows(this._ctx, visibleNumbered).length + (specials.length ? 1 : 0);
-    const selected = [...specials, ...visibleNumbered].find((slot) => slot.key === this._selectedKey) || specials[0] || visibleNumbered[0] || null;
+    const selected = [...specials, ...visibleNumbered].find((slot) => slot.key === this._selectedKey) || (this._config?.dynamic_port_details === true ? null : specials[0] || visibleNumbered[0]) || null;
     const hasPoe = !!(selected?.poe_switch_entity || selected?.poe_power_entity || selected?.power_cycle_entity);
     const hasTraffic2 = !!(selected?.rx_entity || selected?.tx_entity);
     return Math.max(6, Math.min(20, 5 + panelRows + (hasPoe ? 1 : 0) + (hasTraffic2 ? 1 : 0)));
@@ -7233,7 +7280,9 @@ var UnifiDeviceCard = class extends HTMLElement {
       const { specials, numbered } = this._buildSlotData(ctx);
       const available = [...specials, ...numbered];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
-      if (!selectedStillExists) this._selectedKey = available[0]?.key || null;
+      if (!selectedStillExists) {
+        this._selectedKey = this._config?.dynamic_port_details === true ? null : available[0]?.key || null;
+      }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
       if (token !== this._loadToken) return;
@@ -7249,7 +7298,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._render();
   }
   _selectKey(key) {
-    this._selectedKey = key;
+    this._selectedKey = this._config?.dynamic_port_details === true && this._selectedKey === key ? null : key;
     this._render();
   }
   async _toggleEntity(entityId) {
@@ -7274,6 +7323,23 @@ var UnifiDeviceCard = class extends HTMLElement {
     const fw = this._ctx?.firmware;
     const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
     return fw ? `${model} \xB7 FW ${fw}` : model;
+  }
+  _openDevicePage() {
+    const deviceId = this._config?.device_id;
+    if (!deviceId || this._ctx?.fake_device === true) return;
+    const path = `/config/devices/device/${encodeURIComponent(deviceId)}`;
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new Event("location-changed"));
+  }
+  _attachDeviceLinkHandler() {
+    const link = this.shadowRoot?.querySelector("[data-action='open-device']");
+    if (!link) return;
+    link.addEventListener("click", () => this._openDevicePage());
+    link.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      this._openDevicePage();
+    });
   }
   _headerMetrics() {
     if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
@@ -7521,6 +7587,23 @@ var UnifiDeviceCard = class extends HTMLElement {
       .subtitle {
         font-size: 0.73rem;
         color: var(--udc-meta-color, var(--udc-muted));
+      }
+
+      .subtitle.device-link {
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      .subtitle.device-link:hover,
+      .subtitle.device-link:focus-visible {
+        color: var(--primary-color, var(--udc-meta-color, var(--udc-muted)));
+        text-decoration: underline;
+      }
+
+      .subtitle.device-link:focus-visible {
+        outline: 2px solid var(--primary-color, currentColor);
+        outline-offset: 2px;
+        border-radius: 2px;
       }
 
       .meta-list {
@@ -9019,7 +9102,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const { specials, numbered } = this._buildSlotData(ctx);
     const allSlots = [...specials, ...numbered];
     if (!allSlots.length) return "";
-    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || (this._config?.dynamic_port_details === true ? null : allSlots[0]) || null;
     const portClientIndex = this._buildPortClientIndex();
     const rows = this._buildEffectiveRows(ctx, numbered);
     const layoutRows = rows.map((rowPorts) => {
@@ -9032,7 +9115,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
           ${layoutRows || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`}
         </div>
-        <div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>
+        ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
       </div>`;
   }
   _attachPortActionHandlers(ctx) {
@@ -9102,7 +9185,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${escapedHeaderTitle2}</div>` : ""}
-              <div class="subtitle">${escapedSubtitle2}</div>
+              <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle2}</div>
               ${headerMetrics2.length ? `<div class="meta-list">${headerMetrics2.map((item) => `
                 <div class="meta-row">
                   <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -9188,6 +9271,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           ${this._renderIntegratedPortSection(this._ctx)}
         </ha-card>`;
       this._attachPortActionHandlers(this._ctx);
+      this._attachDeviceLinkHandler();
       this.shadowRoot.querySelector("[data-action='toggle-led']")?.addEventListener("click", () => this._toggleEntity(ledEntity));
       return;
     }
@@ -9198,7 +9282,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       slotData.numbered
     );
     const allSlots = [...allSpecials, ...normalizedNumbered];
-    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || (this._config?.dynamic_port_details === true ? null : allSlots[0]) || null;
     const connected = this._connectedCount(allSlots);
     const layoutTheme = ctx?.layout?.theme;
     const theme = this._safeClassToken(layoutTheme || "dark", "dark");
@@ -9315,7 +9399,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-            <div class="subtitle">${escapedSubtitle}</div>
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
                 <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -9333,9 +9417,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           ${panelContentHtml}
         </div>
 
-        <div class="section">${detail}</div>
+        ${selected || this._config?.dynamic_port_details !== true ? `<div class="section">${detail}</div>` : ""}
       </ha-card>`;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+    this._attachDeviceLinkHandler();
     this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => {
       const target = e.currentTarget;
       if (target.dataset.confirmDisable === "true") {

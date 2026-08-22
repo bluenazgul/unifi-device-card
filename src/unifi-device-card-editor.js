@@ -1,6 +1,7 @@
 //unifi-device-card-editor.js
 import {
   getDeviceContext,
+  getUnavailableHeaderTelemetryKeys,
   getRelevantEntityWarningsForDevice,
   mergePortsWithLayout,
   getUnifiDevices,
@@ -516,6 +517,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
     if (!next.ports_per_row) delete next.ports_per_row;
@@ -706,6 +708,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._emitConfig({ show_panel: checked ? undefined : false });
   }
 
+  _onDynamicPortDetailsChange(ev) {
+    this._emitConfig({ dynamic_port_details: ev.target.checked ? true : undefined });
+  }
+
   _onPortsPerRowChange(ev) {
     this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
   }
@@ -847,14 +853,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _unavailableTelemetryItems() {
     if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
 
-    return [
-      ["cpu_utilization", "cpu_utilization_entity"],
-      ["cpu_temperature", "cpu_temperature_entity"],
-      ["memory_utilization", "memory_utilization_entity"],
-      ["temperature", "temperature_entity"],
-    ]
-      .filter(([, entityKey]) => !this._deviceCtx?.[entityKey])
-      .map(([labelKey]) => this._t(labelKey));
+    return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
 
   _unavailableTelemetryHTML() {
@@ -1270,6 +1269,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
+    const dynamicPortDetails = this._config?.dynamic_port_details === true;
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
@@ -1370,6 +1370,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
+        </div>` : ""}
+
+        ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_dynamic_port_details_label"))}</label>
+          <label class="checkbox-row">
+            <input id="dynamic_port_details" type="checkbox" ${dynamicPortDetails ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_dynamic_port_details_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_dynamic_port_details_hint"))}</div>
         </div>` : ""}
 
         ${(isSwitchDevice || supportsIntegratedPorts) ? `
@@ -1553,6 +1563,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")
       ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
+    this.shadowRoot.getElementById("dynamic_port_details")
+      ?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
 
     this.shadowRoot.getElementById("name")
       ?.addEventListener("input", (ev) => this._onNameInput(ev));

@@ -1,5 +1,33 @@
 # Changelog
 
+## [v0.8.2]
+
+### 🐛 Bug Fixes
+- Show all four SFP+ ports on the USW Pro HD 24 and USW Pro HD 24 PoE.
+- Treat CPU temperature and device temperature as alternative temperature telemetry in the editor, avoiding a missing-telemetry warning when either sensor is available.
+
+### ✨ Improvements
+- Open the selected Home Assistant device page when the model and firmware line is clicked, making disabled UniFi entities easier to access.
+- Add an optional dynamic port-details mode that starts with no selected port and toggles details by clicking a port.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.1]
 
 ### 🐛 Bug Fixes
