@@ -8,6 +8,7 @@
 
 ### ✨ Improvements
 - Open the selected Home Assistant device page when the model and firmware line is clicked, making disabled UniFi entities easier to access.
+- Add an optional dynamic port-details mode that starts with no selected port and toggles details by clicking a port.
 
 ### ✨ Hints
 
