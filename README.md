@@ -73,6 +73,7 @@ If you like this project and want to support my work, you can donate via PayPal.
 - **Device-accurate styling** — white panels for Lite / Flex / Ultra / Cloud Gateway style devices and silver/dark panels for rack devices and unknown switch fallbacks
 - **Per-port link and PoE indication** — visual port LEDs reflect link state, speed class, and active PoE
 - **Port detail panel** — click any port to see link status, speed, PoE state, PoE power draw, RX/TX values, and available actions; disabling a port requires confirmation
+- **Direct device access** — click the model and firmware line to open the selected device in Home Assistant, including its disabled entities
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
 - **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant

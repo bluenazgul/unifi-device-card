@@ -6,6 +6,9 @@
 - Show all four SFP+ ports on the USW Pro HD 24 and USW Pro HD 24 PoE.
 - Treat CPU temperature and device temperature as alternative temperature telemetry in the editor, avoiding a missing-telemetry warning when either sensor is available.
 
+### ✨ Improvements
+- Open the selected Home Assistant device page when the model and firmware line is clicked, making disabled UniFi entities easier to access.
+
 ### ✨ Hints
 
 I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
