@@ -1346,6 +1346,27 @@ class UnifiDeviceCard extends HTMLElement {
     return fw ? `${model} · FW ${fw}` : model;
   }
 
+  _openDevicePage() {
+    const deviceId = this._config?.device_id;
+    if (!deviceId || this._ctx?.fake_device === true) return;
+
+    const path = `/config/devices/device/${encodeURIComponent(deviceId)}`;
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new Event("location-changed"));
+  }
+
+  _attachDeviceLinkHandler() {
+    const link = this.shadowRoot?.querySelector("[data-action='open-device']");
+    if (!link) return;
+
+    link.addEventListener("click", () => this._openDevicePage());
+    link.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      this._openDevicePage();
+    });
+  }
+
   _headerMetrics() {
     if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
 
@@ -1636,6 +1657,23 @@ class UnifiDeviceCard extends HTMLElement {
       .subtitle {
         font-size: 0.73rem;
         color: var(--udc-meta-color, var(--udc-muted));
+      }
+
+      .subtitle.device-link {
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      .subtitle.device-link:hover,
+      .subtitle.device-link:focus-visible {
+        color: var(--primary-color, var(--udc-meta-color, var(--udc-muted)));
+        text-decoration: underline;
+      }
+
+      .subtitle.device-link:focus-visible {
+        outline: 2px solid var(--primary-color, currentColor);
+        outline-offset: 2px;
+        border-radius: 2px;
       }
 
       .meta-list {
@@ -3238,7 +3276,7 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-              <div class="subtitle">${escapedSubtitle}</div>
+              <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
               ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
                 <div class="meta-row">
                   <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -3325,6 +3363,7 @@ class UnifiDeviceCard extends HTMLElement {
         </ha-card>`;
 
       this._attachPortActionHandlers(this._ctx);
+      this._attachDeviceLinkHandler();
       this.shadowRoot.querySelector("[data-action='toggle-led']")
         ?.addEventListener("click", () => this._toggleEntity(ledEntity));
 
@@ -3495,7 +3534,7 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-            <div class="subtitle">${escapedSubtitle}</div>
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
                 <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -3518,6 +3557,8 @@ class UnifiDeviceCard extends HTMLElement {
 
     this.shadowRoot.querySelectorAll(".port")
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+
+    this._attachDeviceLinkHandler();
 
     this.shadowRoot.querySelector("[data-action='toggle-port']")
       ?.addEventListener("click", (e) => {
