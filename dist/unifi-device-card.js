@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d40da4c */
+/* UniFi Device Card 0.0.0-dev.8e6a7bf */
 
 // src/model-registry.js
 function range(start, end) {
@@ -6264,7 +6264,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d40da4c";
+var VERSION = "0.0.0-dev.8e6a7bf";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7285,6 +7285,23 @@ var UnifiDeviceCard = class extends HTMLElement {
     const model = this._ctx?.layout?.displayModel || this._ctx?.model || "";
     return fw ? `${model} \xB7 FW ${fw}` : model;
   }
+  _openDevicePage() {
+    const deviceId = this._config?.device_id;
+    if (!deviceId || this._ctx?.fake_device === true) return;
+    const path = `/config/devices/device/${encodeURIComponent(deviceId)}`;
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new Event("location-changed"));
+  }
+  _attachDeviceLinkHandler() {
+    const link = this.shadowRoot?.querySelector("[data-action='open-device']");
+    if (!link) return;
+    link.addEventListener("click", () => this._openDevicePage());
+    link.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      this._openDevicePage();
+    });
+  }
   _headerMetrics() {
     if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
     const metrics = [
@@ -7531,6 +7548,23 @@ var UnifiDeviceCard = class extends HTMLElement {
       .subtitle {
         font-size: 0.73rem;
         color: var(--udc-meta-color, var(--udc-muted));
+      }
+
+      .subtitle.device-link {
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      .subtitle.device-link:hover,
+      .subtitle.device-link:focus-visible {
+        color: var(--primary-color, var(--udc-meta-color, var(--udc-muted)));
+        text-decoration: underline;
+      }
+
+      .subtitle.device-link:focus-visible {
+        outline: 2px solid var(--primary-color, currentColor);
+        outline-offset: 2px;
+        border-radius: 2px;
       }
 
       .meta-list {
@@ -9112,7 +9146,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           <div class="header">
             <div class="header-info">
               ${headerTitle2 ? `<div class="title">${escapedHeaderTitle2}</div>` : ""}
-              <div class="subtitle">${escapedSubtitle2}</div>
+              <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle2}</div>
               ${headerMetrics2.length ? `<div class="meta-list">${headerMetrics2.map((item) => `
                 <div class="meta-row">
                   <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -9198,6 +9232,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           ${this._renderIntegratedPortSection(this._ctx)}
         </ha-card>`;
       this._attachPortActionHandlers(this._ctx);
+      this._attachDeviceLinkHandler();
       this.shadowRoot.querySelector("[data-action='toggle-led']")?.addEventListener("click", () => this._toggleEntity(ledEntity));
       return;
     }
@@ -9325,7 +9360,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-            <div class="subtitle">${escapedSubtitle}</div>
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
             ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
               <div class="meta-row">
                 <div class="meta-label">${this._escapeHtml(item.label)}:</div>
@@ -9346,6 +9381,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
         <div class="section">${detail}</div>
       </ha-card>`;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
+    this._attachDeviceLinkHandler();
     this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => {
       const target = e.currentTarget;
       if (target.dataset.confirmDisable === "true") {
