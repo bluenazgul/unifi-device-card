@@ -1,6 +1,7 @@
 //unifi-device-card-editor.js
 import {
   getDeviceContext,
+  getUnavailableHeaderTelemetryKeys,
   getRelevantEntityWarningsForDevice,
   mergePortsWithLayout,
   getUnifiDevices,
@@ -847,14 +848,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
   _unavailableTelemetryItems() {
     if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
 
-    return [
-      ["cpu_utilization", "cpu_utilization_entity"],
-      ["cpu_temperature", "cpu_temperature_entity"],
-      ["memory_utilization", "memory_utilization_entity"],
-      ["temperature", "temperature_entity"],
-    ]
-      .filter(([, entityKey]) => !this._deviceCtx?.[entityKey])
-      .map(([labelKey]) => this._t(labelKey));
+    return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
 
   _unavailableTelemetryHTML() {
