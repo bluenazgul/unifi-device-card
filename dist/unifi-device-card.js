@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6ed5c52 */
+/* UniFi Device Card 0.0.0-dev.d40da4c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2429,6 +2429,16 @@ function getDeviceTelemetry(entities, hass = null) {
       )
     ], hass)
   };
+}
+function getUnavailableHeaderTelemetryKeys(deviceContext) {
+  if (!deviceContext) return [];
+  const unavailable = [];
+  if (!deviceContext.cpu_utilization_entity) unavailable.push("cpu_utilization");
+  if (!deviceContext.memory_utilization_entity) unavailable.push("memory_utilization");
+  if (!deviceContext.cpu_temperature_entity && !deviceContext.temperature_entity) {
+    unavailable.push("temperature");
+  }
+  return unavailable;
 }
 function getDeviceOnlineEntity(entities) {
   for (const entity of entities || []) {
@@ -5589,12 +5599,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _unavailableTelemetryItems() {
     if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
-    return [
-      ["cpu_utilization", "cpu_utilization_entity"],
-      ["cpu_temperature", "cpu_temperature_entity"],
-      ["memory_utilization", "memory_utilization_entity"],
-      ["temperature", "temperature_entity"]
-    ].filter(([, entityKey]) => !this._deviceCtx?.[entityKey]).map(([labelKey]) => this._t(labelKey));
+    return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
   _unavailableTelemetryHTML() {
     const items = this._unavailableTelemetryItems();
@@ -6259,7 +6264,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6ed5c52";
+var VERSION = "0.0.0-dev.d40da4c";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
