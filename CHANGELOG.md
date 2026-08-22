@@ -4,6 +4,7 @@
 
 ### 🐛 Bug Fixes
 - Show all four SFP+ ports on the USW Pro HD 24 and USW Pro HD 24 PoE.
+- Treat CPU temperature and device temperature as alternative temperature telemetry in the editor, avoiding a missing-telemetry warning when either sensor is available.
 
 ### ✨ Hints
 
