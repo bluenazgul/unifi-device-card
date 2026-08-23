@@ -38,6 +38,32 @@ export function normalizePositivePortNumbers(value) {
     .sort((a, b) => a - b);
 }
 
+export function normalizePortNames(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const normalized = {};
+  for (const [rawPort, rawName] of Object.entries(value)) {
+    const port = Number.parseInt(rawPort, 10);
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    if (!Number.isInteger(port) || port < 1 || String(port) !== String(rawPort).trim() || !name) continue;
+    normalized[port] = name;
+  }
+  return normalized;
+}
+
+export function applyPortNames(slotData, portNames) {
+  const normalized = normalizePortNames(portNames);
+  const apply = (slots) => (slots || []).map((slot) => {
+    const name = normalized[slot?.port];
+    return name ? { ...slot, label: name, port_label: name } : slot;
+  });
+
+  return {
+    specials: apply(slotData?.specials),
+    numbered: apply(slotData?.numbered),
+  };
+}
+
 function entityText(entity) {
   const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object"
     ? Object.values(entity.translation_placeholders)
@@ -1543,7 +1569,36 @@ function extractPortLabel(entity) {
   if (!name) return null;
 
   let stripped = name;
-  for (const suffix of [/ power cycle$/i, / link speed$/i, / poe power$/i]) {
+  const metricSuffixes = [
+    // English and the languages supported by the card. These are HA entity
+    // metric labels, not card UI translations, and must never become part of
+    // the discovered physical port name.
+    / power cycle$/i,
+    / link speed$/i,
+    / poe power$/i,
+    / verbindungsgeschwindigkeit$/i,
+    / poe[- ]leistung$/i,
+    / verbindingssnelheid$/i,
+    / poe[- ]vermogen$/i,
+    / vitesse (?:de (?:la )?)?(?:liaison|connexion)$/i,
+    / puissance poe$/i,
+    / velocidad (?:de|del) (?:enlace|vínculo)$/i,
+    / potencia poe$/i,
+    / velocità (?:del )?(?:collegamento|link)$/i,
+    / potenza poe$/i,
+    / länkhastighet$/i,
+    / poe[- ]effekt$/i,
+    / linkhastighed$/i,
+    / poe[- ]strøm$/i,
+    / linkhastighet$/i,
+    / linkkinopeus$/i,
+    / poe[- ]teho$/i,
+    / prędkość (?:łącza|połączenia)$/i,
+    / moc poe$/i,
+    / rychlost (?:linky|připojení)$/i,
+    / napájení poe$/i,
+  ];
+  for (const suffix of metricSuffixes) {
     const c = name.replace(suffix, "").trim();
     if (c.length < name.length) {
       stripped = c;
@@ -1551,7 +1606,6 @@ function extractPortLabel(entity) {
     }
   }
 
-  stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
   if (!stripped || /^(rx|tx|poe|link|uplink|downlink|sfp|wan|lan)$/i.test(stripped)) {
     return null;
   }

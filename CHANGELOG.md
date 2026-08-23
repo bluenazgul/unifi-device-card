@@ -4,6 +4,10 @@
 
 ### 🐛 Bug Fixes
 - Fix PoE controls and power telemetry being hidden for port 4 of the Cloud Gateway Fiber.
+- Keep port detail headings limited to the actual discovered port name instead of appending the localized telemetry type.
+
+### ✨ Improvements
+- Add a `port_name` YAML mapping for custom names in front-panel labels, tooltips, and port details.
 
 ### ✨ Hints
 
