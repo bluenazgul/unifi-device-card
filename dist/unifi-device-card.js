@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.0a9b5fb */
+/* UniFi Device Card 0.0.0-dev.115fcee */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1995,6 +1995,28 @@ function normalizePositivePortNumbers(value) {
   if (!Array.isArray(value)) return [];
   return Array.from(new Set(value.map((entry) => Number(entry)).filter((port) => Number.isInteger(port) && port > 0))).sort((a, b) => a - b);
 }
+function normalizePortNames(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const normalized = {};
+  for (const [rawPort, rawName] of Object.entries(value)) {
+    const port = Number.parseInt(rawPort, 10);
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    if (!Number.isInteger(port) || port < 1 || String(port) !== String(rawPort).trim() || !name) continue;
+    normalized[port] = name;
+  }
+  return normalized;
+}
+function applyPortNames(slotData, portNames) {
+  const normalized = normalizePortNames(portNames);
+  const apply = (slots) => (slots || []).map((slot) => {
+    const name = normalized[slot?.port];
+    return name ? { ...slot, port_label: name } : slot;
+  });
+  return {
+    specials: apply(slotData?.specials),
+    numbered: apply(slotData?.numbered)
+  };
+}
 function entityText(entity) {
   const translationValues = entity?.translation_placeholders && typeof entity.translation_placeholders === "object" ? Object.values(entity.translation_placeholders) : [];
   return lower(
@@ -2952,17 +2974,58 @@ function ensureSpecialPort(map, key, label) {
 function extractPortLabel(entity) {
   const isLabelSource = entity.entity_id?.startsWith("button.") && lower(entity.entity_id).includes("power_cycle") || entity.entity_id?.startsWith("sensor.") && lower(entity.entity_id).includes("_link_speed") || entity.entity_id?.startsWith("sensor.") && lower(entity.entity_id).includes("_poe_power");
   if (!isLabelSource) return null;
+  const translatedPortName = normalize(entity.translation_placeholders?.port_name || "");
+  if (translatedPortName) return translatedPortName;
   const name = normalize(entity.original_name || entity.name || "");
   if (!name) return null;
   let stripped = name;
-  for (const suffix of [/ power cycle$/i, / link speed$/i, / poe power$/i]) {
+  const metricSuffixes = [
+    // English and the languages supported by the card. These are HA entity
+    // metric labels, not card UI translations, and must never become part of
+    // the discovered physical port name.
+    / power cycle$/i,
+    / aus- und wieder einschalten$/i,
+    / stroomcyclus$/i,
+    / cycle d['’]alimentation$/i,
+    / ciclo de energía$/i,
+    / spegnimento e riaccensione$/i,
+    / strömcykel$/i,
+    / strømcyklus$/i,
+    / strømsyklus$/i,
+    / virrankatkaisu$/i,
+    / cykl zasilania$/i,
+    / restart napájení$/i,
+    / link speed$/i,
+    / poe power$/i,
+    / verbindungsgeschwindigkeit$/i,
+    / poe[- ]leistung$/i,
+    / verbindingssnelheid$/i,
+    / poe[- ]vermogen$/i,
+    / vitesse (?:de (?:la )?)?(?:liaison|connexion)$/i,
+    / puissance poe$/i,
+    / velocidad (?:de|del) (?:enlace|vínculo)$/i,
+    / potencia poe$/i,
+    / velocità (?:del )?(?:collegamento|link)$/i,
+    / potenza poe$/i,
+    / länkhastighet$/i,
+    / poe[- ]effekt$/i,
+    / linkhastighed$/i,
+    / poe[- ]strøm$/i,
+    / linkhastighet$/i,
+    / linkkinopeus$/i,
+    / poe[- ]teho$/i,
+    / prędkość (?:łącza|połączenia)$/i,
+    / moc poe$/i,
+    / rychlost (?:linky|připojení)$/i,
+    / napájení poe$/i
+  ];
+  for (const suffix of metricSuffixes) {
     const c = name.replace(suffix, "").trim();
     if (c.length < name.length) {
       stripped = c;
       break;
     }
   }
-  stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
   if (!stripped || /^(rx|tx|poe|link|uplink|downlink|sfp|wan|lan)$/i.test(stripped)) {
     return null;
   }
@@ -6299,7 +6362,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.0a9b5fb";
+var VERSION = "0.0.0-dev.115fcee";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6449,6 +6512,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
     } else {
       delete newConfig.trust_link_speed_ports;
+    }
+    const portNames = normalizePortNames(newConfig.port_name);
+    if (Object.keys(portNames).length) {
+      newConfig.port_name = portNames;
+    } else {
+      delete newConfig.port_name;
     }
     const newDeviceId = newConfig?.device_id || null;
     const newFakeMode = newConfig?.fake_device === true;
@@ -7022,14 +7091,14 @@ var UnifiDeviceCard = class extends HTMLElement {
     );
     this._applyManualPortSensorOverrides(numberedRaw, specialsRaw);
     if (ctx?.type === "gateway") {
-      return applyGatewayPortOverrides(
+      return applyPortNames(applyGatewayPortOverrides(
         this._config,
         specialsRaw,
         numberedRaw,
         ctx?.layout
-      );
+      ), this._config?.port_name);
     }
-    return { specials: specialsRaw, numbered: numberedRaw };
+    return applyPortNames({ specials: specialsRaw, numbered: numberedRaw }, this._config?.port_name);
   }
   _relevantStateEntityIds() {
     const ids = /* @__PURE__ */ new Set();
