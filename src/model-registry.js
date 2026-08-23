@@ -900,6 +900,7 @@ export const MODEL_REGISTRY = {
   UCGFIBER: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
+    poePortRange: [4, 4],
     specialSlots: [
       { key: "wan",   label: "WAN",      port: 5 },
       { key: "sfp_1", label: "SFP+ LAN", port: 6 },
