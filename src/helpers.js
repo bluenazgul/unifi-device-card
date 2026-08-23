@@ -55,7 +55,7 @@ export function applyPortNames(slotData, portNames) {
   const normalized = normalizePortNames(portNames);
   const apply = (slots) => (slots || []).map((slot) => {
     const name = normalized[slot?.port];
-    return name ? { ...slot, label: name, port_label: name } : slot;
+    return name ? { ...slot, display_label: name, port_label: name } : slot;
   });
 
   return {
@@ -1565,6 +1565,9 @@ function extractPortLabel(entity) {
 
   if (!isLabelSource) return null;
 
+  const translatedPortName = normalize(entity.translation_placeholders?.port_name || "");
+  if (translatedPortName) return translatedPortName;
+
   const name = normalize(entity.original_name || entity.name || "");
   if (!name) return null;
 
@@ -1574,6 +1577,17 @@ function extractPortLabel(entity) {
     // metric labels, not card UI translations, and must never become part of
     // the discovered physical port name.
     / power cycle$/i,
+    / aus- und wieder einschalten$/i,
+    / stroomcyclus$/i,
+    / cycle d['’]alimentation$/i,
+    / ciclo de energía$/i,
+    / spegnimento e riaccensione$/i,
+    / strömcykel$/i,
+    / strømcyklus$/i,
+    / strømsyklus$/i,
+    / virrankatkaisu$/i,
+    / cykl zasilania$/i,
+    / restart napájení$/i,
     / link speed$/i,
     / poe power$/i,
     / verbindungsgeschwindigkeit$/i,

@@ -1595,7 +1595,7 @@ class UnifiDeviceCard extends HTMLElement {
       <div class="port-housing">
         ${housing}
       </div>
-      <div class="port-num">${this._escapeHtml(slot.label)}</div>
+      <div class="port-num">${this._escapeHtml(slot.display_label || slot.label)}</div>
     </button>`;
   }
 
