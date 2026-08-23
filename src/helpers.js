@@ -55,7 +55,7 @@ export function applyPortNames(slotData, portNames) {
   const normalized = normalizePortNames(portNames);
   const apply = (slots) => (slots || []).map((slot) => {
     const name = normalized[slot?.port];
-    return name ? { ...slot, display_label: name, port_label: name } : slot;
+    return name ? { ...slot, port_label: name } : slot;
   });
 
   return {
