@@ -1,4 +1,5 @@
 import {
+  applyPortNames,
   applyGatewayPortOverrides,
   discoverSpecialPorts,
   formatState,
@@ -15,6 +16,7 @@ import {
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
   normalizePositivePortNumbers,
+  normalizePortNames,
   parseLinkSpeedMbit,
   stateObj,
 } from "./helpers.js";
@@ -200,6 +202,12 @@ class UnifiDeviceCard extends HTMLElement {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
     } else {
       delete newConfig.trust_link_speed_ports;
+    }
+    const portNames = normalizePortNames(newConfig.port_name);
+    if (Object.keys(portNames).length) {
+      newConfig.port_name = portNames;
+    } else {
+      delete newConfig.port_name;
     }
     const newDeviceId = newConfig?.device_id || null;
     const newFakeMode = newConfig?.fake_device === true;
@@ -944,15 +952,15 @@ class UnifiDeviceCard extends HTMLElement {
     this._applyManualPortSensorOverrides(numberedRaw, specialsRaw);
 
     if (ctx?.type === "gateway") {
-      return applyGatewayPortOverrides(
+      return applyPortNames(applyGatewayPortOverrides(
         this._config,
         specialsRaw,
         numberedRaw,
         ctx?.layout
-      );
+      ), this._config?.port_name);
     }
 
-    return { specials: specialsRaw, numbered: numberedRaw };
+    return applyPortNames({ specials: specialsRaw, numbered: numberedRaw }, this._config?.port_name);
   }
 
   _relevantStateEntityIds() {
