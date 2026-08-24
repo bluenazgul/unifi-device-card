@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.21-dev */
+/* UniFi Device Card 0.0.0-dev.987370e */
 
 // src/model-registry.js
 function range(start, end) {
@@ -139,7 +139,7 @@ var MODEL_REGISTRY = {
   UBBXG: apModel("UBB XG", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
   UMBBE634: apModel("UniFi 5G Backup", { frontStyle: "ap-5g-backup" }),
   UAIRWIRE: apModel("U-AirWire", { frontStyle: "ap-bridge" }),
-  UDB: apModel("Device Bridge", { frontStyle: "ap-device-bridge" }),
+  UDB: apModel("Device Bridge", { frontStyle: "ap-device-bridge", supportsIntegratedPorts: true }),
   UDBIOT: apModel("Device Bridge IoT", { frontStyle: "ap-device-bridge-iot" }),
   UDBSWITCH: apModel("Device Bridge Switch", { frontStyle: "ap-bridge" }),
   UDBPRO: apModel("Device Bridge Pro", { frontStyle: "ap-device-bridge-pro", apEdgeGlow: true }),
@@ -1273,6 +1273,7 @@ function resolveModelKey(device) {
     if (candidate === "U7HD") return "UAPHD";
     if (candidate.includes("UMBBE634")) return "UMBBE634";
     if (candidate.includes("UNIFI5GBACKUP")) return "UMBBE634";
+    if (candidate.includes("UACCMPOEAF")) return "UDB";
     if (candidate.includes("UAPACPRO")) return "UAPACPRO";
     if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW")) return "UAPACIW";
@@ -6362,7 +6363,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.21-dev";
+var VERSION = "0.0.0-dev.987370e";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
