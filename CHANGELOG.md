@@ -11,6 +11,7 @@
 - Add an optional, collapsible editor setting for purely visual connected-port LED blinking with a configurable interval and no effect on link detection or controls.
 - Allow RJ45 and SFP link LEDs to be enabled independently and use separate sliders from 1 to 10 blinks per second (default 5); disabling both also disables the main blink option, while the shared legacy speed setting remains supported.
 - Translate all port LED animation controls into every language currently available in the card.
+- Restore consistent vertical spacing between editor fields, including the port LED animation and 10 Mbit/s link-speed options.
 
 ### ✨ Hints
 
