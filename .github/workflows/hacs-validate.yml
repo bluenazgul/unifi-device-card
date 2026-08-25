@@ -2,10 +2,14 @@ name: HACS Validation
 
 on:
   push:
+    branches:
+      - main
+      - develop
   pull_request:
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   validate-hacs:
@@ -13,9 +17,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: HACS validation
         uses: hacs/action@main
         with:
           category: plugin
+          comment: false

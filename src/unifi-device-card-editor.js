@@ -110,6 +110,21 @@ function clampApScale(value) {
   return Math.min(140, Math.max(25, num));
 }
 
+function normalizePortLedBlinkSpeed(value) {
+  const speed = Number(value);
+  if (!Number.isFinite(speed)) return 1;
+  return Math.min(1, Math.max(0.1, speed));
+}
+
+function portLedBlinkRate(value) {
+  return Math.min(10, Math.max(1, Math.round(1 / normalizePortLedBlinkSpeed(value))));
+}
+
+function portLedBlinkSpeedFromRate(value) {
+  const rate = Math.min(10, Math.max(1, Number.parseInt(value, 10) || 1));
+  return Number((1 / rate).toFixed(3));
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -208,7 +223,12 @@ function collectLayoutPorts(layout) {
   const specials = (layout.specialSlots || [])
     .map((slot) => slot?.port)
     .filter((port) => Number.isInteger(port) && port > 0);
-  return Array.from(new Set([...numbered, ...specials])).sort((a, b) => a - b);
+  const declared = Array.from(new Set([...numbered, ...specials])).sort((a, b) => a - b);
+  if (declared.length) return declared;
+
+  const portCount = Number(layout.portCount);
+  if (!Number.isInteger(portCount) || portCount < 1) return [];
+  return Array.from({ length: portCount }, (_, index) => index + 1);
 }
 
 function collectDefaultSpecialPorts(layout) {
@@ -258,6 +278,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._draftButtonDefaultColor = true;
     this._activeColorSlot = "";
     this._colorStepBaseConfig = null;
+    this._trustLinkSpeedPortsExpanded = false;
+    this._portLedBlinkExpanded = false;
   }
 
   setConfig(config) {
@@ -518,6 +540,28 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (next.port_led_blink !== true) {
+      delete next.port_led_blink;
+      delete next.port_led_blink_speed;
+      delete next.port_led_blink_rj45;
+      delete next.port_led_blink_sfp;
+      delete next.port_led_blink_speed_rj45;
+      delete next.port_led_blink_speed_sfp;
+    } else {
+      if (next.port_led_blink_speed != null) {
+        next.port_led_blink_speed = normalizePortLedBlinkSpeed(next.port_led_blink_speed);
+        if (next.port_led_blink_speed === 1) delete next.port_led_blink_speed;
+      }
+      for (const media of ["rj45", "sfp"]) {
+        const enabledKey = `port_led_blink_${media}`;
+        const speedKey = `port_led_blink_speed_${media}`;
+        if (next[enabledKey] !== false) delete next[enabledKey];
+        if (next[speedKey] != null) {
+          next[speedKey] = normalizePortLedBlinkSpeed(next[speedKey]);
+          if (next[speedKey] === 1 && next.port_led_blink_speed == null) delete next[speedKey];
+        }
+      }
+    }
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
     if (!next.ports_per_row) delete next.ports_per_row;
@@ -710,6 +754,30 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onDynamicPortDetailsChange(ev) {
     this._emitConfig({ dynamic_port_details: ev.target.checked ? true : undefined });
+  }
+
+  _onPortLedBlinkChange(ev) {
+    const enabled = ev.target.checked;
+    const hasSharedSpeed = this._config?.port_led_blink_speed != null;
+    this._emitConfig({
+      port_led_blink: enabled ? true : undefined,
+      port_led_blink_speed: enabled ? this._config?.port_led_blink_speed : undefined,
+      port_led_blink_speed_rj45: enabled
+        ? (this._config?.port_led_blink_speed_rj45 ?? (hasSharedSpeed ? undefined : 0.2))
+        : undefined,
+      port_led_blink_speed_sfp: enabled
+        ? (this._config?.port_led_blink_speed_sfp ?? (hasSharedSpeed ? undefined : 0.2))
+        : undefined,
+    });
+  }
+
+  _onPortLedBlinkMediaChange(media, checked) {
+    const otherMedia = media === "rj45" ? "sfp" : "rj45";
+    const otherEnabled = this._config?.[`port_led_blink_${otherMedia}`] !== false;
+    this._emitConfig({
+      port_led_blink: checked || otherEnabled ? true : undefined,
+      [`port_led_blink_${media}`]: checked ? undefined : false,
+    });
   }
 
   _onPortsPerRowChange(ev) {
@@ -994,6 +1062,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
         gap: 14px;
       }
 
+      .main-step,
+      .color-step {
+        display: grid;
+        gap: 14px;
+      }
+
       .hidden {
         display: none;
       }
@@ -1151,6 +1225,23 @@ class UnifiDeviceCardEditor extends HTMLElement {
         gap: 8px;
       }
 
+      .port-toggle-details summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .port-toggle-details[open] summary {
+        margin-bottom: 10px;
+      }
+
+      .nested-field {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+        padding-left: 12px;
+        border-left: 2px solid var(--divider-color);
+      }
+
       .port-toggle {
         border: 1px solid var(--divider-color);
         border-radius: 999px;
@@ -1270,6 +1361,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const portLedBlink = this._config?.port_led_blink === true;
+    const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
+    const portLedBlinkSfp = this._config?.port_led_blink_sfp !== false;
+    const portLedBlinkRateRj45 = portLedBlinkRate(this._config?.port_led_blink_speed_rj45 ?? this._config?.port_led_blink_speed);
+    const portLedBlinkRateSfp = portLedBlinkRate(this._config?.port_led_blink_speed_sfp ?? this._config?.port_led_blink_speed);
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
@@ -1382,6 +1478,32 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_dynamic_port_details_hint"))}</div>
         </div>` : ""}
 
+        ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
+        <div class="field">
+          <details id="port_led_blink_details" class="port-toggle-details" ${this._portLedBlinkExpanded ? "open" : ""}>
+            <summary>${escapeHtml(this._t("editor_port_led_blink_label"))}</summary>
+            <label class="checkbox-row">
+              <input id="port_led_blink" type="checkbox" ${portLedBlink ? "checked" : ""}>
+              <span>${escapeHtml(this._t("editor_port_led_blink_text"))}</span>
+            </label>
+            ${portLedBlink ? `
+              ${[["rj45", portLedBlinkRj45, portLedBlinkRateRj45], ["sfp", portLedBlinkSfp, portLedBlinkRateSfp]].map(([media, enabled, rate]) => `
+                <div class="nested-field">
+                  <label class="checkbox-row">
+                    <input id="port_led_blink_${media}" type="checkbox" ${enabled ? "checked" : ""}>
+                    <span>${escapeHtml(this._t(`editor_port_led_blink_${media}_text`))}</span>
+                  </label>
+                  ${enabled ? `
+                    <label for="port_led_blink_speed_${media}">${escapeHtml(this._t("editor_port_led_blink_speed_label"))}: <span id="port_led_blink_rate_${media}">${escapeHtml(rate)}×/s</span></label>
+                    <input id="port_led_blink_speed_${media}" type="range" min="1" max="10" step="1" value="${escapeAttr(rate)}">
+                  ` : ""}
+                </div>
+              `).join("")}
+            ` : ""}
+            <div class="hint">${escapeHtml(this._t("editor_port_led_blink_hint"))}</div>
+          </details>
+        </div>` : ""}
+
         ${(isSwitchDevice || supportsIntegratedPorts) ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
@@ -1398,13 +1520,15 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
         ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
         <div class="field">
-          <label>${escapeHtml(this._t("editor_trust_link_speed_ports_label"))}</label>
-          <div id="trust_link_speed_ports_list" class="port-toggle-list">
-            ${selectableSpecialPorts
-              .map((port) => `<button type="button" class="port-toggle ${selectedTrustedLinkSpeedPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`)
-              .join("")}
-          </div>
-          <div class="hint">${escapeHtml(this._t("editor_trust_link_speed_ports_hint"))}</div>
+          <details id="trust_link_speed_ports_details" class="port-toggle-details" ${this._trustLinkSpeedPortsExpanded ? "open" : ""}>
+            <summary>${escapeHtml(this._t("editor_trust_link_speed_ports_label"))}</summary>
+            <div id="trust_link_speed_ports_list" class="port-toggle-list">
+              ${selectableSpecialPorts
+                .map((port) => `<button type="button" class="port-toggle ${selectedTrustedLinkSpeedPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`)
+                .join("")}
+            </div>
+            <div class="hint">${escapeHtml(this._t("editor_trust_link_speed_ports_hint"))}</div>
+          </details>
         </div>` : ""}
 
         ${supportsLayoutSelection ? `
@@ -1565,6 +1689,24 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")
       ?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("port_led_blink")
+      ?.addEventListener("change", (ev) => this._onPortLedBlinkChange(ev));
+    for (const media of ["rj45", "sfp"]) {
+      this.shadowRoot.getElementById(`port_led_blink_${media}`)
+        ?.addEventListener("change", (ev) => this._onPortLedBlinkMediaChange(media, ev.target.checked));
+      const speedSlider = this.shadowRoot.getElementById(`port_led_blink_speed_${media}`);
+      speedSlider?.addEventListener("input", (ev) => {
+        const value = this.shadowRoot.getElementById(`port_led_blink_rate_${media}`);
+        if (value) value.textContent = `${ev.target.value}×/s`;
+      });
+      speedSlider?.addEventListener("change", (ev) => this._emitConfig({
+        [`port_led_blink_speed_${media}`]: portLedBlinkSpeedFromRate(ev.target.value),
+      }));
+    }
+    this.shadowRoot.getElementById("port_led_blink_details")
+      ?.addEventListener("toggle", (ev) => {
+        this._portLedBlinkExpanded = ev.target.open;
+      });
 
     this.shadowRoot.getElementById("name")
       ?.addEventListener("input", (ev) => this._onNameInput(ev));
@@ -1604,6 +1746,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
     this.shadowRoot.getElementById("trust_link_speed_ports_list")
       ?.addEventListener("click", (ev) => this._onTrustLinkSpeedPortToggle(ev));
+    this.shadowRoot.getElementById("trust_link_speed_ports_details")
+      ?.addEventListener("toggle", (ev) => {
+        this._trustLinkSpeedPortsExpanded = ev.target.open;
+      });
 
     this.shadowRoot.getElementById("open_color_editor")
       ?.addEventListener("click", () => this._onOpenColorStep());

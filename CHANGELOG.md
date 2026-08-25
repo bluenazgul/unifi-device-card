@@ -1,5 +1,36 @@
 # Changelog
 
+## [v0.8.4]
+
+### 🐛 Bug Fixes
+- Recognize the `UACCMPOEAF` model identifier reported by the UniFi Network integration as a Device Bridge (`UDB`) instead of rendering it as a generic round access point, and expose its discovered Ethernet/PoE port controls.
+- Restore the port choices for the optional 10 Mbit/s link-speed trust setting when a device layout only reports its port count.
+
+### ✨ Improvements
+- Make the 10 Mbit/s link-speed trust port selector collapsible so large devices no longer fill the card editor with port buttons by default.
+- Add an optional, collapsible editor setting for purely visual connected-port LED blinking with a configurable interval and no effect on link detection or controls.
+- Allow RJ45 and SFP link LEDs to be enabled independently and use separate sliders from 1 to 10 blinks per second (default 5); disabling both also disables the main blink option, while the shared legacy speed setting remains supported.
+- Translate all port LED animation controls into every language currently available in the card.
+- Restore consistent vertical spacing between editor fields, including the port LED animation and 10 Mbit/s link-speed options.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.3]
 
 ### 🐛 Bug Fixes

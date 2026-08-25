@@ -287,6 +287,11 @@ show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
 show_panel: true              # optional (default: true)
 dynamic_port_details: false   # optional; show details only after a port is selected
+port_led_blink: false         # optional; purely visual blinking for connected link LEDs
+port_led_blink_rj45: true     # optional; animate connected RJ45 link LEDs
+port_led_blink_sfp: true      # optional; animate connected SFP link LEDs
+port_led_blink_speed_rj45: 0.2 # optional; RJ45 interval in seconds (5 blinks/s)
+port_led_blink_speed_sfp: 0.5  # optional; SFP interval in seconds (2 blinks/s)
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
 ports_per_row: 8              # optional (switches and compatible In-Wall AP port sections only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
@@ -340,6 +345,11 @@ wan2_port: none               # optional (gateway only)
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `dynamic_port_details` | boolean | `false` | Switch/Gateway and compatible integrated ports: starts without a selected port, shows details after a port click, and hides them when that port is clicked again. |
+| `port_led_blink` | boolean | `false` | Enables a purely visual blink animation for connected RJ45/SFP link LEDs without changing link detection, telemetry, or port controls. |
+| `port_led_blink_rj45` | boolean | `true` | Enables blinking for connected RJ45 link LEDs when `port_led_blink` is enabled. |
+| `port_led_blink_sfp` | boolean | `true` | Enables blinking for connected SFP link LEDs when `port_led_blink` is enabled. |
+| `port_led_blink_speed_rj45` | number | `1` | RJ45 blink interval in seconds (`0.1` to `1`, corresponding to 10–1 blinks/s). The editor defaults to `0.2` (5 blinks/s) when enabling the feature. |
+| `port_led_blink_speed_sfp` | number | `1` | SFP blink interval in seconds (`0.1` to `1`, corresponding to 10–1 blinks/s). The legacy `port_led_blink_speed` remains supported as a shared fallback. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
 | `ports_per_row` | number | auto | Optional row width override for switch layouts and compatible In-Wall AP integrated-port sections. Without it, a model with declared rows keeps them, and only single-row fallbacks use 8 per row. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
