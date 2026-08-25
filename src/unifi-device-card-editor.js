@@ -1062,6 +1062,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
         gap: 14px;
       }
 
+      .main-step,
+      .color-step {
+        display: grid;
+        gap: 14px;
+      }
+
       .hidden {
         display: none;
       }
