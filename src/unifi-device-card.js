@@ -1471,6 +1471,22 @@ class UnifiDeviceCard extends HTMLElement {
     return "orange";
   }
 
+  _portLedBlinkSpeed(mediaType) {
+    const mediaSpeed = mediaType === "sfp"
+      ? this._config?.port_led_blink_speed_sfp
+      : this._config?.port_led_blink_speed_rj45;
+    const speed = Number(mediaSpeed ?? this._config?.port_led_blink_speed);
+    if (!Number.isFinite(speed)) return 1;
+    return Math.min(1, Math.max(0.1, speed));
+  }
+
+  _portLedBlinkEnabled(mediaType) {
+    if (this._config?.port_led_blink !== true) return false;
+    return mediaType === "sfp"
+      ? this._config?.port_led_blink_sfp !== false
+      : this._config?.port_led_blink_rj45 !== false;
+  }
+
   _poeLedClass(port) {
     const poe = getPoeStatus(this._hass, port);
     return poe.active ? "orange" : "off";
@@ -1560,6 +1576,7 @@ class UnifiDeviceCard extends HTMLElement {
       oddEvenTopRow && !isSpecial && !isSfp ? "odd-even-top" : "",
       linkUp ? "up" : "down",
       selectedKey === slot.key ? "selected" : "",
+      this._portLedBlinkEnabled(isSfp ? "sfp" : "rj45") ? "blink-link-led" : "",
     ].filter(Boolean).join(" ");
 
     const poeLed = this._poeLedClass(slot);
@@ -2810,6 +2827,25 @@ class UnifiDeviceCard extends HTMLElement {
       .rj45-led.off {
         background: #868b93;
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
+      }
+
+      .port.is-rj45.blink-link-led .rj45-led.right:not(.off) {
+        animation: udc-port-link-blink ${this._portLedBlinkSpeed("rj45")}s step-end infinite;
+      }
+
+      .port.is-sfp.blink-link-led .sfp-top-led:not(.off) {
+        animation: udc-port-link-blink ${this._portLedBlinkSpeed("sfp")}s step-end infinite;
+      }
+
+      @keyframes udc-port-link-blink {
+        50% { opacity: .22; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .port.blink-link-led .rj45-led.right:not(.off),
+        .port.blink-link-led .sfp-top-led:not(.off) {
+          animation: none;
+        }
       }
 
       .rj45-notch {

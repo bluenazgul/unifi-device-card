@@ -4,6 +4,13 @@
 
 ### 🐛 Bug Fixes
 - Recognize the `UACCMPOEAF` model identifier reported by the UniFi Network integration as a Device Bridge (`UDB`) instead of rendering it as a generic round access point, and expose its discovered Ethernet/PoE port controls.
+- Restore the port choices for the optional 10 Mbit/s link-speed trust setting when a device layout only reports its port count.
+
+### ✨ Improvements
+- Make the 10 Mbit/s link-speed trust port selector collapsible so large devices no longer fill the card editor with port buttons by default.
+- Add an optional, collapsible editor setting for purely visual connected-port LED blinking with a configurable interval and no effect on link detection or controls.
+- Allow RJ45 and SFP link LEDs to be enabled independently and use separate sliders from 1 to 10 blinks per second (default 5); disabling both also disables the main blink option, while the shared legacy speed setting remains supported.
+- Translate all port LED animation controls into every language currently available in the card.
 
 ### ✨ Hints
 
