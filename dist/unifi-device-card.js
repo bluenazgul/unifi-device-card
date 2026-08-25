@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.31-dev */
+/* UniFi Device Card 0.0.0-dev.45c8704 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3820,6 +3820,12 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Click to toggle ports in the upper special row. Unselected ports move to the normal grid.",
     editor_trust_link_speed_ports_label: "Trust 10 Mbit/s link speed on ports",
     editor_trust_link_speed_ports_hint: "Only select ports with a real 10 Mbit/s connection. This disables the false-link protection for the selected port.",
+    editor_port_led_blink_label: "Port link LED animation",
+    editor_port_led_blink_text: "Blink connected port link LEDs",
+    editor_port_led_blink_rj45_text: "Blink RJ45 link LEDs",
+    editor_port_led_blink_sfp_text: "Blink SFP link LEDs",
+    editor_port_led_blink_speed_label: "Blink rate (1\u201310 per second)",
+    editor_port_led_blink_hint: "Optional visual effect only. It does not change port state, traffic detection, or controls.",
     editor_port_size_label: "Port size",
     editor_port_size_hint: "Adjusts front-panel port size for switches and gateways.",
     editor_ap_scale_label: "AP size",
@@ -4008,6 +4014,12 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Per Klick Ports in der oberen Spezial-Reihe umschalten. Nicht gew\xE4hlte Ports erscheinen im normalen Grid.",
     editor_trust_link_speed_ports_label: "10-Mbit/s-Link-Speed an Ports vertrauen",
     editor_trust_link_speed_ports_hint: "Nur f\xFCr Ports mit einer echten 10-Mbit/s-Verbindung ausw\xE4hlen. Dadurch wird der Schutz vor f\xE4lschlich gemeldeten Links f\xFCr den ausgew\xE4hlten Port deaktiviert.",
+    editor_port_led_blink_label: "Port-Link-LED-Animation",
+    editor_port_led_blink_text: "Link-LEDs verbundener Ports blinken lassen",
+    editor_port_led_blink_rj45_text: "RJ45-Link-LEDs blinken lassen",
+    editor_port_led_blink_sfp_text: "SFP-Link-LEDs blinken lassen",
+    editor_port_led_blink_speed_label: "Blinkgeschwindigkeit (1\u201310 pro Sekunde)",
+    editor_port_led_blink_hint: "Nur ein optionaler optischer Effekt. Portstatus, Verkehrserkennung und Steuerung bleiben unver\xE4ndert.",
     editor_port_size_label: "Portgr\xF6\xDFe",
     editor_port_size_hint: "Skaliert die Frontpanel-Portgr\xF6\xDFe f\xFCr Switches und Gateways.",
     editor_ap_scale_label: "AP-Gr\xF6\xDFe",
@@ -4196,6 +4208,12 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Klik om poorten in de bovenste speciale rij te wisselen. Niet-geselecteerde poorten gaan naar het normale raster.",
     editor_trust_link_speed_ports_label: "Vertrouw 10 Mbit/s-linksnelheid op poorten",
     editor_trust_link_speed_ports_hint: "Selecteer alleen poorten met een echte 10 Mbit/s-verbinding. Dit schakelt de beveiliging tegen foutief gemelde links voor de geselecteerde poort uit.",
+    editor_port_led_blink_label: "Animatie van poortlink-leds",
+    editor_port_led_blink_text: "Link-leds van verbonden poorten laten knipperen",
+    editor_port_led_blink_rj45_text: "RJ45-link-leds laten knipperen",
+    editor_port_led_blink_sfp_text: "SFP-link-leds laten knipperen",
+    editor_port_led_blink_speed_label: "Knippersnelheid (1\u201310 per seconde)",
+    editor_port_led_blink_hint: "Alleen een optioneel visueel effect. Poortstatus, verkeersdetectie en bediening blijven ongewijzigd.",
     editor_port_size_label: "Poortgrootte",
     editor_port_size_hint: "Schaalt de poortgrootte op het frontpaneel voor switches en gateways.",
     editor_ap_scale_label: "AP-grootte",
@@ -4381,6 +4399,12 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Cliquez pour basculer les ports de la ligne sp\xE9ciale sup\xE9rieure. Les ports non s\xE9lectionn\xE9s passent dans la grille normale.",
     editor_trust_link_speed_ports_label: "Faire confiance au d\xE9bit de liaison 10 Mbit/s",
     editor_trust_link_speed_ports_hint: "S\xE9lectionnez uniquement les ports avec une v\xE9ritable connexion \xE0 10 Mbit/s. Cela d\xE9sactive la protection contre les liaisons signal\xE9es \xE0 tort pour le port s\xE9lectionn\xE9.",
+    editor_port_led_blink_label: "Animation des voyants de liaison des ports",
+    editor_port_led_blink_text: "Faire clignoter les voyants des ports connect\xE9s",
+    editor_port_led_blink_rj45_text: "Faire clignoter les voyants de liaison RJ45",
+    editor_port_led_blink_sfp_text: "Faire clignoter les voyants de liaison SFP",
+    editor_port_led_blink_speed_label: "Fr\xE9quence de clignotement (1\u201310 par seconde)",
+    editor_port_led_blink_hint: "Effet visuel facultatif uniquement. L\u2019\xE9tat des ports, la d\xE9tection du trafic et les commandes restent inchang\xE9s.",
     editor_port_size_label: "Taille des ports",
     editor_port_size_hint: "Ajuste la taille des ports du panneau avant pour switches/passerelles.",
     editor_ap_scale_label: "Taille AP",
@@ -4566,6 +4590,12 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Haz clic para alternar puertos en la fila especial superior. Los no seleccionados pasan a la cuadr\xEDcula normal.",
     editor_trust_link_speed_ports_label: "Confiar en enlaces de 10 Mbit/s por puerto",
     editor_trust_link_speed_ports_hint: "Selecciona solo puertos con una conexi\xF3n real de 10 Mbit/s. Esto desactiva la protecci\xF3n contra enlaces notificados err\xF3neamente para el puerto seleccionado.",
+    editor_port_led_blink_label: "Animaci\xF3n LED de enlace de puertos",
+    editor_port_led_blink_text: "Hacer parpadear los LED de los puertos conectados",
+    editor_port_led_blink_rj45_text: "Hacer parpadear los LED de enlace RJ45",
+    editor_port_led_blink_sfp_text: "Hacer parpadear los LED de enlace SFP",
+    editor_port_led_blink_speed_label: "Velocidad de parpadeo (1\u201310 por segundo)",
+    editor_port_led_blink_hint: "Solo es un efecto visual opcional. El estado de los puertos, la detecci\xF3n de tr\xE1fico y los controles no cambian.",
     editor_port_size_label: "Tama\xF1o de puerto",
     editor_port_size_hint: "Ajusta el tama\xF1o de puertos del panel frontal para switches y gateways.",
     editor_ap_scale_label: "Tama\xF1o AP",
@@ -4751,6 +4781,12 @@ var TRANSLATIONS = {
     editor_custom_special_ports_hint: "Clicca per attivare/disattivare le porte nella riga speciale superiore. Le porte non selezionate passano alla griglia normale.",
     editor_trust_link_speed_ports_label: "Considera attendibile il link a 10 Mbit/s",
     editor_trust_link_speed_ports_hint: "Seleziona solo porte con una connessione reale a 10 Mbit/s. Questa opzione disattiva la protezione dai link segnalati erroneamente per la porta selezionata.",
+    editor_port_led_blink_label: "Animazione LED di collegamento delle porte",
+    editor_port_led_blink_text: "Fai lampeggiare i LED delle porte connesse",
+    editor_port_led_blink_rj45_text: "Fai lampeggiare i LED di collegamento RJ45",
+    editor_port_led_blink_sfp_text: "Fai lampeggiare i LED di collegamento SFP",
+    editor_port_led_blink_speed_label: "Velocit\xE0 di lampeggio (1\u201310 al secondo)",
+    editor_port_led_blink_hint: "Solo un effetto visivo opzionale. Stato delle porte, rilevamento del traffico e controlli restano invariati.",
     editor_port_size_label: "Dimensione porta",
     editor_port_size_hint: "Regola la dimensione delle porte del pannello frontale per switch e gateway.",
     editor_ap_scale_label: "Dimensione AP",
@@ -4866,6 +4902,12 @@ var TRANSLATIONS = {
 };
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_port_led_blink_label: "Animering av portarnas l\xE4nklysdioder",
+  editor_port_led_blink_text: "L\xE5t l\xE4nklysdioderna f\xF6r anslutna portar blinka",
+  editor_port_led_blink_rj45_text: "L\xE5t RJ45-l\xE4nklysdioder blinka",
+  editor_port_led_blink_sfp_text: "L\xE5t SFP-l\xE4nklysdioder blinka",
+  editor_port_led_blink_speed_label: "Blinkhastighet (1\u201310 per sekund)",
+  editor_port_led_blink_hint: "Endast en valfri visuell effekt. Portstatus, trafikidentifiering och kontroller p\xE5verkas inte.",
   editor_trust_link_speed_ports_label: "Lita p\xE5 10 Mbit/s l\xE4nkhastighet f\xF6r portar",
   editor_trust_link_speed_ports_hint: "V\xE4lj endast portar med en verklig 10 Mbit/s-anslutning. Detta inaktiverar skyddet mot felaktigt rapporterade l\xE4nkar f\xF6r den valda porten.",
   editor_telemetry_toggle_label: "Headertelemetri",
@@ -4885,6 +4927,12 @@ TRANSLATIONS.sv = {
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_port_led_blink_label: "Animation af portenes link-LED'er",
+  editor_port_led_blink_text: "Lad link-LED'er for tilsluttede porte blinke",
+  editor_port_led_blink_rj45_text: "Lad RJ45-link-LED'er blinke",
+  editor_port_led_blink_sfp_text: "Lad SFP-link-LED'er blinke",
+  editor_port_led_blink_speed_label: "Blinkhastighed (1\u201310 pr. sekund)",
+  editor_port_led_blink_hint: "Kun en valgfri visuel effekt. Portstatus, trafikregistrering og betjening forbliver u\xE6ndret.",
   editor_trust_link_speed_ports_label: "Stol p\xE5 10 Mbit/s-linkhastighed for porte",
   editor_trust_link_speed_ports_hint: "V\xE6lg kun porte med en \xE6gte 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mod fejlagtigt rapporterede links for den valgte port.",
   editor_telemetry_toggle_label: "Headertelemetri",
@@ -4904,6 +4952,12 @@ TRANSLATIONS.da = {
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_port_led_blink_label: "Animasjon av portenes link-LED-er",
+  editor_port_led_blink_text: "La link-LED-er for tilkoblede porter blinke",
+  editor_port_led_blink_rj45_text: "La RJ45-link-LED-er blinke",
+  editor_port_led_blink_sfp_text: "La SFP-link-LED-er blinke",
+  editor_port_led_blink_speed_label: "Blinkhastighet (1\u201310 per sekund)",
+  editor_port_led_blink_hint: "Kun en valgfri visuell effekt. Portstatus, trafikkregistrering og kontroller forblir uendret.",
   editor_trust_link_speed_ports_label: "Stol p\xE5 10 Mbit/s-linkhastighet for porter",
   editor_trust_link_speed_ports_hint: "Velg bare porter med en reell 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mot feilrapporterte linker for den valgte porten.",
   editor_telemetry_toggle_label: "Headertelemetri",
@@ -4923,6 +4977,12 @@ TRANSLATIONS.no = {
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_port_led_blink_label: "Porttien linkki-LEDien animaatio",
+  editor_port_led_blink_text: "Vilkuta yhdistettyjen porttien linkki-LEDej\xE4",
+  editor_port_led_blink_rj45_text: "Vilkuta RJ45-linkki-LEDej\xE4",
+  editor_port_led_blink_sfp_text: "Vilkuta SFP-linkki-LEDej\xE4",
+  editor_port_led_blink_speed_label: "Vilkkumisnopeus (1\u201310 sekunnissa)",
+  editor_port_led_blink_hint: "Vain valinnainen visuaalinen tehoste. Porttien tila, liikenteen tunnistus ja ohjaimet eiv\xE4t muutu.",
   editor_trust_link_speed_ports_label: "Luota porttien 10 Mbit/s linkkinopeuteen",
   editor_trust_link_speed_ports_hint: "Valitse vain portit, joissa on todellinen 10 Mbit/s yhteys. T\xE4m\xE4 poistaa virheellisesti ilmoitettujen linkkien suojauksen k\xE4yt\xF6st\xE4 valitussa portissa.",
   editor_telemetry_toggle_label: "Otsakkeen telemetria",
@@ -4942,6 +5002,12 @@ TRANSLATIONS.fi = {
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_port_led_blink_label: "Animacja diod po\u0142\u0105czenia port\xF3w",
+  editor_port_led_blink_text: "Miganie diod po\u0142\u0105czenia aktywnych port\xF3w",
+  editor_port_led_blink_rj45_text: "Miganie diod po\u0142\u0105czenia RJ45",
+  editor_port_led_blink_sfp_text: "Miganie diod po\u0142\u0105czenia SFP",
+  editor_port_led_blink_speed_label: "Szybko\u015B\u0107 migania (1\u201310 na sekund\u0119)",
+  editor_port_led_blink_hint: "Tylko opcjonalny efekt wizualny. Stan port\xF3w, wykrywanie ruchu i sterowanie pozostaj\u0105 bez zmian.",
   editor_trust_link_speed_ports_label: "Ufaj pr\u0119dko\u015Bci \u0142\u0105cza 10 Mbit/s na portach",
   editor_trust_link_speed_ports_hint: "Wybieraj tylko porty z rzeczywistym po\u0142\u0105czeniem 10 Mbit/s. Wy\u0142\u0105cza to ochron\u0119 przed b\u0142\u0119dnie zg\u0142aszanymi \u0142\u0105czami dla wybranego portu.",
   editor_telemetry_toggle_label: "Telemetria nag\u0142\xF3wka",
@@ -4961,6 +5027,12 @@ TRANSLATIONS.pl = {
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_port_led_blink_label: "Animace kontrolek p\u0159ipojen\xED port\u016F",
+  editor_port_led_blink_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xFDch port\u016F",
+  editor_port_led_blink_rj45_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xED RJ45",
+  editor_port_led_blink_sfp_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xED SFP",
+  editor_port_led_blink_speed_label: "Rychlost blik\xE1n\xED (1\u201310 za sekundu)",
+  editor_port_led_blink_hint: "Pouze voliteln\xFD vizu\xE1ln\xED efekt. Stav port\u016F, detekce provozu a ovl\xE1d\xE1n\xED z\u016Fst\xE1vaj\xED beze zm\u011Bny.",
   editor_trust_link_speed_ports_label: "D\u016Fv\u011B\u0159ovat rychlosti linky 10 Mbit/s na portech",
   editor_trust_link_speed_ports_hint: "Vyberte pouze porty se skute\u010Dn\xFDm p\u0159ipojen\xEDm 10 Mbit/s. T\xEDm se pro vybran\xFD port vypne ochrana proti chybn\u011B hl\xE1\u0161en\xFDm link\xE1m.",
   editor_telemetry_toggle_label: "Telemetrie z\xE1hlav\xED",
@@ -5076,6 +5148,18 @@ function clampApScale(value) {
   if (!Number.isFinite(num)) return 100;
   return Math.min(140, Math.max(25, num));
 }
+function normalizePortLedBlinkSpeed(value) {
+  const speed = Number(value);
+  if (!Number.isFinite(speed)) return 1;
+  return Math.min(1, Math.max(0.1, speed));
+}
+function portLedBlinkRate(value) {
+  return Math.min(10, Math.max(1, Math.round(1 / normalizePortLedBlinkSpeed(value))));
+}
+function portLedBlinkSpeedFromRate(value) {
+  const rate = Math.min(10, Math.max(1, Number.parseInt(value, 10) || 1));
+  return Number((1 / rate).toFixed(3));
+}
 function escapeHtml(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -5151,7 +5235,11 @@ function collectLayoutPorts(layout) {
   if (!layout) return [];
   const numbered = (layout.rows || []).flat().filter((port) => Number.isInteger(port) && port > 0);
   const specials = (layout.specialSlots || []).map((slot) => slot?.port).filter((port) => Number.isInteger(port) && port > 0);
-  return Array.from(/* @__PURE__ */ new Set([...numbered, ...specials])).sort((a, b) => a - b);
+  const declared = Array.from(/* @__PURE__ */ new Set([...numbered, ...specials])).sort((a, b) => a - b);
+  if (declared.length) return declared;
+  const portCount = Number(layout.portCount);
+  if (!Number.isInteger(portCount) || portCount < 1) return [];
+  return Array.from({ length: portCount }, (_, index) => index + 1);
 }
 function collectDefaultSpecialPorts(layout) {
   if (!layout) return [];
@@ -5195,6 +5283,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._draftButtonDefaultColor = true;
     this._activeColorSlot = "";
     this._colorStepBaseConfig = null;
+    this._trustLinkSpeedPortsExpanded = false;
+    this._portLedBlinkExpanded = false;
   }
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
@@ -5418,6 +5508,28 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (next.port_led_blink !== true) {
+      delete next.port_led_blink;
+      delete next.port_led_blink_speed;
+      delete next.port_led_blink_rj45;
+      delete next.port_led_blink_sfp;
+      delete next.port_led_blink_speed_rj45;
+      delete next.port_led_blink_speed_sfp;
+    } else {
+      if (next.port_led_blink_speed != null) {
+        next.port_led_blink_speed = normalizePortLedBlinkSpeed(next.port_led_blink_speed);
+        if (next.port_led_blink_speed === 1) delete next.port_led_blink_speed;
+      }
+      for (const media of ["rj45", "sfp"]) {
+        const enabledKey = `port_led_blink_${media}`;
+        const speedKey = `port_led_blink_speed_${media}`;
+        if (next[enabledKey] !== false) delete next[enabledKey];
+        if (next[speedKey] != null) {
+          next[speedKey] = normalizePortLedBlinkSpeed(next[speedKey]);
+          if (next[speedKey] === 1 && next.port_led_blink_speed == null) delete next[speedKey];
+        }
+      }
+    }
     if (next.force_sequential_ports !== true) delete next.force_sequential_ports;
     next.ports_per_row = normalizePortsPerRow(next.ports_per_row);
     if (!next.ports_per_row) delete next.ports_per_row;
@@ -5580,6 +5692,24 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   }
   _onDynamicPortDetailsChange(ev) {
     this._emitConfig({ dynamic_port_details: ev.target.checked ? true : void 0 });
+  }
+  _onPortLedBlinkChange(ev) {
+    const enabled = ev.target.checked;
+    const hasSharedSpeed = this._config?.port_led_blink_speed != null;
+    this._emitConfig({
+      port_led_blink: enabled ? true : void 0,
+      port_led_blink_speed: enabled ? this._config?.port_led_blink_speed : void 0,
+      port_led_blink_speed_rj45: enabled ? this._config?.port_led_blink_speed_rj45 ?? (hasSharedSpeed ? void 0 : 0.2) : void 0,
+      port_led_blink_speed_sfp: enabled ? this._config?.port_led_blink_speed_sfp ?? (hasSharedSpeed ? void 0 : 0.2) : void 0
+    });
+  }
+  _onPortLedBlinkMediaChange(media, checked) {
+    const otherMedia = media === "rj45" ? "sfp" : "rj45";
+    const otherEnabled = this._config?.[`port_led_blink_${otherMedia}`] !== false;
+    this._emitConfig({
+      port_led_blink: checked || otherEnabled ? true : void 0,
+      [`port_led_blink_${media}`]: checked ? void 0 : false
+    });
   }
   _onPortsPerRowChange(ev) {
     this._emitConfig({ ports_per_row: normalizePortsPerRow(ev.target.value) });
@@ -5949,6 +6079,23 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         gap: 8px;
       }
 
+      .port-toggle-details summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .port-toggle-details[open] summary {
+        margin-bottom: 10px;
+      }
+
+      .nested-field {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+        padding-left: 12px;
+        border-left: 2px solid var(--divider-color);
+      }
+
       .port-toggle {
         border: 1px solid var(--divider-color);
         border-radius: 999px;
@@ -6051,6 +6198,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const portLedBlink = this._config?.port_led_blink === true;
+    const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
+    const portLedBlinkSfp = this._config?.port_led_blink_sfp !== false;
+    const portLedBlinkRateRj45 = portLedBlinkRate(this._config?.port_led_blink_speed_rj45 ?? this._config?.port_led_blink_speed);
+    const portLedBlinkRateSfp = portLedBlinkRate(this._config?.port_led_blink_speed_sfp ?? this._config?.port_led_blink_speed);
     const forceSequentialPorts = this._config?.force_sequential_ports === true;
     const backgroundOpacity = clampOpacity(this._config?.background_opacity);
     const colorStepOpen = this._editorStep === "colors";
@@ -6144,6 +6296,32 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_dynamic_port_details_hint"))}</div>
         </div>` : ""}
 
+        ${isSwitchOrGateway || supportsIntegratedPorts ? `
+        <div class="field">
+          <details id="port_led_blink_details" class="port-toggle-details" ${this._portLedBlinkExpanded ? "open" : ""}>
+            <summary>${escapeHtml(this._t("editor_port_led_blink_label"))}</summary>
+            <label class="checkbox-row">
+              <input id="port_led_blink" type="checkbox" ${portLedBlink ? "checked" : ""}>
+              <span>${escapeHtml(this._t("editor_port_led_blink_text"))}</span>
+            </label>
+            ${portLedBlink ? `
+              ${[["rj45", portLedBlinkRj45, portLedBlinkRateRj45], ["sfp", portLedBlinkSfp, portLedBlinkRateSfp]].map(([media, enabled, rate]) => `
+                <div class="nested-field">
+                  <label class="checkbox-row">
+                    <input id="port_led_blink_${media}" type="checkbox" ${enabled ? "checked" : ""}>
+                    <span>${escapeHtml(this._t(`editor_port_led_blink_${media}_text`))}</span>
+                  </label>
+                  ${enabled ? `
+                    <label for="port_led_blink_speed_${media}">${escapeHtml(this._t("editor_port_led_blink_speed_label"))}: <span id="port_led_blink_rate_${media}">${escapeHtml(rate)}\xD7/s</span></label>
+                    <input id="port_led_blink_speed_${media}" type="range" min="1" max="10" step="1" value="${escapeAttr(rate)}">
+                  ` : ""}
+                </div>
+              `).join("")}
+            ` : ""}
+            <div class="hint">${escapeHtml(this._t("editor_port_led_blink_hint"))}</div>
+          </details>
+        </div>` : ""}
+
         ${isSwitchDevice || supportsIntegratedPorts ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_ports_per_row_label"))}</label>
@@ -6160,11 +6338,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 
         ${isSwitchOrGateway || supportsIntegratedPorts ? `
         <div class="field">
-          <label>${escapeHtml(this._t("editor_trust_link_speed_ports_label"))}</label>
-          <div id="trust_link_speed_ports_list" class="port-toggle-list">
-            ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedTrustedLinkSpeedPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`).join("")}
-          </div>
-          <div class="hint">${escapeHtml(this._t("editor_trust_link_speed_ports_hint"))}</div>
+          <details id="trust_link_speed_ports_details" class="port-toggle-details" ${this._trustLinkSpeedPortsExpanded ? "open" : ""}>
+            <summary>${escapeHtml(this._t("editor_trust_link_speed_ports_label"))}</summary>
+            <div id="trust_link_speed_ports_list" class="port-toggle-list">
+              ${selectableSpecialPorts.map((port) => `<button type="button" class="port-toggle ${selectedTrustedLinkSpeedPorts.includes(port) ? "selected" : ""}" data-port="${escapeAttr(port)}">${escapeHtml(this._t("port_label"))} ${escapeHtml(port)}</button>`).join("")}
+            </div>
+            <div class="hint">${escapeHtml(this._t("editor_trust_link_speed_ports_hint"))}</div>
+          </details>
         </div>` : ""}
 
         ${supportsLayoutSelection ? `
@@ -6316,6 +6496,21 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("port_led_blink")?.addEventListener("change", (ev) => this._onPortLedBlinkChange(ev));
+    for (const media of ["rj45", "sfp"]) {
+      this.shadowRoot.getElementById(`port_led_blink_${media}`)?.addEventListener("change", (ev) => this._onPortLedBlinkMediaChange(media, ev.target.checked));
+      const speedSlider = this.shadowRoot.getElementById(`port_led_blink_speed_${media}`);
+      speedSlider?.addEventListener("input", (ev) => {
+        const value = this.shadowRoot.getElementById(`port_led_blink_rate_${media}`);
+        if (value) value.textContent = `${ev.target.value}\xD7/s`;
+      });
+      speedSlider?.addEventListener("change", (ev) => this._emitConfig({
+        [`port_led_blink_speed_${media}`]: portLedBlinkSpeedFromRate(ev.target.value)
+      }));
+    }
+    this.shadowRoot.getElementById("port_led_blink_details")?.addEventListener("toggle", (ev) => {
+      this._portLedBlinkExpanded = ev.target.open;
+    });
     this.shadowRoot.getElementById("name")?.addEventListener("input", (ev) => this._onNameInput(ev));
     this.shadowRoot.getElementById("ports_per_row")?.addEventListener("input", (ev) => this._onPortsPerRowChange(ev));
     this.shadowRoot.getElementById("force_sequential_ports")?.addEventListener("change", (ev) => this._onForceSequentialPortsChange(ev));
@@ -6335,6 +6530,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("edit_special_ports")?.addEventListener("change", (ev) => this._onEditSpecialPortsChange(ev));
     this.shadowRoot.getElementById("special_ports_list")?.addEventListener("click", (ev) => this._onSpecialPortToggle(ev));
     this.shadowRoot.getElementById("trust_link_speed_ports_list")?.addEventListener("click", (ev) => this._onTrustLinkSpeedPortToggle(ev));
+    this.shadowRoot.getElementById("trust_link_speed_ports_details")?.addEventListener("toggle", (ev) => {
+      this._trustLinkSpeedPortsExpanded = ev.target.open;
+    });
     this.shadowRoot.getElementById("open_color_editor")?.addEventListener("click", () => this._onOpenColorStep());
     this.shadowRoot.getElementById("back_from_color_editor")?.addEventListener("click", () => this._onBackFromColorStep());
     this.shadowRoot.getElementById("reset_all_colors")?.addEventListener("click", () => this._onResetAllColors());
@@ -6363,7 +6561,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.31-dev";
+var VERSION = "0.0.0-dev.45c8704";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7480,6 +7678,16 @@ var UnifiDeviceCard = class extends HTMLElement {
     if (speed >= 1e3) return "green";
     return "orange";
   }
+  _portLedBlinkSpeed(mediaType) {
+    const mediaSpeed = mediaType === "sfp" ? this._config?.port_led_blink_speed_sfp : this._config?.port_led_blink_speed_rj45;
+    const speed = Number(mediaSpeed ?? this._config?.port_led_blink_speed);
+    if (!Number.isFinite(speed)) return 1;
+    return Math.min(1, Math.max(0.1, speed));
+  }
+  _portLedBlinkEnabled(mediaType) {
+    if (this._config?.port_led_blink !== true) return false;
+    return mediaType === "sfp" ? this._config?.port_led_blink_sfp !== false : this._config?.port_led_blink_rj45 !== false;
+  }
   _poeLedClass(port) {
     const poe = getPoeStatus(this._hass, port);
     return poe.active ? "orange" : "off";
@@ -7550,7 +7758,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       isWan ? "is-wan" : "",
       oddEvenTopRow && !isSpecial && !isSfp ? "odd-even-top" : "",
       linkUp ? "up" : "down",
-      selectedKey === slot.key ? "selected" : ""
+      selectedKey === slot.key ? "selected" : "",
+      this._portLedBlinkEnabled(isSfp ? "sfp" : "rj45") ? "blink-link-led" : ""
     ].filter(Boolean).join(" ");
     const poeLed = this._poeLedClass(slot);
     const linkLed = this._linkLedClass(slot);
@@ -8795,6 +9004,25 @@ var UnifiDeviceCard = class extends HTMLElement {
       .rj45-led.off {
         background: #868b93;
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.2);
+      }
+
+      .port.is-rj45.blink-link-led .rj45-led.right:not(.off) {
+        animation: udc-port-link-blink ${this._portLedBlinkSpeed("rj45")}s step-end infinite;
+      }
+
+      .port.is-sfp.blink-link-led .sfp-top-led:not(.off) {
+        animation: udc-port-link-blink ${this._portLedBlinkSpeed("sfp")}s step-end infinite;
+      }
+
+      @keyframes udc-port-link-blink {
+        50% { opacity: .22; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .port.blink-link-led .rj45-led.right:not(.off),
+        .port.blink-link-led .sfp-top-led:not(.off) {
+          animation: none;
+        }
       }
 
       .rj45-notch {
