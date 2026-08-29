@@ -331,10 +331,10 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   const configEntryId = normalize(device?.config_entry_id);
-  const belongsToUnifiEntry = configEntryId
-    ? unifiEntryIds.has(configEntryId)
-    : Array.isArray(device?.config_entries) &&
-      device.config_entries.some((id) => unifiEntryIds.has(id));
+  const belongsToUnifiEntry =
+    unifiEntryIds.has(configEntryId) ||
+    (Array.isArray(device?.config_entries) &&
+      device.config_entries.some((id) => unifiEntryIds.has(id)));
 
   if (belongsToUnifiEntry) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
