@@ -1,5 +1,29 @@
 # Changelog
 
+## [v0.8.5]
+
+### ✨ Improvements
+- Support Home Assistant's singular device config-entry registry fields while retaining compatibility with older Home Assistant versions.
+- Prefer Home Assistant's stable device model identifier when recognizing supported UniFi access points, switches, gateways, and bridges.
+
+### ✨ Hints
+
+I try to save money to get an Cloud Gateway Max in future to replace my Cloud Gateway Ultra, maybe then i could be able to add more feature to the card.
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.4]
 
 ### 🐛 Bug Fixes

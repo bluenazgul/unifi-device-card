@@ -40,7 +40,7 @@ export const AP_FRONT_STYLES = new Set([
 ]);
 
 function modelStartsWith(device, prefixes) {
-  const candidates = [device?.model, device?.hw_version]
+  const candidates = [device?.model_id, device?.model, device?.hw_version]
     .filter(Boolean)
     .map(normalizeModelKey);
 
@@ -48,7 +48,7 @@ function modelStartsWith(device, prefixes) {
 }
 
 function isAccessPointLikeModel(device) {
-  const candidates = [device?.model, device?.hw_version]
+  const candidates = [device?.model_id, device?.model, device?.hw_version]
     .filter(Boolean)
     .map(normalizeModelKey);
 
@@ -1085,7 +1085,7 @@ export function validateModelRegistry() {
 }
 
 export function resolveModelKey(device) {
-  const candidates = [device?.model, device?.hw_version, device?.name, device?.name_by_user]
+  const candidates = [device?.model_id, device?.model, device?.hw_version, device?.name, device?.name_by_user]
     .filter(Boolean)
     .map(normalizeModelKey);
 
