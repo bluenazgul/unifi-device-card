@@ -52,12 +52,15 @@ export function extractPrimaryMacFromConnections(connections) {
 export function buildNormalizedDeviceIdentity(device) {
   return {
     device_id: device?.id || null,
+    model_id: normalizeText(device?.model_id),
     model: normalizeText(device?.model),
     manufacturer: normalizeText(device?.manufacturer),
     name: normalizeText(device?.name_by_user || device?.name),
     hw_version: normalizeText(device?.hw_version),
     sw_version: normalizeText(device?.sw_version),
     primary_mac: extractPrimaryMacFromConnections(device?.connections),
+    config_entry_id: device?.config_entry_id || null,
+    config_subentry_id: device?.config_subentry_id || null,
     config_entries: Array.isArray(device?.config_entries) ? device.config_entries : [],
   };
 }
