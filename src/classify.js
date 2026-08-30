@@ -25,6 +25,14 @@ function fromModel(model) {
 }
 
 export function classifyDeviceType(identity, capabilities, entities = [], device = null) {
+  // HA 2026.9+ returns logical child devices in config/device_registry/list.
+  // They belong to the same config entry as their parent but intentionally do
+  // not carry their own hardware identity. Do not classify them as standalone
+  // UniFi infrastructure devices, even if their entities look port-like.
+  if (identity?.is_child_device || identity?.parent_device_id || device?.parent_device_id) {
+    return "unknown";
+  }
+
   const model = normalizeModel(identity?.model || identity?.hw_version || "");
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();

@@ -50,8 +50,11 @@ export function extractPrimaryMacFromConnections(connections) {
 }
 
 export function buildNormalizedDeviceIdentity(device) {
+  const parentDeviceId = device?.parent_device_id || null;
   return {
     device_id: device?.id || null,
+    parent_device_id: parentDeviceId,
+    is_child_device: !!parentDeviceId,
     model_id: normalizeText(device?.model_id),
     model: normalizeText(device?.model),
     manufacturer: normalizeText(device?.manufacturer),
@@ -90,6 +93,10 @@ export function findDeviceByMac(devices, mac) {
   if (!normalized) return null;
 
   for (const device of devices || []) {
+    // Home Assistant child devices are logical parts of a physical parent and
+    // do not carry their own hardware identity. Never resolve them as the
+    // physical UniFi device for a MAC-based lookup.
+    if (device?.parent_device_id) continue;
     const macs = extractDeviceMacs(device);
     if (macs.has(normalized)) return device;
   }

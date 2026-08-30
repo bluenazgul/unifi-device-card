@@ -1,28 +1,29 @@
-name: HACS Validation
+name: ESLint
 
 on:
   push:
     branches:
-      - main
       - develop
   pull_request:
-  schedule:
-    - cron: "17 2 * * *"
+    branches:
+      - develop
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate-hacs:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: HACS validation
-        uses: hacs/action@main
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          category: plugin
-          comment: false
+          node-version: 24
+
+      - name: Run ESLint
+        run: npx --yes eslint@9 src build.js
