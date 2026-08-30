@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.42-dev */
+/* UniFi Device Card 0.0.0-dev.a2753bd */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3752,6 +3752,19 @@ function isPortConnected(hass, port, { trustLowSpeedLink = false } = {}) {
   }
   return false;
 }
+function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
+  if (!Array.isArray(ports) || !ports.length) return null;
+  if (!preference) return ports[0];
+  const uplinks = Array.isArray(uplinkPorts) ? uplinkPorts : [];
+  if (preference === "auto") {
+    return uplinks.find((port) => isConnected(port)) || uplinks[0] || ports[0];
+  }
+  return uplinks.find((port) => port?.key === preference) || ports[0];
+}
+function resolveDisplayPort(port, displayPorts) {
+  if (!port || !Array.isArray(displayPorts)) return null;
+  return displayPorts.find((candidate) => candidate?.key === port.key) || displayPorts.find((candidate) => candidate?.port === port.port) || null;
+}
 function getPortSpeedText(hass, port) {
   const s = stateValue(hass, port.speed_entity);
   if (!s || s === "unavailable" || s === "unknown") return null;
@@ -3823,6 +3836,10 @@ var TRANSLATIONS = {
     editor_dynamic_port_details_label: "Dynamic port details",
     editor_dynamic_port_details_text: "Show port details on selection",
     editor_dynamic_port_details_hint: "Starts with no selected port. Click a port to show its details; click it again to hide them.",
+    editor_default_uplink_port_label: "Initial uplink port",
+    editor_default_uplink_port_legacy: "Existing behavior (first port)",
+    editor_default_uplink_port_auto: "Automatic (active uplink)",
+    editor_default_uplink_port_hint: "Optional. Automatic and manual choices only consider the device's designated uplink ports.",
     editor_ports_per_row_label: "Ports per row (optional)",
     editor_ports_per_row_hint: "Only for switches. Leave empty for automatic layout, or set a number (for example 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Force sequential ports",
@@ -4017,6 +4034,10 @@ var TRANSLATIONS = {
     editor_dynamic_port_details_label: "Dynamische Portdetails",
     editor_dynamic_port_details_text: "Portdetails bei Auswahl anzeigen",
     editor_dynamic_port_details_hint: "Startet ohne ausgew\xE4hlten Port. Klicke einen Port an, um Details anzuzeigen, und erneut, um sie auszublenden.",
+    editor_default_uplink_port_label: "Initialer Uplink-Port",
+    editor_default_uplink_port_legacy: "Bisheriges Verhalten (erster Port)",
+    editor_default_uplink_port_auto: "Automatisch (aktiver Uplink)",
+    editor_default_uplink_port_hint: "Optional. Die automatische und manuelle Auswahl ber\xFCcksichtigt nur die ausgewiesenen Uplink-Ports des Ger\xE4ts.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
     editor_ports_per_row_hint: "Nur f\xFCr Switches. Leer lassen f\xFCr automatisches Layout oder Zahl setzen (z. B. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Ports fortlaufend erzwingen",
@@ -4211,6 +4232,10 @@ var TRANSLATIONS = {
     editor_dynamic_port_details_label: "Dynamische poortdetails",
     editor_dynamic_port_details_text: "Poortdetails tonen na selectie",
     editor_dynamic_port_details_hint: "Start zonder geselecteerde poort. Klik op een poort voor details en klik opnieuw om ze te verbergen.",
+    editor_default_uplink_port_label: "Initi\xEBle uplinkpoort",
+    editor_default_uplink_port_legacy: "Bestaand gedrag (eerste poort)",
+    editor_default_uplink_port_auto: "Automatisch (actieve uplink)",
+    editor_default_uplink_port_hint: "Optioneel. Automatische en handmatige keuzes gebruiken alleen de aangewezen uplinkpoorten van het apparaat.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
     editor_ports_per_row_hint: "Alleen voor switches. Leeg laten voor automatische layout of een getal instellen (bijv. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Opeenvolgende poorten forceren",
@@ -4402,6 +4427,10 @@ var TRANSLATIONS = {
     editor_dynamic_port_details_label: "D\xE9tails de port dynamiques",
     editor_dynamic_port_details_text: "Afficher les d\xE9tails \xE0 la s\xE9lection",
     editor_dynamic_port_details_hint: "D\xE9marre sans port s\xE9lectionn\xE9. Cliquez sur un port pour afficher ses d\xE9tails, puis \xE0 nouveau pour les masquer.",
+    editor_default_uplink_port_label: "Port uplink initial",
+    editor_default_uplink_port_legacy: "Comportement existant (premier port)",
+    editor_default_uplink_port_auto: "Automatique (uplink actif)",
+    editor_default_uplink_port_hint: "Facultatif. Les choix automatiques et manuels utilisent uniquement les ports uplink d\xE9sign\xE9s de l\u2019appareil.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
     editor_ports_per_row_hint: "Uniquement pour les switches. Laissez vide pour la mise en page automatique ou d\xE9finissez un nombre (ex. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forcer l\u2019ordre s\xE9quentiel des ports",
@@ -4593,6 +4622,10 @@ var TRANSLATIONS = {
     editor_dynamic_port_details_label: "Detalles de puerto din\xE1micos",
     editor_dynamic_port_details_text: "Mostrar detalles al seleccionar",
     editor_dynamic_port_details_hint: "Comienza sin ning\xFAn puerto seleccionado. Haz clic en un puerto para ver sus detalles y otra vez para ocultarlos.",
+    editor_default_uplink_port_label: "Puerto uplink inicial",
+    editor_default_uplink_port_legacy: "Comportamiento anterior (primer puerto)",
+    editor_default_uplink_port_auto: "Autom\xE1tico (uplink activo)",
+    editor_default_uplink_port_hint: "Opcional. Las opciones autom\xE1ticas y manuales solo utilizan los puertos uplink designados del dispositivo.",
     editor_ports_per_row_label: "Puertos por fila (opcional)",
     editor_ports_per_row_hint: "Solo para switches. D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico o define un n\xFAmero (p. ej. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forzar puertos secuenciales",
@@ -4784,6 +4817,10 @@ var TRANSLATIONS = {
     editor_dynamic_port_details_label: "Dettagli porta dinamici",
     editor_dynamic_port_details_text: "Mostra dettagli alla selezione",
     editor_dynamic_port_details_hint: "Inizia senza una porta selezionata. Fai clic su una porta per i dettagli e di nuovo per nasconderli.",
+    editor_default_uplink_port_label: "Porta uplink iniziale",
+    editor_default_uplink_port_legacy: "Comportamento esistente (prima porta)",
+    editor_default_uplink_port_auto: "Automatico (uplink attivo)",
+    editor_default_uplink_port_hint: "Opzionale. Le scelte automatiche e manuali usano solo le porte uplink designate del dispositivo.",
     editor_ports_per_row_label: "Porte per riga (opzionale)",
     editor_ports_per_row_hint: "Solo per switch. Lascia vuoto per layout automatico o imposta un numero (es. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forza porte sequenziali",
@@ -4915,6 +4952,10 @@ var TRANSLATIONS = {
 };
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  editor_default_uplink_port_label: "Ursprunglig uplink-port",
+  editor_default_uplink_port_legacy: "Tidigare beteende (f\xF6rsta porten)",
+  editor_default_uplink_port_auto: "Automatiskt (aktiv uplink)",
+  editor_default_uplink_port_hint: "Valfritt. Automatiska och manuella val anv\xE4nder endast enhetens angivna uplink-portar.",
   editor_port_led_blink_label: "Animering av portarnas l\xE4nklysdioder",
   editor_port_led_blink_text: "L\xE5t l\xE4nklysdioderna f\xF6r anslutna portar blinka",
   editor_port_led_blink_rj45_text: "L\xE5t RJ45-l\xE4nklysdioder blinka",
@@ -4940,6 +4981,10 @@ TRANSLATIONS.sv = {
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  editor_default_uplink_port_label: "Oprindelig uplink-port",
+  editor_default_uplink_port_legacy: "Hidtidig adf\xE6rd (f\xF8rste port)",
+  editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
+  editor_default_uplink_port_hint: "Valgfrit. Automatiske og manuelle valg bruger kun enhedens angivne uplink-porte.",
   editor_port_led_blink_label: "Animation af portenes link-LED'er",
   editor_port_led_blink_text: "Lad link-LED'er for tilsluttede porte blinke",
   editor_port_led_blink_rj45_text: "Lad RJ45-link-LED'er blinke",
@@ -4965,6 +5010,10 @@ TRANSLATIONS.da = {
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  editor_default_uplink_port_label: "Opprinnelig uplink-port",
+  editor_default_uplink_port_legacy: "Tidligere virkem\xE5te (f\xF8rste port)",
+  editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
+  editor_default_uplink_port_hint: "Valgfritt. Automatiske og manuelle valg bruker bare enhetens angitte uplink-porter.",
   editor_port_led_blink_label: "Animasjon av portenes link-LED-er",
   editor_port_led_blink_text: "La link-LED-er for tilkoblede porter blinke",
   editor_port_led_blink_rj45_text: "La RJ45-link-LED-er blinke",
@@ -4990,6 +5039,10 @@ TRANSLATIONS.no = {
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  editor_default_uplink_port_label: "Alkuper\xE4inen uplink-portti",
+  editor_default_uplink_port_legacy: "Aiempi toiminta (ensimm\xE4inen portti)",
+  editor_default_uplink_port_auto: "Automaattinen (aktiivinen uplink)",
+  editor_default_uplink_port_hint: "Valinnainen. Automaattiset ja manuaaliset valinnat k\xE4ytt\xE4v\xE4t vain laitteen m\xE4\xE4ritettyj\xE4 uplink-portteja.",
   editor_port_led_blink_label: "Porttien linkki-LEDien animaatio",
   editor_port_led_blink_text: "Vilkuta yhdistettyjen porttien linkki-LEDej\xE4",
   editor_port_led_blink_rj45_text: "Vilkuta RJ45-linkki-LEDej\xE4",
@@ -5015,6 +5068,10 @@ TRANSLATIONS.fi = {
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  editor_default_uplink_port_label: "Pocz\u0105tkowy port uplink",
+  editor_default_uplink_port_legacy: "Dotychczasowe dzia\u0142anie (pierwszy port)",
+  editor_default_uplink_port_auto: "Automatycznie (aktywny uplink)",
+  editor_default_uplink_port_hint: "Opcjonalne. Wyb\xF3r automatyczny i r\u0119czny uwzgl\u0119dnia tylko wyznaczone porty uplink urz\u0105dzenia.",
   editor_port_led_blink_label: "Animacja diod po\u0142\u0105czenia port\xF3w",
   editor_port_led_blink_text: "Miganie diod po\u0142\u0105czenia aktywnych port\xF3w",
   editor_port_led_blink_rj45_text: "Miganie diod po\u0142\u0105czenia RJ45",
@@ -5040,6 +5097,10 @@ TRANSLATIONS.pl = {
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  editor_default_uplink_port_label: "Po\u010D\xE1te\u010Dn\xED uplink port",
+  editor_default_uplink_port_legacy: "Dosavadn\xED chov\xE1n\xED (prvn\xED port)",
+  editor_default_uplink_port_auto: "Automaticky (aktivn\xED uplink)",
+  editor_default_uplink_port_hint: "Voliteln\xE9. Automatick\xFD a ru\u010Dn\xED v\xFDb\u011Br pou\u017E\xEDv\xE1 pouze ur\u010Den\xE9 uplink porty za\u0159\xEDzen\xED.",
   editor_port_led_blink_label: "Animace kontrolek p\u0159ipojen\xED port\u016F",
   editor_port_led_blink_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xFDch port\u016F",
   editor_port_led_blink_rj45_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xED RJ45",
@@ -5298,6 +5359,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._colorStepBaseConfig = null;
     this._trustLinkSpeedPortsExpanded = false;
     this._portLedBlinkExpanded = false;
+    this._defaultUplinkPortExpanded = false;
   }
   setConfig(config) {
     const prevDeviceId = this._config?.device_id || "";
@@ -5521,6 +5583,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (!next.default_uplink_port) delete next.default_uplink_port;
     if (next.port_led_blink !== true) {
       delete next.port_led_blink;
       delete next.port_led_blink_speed;
@@ -5580,6 +5643,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       special_ports: void 0,
       edit_special_ports: void 0,
       trust_link_speed_ports: void 0,
+      default_uplink_port: void 0,
       ports_per_row: nextDevice?.type === "gateway" ? void 0 : this._config?.ports_per_row,
       device_layout: void 0,
       integrated_ports: void 0
@@ -6217,6 +6281,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const defaultUplinkPort = this._config?.default_uplink_port || "";
     const portLedBlink = this._config?.port_led_blink === true;
     const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
     const portLedBlinkSfp = this._config?.port_led_blink_sfp !== false;
@@ -6243,6 +6308,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const customSpecialPortOptions = selectableSpecialPorts;
     const selectedTrustedLinkSpeedPorts = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
     const selectedSpecialPorts = editSpecialPorts ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout) : [];
+    const uplinkPortOptions = this._deviceCtx?.layout?.specialSlots || [];
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
     const buttonThemeStyle = this._draftButtonThemeStyle !== false;
     const buttonDefaultColor = this._draftButtonDefaultColor !== false;
@@ -6303,6 +6369,21 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
             <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
+        </div>` : ""}
+
+        ${isSwitchOrGateway && uplinkPortOptions.length ? `
+        <div class="field">
+          <details id="default_uplink_port_details" class="port-toggle-details" ${this._defaultUplinkPortExpanded ? "open" : ""}>
+            <summary>${escapeHtml(this._t("editor_default_uplink_port_label"))}</summary>
+            <select id="default_uplink_port">
+              <option value="" ${defaultUplinkPort ? "" : "selected"}>${escapeHtml(this._t("editor_default_uplink_port_legacy"))}</option>
+              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t("editor_default_uplink_port_auto"))}</option>
+              ${uplinkPortOptions.map((slot) => `
+                <option value="${escapeAttr(slot.key)}" ${defaultUplinkPort === slot.key ? "selected" : ""}>${escapeHtml(slotDropdownLabel(slot, (key) => this._t(key)))}</option>
+              `).join("")}
+            </select>
+            <div class="hint">${escapeHtml(this._t("editor_default_uplink_port_hint"))}</div>
+          </details>
         </div>` : ""}
 
         ${isSwitchOrGateway || supportsIntegratedPorts ? `
@@ -6515,6 +6596,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("default_uplink_port")?.addEventListener("change", (ev) => this._emitConfig({
+      default_uplink_port: ev.target.value || void 0
+    }));
+    this.shadowRoot.getElementById("default_uplink_port_details")?.addEventListener("toggle", (ev) => {
+      this._defaultUplinkPortExpanded = ev.target.open;
+    });
     this.shadowRoot.getElementById("port_led_blink")?.addEventListener("change", (ev) => this._onPortLedBlinkChange(ev));
     for (const media of ["rj45", "sfp"]) {
       this.shadowRoot.getElementById(`port_led_blink_${media}`)?.addEventListener("change", (ev) => this._onPortLedBlinkMediaChange(media, ev.target.checked));
@@ -6580,7 +6667,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.42-dev";
+var VERSION = "0.0.0-dev.a2753bd";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6724,6 +6811,7 @@ var UnifiDeviceCard = class extends HTMLElement {
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const oldFakeMode = this._config?.fake_device === true;
+    const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
     const newConfig = { ...config || {} };
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
@@ -6743,6 +6831,20 @@ var UnifiDeviceCard = class extends HTMLElement {
     const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
     this._config = newConfig;
     if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
+    if (oldDeviceId === newDeviceId && oldDefaultUplinkPort !== (newConfig.default_uplink_port || "") && !dynamicPortDetailsEnabled && this._ctx) {
+      const slotData = this._buildSlotData(this._ctx);
+      const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
+      const defaultPort = getDefaultPort(
+        [...slotData.specials, ...slotData.numbered],
+        slotData.specials,
+        newConfig.default_uplink_port,
+        (slot) => this._isPortConnected(slot)
+      );
+      this._selectedKey = resolveDisplayPort(
+        defaultPort,
+        [...displaySlots.specials, ...displaySlots.numbered]
+      )?.key || null;
+    }
     this._log("info", "setConfig", {
       device_id: newDeviceId || null,
       log_level: this._configuredLogLevel()
@@ -7565,11 +7667,18 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (this._shouldLog("debug") && portSnapshot.ports?.length) {
         this._log("debug", "port snapshot", portSnapshot.ports);
       }
-      const { specials, numbered } = this._buildSlotData(ctx);
-      const available = [...specials, ...numbered];
+      const slotData = this._buildSlotData(ctx);
+      const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
+      const available = [...displaySlots.specials, ...displaySlots.numbered];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
       if (!selectedStillExists) {
-        this._selectedKey = this._config?.dynamic_port_details === true ? null : available[0]?.key || null;
+        const defaultPort = getDefaultPort(
+          [...slotData.specials, ...slotData.numbered],
+          slotData.specials,
+          this._config?.default_uplink_port,
+          (slot) => this._isPortConnected(slot)
+        );
+        this._selectedKey = this._config?.dynamic_port_details === true ? null : resolveDisplayPort(defaultPort, available)?.key || null;
       }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
