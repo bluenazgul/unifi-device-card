@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f3f6d71 */
+/* UniFi Device Card 0.0.0-dev.74e319c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1963,7 +1963,7 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   if (identity?.is_child_device || identity?.parent_device_id || device?.parent_device_id) {
     return "unknown";
   }
-  const model = normalizeModel(identity?.model || identity?.hw_version || "");
+  const model = normalizeModel(identity?.model_id || identity?.model || identity?.hw_version || "");
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
@@ -6580,7 +6580,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.f3f6d71";
+var VERSION = "0.0.0-dev.74e319c";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
