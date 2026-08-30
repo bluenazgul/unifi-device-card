@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.db79960 */
+/* UniFi Device Card 0.0.0-dev.ff745b1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2203,6 +2203,7 @@ async function getAllData(hass) {
   }
 }
 function isUnifiDevice(device, unifiEntryIds, entities) {
+  if (device.parent_device_id) return false;
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   const configEntryId = normalize(device?.config_entry_id);
@@ -6579,7 +6580,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.db79960";
+var VERSION = "0.0.0-dev.ff745b1";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
