@@ -328,6 +328,7 @@ export async function getAllData(hass) {
 }
 
 function isUnifiDevice(device, unifiEntryIds, entities) {
+  if (device.parent_device_id) return false;
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   const configEntryId = normalize(device?.config_entry_id);
