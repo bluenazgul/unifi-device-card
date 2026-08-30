@@ -97,7 +97,7 @@ jobs:
           git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
           git push origin "${{ env.VERSION }}"
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.VERSION }}
           body_path: ${{ steps.changelog.outputs.notes_file }}
