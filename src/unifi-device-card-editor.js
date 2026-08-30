@@ -280,6 +280,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._colorStepBaseConfig = null;
     this._trustLinkSpeedPortsExpanded = false;
     this._portLedBlinkExpanded = false;
+    this._defaultUplinkPortExpanded = false;
   }
 
   setConfig(config) {
@@ -540,6 +541,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (!next.default_uplink_port) delete next.default_uplink_port;
     if (next.port_led_blink !== true) {
       delete next.port_led_blink;
       delete next.port_led_blink_speed;
@@ -605,6 +607,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       special_ports: undefined,
       edit_special_ports: undefined,
       trust_link_speed_ports: undefined,
+      default_uplink_port: undefined,
       ports_per_row: nextDevice?.type === "gateway" ? undefined : this._config?.ports_per_row,
       device_layout: undefined,
       integrated_ports: undefined,
@@ -1361,6 +1364,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showTelemetry = this._config?.show_telemetry !== false;
     const showPanel = this._config?.show_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const defaultUplinkPort = this._config?.default_uplink_port || "";
     const portLedBlink = this._config?.port_led_blink === true;
     const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
     const portLedBlinkSfp = this._config?.port_led_blink_sfp !== false;
@@ -1396,6 +1400,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selectedSpecialPorts = editSpecialPorts
       ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
+    const uplinkPortOptions = this._deviceCtx?.layout?.specialSlots || [];
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
     const buttonThemeStyle = this._draftButtonThemeStyle !== false;
     const buttonDefaultColor = this._draftButtonDefaultColor !== false;
@@ -1466,6 +1471,21 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
+        </div>` : ""}
+
+        ${isSwitchOrGateway && uplinkPortOptions.length ? `
+        <div class="field">
+          <details id="default_uplink_port_details" class="port-toggle-details" ${this._defaultUplinkPortExpanded ? "open" : ""}>
+            <summary>${escapeHtml(this._t("editor_default_uplink_port_label"))}</summary>
+            <select id="default_uplink_port">
+              <option value="" ${defaultUplinkPort ? "" : "selected"}>${escapeHtml(this._t("editor_default_uplink_port_legacy"))}</option>
+              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t("editor_default_uplink_port_auto"))}</option>
+              ${uplinkPortOptions.map((slot) => `
+                <option value="${escapeAttr(slot.key)}" ${defaultUplinkPort === slot.key ? "selected" : ""}>${escapeHtml(slotDropdownLabel(slot, (key) => this._t(key)))}</option>
+              `).join("")}
+            </select>
+            <div class="hint">${escapeHtml(this._t("editor_default_uplink_port_hint"))}</div>
+          </details>
         </div>` : ""}
 
         ${(isSwitchOrGateway || supportsIntegratedPorts) ? `
@@ -1689,6 +1709,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")
       ?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("default_uplink_port")
+      ?.addEventListener("change", (ev) => this._emitConfig({
+        default_uplink_port: ev.target.value || undefined,
+      }));
+    this.shadowRoot.getElementById("default_uplink_port_details")
+      ?.addEventListener("toggle", (ev) => {
+        this._defaultUplinkPortExpanded = ev.target.open;
+      });
     this.shadowRoot.getElementById("port_led_blink")
       ?.addEventListener("change", (ev) => this._onPortLedBlinkChange(ev));
     for (const media of ["rj45", "sfp"]) {

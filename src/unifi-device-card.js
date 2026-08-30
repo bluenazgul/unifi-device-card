@@ -6,6 +6,7 @@ import {
   formatUptimeState,
   getDeviceContext,
   getDeviceTelemetry,
+  getDefaultPort,
   getPoeStatus,
   getPortSpeedText,
   hasTraffic,
@@ -196,6 +197,7 @@ class UnifiDeviceCard extends HTMLElement {
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const oldFakeMode = this._config?.fake_device === true;
+    const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
     const newConfig = { ...(config || {}) };
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
@@ -215,6 +217,20 @@ class UnifiDeviceCard extends HTMLElement {
     const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
     this._config = newConfig;
     if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
+    if (
+      oldDeviceId === newDeviceId &&
+      oldDefaultUplinkPort !== (newConfig.default_uplink_port || "") &&
+      !dynamicPortDetailsEnabled &&
+      this._ctx
+    ) {
+      const { specials, numbered } = this._buildSlotData(this._ctx);
+      this._selectedKey = getDefaultPort(
+        [...specials, ...numbered],
+        specials,
+        newConfig.default_uplink_port,
+        (slot) => this._isPortConnected(slot)
+      )?.key || null;
+    }
     this._log("info", "setConfig", {
       device_id: newDeviceId || null,
       log_level: this._configuredLogLevel(),
@@ -1310,7 +1326,12 @@ class UnifiDeviceCard extends HTMLElement {
       if (!selectedStillExists) {
         this._selectedKey = this._config?.dynamic_port_details === true
           ? null
-          : available[0]?.key || null;
+          : getDefaultPort(
+            available,
+            specials,
+            this._config?.default_uplink_port,
+            (slot) => this._isPortConnected(slot)
+          )?.key || null;
       }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
