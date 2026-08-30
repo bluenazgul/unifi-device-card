@@ -1,5 +1,31 @@
 # Changelog
 
+## [v0.8.5]
+
+### 🐛 Bug Fixes
+- Adapt standalone UniFi device discovery to the Home Assistant 2026.9 device-registry changes by excluding logical child devices.
+- Classify supported UniFi hardware from Home Assistant's stable `model_id` even when optional device-stat entities are unavailable.
+
+### ✨ Improvements
+- Adapt device recognition to the Home Assistant 2026.9 registry changes by preferring Home Assistant's stable device model identifier for supported UniFi access points, switches, gateways, and bridges.
+- Prepare for the Home Assistant 2027.8 removal of `config_entries` by using `config_entry_id` as its replacement, while retaining `config_entries` as a fallback for older Home Assistant versions.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.4]
 
 ### 🐛 Bug Fixes

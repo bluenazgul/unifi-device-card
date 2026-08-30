@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.4 */
+/* UniFi Device Card 0.0.0-dev.74e319c */
 
 // src/model-registry.js
 function range(start, end) {
@@ -23,11 +23,11 @@ var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7",
 var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 function modelStartsWith(device, prefixes) {
-  const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
+  const candidates = [device?.model_id, device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
 }
 function isAccessPointLikeModel(device) {
-  const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
+  const candidates = [device?.model_id, device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return AP_MODEL_PREFIXES.some(
     (pfx) => candidates.some((candidate) => candidate.startsWith(pfx))
   );
@@ -1242,7 +1242,7 @@ function getFakeDevices() {
   }));
 }
 function resolveModelKey(device) {
-  const candidates = [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).map(normalizeModelKey);
+  const candidates = [device?.model_id, device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).map(normalizeModelKey);
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (MODEL_REGISTRY[candidate]) return candidate;
@@ -1740,14 +1740,20 @@ function extractPrimaryMacFromConnections(connections) {
   return null;
 }
 function buildNormalizedDeviceIdentity(device) {
+  const parentDeviceId = device?.parent_device_id || null;
   return {
     device_id: device?.id || null,
+    parent_device_id: parentDeviceId,
+    is_child_device: !!parentDeviceId,
+    model_id: normalizeText(device?.model_id),
     model: normalizeText(device?.model),
     manufacturer: normalizeText(device?.manufacturer),
     name: normalizeText(device?.name_by_user || device?.name),
     hw_version: normalizeText(device?.hw_version),
     sw_version: normalizeText(device?.sw_version),
     primary_mac: extractPrimaryMacFromConnections(device?.connections),
+    config_entry_id: device?.config_entry_id || null,
+    config_subentry_id: device?.config_subentry_id || null,
     config_entries: Array.isArray(device?.config_entries) ? device.config_entries : []
   };
 }
@@ -1771,6 +1777,7 @@ function findDeviceByMac(devices, mac) {
   const normalized = normalizeMac(mac);
   if (!normalized) return null;
   for (const device of devices || []) {
+    if (device?.parent_device_id) continue;
     const macs = extractDeviceMacs(device);
     if (macs.has(normalized)) return device;
   }
@@ -1953,7 +1960,10 @@ function fromModel(model) {
   return null;
 }
 function classifyDeviceType(identity, capabilities, entities = [], device = null) {
-  const model = normalizeModel(identity?.model || identity?.hw_version || "");
+  if (identity?.is_child_device || identity?.parent_device_id || device?.parent_device_id) {
+    return "unknown";
+  }
+  const model = normalizeModel(identity?.model_id || identity?.model || identity?.hw_version || "");
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
@@ -2061,7 +2071,7 @@ function hasIndexedPortId(entityId) {
   return !!findIndexedPortIdMatch(entityId);
 }
 function modelStartsWith2(device, prefixes) {
-  const candidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelStr);
+  const candidates = [device?.model_id, device?.model, device?.hw_version].filter(Boolean).map(normalizeModelStr);
   return prefixes.some((pfx) => candidates.some((c) => c.startsWith(pfx)));
 }
 function isVirtualControllerDevice(device) {
@@ -2193,9 +2203,12 @@ async function getAllData(hass) {
   }
 }
 function isUnifiDevice(device, unifiEntryIds, entities) {
+  if (device.parent_device_id) return false;
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
-  if (Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id))) {
+  const configEntryId = normalize(device?.config_entry_id);
+  const belongsToUnifiEntry = unifiEntryIds.has(configEntryId) || Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id));
+  if (belongsToUnifiEntry) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
     if (modelStartsWith2(device, [
       ...SWITCH_MODEL_PREFIXES,
@@ -6567,7 +6580,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.4";
+var VERSION = "0.0.0-dev.74e319c";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
