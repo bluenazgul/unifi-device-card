@@ -7,6 +7,7 @@ import {
   getDeviceContext,
   getDeviceTelemetry,
   getDefaultPort,
+  resolveDisplayPort,
   getPoeStatus,
   getPortSpeedText,
   hasTraffic,
@@ -223,12 +224,17 @@ class UnifiDeviceCard extends HTMLElement {
       !dynamicPortDetailsEnabled &&
       this._ctx
     ) {
-      const { specials, numbered } = this._buildSlotData(this._ctx);
-      this._selectedKey = getDefaultPort(
-        [...specials, ...numbered],
-        specials,
+      const slotData = this._buildSlotData(this._ctx);
+      const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
+      const defaultPort = getDefaultPort(
+        [...slotData.specials, ...slotData.numbered],
+        slotData.specials,
         newConfig.default_uplink_port,
         (slot) => this._isPortConnected(slot)
+      );
+      this._selectedKey = resolveDisplayPort(
+        defaultPort,
+        [...displaySlots.specials, ...displaySlots.numbered]
       )?.key || null;
     }
     this._log("info", "setConfig", {
@@ -1320,18 +1326,20 @@ class UnifiDeviceCard extends HTMLElement {
         this._log("debug", "port snapshot", portSnapshot.ports);
       }
 
-      const { specials, numbered } = this._buildSlotData(ctx);
-      const available = [...specials, ...numbered];
+      const slotData = this._buildSlotData(ctx);
+      const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
+      const available = [...displaySlots.specials, ...displaySlots.numbered];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
       if (!selectedStillExists) {
+        const defaultPort = getDefaultPort(
+          [...slotData.specials, ...slotData.numbered],
+          slotData.specials,
+          this._config?.default_uplink_port,
+          (slot) => this._isPortConnected(slot)
+        );
         this._selectedKey = this._config?.dynamic_port_details === true
           ? null
-          : getDefaultPort(
-            available,
-            specials,
-            this._config?.default_uplink_port,
-            (slot) => this._isPortConnected(slot)
-          )?.key || null;
+          : resolveDisplayPort(defaultPort, available)?.key || null;
       }
     } catch (err) {
       this._log("error", "Failed to load device context", err);

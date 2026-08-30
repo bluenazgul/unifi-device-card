@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { getDefaultPort } from "../src/helpers.js";
+import { getDefaultPort, resolveDisplayPort } from "../src/helpers.js";
 
 const ports = [
   { key: "port_9", connected: false },
@@ -35,5 +35,16 @@ assert.equal(
   "manual selection should be restricted to uplink ports"
 );
 assert.equal(getDefaultPort([], [], "auto", () => true), null, "an empty port list should not select a port");
+
+const demotedUplink = { key: "sfp_1", port: 9 };
+const displayPorts = [
+  { key: "port-9", port: 9 },
+  { key: "port_1", port: 1 },
+];
+assert.equal(
+  resolveDisplayPort(demotedUplink, displayPorts)?.key,
+  "port-9",
+  "a demoted uplink should resolve to its normalized display key"
+);
 
 console.log("Default port selection tests passed.");

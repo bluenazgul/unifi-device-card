@@ -2622,6 +2622,13 @@ export function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
   return uplinks.find((port) => port?.key === preference) || ports[0];
 }
 
+export function resolveDisplayPort(port, displayPorts) {
+  if (!port || !Array.isArray(displayPorts)) return null;
+  return displayPorts.find((candidate) => candidate?.key === port.key)
+    || displayPorts.find((candidate) => candidate?.port === port.port)
+    || null;
+}
+
 export function getPortLinkText(hass, port) {
   return isPortConnected(hass, port) ? "connected" : "no_link";
 }
