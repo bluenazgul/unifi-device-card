@@ -33,7 +33,7 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     return "unknown";
   }
 
-  const model = normalizeModel(identity?.model || identity?.hw_version || "");
+  const model = normalizeModel(identity?.model_id || identity?.model || identity?.hw_version || "");
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));

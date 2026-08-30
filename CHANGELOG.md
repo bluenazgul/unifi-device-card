@@ -4,6 +4,7 @@
 
 ### 🐛 Bug Fixes
 - Adapt standalone UniFi device discovery to the Home Assistant 2026.9 device-registry changes by excluding logical child devices.
+- Classify supported UniFi hardware from Home Assistant's stable `model_id` even when optional device-stat entities are unavailable.
 
 ### ✨ Improvements
 - Adapt device recognition to the Home Assistant 2026.9 registry changes by preferring Home Assistant's stable device model identifier for supported UniFi access points, switches, gateways, and bridges.

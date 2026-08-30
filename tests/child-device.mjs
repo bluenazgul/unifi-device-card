@@ -45,4 +45,22 @@ assert.equal(
   "MAC lookup must prefer/return a physical device and skip child devices"
 );
 
+for (const [model_id, capabilities] of [
+  ["U7PRO", {}],
+  ["UDB", { ports: true }],
+]) {
+  assert.equal(
+    classifyDeviceType(
+      buildNormalizedDeviceIdentity({
+        model_id,
+        model: "UniFi Access Point",
+        name: "Office Ceiling",
+      }),
+      capabilities
+    ),
+    "access_point",
+    `${model_id} must be classified from its stable model identifier`
+  );
+}
+
 console.log("Child-device registry compatibility checks passed.");
