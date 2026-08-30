@@ -3,11 +3,11 @@
 ## [v0.8.5]
 
 ### 🐛 Bug Fixes
-- Exclude logical Home Assistant child devices from standalone UniFi device discovery.
+- Adapt standalone UniFi device discovery to the Home Assistant 2026.9 device-registry changes by excluding logical child devices.
 
 ### ✨ Improvements
-- Support Home Assistant's singular device config-entry registry fields while retaining compatibility with older Home Assistant versions.
-- Prefer Home Assistant's stable device model identifier when recognizing supported UniFi access points, switches, gateways, and bridges.
+- Adapt device recognition to the Home Assistant 2026.9 registry changes by preferring Home Assistant's stable device model identifier for supported UniFi access points, switches, gateways, and bridges.
+- Prepare for the Home Assistant 2027.8 removal of `config_entries` by using `config_entry_id` as its replacement, while retaining `config_entries` as a fallback for older Home Assistant versions.
 
 ### ✨ Hints
 
