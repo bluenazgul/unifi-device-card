@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d1ba8e5 */
+/* UniFi Device Card 0.0.0-dev.db79960 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1740,8 +1740,11 @@ function extractPrimaryMacFromConnections(connections) {
   return null;
 }
 function buildNormalizedDeviceIdentity(device) {
+  const parentDeviceId = device?.parent_device_id || null;
   return {
     device_id: device?.id || null,
+    parent_device_id: parentDeviceId,
+    is_child_device: !!parentDeviceId,
     model_id: normalizeText(device?.model_id),
     model: normalizeText(device?.model),
     manufacturer: normalizeText(device?.manufacturer),
@@ -1774,6 +1777,7 @@ function findDeviceByMac(devices, mac) {
   const normalized = normalizeMac(mac);
   if (!normalized) return null;
   for (const device of devices || []) {
+    if (device?.parent_device_id) continue;
     const macs = extractDeviceMacs(device);
     if (macs.has(normalized)) return device;
   }
@@ -1956,6 +1960,9 @@ function fromModel(model) {
   return null;
 }
 function classifyDeviceType(identity, capabilities, entities = [], device = null) {
+  if (identity?.is_child_device || identity?.parent_device_id || device?.parent_device_id) {
+    return "unknown";
+  }
   const model = normalizeModel(identity?.model || identity?.hw_version || "");
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
@@ -6572,7 +6579,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d1ba8e5";
+var VERSION = "0.0.0-dev.db79960";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
