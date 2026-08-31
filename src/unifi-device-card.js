@@ -1,4 +1,5 @@
 import {
+  applyLagGroups,
   applyPortNames,
   applyGatewayPortOverrides,
   discoverSpecialPorts,
@@ -18,6 +19,7 @@ import {
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
   normalizePositivePortNumbers,
+  normalizeLagGroups,
   normalizePortNames,
   parseLinkSpeedMbit,
   stateObj,
@@ -211,6 +213,12 @@ class UnifiDeviceCard extends HTMLElement {
       newConfig.port_name = portNames;
     } else {
       delete newConfig.port_name;
+    }
+    const lagGroups = normalizeLagGroups(newConfig.lag_groups);
+    if (lagGroups.length) {
+      newConfig.lag_groups = lagGroups;
+    } else {
+      delete newConfig.lag_groups;
     }
     const newDeviceId = newConfig?.device_id || null;
     const newFakeMode = newConfig?.fake_device === true;
@@ -974,15 +982,18 @@ class UnifiDeviceCard extends HTMLElement {
     this._applyManualPortSensorOverrides(numberedRaw, specialsRaw);
 
     if (ctx?.type === "gateway") {
-      return applyPortNames(applyGatewayPortOverrides(
+      return applyLagGroups(applyPortNames(applyGatewayPortOverrides(
         this._config,
         specialsRaw,
         numberedRaw,
         ctx?.layout
-      ), this._config?.port_name);
+      ), this._config?.port_name), this._config?.lag_groups);
     }
 
-    return applyPortNames({ specials: specialsRaw, numbered: numberedRaw }, this._config?.port_name);
+    return applyLagGroups(
+      applyPortNames({ specials: specialsRaw, numbered: numberedRaw }, this._config?.port_name),
+      this._config?.lag_groups
+    );
   }
 
   _relevantStateEntityIds() {
@@ -1588,6 +1599,7 @@ class UnifiDeviceCard extends HTMLElement {
     const mergedCount = Math.max(clientInfo?.count || 0, indexedCount);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
+      slot.lag_group ? `LAG: ${slot.lag_group.name}` : null,
       this._translateState(linkUp ? "connected" : "no_link"),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
@@ -1640,6 +1652,7 @@ class UnifiDeviceCard extends HTMLElement {
     return `<button class="${this._escapeAttr(classes)}" data-key="${this._escapeAttr(slot.key)}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
+        ${slot.lag_group ? `<span class="lag-badge" aria-label="${this._escapeAttr(`LAG: ${slot.lag_group.name}`)}">LAG${slot.lag_group.index}</span>` : ""}
       </div>
       <div class="port-num">${this._escapeHtml(slot.label)}</div>
     </button>`;
@@ -2715,11 +2728,29 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .port-housing {
+        position: relative;
         width: 100%;
         display: flex;
         justify-content: center;
         align-items: flex-start;
         transition: opacity .15s ease, filter .15s ease;
+      }
+
+      .lag-badge {
+        position: absolute;
+        top: -3px;
+        right: -2px;
+        z-index: 8;
+        padding: 1px 2px;
+        border-radius: 2px;
+        background: var(--udc-accent);
+        color: #fff;
+        font-size: 5px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: .15px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+        pointer-events: none;
       }
 
       .port.rotated180 .port-housing {
@@ -3060,6 +3091,18 @@ class UnifiDeviceCard extends HTMLElement {
         color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
+      .detail-lag-badge {
+        display: inline-block;
+        margin-left: 5px;
+        padding: 2px 5px;
+        border-radius: 3px;
+        background: var(--udc-accent);
+        color: #fff;
+        font-size: .62rem;
+        line-height: 1.2;
+        vertical-align: 1px;
+      }
+
       .detail-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -3207,7 +3250,7 @@ class UnifiDeviceCard extends HTMLElement {
       || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
 
     return `
-      <div class="detail-title">${this._escapeHtml(portTitle)}</div>
+      <div class="detail-title">${this._escapeHtml(portTitle)}${selected.lag_group ? ` <span class="detail-lag-badge">LAG · ${this._escapeHtml(selected.lag_group.name)}</span>` : ""}</div>
       <div class="detail-grid">
         <div class="detail-item">
           <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
@@ -3558,7 +3601,7 @@ class UnifiDeviceCard extends HTMLElement {
         || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
 
       detail = `
-        <div class="detail-title">${this._escapeHtml(portTitle)}</div>
+        <div class="detail-title">${this._escapeHtml(portTitle)}${selected.lag_group ? ` <span class="detail-lag-badge">LAG · ${this._escapeHtml(selected.lag_group.name)}</span>` : ""}</div>
         <div class="detail-grid">
           <div class="detail-item">
             <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
