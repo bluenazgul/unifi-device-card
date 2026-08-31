@@ -2757,6 +2757,10 @@ class UnifiDeviceCard extends HTMLElement {
         transform: rotate(180deg);
       }
 
+      .port.rotated180 .lag-badge {
+        transform: rotate(180deg);
+      }
+
       .port.down .port-housing {
         opacity: .42;
         filter: saturate(.45) brightness(.78);
