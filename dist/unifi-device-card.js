@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.43-dev */
+/* UniFi Device Card 0.0.0-dev.2b65d77 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -2016,6 +2016,36 @@ function normalizePortNames(value) {
     normalized[port] = name;
   }
   return normalized;
+}
+function normalizeLagGroups(value) {
+  if (!Array.isArray(value)) return [];
+  const assignedPorts = /* @__PURE__ */ new Set();
+  const groups = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const ports = normalizePositivePortNumbers(entry.ports).filter((port) => !assignedPorts.has(port));
+    if (ports.length < 2) continue;
+    const name = typeof entry.name === "string" ? entry.name.trim() : "";
+    const normalized = { name: name || `LAG ${groups.length + 1}`, ports };
+    groups.push(normalized);
+    ports.forEach((port) => assignedPorts.add(port));
+  }
+  return groups;
+}
+function applyLagGroups(slotData, lagGroups) {
+  const groupsByPort = /* @__PURE__ */ new Map();
+  normalizeLagGroups(lagGroups).forEach((group, index) => {
+    const metadata = { ...group, index: index + 1 };
+    group.ports.forEach((port) => groupsByPort.set(port, metadata));
+  });
+  const apply = (slots) => (slots || []).map((slot) => {
+    const lag_group = groupsByPort.get(slot?.port);
+    return lag_group ? { ...slot, lag_group } : slot;
+  });
+  return {
+    specials: apply(slotData?.specials),
+    numbered: apply(slotData?.numbered)
+  };
 }
 function applyPortNames(slotData, portNames) {
   const normalized = normalizePortNames(portNames);
@@ -6667,7 +6697,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.43-dev";
+var VERSION = "0.0.0-dev.2b65d77";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6824,6 +6854,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       newConfig.port_name = portNames;
     } else {
       delete newConfig.port_name;
+    }
+    const lagGroups = normalizeLagGroups(newConfig.lag_groups);
+    if (lagGroups.length) {
+      newConfig.lag_groups = lagGroups;
+    } else {
+      delete newConfig.lag_groups;
     }
     const newDeviceId = newConfig?.device_id || null;
     const newFakeMode = newConfig?.fake_device === true;
@@ -7411,14 +7447,17 @@ var UnifiDeviceCard = class extends HTMLElement {
     );
     this._applyManualPortSensorOverrides(numberedRaw, specialsRaw);
     if (ctx?.type === "gateway") {
-      return applyPortNames(applyGatewayPortOverrides(
+      return applyLagGroups(applyPortNames(applyGatewayPortOverrides(
         this._config,
         specialsRaw,
         numberedRaw,
         ctx?.layout
-      ), this._config?.port_name);
+      ), this._config?.port_name), this._config?.lag_groups);
     }
-    return applyPortNames({ specials: specialsRaw, numbered: numberedRaw }, this._config?.port_name);
+    return applyLagGroups(
+      applyPortNames({ specials: specialsRaw, numbered: numberedRaw }, this._config?.port_name),
+      this._config?.lag_groups
+    );
   }
   _relevantStateEntityIds() {
     const ids = /* @__PURE__ */ new Set();
@@ -7871,6 +7910,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const mergedCount = Math.max(clientInfo?.count || 0, indexedCount);
     const tooltip = [
       slot.port_label || (isSpecial ? slot.label : `${this._t("port_label")} ${slot.label}`),
+      slot.lag_group ? `LAG: ${slot.lag_group.name}` : null,
       this._translateState(linkUp ? "connected" : "no_link"),
       linkUp ? getPortSpeedText(this._hass, slot) : null,
       poeOn ? `${this._t("poe")}${poeStatus.power ? ` ${poeStatus.power}` : " ON"}` : null,
@@ -7917,6 +7957,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return `<button class="${this._escapeAttr(classes)}" data-key="${this._escapeAttr(slot.key)}" title="${this._escapeAttr(tooltip)}">
       <div class="port-housing">
         ${housing}
+        ${slot.lag_group ? `<span class="lag-badge" aria-label="${this._escapeAttr(`LAG: ${slot.lag_group.name}`)}">LAG${slot.lag_group.index}</span>` : ""}
       </div>
       <div class="port-num">${this._escapeHtml(slot.label)}</div>
     </button>`;
@@ -8991,6 +9032,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .port-housing {
+        position: relative;
         width: 100%;
         display: flex;
         justify-content: center;
@@ -8998,7 +9040,28 @@ var UnifiDeviceCard = class extends HTMLElement {
         transition: opacity .15s ease, filter .15s ease;
       }
 
+      .lag-badge {
+        position: absolute;
+        top: -3px;
+        right: -2px;
+        z-index: 8;
+        padding: 1px 2px;
+        border-radius: 2px;
+        background: var(--udc-accent);
+        color: #fff;
+        font-size: 5px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: .15px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+        pointer-events: none;
+      }
+
       .port.rotated180 .port-housing {
+        transform: rotate(180deg);
+      }
+
+      .port.rotated180 .lag-badge {
         transform: rotate(180deg);
       }
 
@@ -9336,6 +9399,18 @@ var UnifiDeviceCard = class extends HTMLElement {
         color: var(--udc-special-port-label-color, var(--primary-text-color, var(--udc-text)));
       }
 
+      .detail-lag-badge {
+        display: inline-block;
+        margin-left: 5px;
+        padding: 2px 5px;
+        border-radius: 3px;
+        background: var(--udc-accent);
+        color: #fff;
+        font-size: .62rem;
+        line-height: 1.2;
+        vertical-align: 1px;
+      }
+
       .detail-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -9474,7 +9549,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
     const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
     return `
-      <div class="detail-title">${this._escapeHtml(portTitle)}</div>
+      <div class="detail-title">${this._escapeHtml(portTitle)}${selected.lag_group ? ` <span class="detail-lag-badge">LAG \xB7 ${this._escapeHtml(selected.lag_group.name)}</span>` : ""}</div>
       <div class="detail-grid">
         <div class="detail-item">
           <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
@@ -9767,7 +9842,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity) : null;
       const portTitle = selected.port_label || (selected.kind === "special" ? selected.label : `${this._t("port_label")} ${selected.label}`);
       detail = `
-        <div class="detail-title">${this._escapeHtml(portTitle)}</div>
+        <div class="detail-title">${this._escapeHtml(portTitle)}${selected.lag_group ? ` <span class="detail-lag-badge">LAG \xB7 ${this._escapeHtml(selected.lag_group.name)}</span>` : ""}</div>
         <div class="detail-grid">
           <div class="detail-item">
             <div class="detail-label">${this._escapeHtml(this._t("link_status"))}</div>
