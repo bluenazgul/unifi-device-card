@@ -312,6 +312,11 @@ trust_link_speed_ports:        # optional (switch/gateway and compatible integra
 port_name:                     # optional custom names for tooltips and port details
   1: Uplink
   3: AP
+lag_groups:                    # optional YAML-only visual LAG grouping
+  - name: NAS
+    ports:
+      - 11
+      - 12
 wan_port: auto                # optional (gateway only)
 wan2_port: none               # optional (gateway only)
 ```
@@ -367,6 +372,7 @@ wan2_port: none               # optional (gateway only)
 | `special_ports` | array<number> | auto | Switch/Gateway only: explicit port numbers shown in the top special row; non-selected ports render in the normal grid. |
 | `trust_link_speed_ports` | array<number> | `[]` | Ports whose positive link-speed value is trusted even at 10 Mbit/s. By default, the RJ45 ghost-link guard treats speeds up to and including 10 Mbit/s as disconnected when no link, traffic, client, or PoE signal confirms the connection. Select only ports with a genuine 10 Mbit/s link; `0`, `unknown`, and `unavailable` remain disconnected. |
 | `port_name` | object | `{}` | Optional port-number-to-name mapping for tooltips and detail headings. Front-panel port numbers remain unchanged. |
+| `lag_groups` | array<object> | `[]` | YAML-only visual grouping for LAG members. Each group requires at least two unique positive port numbers and may have a `name`; configured members receive a `LAG` badge and group name without changing their independently detected link, speed, traffic, or PoE states. A port can belong to only the first valid configured group. |
 | `wan_port` | string | auto | Gateway only: assign WAN role (`auto`, slot key like `wan`, or `port_<n>`). |
 | `wan2_port` | string | auto | Gateway only: assign WAN2 role (`auto`, `none`, slot key, or `port_<n>`). |
 

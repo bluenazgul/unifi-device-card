@@ -51,6 +51,46 @@ export function normalizePortNames(value) {
   return normalized;
 }
 
+export function normalizeLagGroups(value) {
+  if (!Array.isArray(value)) return [];
+
+  const assignedPorts = new Set();
+  const groups = [];
+
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+
+    const ports = normalizePositivePortNumbers(entry.ports)
+      .filter((port) => !assignedPorts.has(port));
+    if (ports.length < 2) continue;
+
+    const name = typeof entry.name === "string" ? entry.name.trim() : "";
+    const normalized = { name: name || `LAG ${groups.length + 1}`, ports };
+    groups.push(normalized);
+    ports.forEach((port) => assignedPorts.add(port));
+  }
+
+  return groups;
+}
+
+export function applyLagGroups(slotData, lagGroups) {
+  const groupsByPort = new Map();
+  normalizeLagGroups(lagGroups).forEach((group, index) => {
+    const metadata = { ...group, index: index + 1 };
+    group.ports.forEach((port) => groupsByPort.set(port, metadata));
+  });
+
+  const apply = (slots) => (slots || []).map((slot) => {
+    const lag_group = groupsByPort.get(slot?.port);
+    return lag_group ? { ...slot, lag_group } : slot;
+  });
+
+  return {
+    specials: apply(slotData?.specials),
+    numbered: apply(slotData?.numbered),
+  };
+}
+
 export function applyPortNames(slotData, portNames) {
   const normalized = normalizePortNames(portNames);
   const apply = (slots) => (slots || []).map((slot) => {
