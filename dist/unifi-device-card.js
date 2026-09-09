@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.51-dev */
+/* UniFi Device Card 0.0.0-dev.eaca346 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3791,6 +3791,12 @@ function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
   }
   return uplinks.find((port) => port?.key === preference) || ports[0];
 }
+function getDefaultPortCandidates(deviceType, layout, uplinkPorts, numberedPorts) {
+  if (deviceType === "access_point" && layout?.supportsIntegratedPorts === true) {
+    return Array.isArray(numberedPorts) ? numberedPorts : [];
+  }
+  return Array.isArray(uplinkPorts) ? uplinkPorts : [];
+}
 function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key) || displayPorts.find((candidate) => candidate?.port === port.port) || null;
@@ -3870,6 +3876,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Existing behavior (first port)",
     editor_default_uplink_port_auto: "Automatic (active uplink)",
     editor_default_uplink_port_hint: "Optional. Automatic and manual choices only consider the device's designated uplink ports.",
+    editor_default_port_label: "Initial port",
+    editor_default_port_auto: "Automatic (active port)",
+    editor_default_port_hint: "Optional. Automatic and manual choices consider the integrated switch ports.",
     editor_ports_per_row_label: "Ports per row (optional)",
     editor_ports_per_row_hint: "Only for switches. Leave empty for automatic layout, or set a number (for example 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Force sequential ports",
@@ -4068,6 +4077,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Bisheriges Verhalten (erster Port)",
     editor_default_uplink_port_auto: "Automatisch (aktiver Uplink)",
     editor_default_uplink_port_hint: "Optional. Die automatische und manuelle Auswahl ber\xFCcksichtigt nur die ausgewiesenen Uplink-Ports des Ger\xE4ts.",
+    editor_default_port_label: "Initialer Port",
+    editor_default_port_auto: "Automatisch (aktiver Port)",
+    editor_default_port_hint: "Optional. Die automatische und manuelle Auswahl ber\xFCcksichtigt die Ports des integrierten Switches.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
     editor_ports_per_row_hint: "Nur f\xFCr Switches. Leer lassen f\xFCr automatisches Layout oder Zahl setzen (z. B. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Ports fortlaufend erzwingen",
@@ -4266,6 +4278,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Bestaand gedrag (eerste poort)",
     editor_default_uplink_port_auto: "Automatisch (actieve uplink)",
     editor_default_uplink_port_hint: "Optioneel. Automatische en handmatige keuzes gebruiken alleen de aangewezen uplinkpoorten van het apparaat.",
+    editor_default_port_label: "Initi\xEBle poort",
+    editor_default_port_auto: "Automatisch (actieve poort)",
+    editor_default_port_hint: "Optioneel. Automatische en handmatige keuzes gebruiken de poorten van de ge\xEFntegreerde switch.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
     editor_ports_per_row_hint: "Alleen voor switches. Leeg laten voor automatische layout of een getal instellen (bijv. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Opeenvolgende poorten forceren",
@@ -4461,6 +4476,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Comportement existant (premier port)",
     editor_default_uplink_port_auto: "Automatique (uplink actif)",
     editor_default_uplink_port_hint: "Facultatif. Les choix automatiques et manuels utilisent uniquement les ports uplink d\xE9sign\xE9s de l\u2019appareil.",
+    editor_default_port_label: "Port initial",
+    editor_default_port_auto: "Automatique (port actif)",
+    editor_default_port_hint: "Facultatif. Les choix automatiques et manuels utilisent les ports du switch int\xE9gr\xE9.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
     editor_ports_per_row_hint: "Uniquement pour les switches. Laissez vide pour la mise en page automatique ou d\xE9finissez un nombre (ex. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forcer l\u2019ordre s\xE9quentiel des ports",
@@ -4656,6 +4674,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Comportamiento anterior (primer puerto)",
     editor_default_uplink_port_auto: "Autom\xE1tico (uplink activo)",
     editor_default_uplink_port_hint: "Opcional. Las opciones autom\xE1ticas y manuales solo utilizan los puertos uplink designados del dispositivo.",
+    editor_default_port_label: "Puerto inicial",
+    editor_default_port_auto: "Autom\xE1tico (puerto activo)",
+    editor_default_port_hint: "Opcional. Las opciones autom\xE1ticas y manuales utilizan los puertos del switch integrado.",
     editor_ports_per_row_label: "Puertos por fila (opcional)",
     editor_ports_per_row_hint: "Solo para switches. D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico o define un n\xFAmero (p. ej. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forzar puertos secuenciales",
@@ -4851,6 +4872,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Comportamento esistente (prima porta)",
     editor_default_uplink_port_auto: "Automatico (uplink attivo)",
     editor_default_uplink_port_hint: "Opzionale. Le scelte automatiche e manuali usano solo le porte uplink designate del dispositivo.",
+    editor_default_port_label: "Porta iniziale",
+    editor_default_port_auto: "Automatico (porta attiva)",
+    editor_default_port_hint: "Opzionale. Le scelte automatiche e manuali usano le porte dello switch integrato.",
     editor_ports_per_row_label: "Porte per riga (opzionale)",
     editor_ports_per_row_hint: "Solo per switch. Lascia vuoto per layout automatico o imposta un numero (es. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forza porte sequenziali",
@@ -4986,6 +5010,9 @@ TRANSLATIONS.sv = {
   editor_default_uplink_port_legacy: "Tidigare beteende (f\xF6rsta porten)",
   editor_default_uplink_port_auto: "Automatiskt (aktiv uplink)",
   editor_default_uplink_port_hint: "Valfritt. Automatiska och manuella val anv\xE4nder endast enhetens angivna uplink-portar.",
+  editor_default_port_label: "Ursprunglig port",
+  editor_default_port_auto: "Automatiskt (aktiv port)",
+  editor_default_port_hint: "Valfritt. Automatiska och manuella val anv\xE4nder portarna p\xE5 den integrerade switchen.",
   editor_port_led_blink_label: "Animering av portarnas l\xE4nklysdioder",
   editor_port_led_blink_text: "L\xE5t l\xE4nklysdioderna f\xF6r anslutna portar blinka",
   editor_port_led_blink_rj45_text: "L\xE5t RJ45-l\xE4nklysdioder blinka",
@@ -5015,6 +5042,9 @@ TRANSLATIONS.da = {
   editor_default_uplink_port_legacy: "Hidtidig adf\xE6rd (f\xF8rste port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
   editor_default_uplink_port_hint: "Valgfrit. Automatiske og manuelle valg bruger kun enhedens angivne uplink-porte.",
+  editor_default_port_label: "Oprindelig port",
+  editor_default_port_auto: "Automatisk (aktiv port)",
+  editor_default_port_hint: "Valgfrit. Automatiske og manuelle valg bruger portene p\xE5 den integrerede switch.",
   editor_port_led_blink_label: "Animation af portenes link-LED'er",
   editor_port_led_blink_text: "Lad link-LED'er for tilsluttede porte blinke",
   editor_port_led_blink_rj45_text: "Lad RJ45-link-LED'er blinke",
@@ -5044,6 +5074,9 @@ TRANSLATIONS.no = {
   editor_default_uplink_port_legacy: "Tidligere virkem\xE5te (f\xF8rste port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
   editor_default_uplink_port_hint: "Valgfritt. Automatiske og manuelle valg bruker bare enhetens angitte uplink-porter.",
+  editor_default_port_label: "Opprinnelig port",
+  editor_default_port_auto: "Automatisk (aktiv port)",
+  editor_default_port_hint: "Valgfritt. Automatiske og manuelle valg bruker portene p\xE5 den integrerte switchen.",
   editor_port_led_blink_label: "Animasjon av portenes link-LED-er",
   editor_port_led_blink_text: "La link-LED-er for tilkoblede porter blinke",
   editor_port_led_blink_rj45_text: "La RJ45-link-LED-er blinke",
@@ -5073,6 +5106,9 @@ TRANSLATIONS.fi = {
   editor_default_uplink_port_legacy: "Aiempi toiminta (ensimm\xE4inen portti)",
   editor_default_uplink_port_auto: "Automaattinen (aktiivinen uplink)",
   editor_default_uplink_port_hint: "Valinnainen. Automaattiset ja manuaaliset valinnat k\xE4ytt\xE4v\xE4t vain laitteen m\xE4\xE4ritettyj\xE4 uplink-portteja.",
+  editor_default_port_label: "Alkuper\xE4inen portti",
+  editor_default_port_auto: "Automaattinen (aktiivinen portti)",
+  editor_default_port_hint: "Valinnainen. Automaattiset ja manuaaliset valinnat k\xE4ytt\xE4v\xE4t integroidun kytkimen portteja.",
   editor_port_led_blink_label: "Porttien linkki-LEDien animaatio",
   editor_port_led_blink_text: "Vilkuta yhdistettyjen porttien linkki-LEDej\xE4",
   editor_port_led_blink_rj45_text: "Vilkuta RJ45-linkki-LEDej\xE4",
@@ -5102,6 +5138,9 @@ TRANSLATIONS.pl = {
   editor_default_uplink_port_legacy: "Dotychczasowe dzia\u0142anie (pierwszy port)",
   editor_default_uplink_port_auto: "Automatycznie (aktywny uplink)",
   editor_default_uplink_port_hint: "Opcjonalne. Wyb\xF3r automatyczny i r\u0119czny uwzgl\u0119dnia tylko wyznaczone porty uplink urz\u0105dzenia.",
+  editor_default_port_label: "Port pocz\u0105tkowy",
+  editor_default_port_auto: "Automatycznie (aktywny port)",
+  editor_default_port_hint: "Opcjonalne. Wyb\xF3r automatyczny i r\u0119czny uwzgl\u0119dnia porty zintegrowanego prze\u0142\u0105cznika.",
   editor_port_led_blink_label: "Animacja diod po\u0142\u0105czenia port\xF3w",
   editor_port_led_blink_text: "Miganie diod po\u0142\u0105czenia aktywnych port\xF3w",
   editor_port_led_blink_rj45_text: "Miganie diod po\u0142\u0105czenia RJ45",
@@ -5131,6 +5170,9 @@ TRANSLATIONS.cs = {
   editor_default_uplink_port_legacy: "Dosavadn\xED chov\xE1n\xED (prvn\xED port)",
   editor_default_uplink_port_auto: "Automaticky (aktivn\xED uplink)",
   editor_default_uplink_port_hint: "Voliteln\xE9. Automatick\xFD a ru\u010Dn\xED v\xFDb\u011Br pou\u017E\xEDv\xE1 pouze ur\u010Den\xE9 uplink porty za\u0159\xEDzen\xED.",
+  editor_default_port_label: "Po\u010D\xE1te\u010Dn\xED port",
+  editor_default_port_auto: "Automaticky (aktivn\xED port)",
+  editor_default_port_hint: "Voliteln\xE9. Automatick\xFD a ru\u010Dn\xED v\xFDb\u011Br pou\u017E\xEDv\xE1 porty integrovan\xE9ho p\u0159ep\xEDna\u010De.",
   editor_port_led_blink_label: "Animace kontrolek p\u0159ipojen\xED port\u016F",
   editor_port_led_blink_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xFDch port\u016F",
   editor_port_led_blink_rj45_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xED RJ45",
@@ -6338,7 +6380,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const customSpecialPortOptions = selectableSpecialPorts;
     const selectedTrustedLinkSpeedPorts = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
     const selectedSpecialPorts = editSpecialPorts ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout) : [];
-    const uplinkPortOptions = this._deviceCtx?.layout?.specialSlots || [];
+    const uplinkPortOptions = getDefaultPortCandidates(
+      selectedType,
+      this._deviceCtx?.layout,
+      this._deviceCtx?.layout?.specialSlots,
+      availablePortSlots
+    );
+    const defaultPortLabelKey = supportsIntegratedPorts ? "editor_default_port_label" : "editor_default_uplink_port_label";
+    const defaultPortAutoKey = supportsIntegratedPorts ? "editor_default_port_auto" : "editor_default_uplink_port_auto";
+    const defaultPortHintKey = supportsIntegratedPorts ? "editor_default_port_hint" : "editor_default_uplink_port_hint";
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
     const buttonThemeStyle = this._draftButtonThemeStyle !== false;
     const buttonDefaultColor = this._draftButtonDefaultColor !== false;
@@ -6401,18 +6451,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchOrGateway && uplinkPortOptions.length ? `
+        ${(isSwitchOrGateway || supportsIntegratedPorts) && uplinkPortOptions.length ? `
         <div class="field">
           <details id="default_uplink_port_details" class="port-toggle-details" ${this._defaultUplinkPortExpanded ? "open" : ""}>
-            <summary>${escapeHtml(this._t("editor_default_uplink_port_label"))}</summary>
+            <summary>${escapeHtml(this._t(defaultPortLabelKey))}</summary>
             <select id="default_uplink_port">
               <option value="" ${defaultUplinkPort ? "" : "selected"}>${escapeHtml(this._t("editor_default_uplink_port_legacy"))}</option>
-              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t("editor_default_uplink_port_auto"))}</option>
+              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t(defaultPortAutoKey))}</option>
               ${uplinkPortOptions.map((slot) => `
                 <option value="${escapeAttr(slot.key)}" ${defaultUplinkPort === slot.key ? "selected" : ""}>${escapeHtml(slotDropdownLabel(slot, (key) => this._t(key)))}</option>
               `).join("")}
             </select>
-            <div class="hint">${escapeHtml(this._t("editor_default_uplink_port_hint"))}</div>
+            <div class="hint">${escapeHtml(this._t(defaultPortHintKey))}</div>
           </details>
         </div>` : ""}
 
@@ -6697,7 +6747,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.51-dev";
+var VERSION = "0.0.0-dev.eaca346";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6872,7 +6922,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
       const defaultPort = getDefaultPort(
         [...slotData.specials, ...slotData.numbered],
-        slotData.specials,
+        getDefaultPortCandidates(
+          this._ctx?.type,
+          this._ctx?.layout,
+          slotData.specials,
+          slotData.numbered
+        ),
         newConfig.default_uplink_port,
         (slot) => this._isPortConnected(slot)
       );
@@ -7713,7 +7768,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (!selectedStillExists) {
         const defaultPort = getDefaultPort(
           [...slotData.specials, ...slotData.numbered],
-          slotData.specials,
+          getDefaultPortCandidates(
+            ctx?.type,
+            ctx?.layout,
+            slotData.specials,
+            slotData.numbered
+          ),
           this._config?.default_uplink_port,
           (slot) => this._isPortConnected(slot)
         );
