@@ -8,6 +8,7 @@ import {
   getDeviceContext,
   getDeviceTelemetry,
   getDefaultPort,
+  getDefaultPortCandidates,
   resolveDisplayPort,
   getPoeStatus,
   getPortSpeedText,
@@ -236,7 +237,12 @@ class UnifiDeviceCard extends HTMLElement {
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
       const defaultPort = getDefaultPort(
         [...slotData.specials, ...slotData.numbered],
-        slotData.specials,
+        getDefaultPortCandidates(
+          this._ctx?.type,
+          this._ctx?.layout,
+          slotData.specials,
+          slotData.numbered
+        ),
         newConfig.default_uplink_port,
         (slot) => this._isPortConnected(slot)
       );
@@ -1344,7 +1350,12 @@ class UnifiDeviceCard extends HTMLElement {
       if (!selectedStillExists) {
         const defaultPort = getDefaultPort(
           [...slotData.specials, ...slotData.numbered],
-          slotData.specials,
+          getDefaultPortCandidates(
+            ctx?.type,
+            ctx?.layout,
+            slotData.specials,
+            slotData.numbered
+          ),
           this._config?.default_uplink_port,
           (slot) => this._isPortConnected(slot)
         );
