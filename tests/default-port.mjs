@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 
-import { getDefaultPort, resolveDisplayPort } from "../src/helpers.js";
+import {
+  getDefaultPort,
+  getDefaultPortCandidates,
+  resolveDisplayPort,
+} from "../src/helpers.js";
 
 const ports = [
   { key: "port_9", connected: false },
@@ -35,6 +39,31 @@ assert.equal(
   "manual selection should be restricted to uplink ports"
 );
 assert.equal(getDefaultPort([], [], "auto", () => true), null, "an empty port list should not select a port");
+
+const integratedPorts = [
+  { key: "port_1", connected: false },
+  { key: "port_2", connected: true },
+];
+assert.deepEqual(
+  getDefaultPortCandidates(
+    "access_point",
+    { supportsIntegratedPorts: true },
+    [],
+    integratedPorts
+  ),
+  integratedPorts,
+  "an access point with an integrated switch should offer its numbered ports"
+);
+assert.equal(
+  getDefaultPort(integratedPorts, integratedPorts, "port_2", () => false)?.key,
+  "port_2",
+  "an integrated access point should support a manually selected initial port"
+);
+assert.deepEqual(
+  getDefaultPortCandidates("switch", {}, uplinks, integratedPorts),
+  uplinks,
+  "switches should continue to restrict the setting to designated uplinks"
+);
 
 const demotedUplink = { key: "sfp_1", port: 9 };
 const displayPorts = [

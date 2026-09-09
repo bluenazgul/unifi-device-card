@@ -2662,6 +2662,14 @@ export function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
   return uplinks.find((port) => port?.key === preference) || ports[0];
 }
 
+export function getDefaultPortCandidates(deviceType, layout, uplinkPorts, numberedPorts) {
+  if (deviceType === "access_point" && layout?.supportsIntegratedPorts === true) {
+    return Array.isArray(numberedPorts) ? numberedPorts : [];
+  }
+
+  return Array.isArray(uplinkPorts) ? uplinkPorts : [];
+}
+
 export function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key)
