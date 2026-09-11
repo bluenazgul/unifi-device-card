@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { classifyDeviceType } from "../src/classify.js";
 import { mergePortsWithLayout, mergeSpecialsWithLayout } from "../src/helpers.js";
 import { getDeviceLayout, resolveModelKey } from "../src/model-registry.js";
 
@@ -13,6 +14,12 @@ assert.equal(
   resolveModelKey(inWallHd),
   "UAPIWHD",
   "Home Assistant's UHDIW identifier must resolve to the UAP In-Wall HD registry entry"
+);
+
+assert.equal(
+  classifyDeviceType(inWallHd, { ports: true }),
+  "access_point",
+  "UHDIW must remain an access point when integrated ports are its only detected capability"
 );
 
 assert.deepEqual(

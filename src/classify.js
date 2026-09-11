@@ -1,6 +1,7 @@
 import {
   AP_MODEL_PREFIXES,
   GATEWAY_MODEL_PREFIXES,
+  MODEL_REGISTRY,
   resolveModelKey,
   SWITCH_MODEL_PREFIXES,
 } from "./model-registry.js";
@@ -59,6 +60,11 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
 
   if (modelKey) {
+    const resolvedModelType = MODEL_REGISTRY[modelKey]?.kind;
+    if (["gateway", "switch", "access_point"].includes(resolvedModelType)) {
+      return resolvedModelType;
+    }
+
     if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
