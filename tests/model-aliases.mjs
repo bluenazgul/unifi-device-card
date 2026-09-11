@@ -47,6 +47,7 @@ const discoveredPorts = [1, 2, 3, 4].map((port) => ({
   label: String(port),
   poe_switch_entity: `switch.iw_hd_data_${port}_poe`,
   poe_power_entity: `sensor.iw_hd_data_${port}_poe_power`,
+  power_cycle_entity: `button.iw_hd_data_${port}_power_cycle`,
 }));
 const mergedPorts = mergePortsWithLayout(layout, discoveredPorts);
 const mergedSpecials = mergeSpecialsWithLayout(layout, [], discoveredPorts);
@@ -67,5 +68,8 @@ assert.equal(mergedSpecials[0].key, "uplink");
 assert.equal(mergedSpecials[0].port, 4);
 assert.equal(mergedSpecials[0].label, "Uplink / PoE-In");
 assert.equal(mergedSpecials[0].media, "rj45");
+assert.equal(mergedSpecials[0].poe_switch_entity, null);
+assert.equal(mergedSpecials[0].poe_power_entity, null);
+assert.equal(mergedSpecials[0].power_cycle_entity, null);
 
 console.log("Model alias compatibility checks passed.");
