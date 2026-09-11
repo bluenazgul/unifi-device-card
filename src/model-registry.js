@@ -146,7 +146,14 @@ export const MODEL_REGISTRY = {
   UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", {
+    frontStyle: "ap-in-wall",
+    rows: [range(1, 3)],
+    portCount: 4,
+    poePortRange: [1, 1],
+    specialSlots: [{ key: "uplink", label: "Uplink / PoE-In", port: 4, media: "rj45" }],
+    supportsIntegratedPorts: true,
+  }),
   UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
   UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -1125,7 +1132,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
     if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW"))            return "UAPACIW";
-    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UHDIW" || candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
     if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC"))              return "UAPAC";
     if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";

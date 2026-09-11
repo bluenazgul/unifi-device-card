@@ -1725,6 +1725,15 @@ function stripPoeEntities(port) {
   };
 }
 
+function hasKnownPoeRange(layout) {
+  return (
+    Array.isArray(layout?.poePortRange) &&
+    layout.poePortRange.length === 2 &&
+    Number.isInteger(layout.poePortRange[0]) &&
+    Number.isInteger(layout.poePortRange[1])
+  );
+}
+
 export function mergePortsWithLayout(layout, discoveredPorts) {
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutPorts = (layout?.rows || []).flat();
@@ -1734,11 +1743,7 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   );
 
   const merged = [];
-  const hasKnownPoeRange =
-    Array.isArray(layout?.poePortRange) &&
-    layout.poePortRange.length === 2 &&
-    Number.isInteger(layout.poePortRange[0]) &&
-    Number.isInteger(layout.poePortRange[1]);
+  const hasDeclaredPoeRange = hasKnownPoeRange(layout);
 
   for (const portNumber of layoutPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
@@ -1763,7 +1768,7 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
       port_label: null,
     };
 
-    merged.push(hasKnownPoeRange && !hasPoe ? stripPoeEntities(port) : port);
+    merged.push(hasDeclaredPoeRange && !hasPoe ? stripPoeEntities(port) : port);
   }
 
   for (const port of discoveredPorts) {
@@ -1784,12 +1789,17 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutSpecials = layout?.specialSlots || [];
 
+  const applyPoeCapabilities = (slot, port) =>
+    hasKnownPoeRange(layout) && !portHasPoe(slot.port ?? port.port, layout)
+      ? stripPoeEntities(port)
+      : port;
+
   const merged = layoutSpecials.map((slot) => {
     const discoveryPort = slot.apiPort ?? slot.port;
     if (discoveryPort != null) {
       const portData = byPort.get(discoveryPort);
       if (portData) {
-        return {
+        return applyPoeCapabilities(slot, {
           ...portData,
           key: slot.key,
           physical_key: slot.key,
@@ -1798,13 +1808,13 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
           row: slot.row,
           kind: "special",
           port: slot.port ?? portData.port,
-        };
+        });
       }
     }
 
     const keyData = byKey.get(slot.key);
     if (keyData) {
-      return {
+      return applyPoeCapabilities(slot, {
         ...keyData,
         key: slot.key,
         physical_key: slot.key,
@@ -1813,7 +1823,7 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPo
         row: slot.row,
         kind: "special",
         port: slot.port ?? keyData.port ?? null,
-      };
+      });
     }
 
     return {
