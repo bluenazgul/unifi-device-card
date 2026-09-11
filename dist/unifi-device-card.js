@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.eaca346 */
+/* UniFi Device Card 0.0.0-dev.622c757 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -95,7 +95,14 @@ var MODEL_REGISTRY = {
   UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", {
+    frontStyle: "ap-in-wall",
+    rows: [range(1, 3)],
+    portCount: 4,
+    poePortRange: [1, 1],
+    specialSlots: [{ key: "uplink", label: "Uplink / PoE-In", port: 4, media: "rj45" }],
+    supportsIntegratedPorts: true
+  }),
   UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
   UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
@@ -1277,7 +1284,7 @@ function resolveModelKey(device) {
     if (candidate.includes("UAPACPRO")) return "UAPACPRO";
     if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW")) return "UAPACIW";
-    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UHDIW" || candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
     if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC")) return "UAPAC";
     if (candidate.includes("UAPNANOHD")) return "UAPNANOHD";
@@ -1975,6 +1982,10 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
   if (modelKey) {
+    const resolvedModelType = MODEL_REGISTRY[modelKey]?.kind;
+    if (["gateway", "switch", "access_point"].includes(resolvedModelType)) {
+      return resolvedModelType;
+    }
     if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
@@ -3117,6 +3128,9 @@ function stripPoeEntities(port) {
     power_cycle_entity: null
   };
 }
+function hasKnownPoeRange(layout) {
+  return Array.isArray(layout?.poePortRange) && layout.poePortRange.length === 2 && Number.isInteger(layout.poePortRange[0]) && Number.isInteger(layout.poePortRange[1]);
+}
 function mergePortsWithLayout(layout, discoveredPorts) {
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutPorts = (layout?.rows || []).flat();
@@ -3124,7 +3138,7 @@ function mergePortsWithLayout(layout, discoveredPorts) {
     (layout?.specialSlots || []).map((s) => s.port).filter((p) => p != null)
   );
   const merged = [];
-  const hasKnownPoeRange = Array.isArray(layout?.poePortRange) && layout.poePortRange.length === 2 && Number.isInteger(layout.poePortRange[0]) && Number.isInteger(layout.poePortRange[1]);
+  const hasDeclaredPoeRange = hasKnownPoeRange(layout);
   for (const portNumber of layoutPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
     const discovered = byPort.get(portNumber);
@@ -3145,7 +3159,7 @@ function mergePortsWithLayout(layout, discoveredPorts) {
       raw_entities: [],
       port_label: null
     };
-    merged.push(hasKnownPoeRange && !hasPoe ? stripPoeEntities(port) : port);
+    merged.push(hasDeclaredPoeRange && !hasPoe ? stripPoeEntities(port) : port);
   }
   for (const port of discoveredPorts) {
     if (!layout?.preserveDeclaredRows && !layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port)) {
@@ -3158,12 +3172,13 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
   const byKey = new Map(discoveredSpecials.map((s) => [s.key, s]));
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutSpecials = layout?.specialSlots || [];
+  const applyPoeCapabilities = (slot, port) => hasKnownPoeRange(layout) && !portHasPoe(slot.port ?? port.port, layout) ? stripPoeEntities(port) : port;
   const merged = layoutSpecials.map((slot) => {
     const discoveryPort = slot.apiPort ?? slot.port;
     if (discoveryPort != null) {
       const portData = byPort.get(discoveryPort);
       if (portData) {
-        return {
+        return applyPoeCapabilities(slot, {
           ...portData,
           key: slot.key,
           physical_key: slot.key,
@@ -3172,12 +3187,12 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
           row: slot.row,
           kind: "special",
           port: slot.port ?? portData.port
-        };
+        });
       }
     }
     const keyData = byKey.get(slot.key);
     if (keyData) {
-      return {
+      return applyPoeCapabilities(slot, {
         ...keyData,
         key: slot.key,
         physical_key: slot.key,
@@ -3186,7 +3201,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
         row: slot.row,
         kind: "special",
         port: slot.port ?? keyData.port ?? null
-      };
+      });
     }
     return {
       key: slot.key,
@@ -6747,7 +6762,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.eaca346";
+var VERSION = "0.0.0-dev.622c757";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
