@@ -2697,6 +2697,11 @@ export function isApPortPanelAvailable(layout, discoveredPorts) {
   ).size > 1;
 }
 
+export function supportsDeviceLayoutModes(layout, discoveredPorts) {
+  return layout?.supportsHybridLayouts === true
+    || isApPortPanelAvailable(layout, discoveredPorts);
+}
+
 export function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key)

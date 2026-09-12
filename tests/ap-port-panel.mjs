@@ -5,6 +5,7 @@ import {
   discoverPorts,
   isApPortPanelAvailable,
   mergePortsWithLayout,
+  supportsDeviceLayoutModes,
 } from "../src/helpers.js";
 import { getDeviceLayout, resolveModelKey } from "../src/model-registry.js";
 
@@ -43,12 +44,14 @@ for (const model_id of supportedModels) {
 
   const onePort = discoverPorts(realisticPortEntities([{ port: 1, name: "Main" }]));
   assert.equal(isApPortPanelAvailable(layout, onePort), false, `${model_id} must retain AP-only rendering with one port`);
+  assert.equal(supportsDeviceLayoutModes(layout, onePort), false, `${model_id} must reject configured port layouts with one port`);
 
   const twoPorts = discoverPorts(realisticPortEntities([
     { port: 1, name: "Main" },
     { port: 2, name: "Secondary" },
   ]));
   assert.equal(isApPortPanelAvailable(layout, twoPorts), true, `${model_id} should render two discovered ports`);
+  assert.equal(supportsDeviceLayoutModes(layout, twoPorts), true, `${model_id} should allow configured port layouts with two ports`);
   assert.deepEqual(mergePortsWithLayout({ ...layout, rows: [[1, 2]] }, twoPorts).map((port) => port.port), [1, 2]);
 }
 

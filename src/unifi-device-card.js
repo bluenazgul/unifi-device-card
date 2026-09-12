@@ -25,6 +25,7 @@ import {
   normalizePortNames,
   parseLinkSpeedMbit,
   stateObj,
+  supportsDeviceLayoutModes,
 } from "./helpers.js";
 import { normalizeMac } from "./identity.js";
 import { t } from "./translations.js";
@@ -3241,9 +3242,7 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _deviceLayoutMode(ctx = this._ctx) {
-    const supportsLayouts = !!ctx?.layout?.supportsHybridLayouts
-      || !!ctx?.layout?.supportsIntegratedPorts
-      || !!ctx?.layout?.supportsApPortPanel;
+    const supportsLayouts = supportsDeviceLayoutModes(ctx?.layout, ctx?.numberedPorts);
     if (!supportsLayouts) return ctx?.type === "access_point" ? "ap" : "network";
 
     const configured = String(this._config?.device_layout || "").toLowerCase();
