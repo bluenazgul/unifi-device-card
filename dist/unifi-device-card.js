@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e246679 */
+/* UniFi Device Card 0.0.0-dev.02be5c7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -91,7 +91,7 @@ var MODEL_REGISTRY = {
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
-  UAPACPRO: apModel("UAP AC Pro"),
+  UAPACPRO: apModel("UAP AC Pro", { supportsApPortPanel: true, apUplinkPort: 1 }),
   UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
@@ -101,14 +101,15 @@ var MODEL_REGISTRY = {
     portCount: 4,
     poePortRange: [1, 1],
     specialSlots: [{ key: "uplink", label: "Uplink / PoE-In", port: 4, media: "rj45" }],
+    apUplinkPort: 4,
     supportsIntegratedPorts: true
   }),
   UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
   UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
-  UAPHD: apModel("UAP HD"),
-  UAPXG: apModel("UAP XG"),
-  UAPSHD: apModel("UAP SHD"),
+  UAPHD: apModel("UAP HD", { supportsApPortPanel: true, apUplinkPort: 1 }),
+  UAPXG: apModel("UAP XG", { supportsApPortPanel: true, apUplinkPort: 1 }),
+  UAPSHD: apModel("UAP SHD", { supportsApPortPanel: true, apUplinkPort: 1 }),
   UAPFLEXHD: apModel("UAP FlexHD", { frontStyle: "ap-mesh-column" }),
   UAPBEACONHD: apModel("UAP BeaconHD", { frontStyle: "ap-extender" }),
   U6LITE: apModel("U6 Lite"),
@@ -133,13 +134,13 @@ var MODEL_REGISTRY = {
   U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U7PROXG: apModel("U7 Pro XG"),
-  U7PROXGS: apModel("U7 Pro XGS"),
+  U7PROXGS: apModel("U7 Pro XGS", { supportsApPortPanel: true, apUplinkPort: 1 }),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U6MESHPRO: apModel("U6 Mesh Pro", { frontStyle: "ap-mesh-pro" }),
-  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true }),
-  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true }),
-  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
+  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
+  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
   E7AUDIENCE: apModel("E7 Audience", { frontStyle: "ap-e7-audience", apEdgeGlow: true }),
   UKULTRA: apModel("UK Ultra", { frontStyle: "ap-outdoor-panel" }),
   UBB: apModel("UBB", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
@@ -3533,9 +3534,10 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   } else if (type === "switch" && !(layout?.rows?.length > 1)) {
     layout = applyPortsPerRowOverride(layout, 8);
   }
-  if (layout?.supportsIntegratedPorts) {
+  if (layout?.supportsIntegratedPorts || layout?.supportsApPortPanel) {
     const discoveredPortNumbers = discoveredPortsRaw.map((port) => port?.port).filter((port) => Number.isInteger(port) && port > 0).sort((a, b) => a - b);
-    if (discoveredPortNumbers.length > 0) {
+    const minimumPorts = layout?.supportsApPortPanel ? 2 : 1;
+    if (discoveredPortNumbers.length >= minimumPorts) {
       const portsPerRow = hasConfiguredPortsPerRow ? configuredPortsPerRow : discoveredPortNumbers.length;
       const rows = [];
       for (let i = 0; i < discoveredPortNumbers.length; i += portsPerRow) {
@@ -3808,10 +3810,25 @@ function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
   return uplinks.find((port) => port?.key === preference) || ports[0];
 }
 function getDefaultPortCandidates(deviceType, layout, uplinkPorts, numberedPorts) {
-  if (deviceType === "access_point" && layout?.supportsIntegratedPorts === true) {
-    return Array.isArray(numberedPorts) ? numberedPorts : [];
+  if (deviceType === "access_point" && (layout?.supportsIntegratedPorts === true || layout?.supportsApPortPanel === true)) {
+    const specials = Array.isArray(uplinkPorts) ? uplinkPorts : [];
+    const numbered = Array.isArray(numberedPorts) ? numberedPorts : [];
+    const candidates = [...specials, ...numbered];
+    const uplinkPort = Number(layout?.apUplinkPort);
+    if (!Number.isInteger(uplinkPort) || uplinkPort < 1) return candidates;
+    return candidates.sort((a, b) => (b?.port === uplinkPort) - (a?.port === uplinkPort));
   }
   return Array.isArray(uplinkPorts) ? uplinkPorts : [];
+}
+function isApPortPanelAvailable(layout, discoveredPorts) {
+  if (layout?.supportsIntegratedPorts === true) return true;
+  if (layout?.supportsApPortPanel !== true || !Array.isArray(discoveredPorts)) return false;
+  return new Set(
+    discoveredPorts.map((port) => port?.port).filter((port) => Number.isInteger(port) && port > 0)
+  ).size > 1;
+}
+function supportsDeviceLayoutModes(layout, discoveredPorts) {
+  return layout?.supportsHybridLayouts === true || isApPortPanelAvailable(layout, discoveredPorts);
 }
 function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
@@ -6360,8 +6377,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
-    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const supportsLayoutSelection = this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
+      this._deviceCtx?.layout,
+      this._deviceCtx?.numberedPorts
+    );
+    const supportsLayoutSelection = supportsIntegratedPorts;
     const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
     const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout) ? this._config.device_layout : this._config?.integrated_ports === false ? "ap" : "combined";
     const nameValue = this._config?.name || "";
@@ -6763,7 +6783,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e246679";
+var VERSION = "0.0.0-dev.02be5c7";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -9602,10 +9622,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     </style>`;
   }
   _integratedPortsEnabled(ctx) {
-    return !!ctx?.layout?.supportsIntegratedPorts && this._deviceLayoutMode(ctx) === "combined";
+    return isApPortPanelAvailable(ctx?.layout, ctx?.numberedPorts) && this._deviceLayoutMode(ctx) === "combined";
   }
   _deviceLayoutMode(ctx = this._ctx) {
-    const supportsLayouts = !!ctx?.layout?.supportsHybridLayouts || !!ctx?.layout?.supportsIntegratedPorts;
+    const supportsLayouts = supportsDeviceLayoutModes(ctx?.layout, ctx?.numberedPorts);
     if (!supportsLayouts) return ctx?.type === "access_point" ? "ap" : "network";
     const configured = String(this._config?.device_layout || "").toLowerCase();
     if (["combined", "network", "ap"].includes(configured)) return configured;
