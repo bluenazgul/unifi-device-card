@@ -9,6 +9,7 @@ import {
   getDeviceTelemetry,
   getDefaultPort,
   getDefaultPortCandidates,
+  isApPortPanelAvailable,
   resolveDisplayPort,
   getPoeStatus,
   getPortSpeedText,
@@ -24,6 +25,7 @@ import {
   normalizePortNames,
   parseLinkSpeedMbit,
   stateObj,
+  supportsDeviceLayoutModes,
 } from "./helpers.js";
 import { normalizeMac } from "./identity.js";
 import { t } from "./translations.js";
@@ -3235,11 +3237,12 @@ class UnifiDeviceCard extends HTMLElement {
 
 
   _integratedPortsEnabled(ctx) {
-    return !!ctx?.layout?.supportsIntegratedPorts && this._deviceLayoutMode(ctx) === "combined";
+    return isApPortPanelAvailable(ctx?.layout, ctx?.numberedPorts)
+      && this._deviceLayoutMode(ctx) === "combined";
   }
 
   _deviceLayoutMode(ctx = this._ctx) {
-    const supportsLayouts = !!ctx?.layout?.supportsHybridLayouts || !!ctx?.layout?.supportsIntegratedPorts;
+    const supportsLayouts = supportsDeviceLayoutModes(ctx?.layout, ctx?.numberedPorts);
     if (!supportsLayouts) return ctx?.type === "access_point" ? "ap" : "network";
 
     const configured = String(this._config?.device_layout || "").toLowerCase();
