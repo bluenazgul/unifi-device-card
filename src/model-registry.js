@@ -1235,6 +1235,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USG3P"))              return "UGW3";
     if (candidate.includes("USG3"))               return "UGW3";
     if (candidate === "UGW4")                     return "UGW4";
+    if (candidate === "USGPRO")                   return "UGW4";
     if (candidate.includes("USGPRO4"))            return "UGW4";
     if (candidate.includes("USG4"))               return "UGW4";
     if (candidate === "UGWXG")                    return "UGWXG";

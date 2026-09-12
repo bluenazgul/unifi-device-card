@@ -72,4 +72,30 @@ assert.equal(mergedSpecials[0].poe_switch_entity, null);
 assert.equal(mergedSpecials[0].poe_power_entity, null);
 assert.equal(mergedSpecials[0].power_cycle_entity, null);
 
+for (const identifier of ["UGW4", "USG-PRO", "USG-PRO-4", "USG Pro 4"]) {
+  const usgPro = {
+    model_id: identifier,
+    model: "UniFi Security Gateway",
+    name: "Gateway",
+  };
+
+  assert.equal(
+    resolveModelKey(usgPro),
+    "UGW4",
+    `${identifier} must resolve to the canonical aiounifi UGW4 registry entry`
+  );
+  assert.equal(classifyDeviceType(usgPro), "gateway");
+  assert.equal(
+    getDeviceLayout(usgPro).displayModel,
+    "USG Pro 4",
+    `${identifier} must use the existing six-port USG Pro 4 layout`
+  );
+}
+
+assert.equal(
+  resolveModelKey({ model_id: "S40Lite" }),
+  null,
+  "The unrelated S40Lite identifier must not resolve to a UniFi Dream Machine"
+);
+
 console.log("Model alias compatibility checks passed.");
