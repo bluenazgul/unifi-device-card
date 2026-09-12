@@ -3,6 +3,7 @@
 ## [v0.8.7]
 
 ### 🐛 Bug Fixes
+- Recognize the `USG-PRO` model identifier as the existing USG Pro 4 (`UGW4`) gateway.
 - Recognize the `UHDIW` model identifier reported by Home Assistant as a UAP In-Wall HD, with PoE output on port 1 and the uplink/PoE input assigned to port 4.
 
 ### ✨ Improvements
