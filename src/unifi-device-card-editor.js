@@ -4,6 +4,7 @@ import {
   getDefaultPortCandidates,
   getUnavailableHeaderTelemetryKeys,
   getRelevantEntityWarningsForDevice,
+  isApPortPanelAvailable,
   mergePortsWithLayout,
   getUnifiDevices,
 } from "./helpers.js";
@@ -1354,8 +1355,11 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
-    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const supportsLayoutSelection = this._deviceCtx?.layout?.supportsIntegratedPorts === true;
+    const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
+      this._deviceCtx?.layout,
+      this._deviceCtx?.numberedPorts
+    );
+    const supportsLayoutSelection = supportsIntegratedPorts;
     const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
     const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout)
       ? this._config.device_layout

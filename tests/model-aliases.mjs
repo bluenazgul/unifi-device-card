@@ -33,6 +33,7 @@ assert.deepEqual(
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink / PoE-In", port: 4, media: "rj45" }],
     poePortRange: [1, 1],
+    apUplinkPort: 4,
     supportsIntegratedPorts: true,
     modelKey: "UAPIWHD",
     rj45_odd_even: false,

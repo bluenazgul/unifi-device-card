@@ -2289,13 +2289,14 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     layout = applyPortsPerRowOverride(layout, 8);
   }
 
-  if (layout?.supportsIntegratedPorts) {
+  if (layout?.supportsIntegratedPorts || layout?.supportsApPortPanel) {
     const discoveredPortNumbers = discoveredPortsRaw
       .map((port) => port?.port)
       .filter((port) => Number.isInteger(port) && port > 0)
       .sort((a, b) => a - b);
 
-    if (discoveredPortNumbers.length > 0) {
+    const minimumPorts = layout?.supportsApPortPanel ? 2 : 1;
+    if (discoveredPortNumbers.length >= minimumPorts) {
       const portsPerRow = hasConfiguredPortsPerRow
         ? configuredPortsPerRow
         : discoveredPortNumbers.length;
@@ -2673,11 +2674,27 @@ export function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
 }
 
 export function getDefaultPortCandidates(deviceType, layout, uplinkPorts, numberedPorts) {
-  if (deviceType === "access_point" && layout?.supportsIntegratedPorts === true) {
-    return Array.isArray(numberedPorts) ? numberedPorts : [];
+  if (
+    deviceType === "access_point" &&
+    (layout?.supportsIntegratedPorts === true || layout?.supportsApPortPanel === true)
+  ) {
+    const specials = Array.isArray(uplinkPorts) ? uplinkPorts : [];
+    const numbered = Array.isArray(numberedPorts) ? numberedPorts : [];
+    const candidates = [...specials, ...numbered];
+    const uplinkPort = Number(layout?.apUplinkPort);
+    if (!Number.isInteger(uplinkPort) || uplinkPort < 1) return candidates;
+    return candidates.sort((a, b) => (b?.port === uplinkPort) - (a?.port === uplinkPort));
   }
 
   return Array.isArray(uplinkPorts) ? uplinkPorts : [];
+}
+
+export function isApPortPanelAvailable(layout, discoveredPorts) {
+  if (layout?.supportsIntegratedPorts === true) return true;
+  if (layout?.supportsApPortPanel !== true || !Array.isArray(discoveredPorts)) return false;
+  return new Set(
+    discoveredPorts.map((port) => port?.port).filter((port) => Number.isInteger(port) && port > 0)
+  ).size > 1;
 }
 
 export function resolveDisplayPort(port, displayPorts) {

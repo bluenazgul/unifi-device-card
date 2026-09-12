@@ -59,6 +59,34 @@ assert.equal(
   "port_2",
   "an integrated access point should support a manually selected initial port"
 );
+const inWallUplink = { key: "uplink", port: 4, connected: true };
+assert.equal(
+  getDefaultPortCandidates(
+    "access_point",
+    { supportsIntegratedPorts: true, apUplinkPort: 4 },
+    [inWallUplink],
+    integratedPorts
+  )[0],
+  inWallUplink,
+  "a known PoE-in port should be the first default candidate for an integrated AP"
+);
+
+const apPorts = [
+  { key: "port_2", port: 2, connected: true },
+  { key: "port_1", port: 1, connected: true },
+];
+const apCandidates = getDefaultPortCandidates(
+  "access_point",
+  { supportsApPortPanel: true, apUplinkPort: 1 },
+  [],
+  apPorts
+);
+assert.deepEqual(apCandidates.map((port) => port.port), [1, 2]);
+assert.equal(
+  getDefaultPort(apCandidates, apCandidates, "auto", (port) => port.connected)?.port,
+  1,
+  "a PoE-only multi-port AP should prefer its declared PoE-in uplink"
+);
 assert.deepEqual(
   getDefaultPortCandidates("switch", {}, uplinks, integratedPorts),
   uplinks,

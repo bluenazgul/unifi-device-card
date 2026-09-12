@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add discovered port panels for explicitly supported multi-port access points and prefer their PoE-in uplink as the initial port.
+
 ## [v0.8.7]
 
 ### 🐛 Bug Fixes
