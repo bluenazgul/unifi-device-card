@@ -142,17 +142,25 @@ export const MODEL_REGISTRY = {
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
-  UAPACPRO: apModel("UAP AC Pro"),
+  UAPACPRO: apModel("UAP AC Pro", { supportsApPortPanel: true, apUplinkPort: 1 }),
   UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", {
+    frontStyle: "ap-in-wall",
+    rows: [range(1, 3)],
+    portCount: 4,
+    poePortRange: [1, 1],
+    specialSlots: [{ key: "uplink", label: "Uplink / PoE-In", port: 4, media: "rj45" }],
+    apUplinkPort: 4,
+    supportsIntegratedPorts: true,
+  }),
   UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
   UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
-  UAPHD: apModel("UAP HD"),
-  UAPXG: apModel("UAP XG"),
-  UAPSHD: apModel("UAP SHD"),
+  UAPHD: apModel("UAP HD", { supportsApPortPanel: true, apUplinkPort: 1 }),
+  UAPXG: apModel("UAP XG", { supportsApPortPanel: true, apUplinkPort: 1 }),
+  UAPSHD: apModel("UAP SHD", { supportsApPortPanel: true, apUplinkPort: 1 }),
   UAPFLEXHD: apModel("UAP FlexHD", { frontStyle: "ap-mesh-column" }),
   UAPBEACONHD: apModel("UAP BeaconHD", { frontStyle: "ap-extender" }),
   U6LITE: apModel("U6 Lite"),
@@ -177,13 +185,13 @@ export const MODEL_REGISTRY = {
   U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U7PROXG: apModel("U7 Pro XG"),
-  U7PROXGS: apModel("U7 Pro XGS"),
+  U7PROXGS: apModel("U7 Pro XGS", { supportsApPortPanel: true, apUplinkPort: 1 }),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U6MESHPRO: apModel("U6 Mesh Pro", { frontStyle: "ap-mesh-pro" }),
-  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true }),
-  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true }),
-  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
+  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
+  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
   E7AUDIENCE: apModel("E7 Audience", { frontStyle: "ap-e7-audience", apEdgeGlow: true }),
   UKULTRA: apModel("UK Ultra", { frontStyle: "ap-outdoor-panel" }),
   UBB: apModel("UBB", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
@@ -1125,7 +1133,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAPACPRO"))           return "UAPACPRO";
     if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW"))            return "UAPACIW";
-    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UHDIW" || candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
     if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC"))              return "UAPAC";
     if (candidate.includes("UAPNANOHD"))          return "UAPNANOHD";
@@ -1228,6 +1236,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("USG3P"))              return "UGW3";
     if (candidate.includes("USG3"))               return "UGW3";
     if (candidate === "UGW4")                     return "UGW4";
+    if (candidate === "USGPRO")                   return "UGW4";
     if (candidate.includes("USGPRO4"))            return "UGW4";
     if (candidate.includes("USG4"))               return "UGW4";
     if (candidate === "UGWXG")                    return "UGWXG";

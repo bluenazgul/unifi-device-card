@@ -27,3 +27,6 @@ jobs:
 
       - name: Run child-device compatibility test
         run: node tests/child-device.mjs
+
+      - name: Run model-alias compatibility test
+        run: node tests/model-aliases.mjs

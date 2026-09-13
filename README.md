@@ -287,7 +287,7 @@ show_name: true               # optional (default: true)
 show_telemetry: true          # optional (default: true; show CPU/memory/temperature in the header)
 show_panel: true              # optional (default: true)
 dynamic_port_details: false   # optional; show details only after a port is selected
-default_uplink_port: auto     # optional: unset (legacy), auto, or an uplink slot key
+default_uplink_port: auto     # optional: unset (legacy), auto, or a selectable port key
 port_led_blink: false         # optional; purely visual blinking for connected link LEDs
 port_led_blink_rj45: true     # optional; animate connected RJ45 link LEDs
 port_led_blink_sfp: true      # optional; animate connected SFP link LEDs
@@ -351,7 +351,7 @@ wan2_port: none               # optional (gateway only)
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `dynamic_port_details` | boolean | `false` | Switch/Gateway and compatible integrated ports: starts without a selected port, shows details after a port click, and hides them when that port is clicked again. |
-| `default_uplink_port` | string | unset | Switch/Gateway only: initial detail port behavior. Leave unset for the existing first-port behavior, use `auto` to prefer an active uplink, or select an uplink slot key in the editor. |
+| `default_uplink_port` | string | unset | Switch/Gateway and compatible In-Wall AP port sections: initial detail port behavior. Leave unset for the existing first-port behavior, use `auto` to prefer an active selectable port, or select a port key in the editor. Switches and gateways restrict choices to designated uplinks. |
 | `port_led_blink` | boolean | `false` | Enables a purely visual blink animation for connected RJ45/SFP link LEDs without changing link detection, telemetry, or port controls. |
 | `port_led_blink_rj45` | boolean | `true` | Enables blinking for connected RJ45 link LEDs when `port_led_blink` is enabled. |
 | `port_led_blink_sfp` | boolean | `true` | Enables blinking for connected SFP link LEDs when `port_led_blink` is enabled. |
@@ -362,8 +362,8 @@ wan2_port: none               # optional (gateway only)
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |
 | `port_size` | number | `36` | Port size in pixels for switch/gateway front panel rendering and compatible In-Wall AP port sections (special and numbered ports are unified). |
 | `ap_scale` | number | `100` | AP device scale in percent (`25`-`140`) for every AP design, including model-specific shaped devices in normal and compact AP layouts. |
-| `integrated_ports` | boolean | `true` | Compatible In-Wall APs only: show the discovered integrated switch ports below the normal AP panel. Set `false` for AP-only rendering. |
-| `device_layout` | string | `combined` | Dream Wall and compatible In-Wall devices: `combined`, `network`, or `ap`. The legacy `integrated_ports: false` remains an AP-only alias. |
+| `integrated_ports` | boolean | `true` | Compatible In-Wall and explicitly supported multi-port APs only: show discovered Ethernet ports below the normal AP panel. Set `false` for AP-only rendering. Multi-port AP panels require at least two ports reported by Home Assistant. |
+| `device_layout` | string | `combined` | Dream Wall and compatible multi-port APs: `combined`, `network`, or `ap`. The legacy `integrated_ports: false` remains an AP-only alias. |
 | `ap_compact_view` | boolean | `false` | AP only: renders a compact side-by-side layout with AP image and status details in one row. |
 | `ap_compact_show_header_telemetry` | boolean | `false` | AP only: keeps CPU/memory/temperature header telemetry visible in compact AP view. |
 | `log_level` | string | `warn` | Per-card runtime log level in browser console: `error`, `warn`, `info`, `debug`, `trace`. |

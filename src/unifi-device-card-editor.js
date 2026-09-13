@@ -1,8 +1,10 @@
 //unifi-device-card-editor.js
 import {
   getDeviceContext,
+  getDefaultPortCandidates,
   getUnavailableHeaderTelemetryKeys,
   getRelevantEntityWarningsForDevice,
+  isApPortPanelAvailable,
   mergePortsWithLayout,
   getUnifiDevices,
 } from "./helpers.js";
@@ -1353,9 +1355,13 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
-    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const supportsLayoutSelection = this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
+      this._deviceCtx?.layout,
+      this._deviceCtx?.numberedPorts
+    );
+    const supportsHybridLayouts = this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsLayoutSelection = supportsIntegratedPorts || supportsHybridLayouts;
+    const supportsApLayout = isApDevice || supportsHybridLayouts;
     const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout)
       ? this._config.device_layout
       : (this._config?.integrated_ports === false ? "ap" : "combined");
@@ -1400,7 +1406,21 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selectedSpecialPorts = editSpecialPorts
       ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout)
       : [];
-    const uplinkPortOptions = this._deviceCtx?.layout?.specialSlots || [];
+    const uplinkPortOptions = getDefaultPortCandidates(
+      selectedType,
+      this._deviceCtx?.layout,
+      this._deviceCtx?.layout?.specialSlots,
+      availablePortSlots
+    );
+    const defaultPortLabelKey = supportsIntegratedPorts
+      ? "editor_default_port_label"
+      : "editor_default_uplink_port_label";
+    const defaultPortAutoKey = supportsIntegratedPorts
+      ? "editor_default_port_auto"
+      : "editor_default_uplink_port_auto";
+    const defaultPortHintKey = supportsIntegratedPorts
+      ? "editor_default_port_hint"
+      : "editor_default_uplink_port_hint";
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
     const buttonThemeStyle = this._draftButtonThemeStyle !== false;
     const buttonDefaultColor = this._draftButtonDefaultColor !== false;
@@ -1473,18 +1493,18 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchOrGateway && uplinkPortOptions.length ? `
+        ${(isSwitchOrGateway || supportsIntegratedPorts) && uplinkPortOptions.length ? `
         <div class="field">
           <details id="default_uplink_port_details" class="port-toggle-details" ${this._defaultUplinkPortExpanded ? "open" : ""}>
-            <summary>${escapeHtml(this._t("editor_default_uplink_port_label"))}</summary>
+            <summary>${escapeHtml(this._t(defaultPortLabelKey))}</summary>
             <select id="default_uplink_port">
               <option value="" ${defaultUplinkPort ? "" : "selected"}>${escapeHtml(this._t("editor_default_uplink_port_legacy"))}</option>
-              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t("editor_default_uplink_port_auto"))}</option>
+              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t(defaultPortAutoKey))}</option>
               ${uplinkPortOptions.map((slot) => `
                 <option value="${escapeAttr(slot.key)}" ${defaultUplinkPort === slot.key ? "selected" : ""}>${escapeHtml(slotDropdownLabel(slot, (key) => this._t(key)))}</option>
               `).join("")}
             </select>
-            <div class="hint">${escapeHtml(this._t("editor_default_uplink_port_hint"))}</div>
+            <div class="hint">${escapeHtml(this._t(defaultPortHintKey))}</div>
           </details>
         </div>` : ""}
 

@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.6 */
+/* UniFi Device Card 0.0.0-dev.c939990 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -91,17 +91,25 @@ var MODEL_REGISTRY = {
   UAPAC: apModel("UAP AC"),
   UAPACLITE: apModel("UAP AC Lite"),
   UAPACLR: apModel("UAP AC LR"),
-  UAPACPRO: apModel("UAP AC Pro"),
+  UAPACPRO: apModel("UAP AC Pro", { supportsApPortPanel: true, apUplinkPort: 1 }),
   UAPIW: apModel("UniFi AP In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIW: apModel("UAP AC In-Wall", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
   UAPACIWPRO: apModel("UAP AC In-Wall Pro", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
-  UAPIWHD: apModel("UAP In-Wall HD", { frontStyle: "ap-in-wall", supportsIntegratedPorts: true }),
+  UAPIWHD: apModel("UAP In-Wall HD", {
+    frontStyle: "ap-in-wall",
+    rows: [range(1, 3)],
+    portCount: 4,
+    poePortRange: [1, 1],
+    specialSlots: [{ key: "uplink", label: "Uplink / PoE-In", port: 4, media: "rj45" }],
+    apUplinkPort: 4,
+    supportsIntegratedPorts: true
+  }),
   UAPACM: apModel("UAP AC Mesh", { frontStyle: "ap-ac-mesh" }),
   UAPACMPRO: apModel("UAP AC Mesh Pro", { frontStyle: "ap-outdoor-panel" }),
   UAPNANOHD: apModel("UAP nanoHD"),
-  UAPHD: apModel("UAP HD"),
-  UAPXG: apModel("UAP XG"),
-  UAPSHD: apModel("UAP SHD"),
+  UAPHD: apModel("UAP HD", { supportsApPortPanel: true, apUplinkPort: 1 }),
+  UAPXG: apModel("UAP XG", { supportsApPortPanel: true, apUplinkPort: 1 }),
+  UAPSHD: apModel("UAP SHD", { supportsApPortPanel: true, apUplinkPort: 1 }),
   UAPFLEXHD: apModel("UAP FlexHD", { frontStyle: "ap-mesh-column" }),
   UAPBEACONHD: apModel("UAP BeaconHD", { frontStyle: "ap-extender" }),
   U6LITE: apModel("U6 Lite"),
@@ -126,13 +134,13 @@ var MODEL_REGISTRY = {
   U7OUTDOOR: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   UKPW: apModel("U7 Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U7PROXG: apModel("U7 Pro XG"),
-  U7PROXGS: apModel("U7 Pro XGS"),
+  U7PROXGS: apModel("U7 Pro XGS", { supportsApPortPanel: true, apUplinkPort: 1 }),
   U7PROXGWALL: apModel("U7 Pro XG Wall", { frontStyle: "ap-in-wall" }),
   U7PROOUTDOOR: apModel("U7 Pro Outdoor", { frontStyle: "ap-u7-outdoor" }),
   U6MESHPRO: apModel("U6 Mesh Pro", { frontStyle: "ap-mesh-pro" }),
-  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true }),
-  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true }),
-  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true }),
+  E7: apModel("E7", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
+  U7ENTERPRISE: apModel("U7 Enterprise", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
+  E7CAMPUS: apModel("E7 Campus", { frontStyle: "ap-e7", apEdgeGlow: true, supportsApPortPanel: true, apUplinkPort: 1 }),
   E7AUDIENCE: apModel("E7 Audience", { frontStyle: "ap-e7-audience", apEdgeGlow: true }),
   UKULTRA: apModel("UK Ultra", { frontStyle: "ap-outdoor-panel" }),
   UBB: apModel("UBB", { frontStyle: "ap-building-bridge", apEdgeGlow: true }),
@@ -1277,7 +1285,7 @@ function resolveModelKey(device) {
     if (candidate.includes("UAPACPRO")) return "UAPACPRO";
     if (candidate.includes("UAPACIWPRO") || candidate.includes("UAPACINWALLPRO")) return "UAPACIWPRO";
     if (candidate.includes("UAPACIW")) return "UAPACIW";
-    if (candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
+    if (candidate === "UHDIW" || candidate.includes("UAPIWHD") || candidate.includes("UAPINWALLHD")) return "UAPIWHD";
     if (candidate === "UAPIW" || candidate.includes("UNIFIAPINWALL")) return "UAPIW";
     if (candidate.includes("UAPAC")) return "UAPAC";
     if (candidate.includes("UAPNANOHD")) return "UAPNANOHD";
@@ -1380,6 +1388,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USG3P")) return "UGW3";
     if (candidate.includes("USG3")) return "UGW3";
     if (candidate === "UGW4") return "UGW4";
+    if (candidate === "USGPRO") return "UGW4";
     if (candidate.includes("USGPRO4")) return "UGW4";
     if (candidate.includes("USG4")) return "UGW4";
     if (candidate === "UGWXG") return "UGWXG";
@@ -1975,6 +1984,10 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
   if (modelKey) {
+    const resolvedModelType = MODEL_REGISTRY[modelKey]?.kind;
+    if (["gateway", "switch", "access_point"].includes(resolvedModelType)) {
+      return resolvedModelType;
+    }
     if (gatewayModelKeys.includes(modelKey)) {
       return "gateway";
     }
@@ -3117,6 +3130,9 @@ function stripPoeEntities(port) {
     power_cycle_entity: null
   };
 }
+function hasKnownPoeRange(layout) {
+  return Array.isArray(layout?.poePortRange) && layout.poePortRange.length === 2 && Number.isInteger(layout.poePortRange[0]) && Number.isInteger(layout.poePortRange[1]);
+}
 function mergePortsWithLayout(layout, discoveredPorts) {
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutPorts = (layout?.rows || []).flat();
@@ -3124,7 +3140,7 @@ function mergePortsWithLayout(layout, discoveredPorts) {
     (layout?.specialSlots || []).map((s) => s.port).filter((p) => p != null)
   );
   const merged = [];
-  const hasKnownPoeRange = Array.isArray(layout?.poePortRange) && layout.poePortRange.length === 2 && Number.isInteger(layout.poePortRange[0]) && Number.isInteger(layout.poePortRange[1]);
+  const hasDeclaredPoeRange = hasKnownPoeRange(layout);
   for (const portNumber of layoutPorts) {
     if (specialPortNumbers.has(portNumber)) continue;
     const discovered = byPort.get(portNumber);
@@ -3145,7 +3161,7 @@ function mergePortsWithLayout(layout, discoveredPorts) {
       raw_entities: [],
       port_label: null
     };
-    merged.push(hasKnownPoeRange && !hasPoe ? stripPoeEntities(port) : port);
+    merged.push(hasDeclaredPoeRange && !hasPoe ? stripPoeEntities(port) : port);
   }
   for (const port of discoveredPorts) {
     if (!layout?.preserveDeclaredRows && !layoutPorts.includes(port.port) && !specialPortNumbers.has(port.port)) {
@@ -3158,12 +3174,13 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
   const byKey = new Map(discoveredSpecials.map((s) => [s.key, s]));
   const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutSpecials = layout?.specialSlots || [];
+  const applyPoeCapabilities = (slot, port) => hasKnownPoeRange(layout) && !portHasPoe(slot.port ?? port.port, layout) ? stripPoeEntities(port) : port;
   const merged = layoutSpecials.map((slot) => {
     const discoveryPort = slot.apiPort ?? slot.port;
     if (discoveryPort != null) {
       const portData = byPort.get(discoveryPort);
       if (portData) {
-        return {
+        return applyPoeCapabilities(slot, {
           ...portData,
           key: slot.key,
           physical_key: slot.key,
@@ -3172,12 +3189,12 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
           row: slot.row,
           kind: "special",
           port: slot.port ?? portData.port
-        };
+        });
       }
     }
     const keyData = byKey.get(slot.key);
     if (keyData) {
-      return {
+      return applyPoeCapabilities(slot, {
         ...keyData,
         key: slot.key,
         physical_key: slot.key,
@@ -3186,7 +3203,7 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
         row: slot.row,
         kind: "special",
         port: slot.port ?? keyData.port ?? null
-      };
+      });
     }
     return {
       key: slot.key,
@@ -3517,9 +3534,10 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   } else if (type === "switch" && !(layout?.rows?.length > 1)) {
     layout = applyPortsPerRowOverride(layout, 8);
   }
-  if (layout?.supportsIntegratedPorts) {
+  if (layout?.supportsIntegratedPorts || layout?.supportsApPortPanel) {
     const discoveredPortNumbers = discoveredPortsRaw.map((port) => port?.port).filter((port) => Number.isInteger(port) && port > 0).sort((a, b) => a - b);
-    if (discoveredPortNumbers.length > 0) {
+    const minimumPorts = layout?.supportsApPortPanel ? 2 : 1;
+    if (discoveredPortNumbers.length >= minimumPorts) {
       const portsPerRow = hasConfiguredPortsPerRow ? configuredPortsPerRow : discoveredPortNumbers.length;
       const rows = [];
       for (let i = 0; i < discoveredPortNumbers.length; i += portsPerRow) {
@@ -3791,6 +3809,27 @@ function getDefaultPort(ports, uplinkPorts, preference, isConnected) {
   }
   return uplinks.find((port) => port?.key === preference) || ports[0];
 }
+function getDefaultPortCandidates(deviceType, layout, uplinkPorts, numberedPorts) {
+  if (deviceType === "access_point" && (layout?.supportsIntegratedPorts === true || layout?.supportsApPortPanel === true)) {
+    const specials = Array.isArray(uplinkPorts) ? uplinkPorts : [];
+    const numbered = Array.isArray(numberedPorts) ? numberedPorts : [];
+    const candidates = [...specials, ...numbered];
+    const uplinkPort = Number(layout?.apUplinkPort);
+    if (!Number.isInteger(uplinkPort) || uplinkPort < 1) return candidates;
+    return candidates.sort((a, b) => (b?.port === uplinkPort) - (a?.port === uplinkPort));
+  }
+  return Array.isArray(uplinkPorts) ? uplinkPorts : [];
+}
+function isApPortPanelAvailable(layout, discoveredPorts) {
+  if (layout?.supportsIntegratedPorts === true) return true;
+  if (layout?.supportsApPortPanel !== true || !Array.isArray(discoveredPorts)) return false;
+  return new Set(
+    discoveredPorts.map((port) => port?.port).filter((port) => Number.isInteger(port) && port > 0)
+  ).size > 1;
+}
+function supportsDeviceLayoutModes(layout, discoveredPorts) {
+  return layout?.supportsHybridLayouts === true || isApPortPanelAvailable(layout, discoveredPorts);
+}
 function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key) || displayPorts.find((candidate) => candidate?.port === port.port) || null;
@@ -3870,6 +3909,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Existing behavior (first port)",
     editor_default_uplink_port_auto: "Automatic (active uplink)",
     editor_default_uplink_port_hint: "Optional. Automatic and manual choices only consider the device's designated uplink ports.",
+    editor_default_port_label: "Initial port",
+    editor_default_port_auto: "Automatic (active port)",
+    editor_default_port_hint: "Optional. Automatic and manual choices consider the integrated switch ports.",
     editor_ports_per_row_label: "Ports per row (optional)",
     editor_ports_per_row_hint: "Only for switches. Leave empty for automatic layout, or set a number (for example 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Force sequential ports",
@@ -4068,6 +4110,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Bisheriges Verhalten (erster Port)",
     editor_default_uplink_port_auto: "Automatisch (aktiver Uplink)",
     editor_default_uplink_port_hint: "Optional. Die automatische und manuelle Auswahl ber\xFCcksichtigt nur die ausgewiesenen Uplink-Ports des Ger\xE4ts.",
+    editor_default_port_label: "Initialer Port",
+    editor_default_port_auto: "Automatisch (aktiver Port)",
+    editor_default_port_hint: "Optional. Die automatische und manuelle Auswahl ber\xFCcksichtigt die Ports des integrierten Switches.",
     editor_ports_per_row_label: "Ports pro Zeile (optional)",
     editor_ports_per_row_hint: "Nur f\xFCr Switches. Leer lassen f\xFCr automatisches Layout oder Zahl setzen (z. B. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Ports fortlaufend erzwingen",
@@ -4266,6 +4311,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Bestaand gedrag (eerste poort)",
     editor_default_uplink_port_auto: "Automatisch (actieve uplink)",
     editor_default_uplink_port_hint: "Optioneel. Automatische en handmatige keuzes gebruiken alleen de aangewezen uplinkpoorten van het apparaat.",
+    editor_default_port_label: "Initi\xEBle poort",
+    editor_default_port_auto: "Automatisch (actieve poort)",
+    editor_default_port_hint: "Optioneel. Automatische en handmatige keuzes gebruiken de poorten van de ge\xEFntegreerde switch.",
     editor_ports_per_row_label: "Poorten per rij (optioneel)",
     editor_ports_per_row_hint: "Alleen voor switches. Leeg laten voor automatische layout of een getal instellen (bijv. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Opeenvolgende poorten forceren",
@@ -4461,6 +4509,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Comportement existant (premier port)",
     editor_default_uplink_port_auto: "Automatique (uplink actif)",
     editor_default_uplink_port_hint: "Facultatif. Les choix automatiques et manuels utilisent uniquement les ports uplink d\xE9sign\xE9s de l\u2019appareil.",
+    editor_default_port_label: "Port initial",
+    editor_default_port_auto: "Automatique (port actif)",
+    editor_default_port_hint: "Facultatif. Les choix automatiques et manuels utilisent les ports du switch int\xE9gr\xE9.",
     editor_ports_per_row_label: "Ports par ligne (optionnel)",
     editor_ports_per_row_hint: "Uniquement pour les switches. Laissez vide pour la mise en page automatique ou d\xE9finissez un nombre (ex. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forcer l\u2019ordre s\xE9quentiel des ports",
@@ -4656,6 +4707,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Comportamiento anterior (primer puerto)",
     editor_default_uplink_port_auto: "Autom\xE1tico (uplink activo)",
     editor_default_uplink_port_hint: "Opcional. Las opciones autom\xE1ticas y manuales solo utilizan los puertos uplink designados del dispositivo.",
+    editor_default_port_label: "Puerto inicial",
+    editor_default_port_auto: "Autom\xE1tico (puerto activo)",
+    editor_default_port_hint: "Opcional. Las opciones autom\xE1ticas y manuales utilizan los puertos del switch integrado.",
     editor_ports_per_row_label: "Puertos por fila (opcional)",
     editor_ports_per_row_hint: "Solo para switches. D\xE9jalo vac\xEDo para dise\xF1o autom\xE1tico o define un n\xFAmero (p. ej. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forzar puertos secuenciales",
@@ -4851,6 +4905,9 @@ var TRANSLATIONS = {
     editor_default_uplink_port_legacy: "Comportamento esistente (prima porta)",
     editor_default_uplink_port_auto: "Automatico (uplink attivo)",
     editor_default_uplink_port_hint: "Opzionale. Le scelte automatiche e manuali usano solo le porte uplink designate del dispositivo.",
+    editor_default_port_label: "Porta iniziale",
+    editor_default_port_auto: "Automatico (porta attiva)",
+    editor_default_port_hint: "Opzionale. Le scelte automatiche e manuali usano le porte dello switch integrato.",
     editor_ports_per_row_label: "Porte per riga (opzionale)",
     editor_ports_per_row_hint: "Solo per switch. Lascia vuoto per layout automatico o imposta un numero (es. 4, 6, 8, 12).",
     editor_force_sequential_ports_label: "Forza porte sequenziali",
@@ -4986,6 +5043,9 @@ TRANSLATIONS.sv = {
   editor_default_uplink_port_legacy: "Tidigare beteende (f\xF6rsta porten)",
   editor_default_uplink_port_auto: "Automatiskt (aktiv uplink)",
   editor_default_uplink_port_hint: "Valfritt. Automatiska och manuella val anv\xE4nder endast enhetens angivna uplink-portar.",
+  editor_default_port_label: "Ursprunglig port",
+  editor_default_port_auto: "Automatiskt (aktiv port)",
+  editor_default_port_hint: "Valfritt. Automatiska och manuella val anv\xE4nder portarna p\xE5 den integrerade switchen.",
   editor_port_led_blink_label: "Animering av portarnas l\xE4nklysdioder",
   editor_port_led_blink_text: "L\xE5t l\xE4nklysdioderna f\xF6r anslutna portar blinka",
   editor_port_led_blink_rj45_text: "L\xE5t RJ45-l\xE4nklysdioder blinka",
@@ -5015,6 +5075,9 @@ TRANSLATIONS.da = {
   editor_default_uplink_port_legacy: "Hidtidig adf\xE6rd (f\xF8rste port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
   editor_default_uplink_port_hint: "Valgfrit. Automatiske og manuelle valg bruger kun enhedens angivne uplink-porte.",
+  editor_default_port_label: "Oprindelig port",
+  editor_default_port_auto: "Automatisk (aktiv port)",
+  editor_default_port_hint: "Valgfrit. Automatiske og manuelle valg bruger portene p\xE5 den integrerede switch.",
   editor_port_led_blink_label: "Animation af portenes link-LED'er",
   editor_port_led_blink_text: "Lad link-LED'er for tilsluttede porte blinke",
   editor_port_led_blink_rj45_text: "Lad RJ45-link-LED'er blinke",
@@ -5044,6 +5107,9 @@ TRANSLATIONS.no = {
   editor_default_uplink_port_legacy: "Tidligere virkem\xE5te (f\xF8rste port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
   editor_default_uplink_port_hint: "Valgfritt. Automatiske og manuelle valg bruker bare enhetens angitte uplink-porter.",
+  editor_default_port_label: "Opprinnelig port",
+  editor_default_port_auto: "Automatisk (aktiv port)",
+  editor_default_port_hint: "Valgfritt. Automatiske og manuelle valg bruker portene p\xE5 den integrerte switchen.",
   editor_port_led_blink_label: "Animasjon av portenes link-LED-er",
   editor_port_led_blink_text: "La link-LED-er for tilkoblede porter blinke",
   editor_port_led_blink_rj45_text: "La RJ45-link-LED-er blinke",
@@ -5073,6 +5139,9 @@ TRANSLATIONS.fi = {
   editor_default_uplink_port_legacy: "Aiempi toiminta (ensimm\xE4inen portti)",
   editor_default_uplink_port_auto: "Automaattinen (aktiivinen uplink)",
   editor_default_uplink_port_hint: "Valinnainen. Automaattiset ja manuaaliset valinnat k\xE4ytt\xE4v\xE4t vain laitteen m\xE4\xE4ritettyj\xE4 uplink-portteja.",
+  editor_default_port_label: "Alkuper\xE4inen portti",
+  editor_default_port_auto: "Automaattinen (aktiivinen portti)",
+  editor_default_port_hint: "Valinnainen. Automaattiset ja manuaaliset valinnat k\xE4ytt\xE4v\xE4t integroidun kytkimen portteja.",
   editor_port_led_blink_label: "Porttien linkki-LEDien animaatio",
   editor_port_led_blink_text: "Vilkuta yhdistettyjen porttien linkki-LEDej\xE4",
   editor_port_led_blink_rj45_text: "Vilkuta RJ45-linkki-LEDej\xE4",
@@ -5102,6 +5171,9 @@ TRANSLATIONS.pl = {
   editor_default_uplink_port_legacy: "Dotychczasowe dzia\u0142anie (pierwszy port)",
   editor_default_uplink_port_auto: "Automatycznie (aktywny uplink)",
   editor_default_uplink_port_hint: "Opcjonalne. Wyb\xF3r automatyczny i r\u0119czny uwzgl\u0119dnia tylko wyznaczone porty uplink urz\u0105dzenia.",
+  editor_default_port_label: "Port pocz\u0105tkowy",
+  editor_default_port_auto: "Automatycznie (aktywny port)",
+  editor_default_port_hint: "Opcjonalne. Wyb\xF3r automatyczny i r\u0119czny uwzgl\u0119dnia porty zintegrowanego prze\u0142\u0105cznika.",
   editor_port_led_blink_label: "Animacja diod po\u0142\u0105czenia port\xF3w",
   editor_port_led_blink_text: "Miganie diod po\u0142\u0105czenia aktywnych port\xF3w",
   editor_port_led_blink_rj45_text: "Miganie diod po\u0142\u0105czenia RJ45",
@@ -5131,6 +5203,9 @@ TRANSLATIONS.cs = {
   editor_default_uplink_port_legacy: "Dosavadn\xED chov\xE1n\xED (prvn\xED port)",
   editor_default_uplink_port_auto: "Automaticky (aktivn\xED uplink)",
   editor_default_uplink_port_hint: "Voliteln\xE9. Automatick\xFD a ru\u010Dn\xED v\xFDb\u011Br pou\u017E\xEDv\xE1 pouze ur\u010Den\xE9 uplink porty za\u0159\xEDzen\xED.",
+  editor_default_port_label: "Po\u010D\xE1te\u010Dn\xED port",
+  editor_default_port_auto: "Automaticky (aktivn\xED port)",
+  editor_default_port_hint: "Voliteln\xE9. Automatick\xFD a ru\u010Dn\xED v\xFDb\u011Br pou\u017E\xEDv\xE1 porty integrovan\xE9ho p\u0159ep\xEDna\u010De.",
   editor_port_led_blink_label: "Animace kontrolek p\u0159ipojen\xED port\u016F",
   editor_port_led_blink_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xFDch port\u016F",
   editor_port_led_blink_rj45_text: "Blik\xE1n\xED kontrolek p\u0159ipojen\xED RJ45",
@@ -6302,9 +6377,13 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
-    const supportsIntegratedPorts = isApDevice && this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const supportsLayoutSelection = this._deviceCtx?.layout?.supportsIntegratedPorts === true;
-    const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
+      this._deviceCtx?.layout,
+      this._deviceCtx?.numberedPorts
+    );
+    const supportsHybridLayouts = this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsLayoutSelection = supportsIntegratedPorts || supportsHybridLayouts;
+    const supportsApLayout = isApDevice || supportsHybridLayouts;
     const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout) ? this._config.device_layout : this._config?.integrated_ports === false ? "ap" : "combined";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
@@ -6338,7 +6417,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const customSpecialPortOptions = selectableSpecialPorts;
     const selectedTrustedLinkSpeedPorts = normalizeSpecialPortNumbers(this._config?.trust_link_speed_ports);
     const selectedSpecialPorts = editSpecialPorts ? resolveSelectedSpecialPorts(this._config, this._deviceCtx?.layout) : [];
-    const uplinkPortOptions = this._deviceCtx?.layout?.specialSlots || [];
+    const uplinkPortOptions = getDefaultPortCandidates(
+      selectedType,
+      this._deviceCtx?.layout,
+      this._deviceCtx?.layout?.specialSlots,
+      availablePortSlots
+    );
+    const defaultPortLabelKey = supportsIntegratedPorts ? "editor_default_port_label" : "editor_default_uplink_port_label";
+    const defaultPortAutoKey = supportsIntegratedPorts ? "editor_default_port_auto" : "editor_default_uplink_port_auto";
+    const defaultPortHintKey = supportsIntegratedPorts ? "editor_default_port_hint" : "editor_default_uplink_port_hint";
     const apLedColorDisabled = isApDevice && this._apHasRgbLedControl();
     const buttonThemeStyle = this._draftButtonThemeStyle !== false;
     const buttonDefaultColor = this._draftButtonDefaultColor !== false;
@@ -6401,18 +6488,18 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_panel_toggle_hint"))}</div>
         </div>` : ""}
 
-        ${isSwitchOrGateway && uplinkPortOptions.length ? `
+        ${(isSwitchOrGateway || supportsIntegratedPorts) && uplinkPortOptions.length ? `
         <div class="field">
           <details id="default_uplink_port_details" class="port-toggle-details" ${this._defaultUplinkPortExpanded ? "open" : ""}>
-            <summary>${escapeHtml(this._t("editor_default_uplink_port_label"))}</summary>
+            <summary>${escapeHtml(this._t(defaultPortLabelKey))}</summary>
             <select id="default_uplink_port">
               <option value="" ${defaultUplinkPort ? "" : "selected"}>${escapeHtml(this._t("editor_default_uplink_port_legacy"))}</option>
-              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t("editor_default_uplink_port_auto"))}</option>
+              <option value="auto" ${defaultUplinkPort === "auto" ? "selected" : ""}>${escapeHtml(this._t(defaultPortAutoKey))}</option>
               ${uplinkPortOptions.map((slot) => `
                 <option value="${escapeAttr(slot.key)}" ${defaultUplinkPort === slot.key ? "selected" : ""}>${escapeHtml(slotDropdownLabel(slot, (key) => this._t(key)))}</option>
               `).join("")}
             </select>
-            <div class="hint">${escapeHtml(this._t("editor_default_uplink_port_hint"))}</div>
+            <div class="hint">${escapeHtml(this._t(defaultPortHintKey))}</div>
           </details>
         </div>` : ""}
 
@@ -6697,7 +6784,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.6";
+var VERSION = "0.0.0-dev.c939990";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -6872,7 +6959,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
       const defaultPort = getDefaultPort(
         [...slotData.specials, ...slotData.numbered],
-        slotData.specials,
+        getDefaultPortCandidates(
+          this._ctx?.type,
+          this._ctx?.layout,
+          slotData.specials,
+          slotData.numbered
+        ),
         newConfig.default_uplink_port,
         (slot) => this._isPortConnected(slot)
       );
@@ -7713,7 +7805,12 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (!selectedStillExists) {
         const defaultPort = getDefaultPort(
           [...slotData.specials, ...slotData.numbered],
-          slotData.specials,
+          getDefaultPortCandidates(
+            ctx?.type,
+            ctx?.layout,
+            slotData.specials,
+            slotData.numbered
+          ),
           this._config?.default_uplink_port,
           (slot) => this._isPortConnected(slot)
         );
@@ -9526,10 +9623,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     </style>`;
   }
   _integratedPortsEnabled(ctx) {
-    return !!ctx?.layout?.supportsIntegratedPorts && this._deviceLayoutMode(ctx) === "combined";
+    return isApPortPanelAvailable(ctx?.layout, ctx?.numberedPorts) && this._deviceLayoutMode(ctx) === "combined";
   }
   _deviceLayoutMode(ctx = this._ctx) {
-    const supportsLayouts = !!ctx?.layout?.supportsHybridLayouts || !!ctx?.layout?.supportsIntegratedPorts;
+    const supportsLayouts = supportsDeviceLayoutModes(ctx?.layout, ctx?.numberedPorts);
     if (!supportsLayouts) return ctx?.type === "access_point" ? "ap" : "network";
     const configured = String(this._config?.device_layout || "").toLowerCase();
     if (["combined", "network", "ap"].includes(configured)) return configured;

@@ -1,5 +1,33 @@
 # Changelog
 
+## [v0.8.7]
+
+### 🐛 Bug Fixes
+- Keep the combined, network, and access-point layout selector available for the UniFi Dream Wall.
+- Recognize the `USG-PRO` model identifier as the existing USG Pro 4 (`UGW4`) gateway.
+- Recognize the `UHDIW` model identifier reported by Home Assistant as a UAP In-Wall HD, with PoE output on port 1 and the uplink/PoE input assigned to port 4.
+- Fall back to the AP-only view when a supported multi-port access point has fewer than two discovered ports.
+
+### ✨ Improvements
+- Extend initial port selection to compatible access points with integrated switches and translate the related editor controls into every language available in the card.
+- Add discovered port panels for explicitly supported multi-port access points and prefer their PoE-in uplink as the initial port.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.6]
 
 ### ✨ Improvements
