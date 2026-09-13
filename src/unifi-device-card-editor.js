@@ -1359,8 +1359,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
       this._deviceCtx?.layout,
       this._deviceCtx?.numberedPorts
     );
-    const supportsLayoutSelection = supportsIntegratedPorts;
-    const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsHybridLayouts = this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsLayoutSelection = supportsIntegratedPorts || supportsHybridLayouts;
+    const supportsApLayout = isApDevice || supportsHybridLayouts;
     const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout)
       ? this._config.device_layout
       : (this._config?.integrated_ports === false ? "ap" : "combined");
