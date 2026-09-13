@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.61-dev */
+/* UniFi Device Card 0.0.0-dev.c939990 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -6381,8 +6381,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       this._deviceCtx?.layout,
       this._deviceCtx?.numberedPorts
     );
-    const supportsLayoutSelection = supportsIntegratedPorts;
-    const supportsApLayout = isApDevice || this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsHybridLayouts = this._deviceCtx?.layout?.supportsHybridLayouts === true;
+    const supportsLayoutSelection = supportsIntegratedPorts || supportsHybridLayouts;
+    const supportsApLayout = isApDevice || supportsHybridLayouts;
     const deviceLayout = ["combined", "network", "ap"].includes(this._config?.device_layout) ? this._config.device_layout : this._config?.integrated_ports === false ? "ap" : "combined";
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
@@ -6783,7 +6784,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.61-dev";
+var VERSION = "0.0.0-dev.c939990";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
