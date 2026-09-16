@@ -1032,6 +1032,11 @@ export const MODEL_REGISTRY = {
   },
 };
 
+Object.defineProperty(MODEL_REGISTRY, "UDBSWITCH", {
+  value: MODEL_REGISTRY.UDBS,
+  enumerable: false,
+});
+
 export function getFakeDevices() {
   return Object.entries(MODEL_REGISTRY).map(([modelKey, model]) => ({
     id: `fake:${modelKey}`,

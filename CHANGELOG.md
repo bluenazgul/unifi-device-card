@@ -8,7 +8,7 @@
 - Display access points reported as `UAPA6A9` with their U7 Pro XG product name.
 
 ### 🐛 Bug Fixes
-- Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point.
+- Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point, while preserving existing `fake:UDBSWITCH` previews.
 
 ### ✨ Hints
 
