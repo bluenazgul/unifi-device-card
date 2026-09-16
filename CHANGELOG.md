@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.8.8]
+
+### ✨ Improvements
+- Match link LED colors to negotiated speeds: amber for 10/100 Mbps and 2.5 GbE, green for 1 GbE, and white for 5/10 GbE, including SFP ports.
+- Add optional YAML color overrides for the 10/100 Mbps, 1 GbE, 2.5 GbE, and 5/10 GbE link LED speed classes.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.7]
 
 ### 🐛 Bug Fixes
