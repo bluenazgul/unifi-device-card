@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c939990 */
+/* UniFi Device Card 0.0.0-dev.c8f4518 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -3834,6 +3834,172 @@ function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key) || displayPorts.find((candidate) => candidate?.port === port.port) || null;
 }
+function getLinkLedClass(speedMbit, connected = true) {
+  if (!connected) return "off";
+  if (speedMbit == null || !Number.isFinite(Number(speedMbit))) return "speed-1000";
+  const speed = Number(speedMbit);
+  if (speed >= 5e3) return "speed-10g";
+  if (speed >= 2500) return "speed-2-5g";
+  if (speed >= 1e3) return "speed-1000";
+  return "speed-10-100";
+}
+var CSS_NAMED_COLORS = /* @__PURE__ */ new Set([
+  "aliceblue",
+  "antiquewhite",
+  "aqua",
+  "aquamarine",
+  "azure",
+  "beige",
+  "bisque",
+  "black",
+  "blanchedalmond",
+  "blue",
+  "blueviolet",
+  "brown",
+  "burlywood",
+  "cadetblue",
+  "chartreuse",
+  "chocolate",
+  "coral",
+  "cornflowerblue",
+  "cornsilk",
+  "crimson",
+  "cyan",
+  "darkblue",
+  "darkcyan",
+  "darkgoldenrod",
+  "darkgray",
+  "darkgreen",
+  "darkgrey",
+  "darkkhaki",
+  "darkmagenta",
+  "darkolivegreen",
+  "darkorange",
+  "darkorchid",
+  "darkred",
+  "darksalmon",
+  "darkseagreen",
+  "darkslateblue",
+  "darkslategray",
+  "darkslategrey",
+  "darkturquoise",
+  "darkviolet",
+  "deeppink",
+  "deepskyblue",
+  "dimgray",
+  "dimgrey",
+  "dodgerblue",
+  "firebrick",
+  "floralwhite",
+  "forestgreen",
+  "fuchsia",
+  "gainsboro",
+  "ghostwhite",
+  "gold",
+  "goldenrod",
+  "gray",
+  "green",
+  "greenyellow",
+  "grey",
+  "honeydew",
+  "hotpink",
+  "indianred",
+  "indigo",
+  "ivory",
+  "khaki",
+  "lavender",
+  "lavenderblush",
+  "lawngreen",
+  "lemonchiffon",
+  "lightblue",
+  "lightcoral",
+  "lightcyan",
+  "lightgoldenrodyellow",
+  "lightgray",
+  "lightgreen",
+  "lightgrey",
+  "lightpink",
+  "lightsalmon",
+  "lightseagreen",
+  "lightskyblue",
+  "lightslategray",
+  "lightslategrey",
+  "lightsteelblue",
+  "lightyellow",
+  "lime",
+  "limegreen",
+  "linen",
+  "magenta",
+  "maroon",
+  "mediumaquamarine",
+  "mediumblue",
+  "mediumorchid",
+  "mediumpurple",
+  "mediumseagreen",
+  "mediumslateblue",
+  "mediumspringgreen",
+  "mediumturquoise",
+  "mediumvioletred",
+  "midnightblue",
+  "mintcream",
+  "mistyrose",
+  "moccasin",
+  "navajowhite",
+  "navy",
+  "oldlace",
+  "olive",
+  "olivedrab",
+  "orange",
+  "orangered",
+  "orchid",
+  "palegoldenrod",
+  "palegreen",
+  "paleturquoise",
+  "palevioletred",
+  "papayawhip",
+  "peachpuff",
+  "peru",
+  "pink",
+  "plum",
+  "powderblue",
+  "purple",
+  "rebeccapurple",
+  "red",
+  "rosybrown",
+  "royalblue",
+  "saddlebrown",
+  "salmon",
+  "sandybrown",
+  "seagreen",
+  "seashell",
+  "sienna",
+  "silver",
+  "skyblue",
+  "slateblue",
+  "slategray",
+  "slategrey",
+  "snow",
+  "springgreen",
+  "steelblue",
+  "tan",
+  "teal",
+  "thistle",
+  "tomato",
+  "transparent",
+  "turquoise",
+  "violet",
+  "wheat",
+  "white",
+  "whitesmoke",
+  "yellow",
+  "yellowgreen"
+]);
+function normalizeLinkLedColor(value) {
+  const color = String(value || "").trim();
+  if (/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) return color;
+  if (CSS_NAMED_COLORS.has(color.toLowerCase())) return color;
+  return null;
+}
 function getPortSpeedText(hass, port) {
   const s = stateValue(hass, port.speed_entity);
   if (!s || s === "unavailable" || s === "unknown") return null;
@@ -6784,7 +6950,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c939990";
+var VERSION = "0.0.0-dev.c8f4518";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7183,6 +7349,16 @@ var UnifiDeviceCard = class extends HTMLElement {
     ];
     for (const [configKey, cssVar] of pairs) {
       const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    const linkLedColors = [
+      ["link_color_10-100", "--udc-link-color-10-100"],
+      ["link_color_1000", "--udc-link-color-1000"],
+      ["link_color_2.5g", "--udc-link-color-2-5g"],
+      ["link_color_10g", "--udc-link-color-10g"]
+    ];
+    for (const [configKey, cssVar] of linkLedColors) {
+      const value = normalizeLinkLedColor(this._config?.[configKey]);
       if (value) vars.push(`${cssVar}: ${value}`);
     }
     return vars.length ? `; ${vars.join("; ")}` : "";
@@ -7936,11 +8112,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _linkLedClass(port) {
     const connected = this._isPortConnected(port);
-    if (!connected) return "off";
     const speed = this._speedValueMbit(port);
-    if (speed == null) return "green";
-    if (speed >= 1e3) return "green";
-    return "orange";
+    return getLinkLedClass(speed, connected);
   }
   _portLedBlinkSpeed(mediaType) {
     const mediaSpeed = mediaType === "sfp" ? this._config?.port_led_blink_speed_sfp : this._config?.port_led_blink_speed_rj45;
@@ -9273,20 +9446,33 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-left: 3px;
       }
 
-      .rj45-led.orange {
-        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+      .rj45-led.speed-10-100,
+      .rj45-led.speed-2-5g {
+        background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
         box-shadow:
           0 0 2px rgba(239,178,26,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
-      .rj45-led.green {
-        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
+      .rj45-led.speed-2-5g {
+        background: var(--udc-link-color-2-5g, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
+      }
+
+      .rj45-led.speed-1000 {
+        background: var(--udc-link-color-1000, linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%));
         box-shadow:
           0 0 2px rgba(51,211,93,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .rj45-led.speed-10g {
+        background: var(--udc-link-color-10g, linear-gradient(180deg, #ffffff 0%, #eef3f7 58%, #b8c1c8 100%));
+        box-shadow:
+          0 0 3px rgba(255,255,255,.72),
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -1px 0 rgba(0,0,0,.22);
       }
 
       .rj45-led.off {
@@ -9351,20 +9537,33 @@ var UnifiDeviceCard = class extends HTMLElement {
           inset 0 -1px 0 rgba(0,0,0,.28);
       }
 
-      .sfp-top-led.orange {
-        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+      .sfp-top-led.speed-10-100,
+      .sfp-top-led.speed-2-5g {
+        background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
         box-shadow:
           0 0 2px rgba(239,178,26,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
-      .sfp-top-led.green {
-        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
+      .sfp-top-led.speed-2-5g {
+        background: var(--udc-link-color-2-5g, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
+      }
+
+      .sfp-top-led.speed-1000 {
+        background: var(--udc-link-color-1000, linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%));
         box-shadow:
           0 0 2px rgba(51,211,93,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .sfp-top-led.speed-10g {
+        background: var(--udc-link-color-10g, linear-gradient(180deg, #ffffff 0%, #eef3f7 58%, #b8c1c8 100%));
+        box-shadow:
+          0 0 3px rgba(255,255,255,.72),
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -1px 0 rgba(0,0,0,.22);
       }
 
       .sfp-top-led.off {
