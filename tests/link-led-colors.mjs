@@ -12,6 +12,9 @@ assert.equal(getLinkLedClass(null, true), "speed-1000", "missing speed telemetry
 assert.equal(getLinkLedClass(10000, false), "off", "a disconnected port should keep its LED off");
 
 assert.equal(normalizeLinkLedColor(" blue "), "blue", "CSS color words should be accepted");
+assert.equal(normalizeLinkLedColor("RebeccaPurple"), "RebeccaPurple", "standard mixed-case color words should be accepted");
 assert.equal(normalizeLinkLedColor("#12aBcD"), "#12aBcD", "hex colors should be accepted");
+assert.equal(normalizeLinkLedColor("blu"), null, "invalid alphabetic color names should be rejected");
+assert.equal(normalizeLinkLedColor("#1234567"), null, "seven-digit hex colors should be rejected");
 assert.equal(normalizeLinkLedColor("rgb(1, 2, 3)"), null, "unsupported CSS expressions should be rejected");
 assert.equal(normalizeLinkLedColor("red; color: blue"), null, "style injection should be rejected");
