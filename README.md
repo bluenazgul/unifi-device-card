@@ -293,6 +293,10 @@ port_led_blink_rj45: true     # optional; animate connected RJ45 link LEDs
 port_led_blink_sfp: true      # optional; animate connected SFP link LEDs
 port_led_blink_speed_rj45: 0.2 # optional; RJ45 interval in seconds (5 blinks/s)
 port_led_blink_speed_sfp: 0.5  # optional; SFP interval in seconds (2 blinks/s)
+link_color_10-100: "#efb21a"  # optional YAML-only 10/100 Mbps link LED color (word or hex)
+link_color_1000: green         # optional YAML-only 1 GbE link LED color (word or hex)
+link_color_2.5g: orange        # optional YAML-only 2.5 GbE link LED color (word or hex)
+link_color_10g: white          # optional YAML-only 5/10 GbE link LED color (word or hex)
 rotate180: false              # optional (default: false) | true flips the switch/gateway front panel by 180°
 ports_per_row: 8              # optional (switches and compatible In-Wall AP port sections only)
 force_sequential_ports: false # optional (switch/gateway only; disable odd/even layout)
@@ -357,6 +361,10 @@ wan2_port: none               # optional (gateway only)
 | `port_led_blink_sfp` | boolean | `true` | Enables blinking for connected SFP link LEDs when `port_led_blink` is enabled. |
 | `port_led_blink_speed_rj45` | number | `1` | RJ45 blink interval in seconds (`0.1` to `1`, corresponding to 10–1 blinks/s). The editor defaults to `0.2` (5 blinks/s) when enabling the feature. |
 | `port_led_blink_speed_sfp` | number | `1` | SFP blink interval in seconds (`0.1` to `1`, corresponding to 10–1 blinks/s). The legacy `port_led_blink_speed` remains supported as a shared fallback. |
+| `link_color_10-100` | string | amber | YAML-only link LED color override for 10/100 Mbps; accepts a CSS color word or hex value. |
+| `link_color_1000` | string | green | YAML-only link LED color override for 1 GbE; accepts a CSS color word or hex value. |
+| `link_color_2.5g` | string | amber | YAML-only link LED color override for 2.5 GbE; accepts a CSS color word or hex value. |
+| `link_color_10g` | string | white | YAML-only link LED color override for both 5 and 10 GbE; accepts a CSS color word or hex value. |
 | `rotate180` | boolean | `false` | Switch/Gateway only: rotates the front-panel layout by 180° (`false`/`true`). |
 | `ports_per_row` | number | auto | Optional row width override for switch layouts and compatible In-Wall AP integrated-port sections. Without it, a model with declared rows keeps them, and only single-row fallbacks use 8 per row. |
 | `force_sequential_ports` | boolean | `false` | Switch/Gateway only: disables odd/even row rendering and keeps ports in natural numeric order. |

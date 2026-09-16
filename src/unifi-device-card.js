@@ -9,6 +9,7 @@ import {
   getDeviceTelemetry,
   getDefaultPort,
   getDefaultPortCandidates,
+  getLinkLedClass,
   isApPortPanelAvailable,
   resolveDisplayPort,
   getPoeStatus,
@@ -20,6 +21,7 @@ import {
   isPortConnected,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
+  normalizeLinkLedColor,
   normalizePositivePortNumbers,
   normalizeLagGroups,
   normalizePortNames,
@@ -524,6 +526,16 @@ class UnifiDeviceCard extends HTMLElement {
     ];
     for (const [configKey, cssVar] of pairs) {
       const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    const linkLedColors = [
+      ["link_color_10-100", "--udc-link-color-10-100"],
+      ["link_color_1000", "--udc-link-color-1000"],
+      ["link_color_2.5g", "--udc-link-color-2-5g"],
+      ["link_color_10g", "--udc-link-color-10g"],
+    ];
+    for (const [configKey, cssVar] of linkLedColors) {
+      const value = normalizeLinkLedColor(this._config?.[configKey]);
       if (value) vars.push(`${cssVar}: ${value}`);
     }
     return vars.length ? `; ${vars.join("; ")}` : "";
@@ -1516,12 +1528,8 @@ class UnifiDeviceCard extends HTMLElement {
 
   _linkLedClass(port) {
     const connected = this._isPortConnected(port);
-    if (!connected) return "off";
-
     const speed = this._speedValueMbit(port);
-    if (speed == null) return "green";
-    if (speed >= 1000) return "green";
-    return "orange";
+    return getLinkLedClass(speed, connected);
   }
 
   _portLedBlinkSpeed(mediaType) {
@@ -2885,20 +2893,33 @@ class UnifiDeviceCard extends HTMLElement {
         margin-left: 3px;
       }
 
-      .rj45-led.orange {
-        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+      .rj45-led.speed-10-100,
+      .rj45-led.speed-2-5g {
+        background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
         box-shadow:
           0 0 2px rgba(239,178,26,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
-      .rj45-led.green {
-        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
+      .rj45-led.speed-2-5g {
+        background: var(--udc-link-color-2-5g, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
+      }
+
+      .rj45-led.speed-1000 {
+        background: var(--udc-link-color-1000, linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%));
         box-shadow:
           0 0 2px rgba(51,211,93,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .rj45-led.speed-10g {
+        background: var(--udc-link-color-10g, linear-gradient(180deg, #ffffff 0%, #eef3f7 58%, #b8c1c8 100%));
+        box-shadow:
+          0 0 3px rgba(255,255,255,.72),
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -1px 0 rgba(0,0,0,.22);
       }
 
       .rj45-led.off {
@@ -2963,20 +2984,33 @@ class UnifiDeviceCard extends HTMLElement {
           inset 0 -1px 0 rgba(0,0,0,.28);
       }
 
-      .sfp-top-led.orange {
-        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+      .sfp-top-led.speed-10-100,
+      .sfp-top-led.speed-2-5g {
+        background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
         box-shadow:
           0 0 2px rgba(239,178,26,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
-      .sfp-top-led.green {
-        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
+      .sfp-top-led.speed-2-5g {
+        background: var(--udc-link-color-2-5g, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
+      }
+
+      .sfp-top-led.speed-1000 {
+        background: var(--udc-link-color-1000, linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%));
         box-shadow:
           0 0 2px rgba(51,211,93,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .sfp-top-led.speed-10g {
+        background: var(--udc-link-color-10g, linear-gradient(180deg, #ffffff 0%, #eef3f7 58%, #b8c1c8 100%));
+        box-shadow:
+          0 0 3px rgba(255,255,255,.72),
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -1px 0 rgba(0,0,0,.22);
       }
 
       .sfp-top-led.off {

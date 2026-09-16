@@ -2713,6 +2713,24 @@ export function getPortLinkText(hass, port) {
   return isPortConnected(hass, port) ? "connected" : "no_link";
 }
 
+export function getLinkLedClass(speedMbit, connected = true) {
+  if (!connected) return "off";
+  if (speedMbit == null || !Number.isFinite(Number(speedMbit))) return "speed-1000";
+
+  const speed = Number(speedMbit);
+  if (speed >= 5000) return "speed-10g";
+  if (speed >= 2500) return "speed-2-5g";
+  if (speed >= 1000) return "speed-1000";
+  return "speed-10-100";
+}
+
+export function normalizeLinkLedColor(value) {
+  const color = String(value || "").trim();
+  if (/^#[0-9a-f]{3,4}(?:[0-9a-f]{3,4})?$/i.test(color)) return color;
+  if (/^[a-z]+$/i.test(color)) return color;
+  return null;
+}
+
 export function getPortSpeedText(hass, port) {
   const s = stateValue(hass, port.speed_entity);
   if (!s || s === "unavailable" || s === "unknown") return null;
