@@ -7,6 +7,9 @@
 - Add optional YAML color overrides for the 10/100 Mbps, 1 GbE, 2.5 GbE, and 5/10 GbE link LED speed classes.
 - Display access points reported as `UAPA6A9` with their U7 Pro XG product name.
 
+### 🐛 Bug Fixes
+- Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point, while preserving existing `fake:UDBSWITCH` previews.
+
 ### ✨ Hints
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.

@@ -30,7 +30,7 @@ function apModel(displayModel, options = {}) {
 }
 
 export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
-export const SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
+export const SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 
 export const AP_FRONT_STYLES = new Set([
@@ -200,7 +200,6 @@ export const MODEL_REGISTRY = {
   UAIRWIRE: apModel("U-AirWire", { frontStyle: "ap-bridge" }),
   UDB: apModel("Device Bridge", { frontStyle: "ap-device-bridge", supportsIntegratedPorts: true }),
   UDBIOT: apModel("Device Bridge IoT", { frontStyle: "ap-device-bridge-iot" }),
-  UDBSWITCH: apModel("Device Bridge Switch", { frontStyle: "ap-bridge" }),
   UDBPRO: apModel("Device Bridge Pro", { frontStyle: "ap-device-bridge-pro", apEdgeGlow: true }),
   UDBPROSECTOR: apModel("Device Bridge Pro Sector", { frontStyle: "ap-device-bridge-sector" }),
   UWBXG: apModel("UWB-XG", { frontStyle: "ap-basestation", apEdgeGlow: true }),
@@ -266,6 +265,13 @@ export const MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 2 Standard (USW-*)
   // ══════════════════════════════════════════════════════════════════════════
+
+  UDBS: {
+    kind: "switch", frontStyle: "single-row", rows: [range(1, 8)],
+    portCount: 8, displayModel: "Device Bridge Switch", theme: "white",
+    poePortRange: [1, 8],
+    specialSlots: [],
+  },
 
   // USW Flex Mini  — Port 1 Uplink/PoE-in, ports 2-5 LAN
   USMINI: {
@@ -1026,6 +1032,11 @@ export const MODEL_REGISTRY = {
   },
 };
 
+Object.defineProperty(MODEL_REGISTRY, "UDBSWITCH", {
+  value: MODEL_REGISTRY.UDBS,
+  enumerable: false,
+});
+
 export function getFakeDevices() {
   return Object.entries(MODEL_REGISTRY).map(([modelKey, model]) => ({
     id: `fake:${modelKey}`,
@@ -1199,7 +1210,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
     if (candidate.includes("UDBPROSECTOR") || candidate.includes("DEVICEBRIDGEPROSECTOR")) return "UDBPROSECTOR";
     if (candidate.includes("UDBPRO") || candidate.includes("DEVICEBRIDGEPRO")) return "UDBPRO";
-    if (candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBSWITCH";
+    if (candidate === "UDBS" || candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBS";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";

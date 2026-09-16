@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 
 import { classifyDeviceType } from "../src/classify.js";
-import { mergePortsWithLayout, mergeSpecialsWithLayout } from "../src/helpers.js";
-import { getDeviceLayout, resolveModelKey } from "../src/model-registry.js";
+import {
+  getDeviceContext,
+  mergePortsWithLayout,
+  mergeSpecialsWithLayout,
+} from "../src/helpers.js";
+import {
+  getDeviceLayout,
+  getFakeDevices,
+  MODEL_REGISTRY,
+  resolveModelKey,
+} from "../src/model-registry.js";
 
 const inWallHd = {
   model_id: "UHDIW",
@@ -110,6 +119,57 @@ assert.equal(
   getDeviceLayout(u7ProXg).displayModel,
   "U7 Pro XG",
   "UAPA6A9 must display the U7 Pro XG product name"
+);
+
+for (const identifier of ["UDB-S", "UDBS", "Device Bridge Switch"]) {
+  const deviceBridgeSwitch = { model_id: identifier };
+
+  assert.equal(
+    resolveModelKey(deviceBridgeSwitch),
+    "UDBS",
+    `${identifier} must resolve to the aiounifi UDB-S model identifier`
+  );
+  assert.equal(
+    classifyDeviceType(deviceBridgeSwitch),
+    "switch",
+    `${identifier} must be classified as a switch rather than an access point`
+  );
+  assert.deepEqual(
+    getDeviceLayout(deviceBridgeSwitch).rows,
+    [[1, 2, 3, 4, 5, 6, 7, 8]],
+    `${identifier} must expose the Device Bridge Switch's eight switch ports`
+  );
+  assert.deepEqual(
+    getDeviceLayout(deviceBridgeSwitch).poePortRange,
+    [1, 8],
+    `${identifier} must expose PoE+ on all eight switch ports`
+  );
+  assert.deepEqual(
+    getDeviceLayout(deviceBridgeSwitch).specialSlots,
+    [],
+    `${identifier} must not reserve a wired port for its wireless uplink`
+  );
+}
+
+assert.equal(
+  MODEL_REGISTRY.UDBSWITCH,
+  MODEL_REGISTRY.UDBS,
+  "The legacy fake:UDBSWITCH preview ID must use the corrected UDBS switch model"
+);
+assert.equal(MODEL_REGISTRY.UDBSWITCH.kind, "switch");
+assert.equal(MODEL_REGISTRY.UDBSWITCH.portCount, 8);
+const legacyFakeDevice = await getDeviceContext(
+  {},
+  "fake:UDBSWITCH",
+  { fake_device: true }
+);
+assert.equal(legacyFakeDevice?.type, "switch");
+assert.equal(legacyFakeDevice?.layout.portCount, 8);
+assert.deepEqual(legacyFakeDevice?.layout.poePortRange, [1, 8]);
+assert.equal(
+  getFakeDevices().filter((device) => device.id === "fake:UDBS").length,
+  1,
+  "The legacy alias must not add a duplicate fake-device picker entry"
 );
 
 console.log("Model alias compatibility checks passed.");
