@@ -5,6 +5,7 @@
 ### ✨ Improvements
 - Match link LED colors to negotiated speeds: amber for 10/100 Mbps and 2.5 GbE, green for 1 GbE, and white for 5/10 GbE, including SFP ports.
 - Add optional YAML color overrides for the 10/100 Mbps, 1 GbE, 2.5 GbE, and 5/10 GbE link LED speed classes.
+- Display access points reported as `UAPA6A9` with their U7 Pro XG product name.
 
 ### ✨ Hints
 

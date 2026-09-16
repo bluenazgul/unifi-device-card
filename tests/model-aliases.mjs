@@ -99,4 +99,17 @@ assert.equal(
   "The unrelated S40Lite identifier must not resolve to a UniFi Dream Machine"
 );
 
+const u7ProXg = { model_id: "UAPA6A9" };
+
+assert.equal(
+  resolveModelKey(u7ProXg),
+  "U7PROXG",
+  "Home Assistant's UAPA6A9 identifier must resolve to the U7 Pro XG registry entry"
+);
+assert.equal(
+  getDeviceLayout(u7ProXg).displayModel,
+  "U7 Pro XG",
+  "UAPA6A9 must display the U7 Pro XG product name"
+);
+
 console.log("Model alias compatibility checks passed.");
