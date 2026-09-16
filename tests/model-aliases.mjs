@@ -112,4 +112,34 @@ assert.equal(
   "UAPA6A9 must display the U7 Pro XG product name"
 );
 
+for (const identifier of ["UDB-S", "UDBS", "Device Bridge Switch"]) {
+  const deviceBridgeSwitch = { model_id: identifier };
+
+  assert.equal(
+    resolveModelKey(deviceBridgeSwitch),
+    "UDBS",
+    `${identifier} must resolve to the aiounifi UDB-S model identifier`
+  );
+  assert.equal(
+    classifyDeviceType(deviceBridgeSwitch),
+    "switch",
+    `${identifier} must be classified as a switch rather than an access point`
+  );
+  assert.deepEqual(
+    getDeviceLayout(deviceBridgeSwitch).rows,
+    [[1, 2, 3, 4, 5, 6, 7, 8]],
+    `${identifier} must expose the Device Bridge Switch's eight switch ports`
+  );
+  assert.deepEqual(
+    getDeviceLayout(deviceBridgeSwitch).poePortRange,
+    [1, 8],
+    `${identifier} must expose PoE+ on all eight switch ports`
+  );
+  assert.deepEqual(
+    getDeviceLayout(deviceBridgeSwitch).specialSlots,
+    [],
+    `${identifier} must not reserve a wired port for its wireless uplink`
+  );
+}
+
 console.log("Model alias compatibility checks passed.");
