@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { classifyDeviceType } from "../src/classify.js";
 import {
+  getDefaultPort,
   getDeviceContext,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
@@ -171,5 +172,100 @@ assert.equal(
   1,
   "The legacy alias must not add a duplicate fake-device picker entry"
 );
+
+const uswEdgeAliases = {
+  USC8P60: "US8P60",
+  USC8P150: "US8P150",
+  USC8P450: "USWINDUSTRIAL",
+  USMINI2: "USMINI",
+  USFXG: "USWFLEXXG",
+  USWED05: "USWINDUSTRIALED",
+  USWED06: "USL16LP",
+  USWED08: "USL24P",
+  USWED42: "USWPROXG48POE",
+  USWED43: "USWPROXG48",
+  USWED44: "USWPROXG24POE",
+  USWED45: "USWPROXG24",
+  USWED72: "USWPROHD24POE",
+  USWED73: "USWPROHD24",
+  USWED74: "USWWAN",
+  USWED75: "USWWANRJ45",
+  USWED76: "USWPROXG8POE",
+  USWED77: "USWPROXG10POE",
+  USL16PB: "USL16P",
+  USL8MP: "USWMISSIONCRITICAL",
+  USL24B: "USL24",
+  USL48B: "USL48",
+  USLP24P: "US24PRO",
+  USLP48P: "US48PRO",
+  USWF004: "ECS24SPOE",
+  USWF006: "ECS48SPOE",
+  USWF066: "ECSAGGREGATION",
+  USWF067: "ECS24POE",
+  USWF069: "ECS48POE",
+};
+
+for (const [identifier, modelKey] of Object.entries(uswEdgeAliases)) {
+  assert.equal(
+    resolveModelKey({ model_id: identifier }),
+    modelKey,
+    `${identifier} must resolve to its marketed UniFi switch registry entry`
+  );
+  assert.equal(classifyDeviceType({ model_id: identifier }), "switch");
+}
+
+const proHd24Poe = getDeviceLayout({ model_id: "USWED72" });
+assert.equal(proHd24Poe.displayModel, "USW Pro HD 24 PoE");
+assert.deepEqual(proHd24Poe.rows.flat(), Array.from({ length: 24 }, (_, i) => i + 1));
+assert.deepEqual(
+  proHd24Poe.specialSlots.map((slot) => slot.port),
+  [25, 26, 27, 28],
+  "USWED72 must expose all four SFP+ ports from the Pro HD 24 PoE layout"
+);
+assert.deepEqual(proHd24Poe.poePortRange, [1, 24]);
+
+const proHd24 = getDeviceLayout({ model_id: "USWED73" });
+assert.equal(proHd24.displayModel, "USW Pro HD 24");
+assert.deepEqual(proHd24.specialSlots.map((slot) => slot.port), [25, 26, 27, 28]);
+assert.equal(proHd24.poePortRange, undefined);
+
+for (const identifier of ["USWED42", "USWED43", "USWED44", "USWED45"]) {
+  const proXg = getDeviceLayout({ model_id: identifier });
+  assert.ok(
+    proXg.specialSlots.every((slot) => slot.media === "sfp28"),
+    `${identifier} uplinks must be identified as SFP28 ports`
+  );
+}
+
+for (const identifier of ["USWED72", "USWED73", "USWED76", "USWED77"]) {
+  const layout = getDeviceLayout({ model_id: identifier });
+  assert.ok(
+    layout.specialSlots.every((slot) => slot.media === "sfp_plus"),
+    `${identifier} uplinks must be identified as SFP+ ports`
+  );
+}
+
+const uswWan = getDeviceLayout({ model_id: "USWED74" });
+assert.deepEqual(uswWan.rows, []);
+assert.deepEqual(
+  uswWan.specialSlots.map(({ key, port, media }) => ({ key, port, media })),
+  [
+    { key: "sfp_1", port: 1, media: "sfp_plus" },
+    { key: "sfp_2", port: 2, media: "sfp_plus" },
+    { key: "wan", port: 3, media: "sfp_plus" },
+    { key: "wan2", port: 4, media: "rj45" },
+  ],
+  "USWED74 must retain its legacy WAN keys while exposing the correct port media"
+);
+assert.equal(getDefaultPort(uswWan.specialSlots, uswWan.specialSlots, "wan", () => false)?.port, 3);
+assert.equal(getDefaultPort(uswWan.specialSlots, uswWan.specialSlots, "wan2", () => false)?.port, 4);
+
+const proXg48 = getDeviceLayout({ model_id: "USWED42" });
+assert.equal(getDefaultPort(proXg48.specialSlots, proXg48.specialSlots, "sfp_3", () => false)?.port, 51);
+
+const industrialEdge = getDeviceLayout({ model_id: "USWED05" });
+assert.deepEqual(industrialEdge.rows, [Array.from({ length: 10 }, (_, i) => i + 1)]);
+assert.deepEqual(industrialEdge.poePortRange, [1, 10]);
+assert.deepEqual(industrialEdge.specialSlots, []);
 
 console.log("Model alias compatibility checks passed.");
