@@ -626,12 +626,13 @@ export const MODEL_REGISTRY = {
 
   // USW WAN  — WAN/LAN utility switch; keep WAN ports explicit.
   USWWAN: {
-    kind: "switch", frontStyle: "single-row", rows: [[4]],
+    kind: "switch", frontStyle: "single-row", rows: [],
     portCount: 4, displayModel: "USW WAN", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 1, media: "sfp_plus" },
       { key: "sfp_2", label: "SFP+ 2", port: 2, media: "sfp_plus" },
-      { key: "sfp_3", label: "SFP+ 3", port: 3, media: "sfp_plus" },
+      { key: "wan", label: "SFP+ 3", port: 3, media: "sfp_plus" },
+      { key: "wan2", label: "RJ45 4", port: 4, media: "rj45" },
     ],
   },
   USWWANRJ45: {
@@ -747,8 +748,8 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8), range(9, 16), range(17, 24)],
     portCount: 26, displayModel: "USW Pro XG 24", theme: "silver",
     specialSlots: [
-      { key: "sfp28_1", label: "SFP28 1", port: 25, media: "sfp28" },
-      { key: "sfp28_2", label: "SFP28 2", port: 26, media: "sfp28" },
+      { key: "sfp_1", label: "SFP28 1", port: 25, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 26, media: "sfp28" },
     ],
   },
   USWPROXG24POE: {
@@ -757,8 +758,8 @@ export const MODEL_REGISTRY = {
     portCount: 26, displayModel: "USW Pro XG 24 PoE", theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
-      { key: "sfp28_1", label: "SFP28 1", port: 25, media: "sfp28" },
-      { key: "sfp28_2", label: "SFP28 2", port: 26, media: "sfp28" },
+      { key: "sfp_1", label: "SFP28 1", port: 25, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 26, media: "sfp28" },
     ],
   },
   USWPROXG48: {
@@ -766,10 +767,10 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
     portCount: 52, displayModel: "USW Pro XG 48", theme: "silver",
     specialSlots: [
-      { key: "sfp28_1", label: "SFP28 1", port: 49, media: "sfp28" },
-      { key: "sfp28_2", label: "SFP28 2", port: 50, media: "sfp28" },
-      { key: "sfp28_3", label: "SFP28 3", port: 51, media: "sfp28" },
-      { key: "sfp28_4", label: "SFP28 4", port: 52, media: "sfp28" },
+      { key: "sfp_1", label: "SFP28 1", port: 49, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 50, media: "sfp28" },
+      { key: "sfp_3", label: "SFP28 3", port: 51, media: "sfp28" },
+      { key: "sfp_4", label: "SFP28 4", port: 52, media: "sfp28" },
     ],
   },
   USWPROXG48POE: {
@@ -778,10 +779,10 @@ export const MODEL_REGISTRY = {
     portCount: 52, displayModel: "USW Pro XG 48 PoE", theme: "silver",
     poePortRange: [1, 48],
     specialSlots: [
-      { key: "sfp28_1", label: "SFP28 1", port: 49, media: "sfp28" },
-      { key: "sfp28_2", label: "SFP28 2", port: 50, media: "sfp28" },
-      { key: "sfp28_3", label: "SFP28 3", port: 51, media: "sfp28" },
-      { key: "sfp28_4", label: "SFP28 4", port: 52, media: "sfp28" },
+      { key: "sfp_1", label: "SFP28 1", port: 49, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 50, media: "sfp28" },
+      { key: "sfp_3", label: "SFP28 3", port: 51, media: "sfp28" },
+      { key: "sfp_4", label: "SFP28 4", port: 52, media: "sfp28" },
     ],
   },
   USWPROHD24: {

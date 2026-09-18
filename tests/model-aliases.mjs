@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { classifyDeviceType } from "../src/classify.js";
 import {
+  getDefaultPort,
   getDeviceContext,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
@@ -245,12 +246,22 @@ for (const identifier of ["USWED72", "USWED73", "USWED76", "USWED77"]) {
 }
 
 const uswWan = getDeviceLayout({ model_id: "USWED74" });
-assert.deepEqual(uswWan.rows, [[4]], "USWED74 port 4 must be the RJ45 port");
+assert.deepEqual(uswWan.rows, []);
 assert.deepEqual(
-  uswWan.specialSlots.map(({ port, media }) => ({ port, media })),
-  [1, 2, 3].map((port) => ({ port, media: "sfp_plus" })),
-  "USWED74 ports 1 through 3 must be SFP+ ports"
+  uswWan.specialSlots.map(({ key, port, media }) => ({ key, port, media })),
+  [
+    { key: "sfp_1", port: 1, media: "sfp_plus" },
+    { key: "sfp_2", port: 2, media: "sfp_plus" },
+    { key: "wan", port: 3, media: "sfp_plus" },
+    { key: "wan2", port: 4, media: "rj45" },
+  ],
+  "USWED74 must retain its legacy WAN keys while exposing the correct port media"
 );
+assert.equal(getDefaultPort(uswWan.specialSlots, uswWan.specialSlots, "wan", () => false)?.port, 3);
+assert.equal(getDefaultPort(uswWan.specialSlots, uswWan.specialSlots, "wan2", () => false)?.port, 4);
+
+const proXg48 = getDeviceLayout({ model_id: "USWED42" });
+assert.equal(getDefaultPort(proXg48.specialSlots, proXg48.specialSlots, "sfp_3", () => false)?.port, 51);
 
 const industrialEdge = getDeviceLayout({ model_id: "USWED05" });
 assert.deepEqual(industrialEdge.rows, [Array.from({ length: 10 }, (_, i) => i + 1)]);

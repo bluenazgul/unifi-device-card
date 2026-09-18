@@ -11,6 +11,7 @@
 - Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point, while preserving existing `fake:UDBSWITCH` previews.
 - Recognize UniFi's internal and hardware-revision identifiers for supported Flex, Lite, Standard, Pro, Pro XG, Pro HD, WAN, Industrial, and Enterprise Campus switches, including all four SFP+ ports on the Pro HD 24 models.
 - Use the hardware port definitions for internal switch revisions, including SFP28 uplinks on Pro XG models, the three SFP+ ports on the USW WAN, and the ten PoE RJ45 ports on the `USWED05` Industrial revision.
+- Preserve existing `default_uplink_port` selections when applying the corrected Pro XG and USW WAN port definitions.
 
 ### ✨ Hints
 
