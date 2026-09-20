@@ -1,5 +1,34 @@
 # Changelog
 
+## [v0.8.8]
+
+### ✨ Improvements
+- Match link LED colors to negotiated speeds: amber for 10/100 Mbps and 2.5 GbE, green for 1 GbE, and white for 5/10 GbE, including SFP ports.
+- Add optional YAML color overrides (how to use please check readme.md) for the 10/100 Mbps, 1 GbE, 2.5 GbE, and 5/10 GbE link LED speed classes.
+- Display access points reported as `UAPA6A9` with their U7 Pro XG product name.
+
+### 🐛 Bug Fixes
+- Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point, while preserving existing `fake:UDBSWITCH` previews.
+- Recognize UniFi's internal and hardware-revision identifiers for supported Flex, Lite, Standard, Pro, Pro XG, Pro HD, WAN, Industrial, and Enterprise Campus switches, including all four SFP+ ports on the Pro HD 24 models.
+- Use the hardware port definitions for internal switch revisions, including SFP28 uplinks on Pro XG models, the three SFP+ ports on the USW WAN, and the ten PoE RJ45 ports on the `USWED05` Industrial revision.
+- Preserve existing `default_uplink_port` selections when applying the corrected Pro XG and USW WAN port definitions.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.7]
 
 ### 🐛 Bug Fixes

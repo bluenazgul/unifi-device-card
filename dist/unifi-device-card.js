@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.7 */
+/* UniFi Device Card 0.8.72-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -20,7 +20,7 @@ function apModel(displayModel, options = {}) {
   };
 }
 var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
-var SWITCH_MODEL_PREFIXES = ["USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
+var SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model_id, device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
@@ -149,7 +149,6 @@ var MODEL_REGISTRY = {
   UAIRWIRE: apModel("U-AirWire", { frontStyle: "ap-bridge" }),
   UDB: apModel("Device Bridge", { frontStyle: "ap-device-bridge", supportsIntegratedPorts: true }),
   UDBIOT: apModel("Device Bridge IoT", { frontStyle: "ap-device-bridge-iot" }),
-  UDBSWITCH: apModel("Device Bridge Switch", { frontStyle: "ap-bridge" }),
   UDBPRO: apModel("Device Bridge Pro", { frontStyle: "ap-device-bridge-pro", apEdgeGlow: true }),
   UDBPROSECTOR: apModel("Device Bridge Pro Sector", { frontStyle: "ap-device-bridge-sector" }),
   UWBXG: apModel("UWB-XG", { frontStyle: "ap-basestation", apEdgeGlow: true }),
@@ -231,6 +230,16 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Generation 2 Standard (USW-*)
   // ══════════════════════════════════════════════════════════════════════════
+  UDBS: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
+    displayModel: "Device Bridge Switch",
+    theme: "white",
+    poePortRange: [1, 8],
+    specialSlots: []
+  },
   // USW Flex Mini  — Port 1 Uplink/PoE-in, ports 2-5 LAN
   USMINI: {
     kind: "switch",
@@ -671,13 +680,15 @@ var MODEL_REGISTRY = {
   USWWAN: {
     kind: "switch",
     frontStyle: "single-row",
-    rows: [range(1, 2)],
+    rows: [],
     portCount: 4,
     displayModel: "USW WAN",
     theme: "silver",
     specialSlots: [
-      { key: "wan", label: "WAN 1", port: 3 },
-      { key: "wan2", label: "WAN 2", port: 4 }
+      { key: "sfp_1", label: "SFP+ 1", port: 1, media: "sfp_plus" },
+      { key: "sfp_2", label: "SFP+ 2", port: 2, media: "sfp_plus" },
+      { key: "wan", label: "SFP+ 3", port: 3, media: "sfp_plus" },
+      { key: "wan2", label: "RJ45 4", port: 4, media: "rj45" }
     ]
   },
   USWWANRJ45: {
@@ -710,9 +721,19 @@ var MODEL_REGISTRY = {
     theme: "silver",
     poePortRange: [1, 8],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 9 },
-      { key: "sfp_2", label: "SFP+ 2", port: 10 }
+      { key: "sfp_1", label: "SFP+ 1", port: 9, media: "sfp_plus" },
+      { key: "sfp_2", label: "SFP+ 2", port: 10, media: "sfp_plus" }
     ]
+  },
+  USWINDUSTRIALED: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 10)],
+    portCount: 10,
+    displayModel: "USW Industrial",
+    theme: "silver",
+    poePortRange: [1, 10],
+    specialSlots: []
   },
   // ══════════════════════════════════════════════════════════════════════════
   // SWITCHES — Aggregation
@@ -796,8 +817,8 @@ var MODEL_REGISTRY = {
     theme: "silver",
     poePortRange: [1, 8],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 9 },
-      { key: "sfp_2", label: "SFP+ 2", port: 10 }
+      { key: "sfp_1", label: "SFP+ 1", port: 9, media: "sfp_plus" },
+      { key: "sfp_2", label: "SFP+ 2", port: 10, media: "sfp_plus" }
     ]
   },
   USWPROXG10POE: {
@@ -809,8 +830,8 @@ var MODEL_REGISTRY = {
     theme: "silver",
     poePortRange: [1, 10],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 11 },
-      { key: "sfp_2", label: "SFP+ 2", port: 12 }
+      { key: "sfp_1", label: "SFP+ 1", port: 11, media: "sfp_plus" },
+      { key: "sfp_2", label: "SFP+ 2", port: 12, media: "sfp_plus" }
     ]
   },
   USWPROXG24: {
@@ -821,8 +842,8 @@ var MODEL_REGISTRY = {
     displayModel: "USW Pro XG 24",
     theme: "silver",
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+      { key: "sfp_1", label: "SFP28 1", port: 25, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 26, media: "sfp28" }
     ]
   },
   USWPROXG24POE: {
@@ -834,8 +855,8 @@ var MODEL_REGISTRY = {
     theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 }
+      { key: "sfp_1", label: "SFP28 1", port: 25, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 26, media: "sfp28" }
     ]
   },
   USWPROXG48: {
@@ -846,10 +867,10 @@ var MODEL_REGISTRY = {
     displayModel: "USW Pro XG 48",
     theme: "silver",
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 49 },
-      { key: "sfp_2", label: "SFP+ 2", port: 50 },
-      { key: "sfp_3", label: "SFP+ 3", port: 51 },
-      { key: "sfp_4", label: "SFP+ 4", port: 52 }
+      { key: "sfp_1", label: "SFP28 1", port: 49, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 50, media: "sfp28" },
+      { key: "sfp_3", label: "SFP28 3", port: 51, media: "sfp28" },
+      { key: "sfp_4", label: "SFP28 4", port: 52, media: "sfp28" }
     ]
   },
   USWPROXG48POE: {
@@ -861,10 +882,10 @@ var MODEL_REGISTRY = {
     theme: "silver",
     poePortRange: [1, 48],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 49 },
-      { key: "sfp_2", label: "SFP+ 2", port: 50 },
-      { key: "sfp_3", label: "SFP+ 3", port: 51 },
-      { key: "sfp_4", label: "SFP+ 4", port: 52 }
+      { key: "sfp_1", label: "SFP28 1", port: 49, media: "sfp28" },
+      { key: "sfp_2", label: "SFP28 2", port: 50, media: "sfp28" },
+      { key: "sfp_3", label: "SFP28 3", port: 51, media: "sfp28" },
+      { key: "sfp_4", label: "SFP28 4", port: 52, media: "sfp28" }
     ]
   },
   USWPROHD24: {
@@ -875,10 +896,10 @@ var MODEL_REGISTRY = {
     displayModel: "USW Pro HD 24",
     theme: "silver",
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 },
-      { key: "sfp_3", label: "SFP+ 3", port: 27 },
-      { key: "sfp_4", label: "SFP+ 4", port: 28 }
+      { key: "sfp_1", label: "SFP+ 1", port: 25, media: "sfp_plus" },
+      { key: "sfp_2", label: "SFP+ 2", port: 26, media: "sfp_plus" },
+      { key: "sfp_3", label: "SFP+ 3", port: 27, media: "sfp_plus" },
+      { key: "sfp_4", label: "SFP+ 4", port: 28, media: "sfp_plus" }
     ]
   },
   USWPROHD24POE: {
@@ -890,10 +911,10 @@ var MODEL_REGISTRY = {
     theme: "silver",
     poePortRange: [1, 24],
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1", port: 25 },
-      { key: "sfp_2", label: "SFP+ 2", port: 26 },
-      { key: "sfp_3", label: "SFP+ 3", port: 27 },
-      { key: "sfp_4", label: "SFP+ 4", port: 28 }
+      { key: "sfp_1", label: "SFP+ 1", port: 25, media: "sfp_plus" },
+      { key: "sfp_2", label: "SFP+ 2", port: 26, media: "sfp_plus" },
+      { key: "sfp_3", label: "SFP+ 3", port: 27, media: "sfp_plus" },
+      { key: "sfp_4", label: "SFP+ 4", port: 28, media: "sfp_plus" }
     ]
   },
   ECS24POE: {
@@ -1241,6 +1262,10 @@ var MODEL_REGISTRY = {
     ]
   }
 };
+Object.defineProperty(MODEL_REGISTRY, "UDBSWITCH", {
+  value: MODEL_REGISTRY.UDBS,
+  enumerable: false
+});
 function getFakeDevices() {
   return Object.entries(MODEL_REGISTRY).map(([modelKey, model]) => ({
     id: `fake:${modelKey}`,
@@ -1331,6 +1356,7 @@ function resolveModelKey(device) {
     if (candidate.includes("U7PROXGWALL")) return "U7PROXGWALL";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
     if (candidate.includes("UAPA6A4")) return "U7PROXGS";
+    if (candidate.includes("UAPA6A9")) return "U7PROXG";
     if (candidate.includes("U7PROXGS")) return "U7PROXGS";
     if (candidate.includes("U7PROXG")) return "U7PROXG";
     if (candidate.includes("U7PROMAX")) return "U7PROMAX";
@@ -1350,7 +1376,7 @@ function resolveModelKey(device) {
     if (candidate.includes("UAIRWIRE") || candidate.includes("AIRWIRE")) return "UAIRWIRE";
     if (candidate.includes("UDBPROSECTOR") || candidate.includes("DEVICEBRIDGEPROSECTOR")) return "UDBPROSECTOR";
     if (candidate.includes("UDBPRO") || candidate.includes("DEVICEBRIDGEPRO")) return "UDBPRO";
-    if (candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBSWITCH";
+    if (candidate === "UDBS" || candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBS";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
@@ -1396,6 +1422,11 @@ function resolveModelKey(device) {
     if (candidate === "USAGGPRO") return "USAGGPRO";
     if (candidate.includes("PROAGGREGATION")) return "USAGGPRO";
     if (candidate.includes("AGGREGATIONPRO")) return "USAGGPRO";
+    if (candidate === "USWF066") return "ECSAGGREGATION";
+    if (candidate === "USWF067") return "ECS24POE";
+    if (candidate === "USWF069") return "ECS48POE";
+    if (candidate === "USWF004") return "ECS24SPOE";
+    if (candidate === "USWF006") return "ECS48SPOE";
     if (candidate === "USL8A") return "USL8A";
     if (candidate.includes("USWAGGREGATION")) return "USL8A";
     if (candidate.includes("SWITCHAGGREGATION")) return "USL8A";
@@ -1408,6 +1439,18 @@ function resolveModelKey(device) {
     if (candidate.includes("ENTERPRISEXG24")) return "USXG24";
     if (candidate === "US68P") return "US68P";
     if (candidate.includes("ENTERPRISE8")) return "US68P";
+    if (candidate === "USWED42") return "USWPROXG48POE";
+    if (candidate === "USWED43") return "USWPROXG48";
+    if (candidate === "USWED44") return "USWPROXG24POE";
+    if (candidate === "USWED45") return "USWPROXG24";
+    if (candidate === "USWED72") return "USWPROHD24POE";
+    if (candidate === "USWED73") return "USWPROHD24";
+    if (candidate === "USWED74") return "USWWAN";
+    if (candidate === "USWED75") return "USWWANRJ45";
+    if (candidate === "USWED76") return "USWPROXG8POE";
+    if (candidate === "USWED77") return "USWPROXG10POE";
+    if (candidate === "USLP24P") return "US24PRO";
+    if (candidate === "USLP48P") return "US48PRO";
     if (candidate.includes("USWPROXG48POE")) return "USWPROXG48POE";
     if (candidate.includes("USWPROXG48")) return "USWPROXG48";
     if (candidate.includes("USWPROXG24POE")) return "USWPROXG24POE";
@@ -1424,6 +1467,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USXG6POE")) return "USXG6POE";
     if (candidate.includes("USX6POE")) return "USXG6POE";
     if (candidate.includes("MISSIONCRITICAL")) return "USWMISSIONCRITICAL";
+    if (candidate === "USL8MP") return "USWMISSIONCRITICAL";
     if (candidate.includes("ECSAGGREGATION")) return "ECSAGGREGATION";
     if (candidate.includes("ECS48SPOE")) return "ECS48SPOE";
     if (candidate.includes("ECS48POE")) return "ECS48POE";
@@ -1431,6 +1475,7 @@ function resolveModelKey(device) {
     if (candidate.includes("ECS24POE")) return "ECS24POE";
     if (candidate === "USWINDUSTRIAL") return "USWINDUSTRIAL";
     if (candidate.includes("USWINDUSTRIAL")) return "USWINDUSTRIAL";
+    if (candidate === "USWED05") return "USWINDUSTRIALED";
     if (candidate === "US48PRO") return "US48PRO";
     if (candidate.includes("US48PRO2")) return "US48PRO2";
     if (candidate.includes("US48PRO")) return "US48PRO";
@@ -1467,6 +1512,7 @@ function resolveModelKey(device) {
     if (candidate.includes("PROMAX48")) return "USPM48";
     if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
+    if (candidate === "USWED06") return "USL16LP";
     if (candidate.includes("USWLITE16")) return "USL16LPB";
     if (candidate.includes("LITE16")) return "USL16LPB";
     if (candidate.includes("LITE") && candidate.includes("16")) return "USL16LPB";
@@ -1476,6 +1522,9 @@ function resolveModelKey(device) {
     if (candidate.includes("LITE8")) return "USL8LPB";
     if (candidate.includes("LITE") && candidate.includes("8")) return "USL8LPB";
     if (candidate === "US8") return "US8";
+    if (candidate === "USC8P60") return "US8P60";
+    if (candidate === "USC8P150") return "US8P150";
+    if (candidate === "USC8P450") return "USWINDUSTRIAL";
     if (candidate.includes("USC8")) return "USC8";
     if (candidate.includes("US8P60")) return "US8P60";
     if (candidate.includes("US860W")) return "US8P60";
@@ -1491,6 +1540,7 @@ function resolveModelKey(device) {
     if (candidate.includes("S248500")) return "USL48P";
     if (candidate.includes("S248750")) return "USL48P";
     if (candidate.includes("USMINI")) return "USMINI";
+    if (candidate === "USMINI2") return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
     if (candidate === "USWFLEX25G5") return "USWFLEX25G5";
@@ -1506,6 +1556,7 @@ function resolveModelKey(device) {
     if (candidate.includes("FLEX25G8")) return "USWFLEX25G8";
     if (candidate.includes("USWFLEX25G8")) return "USWFLEX25G8";
     if (candidate === "USF5P") return "USF5P";
+    if (candidate === "USFXG") return "USWFLEXXG";
     if (candidate.includes("USWFLEX")) return "USF5P";
     if (candidate === "USWULTRA210W") return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
@@ -1520,17 +1571,21 @@ function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA")) return "USWULTRA";
     if (candidate === "USM8P") return "USWULTRA";
     if (candidate === "USL16P") return "USL16P";
+    if (candidate === "USL16PB") return "USL16P";
     if (candidate.includes("USW16POE")) return "USL16P";
     if (candidate.includes("USW16P")) return "USL16P";
     if (candidate === "USL24P") return "USL24P";
     if (candidate === "USL24PB") return "USL24P";
     if (candidate === "USL24") return "USL24";
+    if (candidate === "USL24B") return "USL24";
+    if (candidate === "USWED08") return "USL24P";
     if (candidate.includes("USW24G2")) return "USL24";
     if (candidate.includes("USW24POE")) return "USL24P";
     if (candidate.includes("USW24P")) return "USL24P";
     if (candidate === "USL48P") return "USL48P";
     if (candidate === "USL48PB") return "USL48P";
     if (candidate === "USL48") return "USL48";
+    if (candidate === "USL48B") return "USL48";
     if (candidate.includes("USW48G2")) return "USL48";
     if (candidate.includes("USW48POE")) return "USL48P";
     if (candidate.includes("USW48P")) return "USL48P";
@@ -3833,6 +3888,172 @@ function supportsDeviceLayoutModes(layout, discoveredPorts) {
 function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key) || displayPorts.find((candidate) => candidate?.port === port.port) || null;
+}
+function getLinkLedClass(speedMbit, connected = true) {
+  if (!connected) return "off";
+  if (speedMbit == null || !Number.isFinite(Number(speedMbit))) return "speed-1000";
+  const speed = Number(speedMbit);
+  if (speed >= 5e3) return "speed-10g";
+  if (speed >= 2500) return "speed-2-5g";
+  if (speed >= 1e3) return "speed-1000";
+  return "speed-10-100";
+}
+var CSS_NAMED_COLORS = /* @__PURE__ */ new Set([
+  "aliceblue",
+  "antiquewhite",
+  "aqua",
+  "aquamarine",
+  "azure",
+  "beige",
+  "bisque",
+  "black",
+  "blanchedalmond",
+  "blue",
+  "blueviolet",
+  "brown",
+  "burlywood",
+  "cadetblue",
+  "chartreuse",
+  "chocolate",
+  "coral",
+  "cornflowerblue",
+  "cornsilk",
+  "crimson",
+  "cyan",
+  "darkblue",
+  "darkcyan",
+  "darkgoldenrod",
+  "darkgray",
+  "darkgreen",
+  "darkgrey",
+  "darkkhaki",
+  "darkmagenta",
+  "darkolivegreen",
+  "darkorange",
+  "darkorchid",
+  "darkred",
+  "darksalmon",
+  "darkseagreen",
+  "darkslateblue",
+  "darkslategray",
+  "darkslategrey",
+  "darkturquoise",
+  "darkviolet",
+  "deeppink",
+  "deepskyblue",
+  "dimgray",
+  "dimgrey",
+  "dodgerblue",
+  "firebrick",
+  "floralwhite",
+  "forestgreen",
+  "fuchsia",
+  "gainsboro",
+  "ghostwhite",
+  "gold",
+  "goldenrod",
+  "gray",
+  "green",
+  "greenyellow",
+  "grey",
+  "honeydew",
+  "hotpink",
+  "indianred",
+  "indigo",
+  "ivory",
+  "khaki",
+  "lavender",
+  "lavenderblush",
+  "lawngreen",
+  "lemonchiffon",
+  "lightblue",
+  "lightcoral",
+  "lightcyan",
+  "lightgoldenrodyellow",
+  "lightgray",
+  "lightgreen",
+  "lightgrey",
+  "lightpink",
+  "lightsalmon",
+  "lightseagreen",
+  "lightskyblue",
+  "lightslategray",
+  "lightslategrey",
+  "lightsteelblue",
+  "lightyellow",
+  "lime",
+  "limegreen",
+  "linen",
+  "magenta",
+  "maroon",
+  "mediumaquamarine",
+  "mediumblue",
+  "mediumorchid",
+  "mediumpurple",
+  "mediumseagreen",
+  "mediumslateblue",
+  "mediumspringgreen",
+  "mediumturquoise",
+  "mediumvioletred",
+  "midnightblue",
+  "mintcream",
+  "mistyrose",
+  "moccasin",
+  "navajowhite",
+  "navy",
+  "oldlace",
+  "olive",
+  "olivedrab",
+  "orange",
+  "orangered",
+  "orchid",
+  "palegoldenrod",
+  "palegreen",
+  "paleturquoise",
+  "palevioletred",
+  "papayawhip",
+  "peachpuff",
+  "peru",
+  "pink",
+  "plum",
+  "powderblue",
+  "purple",
+  "rebeccapurple",
+  "red",
+  "rosybrown",
+  "royalblue",
+  "saddlebrown",
+  "salmon",
+  "sandybrown",
+  "seagreen",
+  "seashell",
+  "sienna",
+  "silver",
+  "skyblue",
+  "slateblue",
+  "slategray",
+  "slategrey",
+  "snow",
+  "springgreen",
+  "steelblue",
+  "tan",
+  "teal",
+  "thistle",
+  "tomato",
+  "transparent",
+  "turquoise",
+  "violet",
+  "wheat",
+  "white",
+  "whitesmoke",
+  "yellow",
+  "yellowgreen"
+]);
+function normalizeLinkLedColor(value) {
+  const color = String(value || "").trim();
+  if (/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) return color;
+  if (CSS_NAMED_COLORS.has(color.toLowerCase())) return color;
+  return null;
 }
 function getPortSpeedText(hass, port) {
   const s = stateValue(hass, port.speed_entity);
@@ -6784,7 +7005,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.7";
+var VERSION = "0.8.72-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7183,6 +7404,16 @@ var UnifiDeviceCard = class extends HTMLElement {
     ];
     for (const [configKey, cssVar] of pairs) {
       const value = this._config?.[configKey];
+      if (value) vars.push(`${cssVar}: ${value}`);
+    }
+    const linkLedColors = [
+      ["link_color_10-100", "--udc-link-color-10-100"],
+      ["link_color_1000", "--udc-link-color-1000"],
+      ["link_color_2.5g", "--udc-link-color-2-5g"],
+      ["link_color_10g", "--udc-link-color-10g"]
+    ];
+    for (const [configKey, cssVar] of linkLedColors) {
+      const value = normalizeLinkLedColor(this._config?.[configKey]);
       if (value) vars.push(`${cssVar}: ${value}`);
     }
     return vars.length ? `; ${vars.join("; ")}` : "";
@@ -7936,11 +8167,8 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _linkLedClass(port) {
     const connected = this._isPortConnected(port);
-    if (!connected) return "off";
     const speed = this._speedValueMbit(port);
-    if (speed == null) return "green";
-    if (speed >= 1e3) return "green";
-    return "orange";
+    return getLinkLedClass(speed, connected);
   }
   _portLedBlinkSpeed(mediaType) {
     const mediaSpeed = mediaType === "sfp" ? this._config?.port_led_blink_speed_sfp : this._config?.port_led_blink_speed_rj45;
@@ -9273,20 +9501,33 @@ var UnifiDeviceCard = class extends HTMLElement {
         margin-left: 3px;
       }
 
-      .rj45-led.orange {
-        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+      .rj45-led.speed-10-100,
+      .rj45-led.speed-2-5g {
+        background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
         box-shadow:
           0 0 2px rgba(239,178,26,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
-      .rj45-led.green {
-        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
+      .rj45-led.speed-2-5g {
+        background: var(--udc-link-color-2-5g, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
+      }
+
+      .rj45-led.speed-1000 {
+        background: var(--udc-link-color-1000, linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%));
         box-shadow:
           0 0 2px rgba(51,211,93,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .rj45-led.speed-10g {
+        background: var(--udc-link-color-10g, linear-gradient(180deg, #ffffff 0%, #eef3f7 58%, #b8c1c8 100%));
+        box-shadow:
+          0 0 3px rgba(255,255,255,.72),
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -1px 0 rgba(0,0,0,.22);
       }
 
       .rj45-led.off {
@@ -9351,20 +9592,33 @@ var UnifiDeviceCard = class extends HTMLElement {
           inset 0 -1px 0 rgba(0,0,0,.28);
       }
 
-      .sfp-top-led.orange {
-        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+      .sfp-top-led.speed-10-100,
+      .sfp-top-led.speed-2-5g {
+        background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
         box-shadow:
           0 0 2px rgba(239,178,26,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
-      .sfp-top-led.green {
-        background: linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%);
+      .sfp-top-led.speed-2-5g {
+        background: var(--udc-link-color-2-5g, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
+      }
+
+      .sfp-top-led.speed-1000 {
+        background: var(--udc-link-color-1000, linear-gradient(180deg, #63ea86 0%, #33d35d 58%, #1c8e3a 100%));
         box-shadow:
           0 0 2px rgba(51,211,93,.42),
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
+      .sfp-top-led.speed-10g {
+        background: var(--udc-link-color-10g, linear-gradient(180deg, #ffffff 0%, #eef3f7 58%, #b8c1c8 100%));
+        box-shadow:
+          0 0 3px rgba(255,255,255,.72),
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -1px 0 rgba(0,0,0,.22);
       }
 
       .sfp-top-led.off {

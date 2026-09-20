@@ -2713,6 +2713,49 @@ export function getPortLinkText(hass, port) {
   return isPortConnected(hass, port) ? "connected" : "no_link";
 }
 
+export function getLinkLedClass(speedMbit, connected = true) {
+  if (!connected) return "off";
+  if (speedMbit == null || !Number.isFinite(Number(speedMbit))) return "speed-1000";
+
+  const speed = Number(speedMbit);
+  if (speed >= 5000) return "speed-10g";
+  if (speed >= 2500) return "speed-2-5g";
+  if (speed >= 1000) return "speed-1000";
+  return "speed-10-100";
+}
+
+const CSS_NAMED_COLORS = new Set([
+  "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black",
+  "blanchedalmond", "blue", "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse",
+  "chocolate", "coral", "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
+  "darkgoldenrod", "darkgray", "darkgreen", "darkgrey", "darkkhaki", "darkmagenta",
+  "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen",
+  "darkslateblue", "darkslategray", "darkslategrey", "darkturquoise", "darkviolet", "deeppink",
+  "deepskyblue", "dimgray", "dimgrey", "dodgerblue", "firebrick", "floralwhite", "forestgreen",
+  "fuchsia", "gainsboro", "ghostwhite", "gold", "goldenrod", "gray", "green", "greenyellow",
+  "grey", "honeydew", "hotpink", "indianred", "indigo", "ivory", "khaki", "lavender",
+  "lavenderblush", "lawngreen", "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+  "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey", "lightpink", "lightsalmon",
+  "lightseagreen", "lightskyblue", "lightslategray", "lightslategrey", "lightsteelblue",
+  "lightyellow", "lime", "limegreen", "linen", "magenta", "maroon", "mediumaquamarine",
+  "mediumblue", "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue",
+  "mediumspringgreen", "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream",
+  "mistyrose", "moccasin", "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
+  "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred",
+  "papayawhip", "peachpuff", "peru", "pink", "plum", "powderblue", "purple",
+  "rebeccapurple", "red", "rosybrown", "royalblue", "saddlebrown", "salmon", "sandybrown",
+  "seagreen", "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray",
+  "slategrey", "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
+  "transparent", "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen",
+]);
+
+export function normalizeLinkLedColor(value) {
+  const color = String(value || "").trim();
+  if (/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) return color;
+  if (CSS_NAMED_COLORS.has(color.toLowerCase())) return color;
+  return null;
+}
+
 export function getPortSpeedText(hass, port) {
   const s = stateValue(hass, port.speed_entity);
   if (!s || s === "unavailable" || s === "unknown") return null;
