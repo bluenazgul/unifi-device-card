@@ -27,6 +27,7 @@ import {
   normalizePortNames,
   parseLinkSpeedMbit,
   stateObj,
+  shouldShowHybridVisualPanel,
   supportsDeviceLayoutModes,
 } from "./helpers.js";
 import { normalizeMac } from "./identity.js";
@@ -2029,6 +2030,10 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: stretch;
       }
 
+      .ap-layout.panel-hidden {
+        display: block;
+      }
+
       .ap-layout.compact .frontpanel.ap-disc,
       .ap-layout.compact .frontpanel.ap-in-wall,
       .ap-layout.compact .frontpanel.ap-u7-outdoor,
@@ -3492,6 +3497,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
+      const showVisualPanel = shouldShowHybridVisualPanel(this._ctx?.layout, this._config);
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
       const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
       const apStatusClass = apStatusRaw === "connected" ? "online" : (apStatusRaw === "disconnected" ? "offline" : "pending");
@@ -3542,7 +3548,8 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
 
-          <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
+          <div class="ap-layout ${compactApView ? "compact" : ""}${showVisualPanel ? "" : " panel-hidden"}${showVisualPanel && this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
+            ${showVisualPanel ? `
             <div class="frontpanel ${renderedApStyle}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
@@ -3581,7 +3588,7 @@ class UnifiDeviceCard extends HTMLElement {
                   <div class="ap-logo">u</div>
                 </div>
               </div>`}
-            </div>
+            </div>` : ""}
 
             <div class="section">
               <div class="detail-grid">
@@ -3615,7 +3622,7 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
 
-          ${this._renderIntegratedPortSection(this._ctx)}
+          ${showVisualPanel ? this._renderIntegratedPortSection(this._ctx) : ""}
         </ha-card>`;
 
       this._attachPortActionHandlers(this._ctx);

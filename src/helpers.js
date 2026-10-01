@@ -2702,6 +2702,10 @@ export function supportsDeviceLayoutModes(layout, discoveredPorts) {
     || isApPortPanelAvailable(layout, discoveredPorts);
 }
 
+export function shouldShowHybridVisualPanel(layout, config) {
+  return layout?.supportsHybridLayouts !== true || config?.show_panel !== false;
+}
+
 export function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
   return displayPorts.find((candidate) => candidate?.key === port.key)
