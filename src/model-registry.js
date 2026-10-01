@@ -31,7 +31,7 @@ function apModel(displayModel, options = {}) {
 
 export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 export const SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
-export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
+export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR", "UCI"];
 
 export const AP_FRONT_STYLES = new Set([
   "ap-disc", "ap-in-wall", "ap-u7-outdoor", "ap-5g-backup",
@@ -849,6 +849,12 @@ export const MODEL_REGISTRY = {
   // GATEWAYS
   // ══════════════════════════════════════════════════════════════════════════
 
+  UCI: {
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1]],
+    portCount: 1, displayModel: "UniFi Cable Internet", theme: "silver",
+    specialSlots: [],
+  },
+
   EFG: {
     kind: "gateway", frontStyle: "gateway-rack", rows: [[1]],
     portCount: 6, displayModel: "Enterprise Fortress Gateway", theme: "silver",
@@ -1221,6 +1227,7 @@ export function resolveModelKey(device) {
     if (candidate === "UDBS" || candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBS";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
+    if (candidate === "UCI" || candidate === "UNIFICABLEINTERNET") return "UCI";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
     if (candidate === "UDM")                      return "UDM";
