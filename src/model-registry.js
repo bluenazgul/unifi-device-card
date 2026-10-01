@@ -1125,14 +1125,19 @@ export function validateModelRegistry() {
 }
 
 export function resolveModelKey(device) {
+  const modelId = normalizeModelKey(device?.model_id);
   const candidates = [device?.model_id, device?.model, device?.hw_version, device?.name, device?.name_by_user]
     .filter(Boolean)
     .map(normalizeModelKey);
 
-  // UDMA67A is also used by the original Dream Machine. Prefer an explicit
-  // UDR7 product hint from any identity field before resolving that platform
-  // identifier on its own.
-  if (candidates.some((candidate) =>
+  if (modelId && MODEL_REGISTRY[modelId]) return modelId;
+  if (modelId.includes("UDM67A")) return "UDMPRO";
+
+  const productCandidates = [device?.model, device?.hw_version]
+    .filter(Boolean)
+    .map(normalizeModelKey);
+  const hasAmbiguousDreamMachineId = !modelId || modelId.includes("UDMA67A");
+  if (hasAmbiguousDreamMachineId && productCandidates.some((candidate) =>
     candidate.includes("UDR7") || candidate.includes("DREAMROUTER7")
   )) {
     return "UDR7";
@@ -1248,6 +1253,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
     if (candidate === "UDM")                      return "UDM";
     if (candidate.includes("DREAMMACHINE"))       return "UDM";
+    if (candidate.includes("UDM67A"))             return "UDMPRO";
     if (candidate.includes("UDMA67A"))            return "UDM";
     if (candidate.includes("UDR7"))               return "UDR7";
     if (candidate.includes("DREAMROUTER7"))       return "UDR7";

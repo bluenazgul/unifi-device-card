@@ -3422,14 +3422,21 @@ class UnifiDeviceCard extends HTMLElement {
     if (!this._integratedPortsEnabled(ctx) || !ctx?.numberedPorts?.length) return "";
 
     const { specials, numbered } = this._buildSlotData(ctx);
-    const allSlots = [...specials, ...numbered];
+    const specialPortNumbers = new Set(
+      specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
+    );
+    const visibleNumbered = numbered.filter((slot) => !specialPortNumbers.has(slot.port));
+    const allSlots = [...specials, ...visibleNumbered];
     if (!allSlots.length) return "";
 
     const selected = allSlots.find((p) => p.key === this._selectedKey)
       || (this._config?.dynamic_port_details === true ? null : allSlots[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
-    const rows = this._buildEffectiveRows(ctx, numbered);
+    const specialRow = specials.length
+      ? `<div class="special-row">${specials.map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex)).join("")}</div>`
+      : "";
+    const rows = this._buildEffectiveRows(ctx, visibleNumbered);
     const layoutRows = rows.map((rowPorts) => {
       const items = rowPorts
         .map((portNumber) => numbered.find((p) => p.port === portNumber))
@@ -3443,7 +3450,7 @@ class UnifiDeviceCard extends HTMLElement {
       <div class="integrated-port-section">
         <div class="frontpanel integrated-ports theme-${this._safeClassToken(ctx?.layout?.theme || "white", "white")}">
           <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
-          ${layoutRows || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`}
+          ${specialRow}${layoutRows || (!specialRow ? `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>` : "")}
         </div>
         ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
       </div>`;

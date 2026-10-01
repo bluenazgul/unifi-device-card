@@ -163,6 +163,16 @@ const dreamMachinePro = { model_id: "UDM-Pro", model: "Dream Machine Pro" };
 assert.equal(resolveModelKey(dreamMachinePro), "UDMPRO");
 assert.equal(getDeviceLayout(dreamMachinePro).displayModel, "UDM Pro");
 assert.equal(getDeviceLayout(dreamMachinePro).portCount, 11);
+assert.equal(
+  resolveModelKey({ model_id: "UDM67A", model: "Dream Machine Pro" }),
+  "UDMPRO",
+  "The legacy UDM67A identifier must retain the Dream Machine Pro layout"
+);
+assert.equal(
+  resolveModelKey({ model_id: "UDMPRO", name_by_user: "UDR7 lab" }),
+  "UDMPRO",
+  "A custom name must not override an exact model ID"
+);
 
 for (const cableInternet of [
   { model: "UCI" },
