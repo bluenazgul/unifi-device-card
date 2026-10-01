@@ -122,6 +122,29 @@ assert.equal(
   "UAPA6A9 must display the U7 Pro XG product name"
 );
 
+for (const cableInternet of [
+  { model: "UCI" },
+  { model_id: "UCI", model: "UniFi Access Point" },
+  { model: "UniFi Cable Internet" },
+]) {
+  const identifier = cableInternet.model_id || cableInternet.model;
+
+  assert.equal(resolveModelKey(cableInternet), "UCI");
+  assert.equal(
+    classifyDeviceType(cableInternet, { ap_stats: true }),
+    "gateway",
+    `${identifier} must be classified as a network appliance rather than an access point`
+  );
+  assert.deepEqual(getDeviceLayout(cableInternet).rows, [[1]]);
+  assert.equal(getDeviceLayout(cableInternet).portCount, 1);
+  assert.equal(getDeviceLayout(cableInternet).theme, "silver");
+  assert.deepEqual(
+    getDeviceLayout(cableInternet).specialSlots,
+    [],
+    `${identifier} must only expose the LAN port reported by the UniFi integration`
+  );
+}
+
 for (const identifier of ["UDB-S", "UDBS", "Device Bridge Switch"]) {
   const deviceBridgeSwitch = { model_id: identifier };
 

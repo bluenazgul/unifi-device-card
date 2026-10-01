@@ -147,6 +147,7 @@ If you like this project and want to support my work, you can donate via PayPal 
 | Enterprise Campus 24 PoE / 24S PoE (`ECS24POE`, `ECS24SPOE`) | 24 + 4 SFP28 | Silver |
 | Enterprise Campus 48 PoE / 48S PoE (`ECS48POE`, `ECS48SPOE`) | 48 + 4 SFP28 | Silver |
 | Enterprise Campus Aggregation (`ECSAGGREGATION`) | 32 SFP28 | Silver |
+| UniFi Cable Internet (`UCI`) | 1 LAN | Silver |
 | Enterprise Fortress Gateway (`EFG`) | Gateway ports | Silver |
 | Dream Machine Pro Max (`UDMPROMAX`) | 8 + WAN/SFP+ | Silver |
 | Dream Machine Beast (`UDMBEAST`) | 8 + WAN/SFP+ | Silver |
