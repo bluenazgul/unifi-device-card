@@ -122,9 +122,51 @@ assert.equal(
   "UAPA6A9 must display the U7 Pro XG product name"
 );
 
+for (const dreamRouter7 of [
+  { model_id: "UDR7" },
+  { model_id: "UDMA67A", model: "UDMA67A (UDR7)" },
+  { model_id: "UDMA67A", model: "Dream Router 7" },
+]) {
+  assert.equal(classifyDeviceType(dreamRouter7), "gateway");
+  assert.equal(resolveModelKey(dreamRouter7), "UDR7");
+
+  const dreamRouterLayout = getDeviceLayout(dreamRouter7);
+  assert.equal(dreamRouterLayout.modelKey, "UDR7");
+  assert.equal(dreamRouterLayout.supportsIntegratedWifi, true);
+  assert.equal(dreamRouterLayout.supportsIntegratedPorts, true);
+  assert.equal(dreamRouterLayout.supportsHybridLayouts, true);
+  assert.equal(dreamRouterLayout.apFrontStyle, "ap-dream-router");
+  assert.deepEqual(dreamRouterLayout.rows, [[1, 2, 3]]);
+}
+
+const dreamMachine = { model_id: "UDMA67A", model: "Dream Machine" };
+assert.equal(resolveModelKey(dreamMachine), "UDM");
+assert.notEqual(resolveModelKey(dreamMachine), "UDR7");
+assert.equal(getDeviceLayout(dreamMachine).displayModel, "Dream Machine");
+assert.deepEqual(getDeviceLayout(dreamMachine).rows, [[1, 2, 3, 4]]);
+assert.equal(getDeviceLayout(dreamMachine).supportsHybridLayouts, true);
+assert.equal(getDeviceLayout(dreamMachine).apFrontStyle, "ap-dream-machine");
+assert.notEqual(
+  resolveModelKey({ model_id: "UDM67A" }),
+  "UDR7",
+  "An identifier without an explicit UDR7 product hint must not select the Dream Router 7"
+);
+
+const dreamRouter = { model_id: "UDR", model: "Dream Router" };
+assert.equal(resolveModelKey(dreamRouter), "UDR");
+assert.equal(getDeviceLayout(dreamRouter).displayModel, "Dream Router");
+assert.deepEqual(getDeviceLayout(dreamRouter).rows, [[1, 2, 3, 4]]);
+assert.equal(getDeviceLayout(dreamRouter).supportsHybridLayouts, true);
+assert.equal(getDeviceLayout(dreamRouter).apFrontStyle, "ap-dream-router");
+
+const dreamMachinePro = { model_id: "UDM-Pro", model: "Dream Machine Pro" };
+assert.equal(resolveModelKey(dreamMachinePro), "UDMPRO");
+assert.equal(getDeviceLayout(dreamMachinePro).displayModel, "UDM Pro");
+assert.equal(getDeviceLayout(dreamMachinePro).portCount, 11);
+
 for (const cableInternet of [
   { model: "UCI" },
-  { model_id: "UCI", model: "UniFi Access Point" },
+  { model_id: "UCI" },
   { model: "UniFi Cable Internet" },
 ]) {
   const identifier = cableInternet.model_id || cableInternet.model;
