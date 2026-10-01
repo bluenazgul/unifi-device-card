@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.b21790b */
+/* UniFi Device Card 0.0.0-dev.e76c0c6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1045,24 +1045,16 @@ var MODEL_REGISTRY = {
     frontStyle: "gateway-single-row",
     rows: [[1, 2, 3]],
     portCount: 5,
-    displayModel: "UDM67A (UDR7)",
+    displayModel: "Dream Router 7",
     theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-dream-router",
     specialSlots: [
       { key: "wan", label: "WAN", port: 4 },
       { key: "sfp_1", label: "SFP+ WAN", port: 5 }
-    ]
-  },
-  UDM67A: {
-    kind: "gateway",
-    frontStyle: "gateway-rack",
-    rows: [range(1, 8)],
-    portCount: 11,
-    displayModel: "UDM67A (UDM-Pro / UDMPRO)",
-    theme: "silver",
-    specialSlots: [
-      { key: "wan", label: "WAN", port: 9 },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 }
     ]
   },
   UCGMAX: {
@@ -1106,8 +1098,13 @@ var MODEL_REGISTRY = {
     frontStyle: "gateway-single-row",
     rows: [[1, 2, 3, 4]],
     portCount: 5,
-    displayModel: "UDM",
+    displayModel: "Dream Machine",
     theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-dream-machine",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
   },
   UDR: {
@@ -1115,8 +1112,13 @@ var MODEL_REGISTRY = {
     frontStyle: "gateway-single-row",
     rows: [[1, 2, 3, 4]],
     portCount: 5,
-    displayModel: "UDR",
+    displayModel: "Dream Router",
     theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-dream-router",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }]
   },
   UDMPRO: {
@@ -1284,7 +1286,17 @@ function getFakeDevices() {
   }));
 }
 function resolveModelKey(device) {
+  const modelId = normalizeModelKey(device?.model_id);
   const candidates = [device?.model_id, device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).map(normalizeModelKey);
+  if (modelId && MODEL_REGISTRY[modelId]) return modelId;
+  if (modelId.includes("UDM67A")) return "UDMPRO";
+  const productCandidates = [device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
+  const hasAmbiguousDreamMachineId = !modelId || modelId.includes("UDMA67A");
+  if (hasAmbiguousDreamMachineId && productCandidates.some(
+    (candidate) => candidate.includes("UDR7") || candidate.includes("DREAMROUTER7")
+  )) {
+    return "UDR7";
+  }
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (MODEL_REGISTRY[candidate]) return candidate;
@@ -1393,14 +1405,14 @@ function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
     if (candidate === "UDM") return "UDM";
     if (candidate.includes("DREAMMACHINE")) return "UDM";
-    if (candidate.includes("UDM67AUDR7")) return "UDR7";
+    if (candidate.includes("UDM67A")) return "UDMPRO";
+    if (candidate.includes("UDMA67A")) return "UDM";
     if (candidate.includes("UDR7")) return "UDR7";
     if (candidate.includes("DREAMROUTER7")) return "UDR7";
     if (candidate.includes("UDR5GMAX")) return "UDR5GMAX";
     if (candidate.includes("DREAMROUTER5GMAX")) return "UDR5GMAX";
     if (candidate === "UDR") return "UDR";
     if (candidate.includes("DREAMROUTER")) return "UDR";
-    if (candidate.includes("UDM67A")) return "UDM67A";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -1623,8 +1635,7 @@ function inferPortCountFromModel(device) {
   if (text === "UDM" || text.includes("DREAMMACHINE")) return 5;
   if (text === "UDR" || text.includes("DREAMROUTER")) return 5;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
-  if (text.includes("UDM67AUDR7") || text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
-  if (text.includes("UDM67A")) return 11;
+  if (text.includes("UDMA67A") || text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX") || text.includes("CLOUDGATEWAYMAX")) return 5;
   if (text.includes("UCGINDUSTRIAL") || text.includes("CLOUDGATEWAYINDUSTRIAL")) return 6;
@@ -1693,23 +1704,11 @@ function inferPortCountFromModel(device) {
 }
 function getDeviceLayout(device, discoveredPorts = []) {
   const modelKey = resolveModelKey(device);
-  const normalizedText = normalizeModelKey(
-    [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).join(" ")
-  );
-  const maxDiscoveredPort = discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port || 0)) : 0;
   const inferredPortCount = inferPortCountFromModel(device) || (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
   const looksSwitchLike = modelStartsWith(device, SWITCH_MODEL_PREFIXES);
   const looksGatewayLike = modelStartsWith(device, GATEWAY_MODEL_PREFIXES);
-  let effectiveModelKey = modelKey;
-  if (effectiveModelKey === "UDM67A") {
-    if (normalizedText.includes("UDM67AUDR7") || normalizedText.includes("UDR7") || normalizedText.includes("DREAMROUTER7")) {
-      effectiveModelKey = "UDR7";
-    } else if (maxDiscoveredPort > 0 && maxDiscoveredPort <= 5) {
-      effectiveModelKey = "UDR7";
-    }
-  }
-  if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
-    return applyRj45LayoutHints({ modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] });
+  if (modelKey && MODEL_REGISTRY[modelKey]) {
+    return applyRj45LayoutHints({ modelKey, ...MODEL_REGISTRY[modelKey] });
   }
   if (looksGatewayLike && inferredPortCount > 0) {
     const lanPortCount = Math.max(1, inferredPortCount - 1);
@@ -3894,6 +3893,9 @@ function isApPortPanelAvailable(layout, discoveredPorts) {
 }
 function supportsDeviceLayoutModes(layout, discoveredPorts) {
   return layout?.supportsHybridLayouts === true || isApPortPanelAvailable(layout, discoveredPorts);
+}
+function shouldShowHybridVisualPanel(layout, config) {
+  return layout?.supportsHybridLayouts !== true || config?.show_panel !== false;
 }
 function resolveDisplayPort(port, displayPorts) {
   if (!port || !Array.isArray(displayPorts)) return null;
@@ -7015,7 +7017,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.b21790b";
+var VERSION = "0.0.0-dev.e76c0c6";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -8600,6 +8602,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       .frontpanel.ap-e7,
       .frontpanel.ap-e7-audience,
       .frontpanel.ap-basestation,
+      .frontpanel.ap-dream-machine,
+      .frontpanel.ap-dream-router,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
@@ -8645,6 +8649,10 @@ var UnifiDeviceCard = class extends HTMLElement {
         align-items: stretch;
       }
 
+      .ap-layout.panel-hidden {
+        display: block;
+      }
+
       .ap-layout.compact .frontpanel.ap-disc,
       .ap-layout.compact .frontpanel.ap-in-wall,
       .ap-layout.compact .frontpanel.ap-u7-outdoor,
@@ -8664,6 +8672,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       .ap-layout.compact .frontpanel.ap-e7,
       .ap-layout.compact .frontpanel.ap-e7-audience,
       .ap-layout.compact .frontpanel.ap-basestation,
+      .ap-layout.compact .frontpanel.ap-dream-machine,
+      .ap-layout.compact .frontpanel.ap-dream-router,
       .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
@@ -9043,6 +9053,67 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
 
       .ap-mesh-column-device .ap-shaped-led { display: none; }
+
+      .ap-dream-machine-device,
+      .ap-dream-router-device {
+        width: calc(142px * var(--udc-ap-scale));
+        aspect-ratio: .61 / 1;
+        border-radius: 48% 48% 34% 34% / 15% 15% 12% 12%;
+        background: linear-gradient(90deg, #dfe2e4 0%, #fff 30%, #fafafa 64%, #d9dddf 100%);
+      }
+
+      .ap-dream-machine-device::before,
+      .ap-dream-router-device::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        box-sizing: border-box;
+        left: -1px;
+        top: -1px;
+        width: calc(100% + 2px);
+        height: 18%;
+        border: max(2px, calc(3px * var(--udc-ap-scale))) solid var(--ap-ring-color, #62c8fa);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 42%, #fff 0%, #f5f6f7 58%, #dce0e3 100%);
+        box-shadow: 0 0 calc(10px * var(--udc-ap-scale)) color-mix(in srgb, var(--ap-ring-color, #62c8fa) 58%, transparent);
+      }
+
+      .ap-dream-machine-device.off::before,
+      .ap-dream-router-device.off::before {
+        border-color: #aeb4ba;
+        box-shadow: none;
+      }
+
+      .ap-dream-machine-device .ap-shaped-logo,
+      .ap-dream-machine-device .ap-shaped-led,
+      .ap-dream-router-device .ap-shaped-logo,
+      .ap-dream-router-device .ap-shaped-led { display: none; }
+
+      .ap-dream-router-display {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        top: 48%;
+        width: calc(16px * var(--udc-ap-scale));
+        height: calc(31px * var(--udc-ap-scale));
+        transform: translate(-50%, -50%);
+        border-radius: calc(8px * var(--udc-ap-scale));
+        background: linear-gradient(180deg, #142989 0%, #0647ac 56%, #0878c8 100%);
+        border: 1px solid rgba(0, 23, 87, .7);
+        box-shadow: inset 0 0 calc(3px * var(--udc-ap-scale)) rgba(81, 202, 255, .45), 0 1px 2px rgba(0, 0, 0, .2);
+      }
+
+      .ap-dream-router-display::before {
+        content: "";
+        position: absolute;
+        left: 28%;
+        right: 28%;
+        top: 28%;
+        height: 2px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .9);
+        box-shadow: 0 calc(5px * var(--udc-ap-scale)) rgba(113, 231, 255, .9), 0 calc(10px * var(--udc-ap-scale)) rgba(255, 255, 255, .72);
+      }
 
       .ap-mesh-antenna-device { width: calc(105px * var(--udc-ap-scale)); aspect-ratio: .55 / 1; border-radius: calc(22px * var(--udc-ap-scale)); transform: translateY(calc(15px * var(--udc-ap-scale))); }
       .ap-mesh-antenna-device::before,
@@ -9963,11 +10034,16 @@ var UnifiDeviceCard = class extends HTMLElement {
   _renderIntegratedPortSection(ctx) {
     if (!this._integratedPortsEnabled(ctx) || !ctx?.numberedPorts?.length) return "";
     const { specials, numbered } = this._buildSlotData(ctx);
-    const allSlots = [...specials, ...numbered];
+    const specialPortNumbers = new Set(
+      specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
+    );
+    const visibleNumbered = numbered.filter((slot) => !specialPortNumbers.has(slot.port));
+    const allSlots = [...specials, ...visibleNumbered];
     if (!allSlots.length) return "";
     const selected = allSlots.find((p) => p.key === this._selectedKey) || (this._config?.dynamic_port_details === true ? null : allSlots[0]) || null;
     const portClientIndex = this._buildPortClientIndex();
-    const rows = this._buildEffectiveRows(ctx, numbered);
+    const specialRow = specials.length ? `<div class="special-row">${specials.map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex)).join("")}</div>` : "";
+    const rows = this._buildEffectiveRows(ctx, visibleNumbered);
     const layoutRows = rows.map((rowPorts) => {
       const items = rowPorts.map((portNumber) => numbered.find((p) => p.port === portNumber)).filter(Boolean).map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex)).join("");
       return items ? `<div class="port-row" style="--udc-cols: ${Math.max(1, rowPorts.length)};">${items}</div>` : "";
@@ -9976,7 +10052,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       <div class="integrated-port-section">
         <div class="frontpanel integrated-ports theme-${this._safeClassToken(ctx?.layout?.theme || "white", "white")}">
           <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
-          ${layoutRows || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`}
+          ${specialRow}${layoutRows || (!specialRow ? `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>` : "")}
         </div>
         ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
       </div>`;
@@ -10006,6 +10082,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
+      const showVisualPanel = shouldShowHybridVisualPanel(this._ctx?.layout, this._config);
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
       const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
       const apStatusClass = apStatusRaw === "connected" ? "online" : apStatusRaw === "disconnected" ? "offline" : "pending";
@@ -10018,6 +10095,8 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       const apFrontStyle = this._ctx?.layout?.apFrontStyle || this._ctx?.layout?.frontStyle;
       const isInWallAp = apFrontStyle === "ap-in-wall";
       const isU7Outdoor = apFrontStyle === "ap-u7-outdoor";
+      const isDreamMachine = apFrontStyle === "ap-dream-machine";
+      const isDreamRouter = apFrontStyle === "ap-dream-router";
       const shapedApStyles = /* @__PURE__ */ new Set([
         "ap-mesh-column",
         "ap-mesh-antenna",
@@ -10034,7 +10113,9 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
         "ap-building-bridge",
         "ap-e7",
         "ap-e7-audience",
-        "ap-basestation"
+        "ap-basestation",
+        "ap-dream-machine",
+        "ap-dream-router"
       ]);
       const renderedApStyle = isFiveGBackup || isInWallAp || isU7Outdoor || shapedApStyles.has(apFrontStyle) ? apFrontStyle : "ap-disc";
       const usesApEdgeGlow = !!this._ctx?.layout?.apEdgeGlow;
@@ -10061,7 +10142,8 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
             </div>
           </div>
 
-          <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
+          <div class="ap-layout ${compactApView ? "compact" : ""}${showVisualPanel ? "" : " panel-hidden"}${showVisualPanel && this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
+            ${showVisualPanel ? `
             <div class="frontpanel ${renderedApStyle}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
@@ -10087,6 +10169,9 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
               <div class="ap-device ap-u7-outdoor-device">
                 <div class="ap-u7-outdoor-logo">U</div>
                 <div class="ap-u7-outdoor-led ${ledEnabled ? "" : "off"}"></div>
+              </div>` : isDreamMachine || isDreamRouter ? `
+              <div class="ap-device ap-shaped-device ${apFrontStyle}-device${ledEnabled ? "" : " off"}">
+                ${isDreamRouter ? `<div class="ap-dream-router-display"></div>` : ""}
               </div>` : shapedApStyles.has(apFrontStyle) ? `
               <div class="ap-device ap-shaped-device ${apFrontStyle}-device${usesApEdgeGlow ? " edge-glow" : ""}${ledEnabled ? "" : " off"}">
                 <div class="ap-shaped-logo">U</div>
@@ -10097,7 +10182,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
                   <div class="ap-logo">u</div>
                 </div>
               </div>`}
-            </div>
+            </div>` : ""}
 
             <div class="section">
               <div class="detail-grid">
@@ -10131,7 +10216,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
             </div>
           </div>
 
-          ${this._renderIntegratedPortSection(this._ctx)}
+          ${showVisualPanel ? this._renderIntegratedPortSection(this._ctx) : ""}
         </ha-card>`;
       this._attachPortActionHandlers(this._ctx);
       this._attachDeviceLinkHandler();
