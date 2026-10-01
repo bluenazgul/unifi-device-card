@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.72-dev */
+/* UniFi Device Card 0.0.0-dev.b21790b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -21,7 +21,7 @@ function apModel(displayModel, options = {}) {
 }
 var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 var SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR", "UCI"];
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model_id, device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
@@ -972,6 +972,15 @@ var MODEL_REGISTRY = {
   // ══════════════════════════════════════════════════════════════════════════
   // GATEWAYS
   // ══════════════════════════════════════════════════════════════════════════
+  UCI: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1]],
+    portCount: 1,
+    displayModel: "UniFi Cable Internet",
+    theme: "silver",
+    specialSlots: []
+  },
   EFG: {
     kind: "gateway",
     frontStyle: "gateway-rack",
@@ -1379,6 +1388,7 @@ function resolveModelKey(device) {
     if (candidate === "UDBS" || candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBS";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
+    if (candidate === "UCI" || candidate === "UNIFICABLEINTERNET") return "UCI";
     if (candidate.includes("UCGFIBER")) return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER")) return "UCGFIBER";
     if (candidate === "UDM") return "UDM";
@@ -7005,7 +7015,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.72-dev";
+var VERSION = "0.0.0-dev.b21790b";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
