@@ -233,6 +233,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "UPS",
   },
 
   de: {
@@ -458,6 +459,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "USV",
   },
 
   nl: {
@@ -473,6 +475,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "CPU-temperatuur",
     memory_utilization: "Geheugengebruik",
     temperature:        "Temperatuur",
+    ups_telemetry:      "UPS-telemetrie",
+    ups_battery_level:  "Batterijniveau",
+    ups_battery_runtime: "Batterijduur",
+    ups_output_power:   "Uitgangsvermogen",
+    ups_output_current: "Uitgangsstroom",
+    ups_output_voltage: "Uitgangsspanning",
+    ups_input_voltage:  "Ingangsspanning",
+    ups_bypass_voltage: "Bypass-spanning",
+    ups_output_power_factor: "Uitgangsvermogensfactor",
 
     // Port detail
     link_status:        "Linkstatus",
@@ -670,6 +681,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "UPS",
   },
 
   fr: {
@@ -685,6 +697,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "Température CPU",
     memory_utilization: "Utilisation mémoire",
     temperature:        "Température",
+    ups_telemetry:      "Télémétrie de l’onduleur",
+    ups_battery_level:  "Niveau de batterie",
+    ups_battery_runtime: "Autonomie de la batterie",
+    ups_output_power:   "Puissance de sortie",
+    ups_output_current: "Courant de sortie",
+    ups_output_voltage: "Tension de sortie",
+    ups_input_voltage:  "Tension d’entrée",
+    ups_bypass_voltage: "Tension de dérivation",
+    ups_output_power_factor: "Facteur de puissance de sortie",
 
     // Port detail
     link_status:        "État du lien",
@@ -882,6 +903,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Passerelle",
     type_access_point: "Point d’accès",
+    type_ups: "Onduleur",
   },
 
   es: {
@@ -897,6 +919,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "Temperatura de CPU",
     memory_utilization: "Uso de memoria",
     temperature:        "Temperatura",
+    ups_telemetry:      "Telemetría del UPS",
+    ups_battery_level:  "Nivel de batería",
+    ups_battery_runtime: "Autonomía de la batería",
+    ups_output_power:   "Potencia de salida",
+    ups_output_current: "Corriente de salida",
+    ups_output_voltage: "Tensión de salida",
+    ups_input_voltage:  "Tensión de entrada",
+    ups_bypass_voltage: "Tensión de bypass",
+    ups_output_power_factor: "Factor de potencia de salida",
 
     // Port detail
     link_status:        "Estado del enlace",
@@ -1094,6 +1125,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Punto de acceso",
+    type_ups: "UPS",
   },
 
   it: {
@@ -1109,6 +1141,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "Temperatura CPU",
     memory_utilization: "Utilizzo memoria",
     temperature:        "Temperatura",
+    ups_telemetry:      "Telemetria UPS",
+    ups_battery_level:  "Livello batteria",
+    ups_battery_runtime: "Autonomia batteria",
+    ups_output_power:   "Potenza in uscita",
+    ups_output_current: "Corrente in uscita",
+    ups_output_voltage: "Tensione in uscita",
+    ups_input_voltage:  "Tensione in ingresso",
+    ups_bypass_voltage: "Tensione di bypass",
+    ups_output_power_factor: "Fattore di potenza in uscita",
 
     // Port detail
     link_status:        "Stato collegamento",
@@ -1306,11 +1347,22 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "UPS",
   },
 };
 
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batterinivå",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Uteffekt",
+  ups_output_current: "Utström",
+  ups_output_voltage: "Utspänning",
+  ups_input_voltage: "Inspänning",
+  ups_bypass_voltage: "Bypass-spänning",
+  ups_output_power_factor: "Utgående effektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Ursprunglig uplink-port",
   editor_default_uplink_port_legacy: "Tidigare beteende (första porten)",
   editor_default_uplink_port_auto: "Automatiskt (aktiv uplink)",
@@ -1344,6 +1396,16 @@ TRANSLATIONS.sv = {
 
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batteriniveau",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Udgangseffekt",
+  ups_output_current: "Udgangsstrøm",
+  ups_output_voltage: "Udgangsspænding",
+  ups_input_voltage: "Indgangsspænding",
+  ups_bypass_voltage: "Bypass-spænding",
+  ups_output_power_factor: "Udgangseffektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Oprindelig uplink-port",
   editor_default_uplink_port_legacy: "Hidtidig adfærd (første port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
@@ -1377,6 +1439,16 @@ TRANSLATIONS.da = {
 
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batterinivå",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Utgangseffekt",
+  ups_output_current: "Utgangsstrøm",
+  ups_output_voltage: "Utgangsspenning",
+  ups_input_voltage: "Inngangsspenning",
+  ups_bypass_voltage: "Bypass-spenning",
+  ups_output_power_factor: "Utgangseffektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Opprinnelig uplink-port",
   editor_default_uplink_port_legacy: "Tidligere virkemåte (første port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
@@ -1410,6 +1482,16 @@ TRANSLATIONS.no = {
 
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetria",
+  ups_battery_level: "Akun varaustaso",
+  ups_battery_runtime: "Akun käyttöaika",
+  ups_output_power: "Lähtöteho",
+  ups_output_current: "Lähtövirta",
+  ups_output_voltage: "Lähtöjännite",
+  ups_input_voltage: "Tulojännite",
+  ups_bypass_voltage: "Ohitusjännite",
+  ups_output_power_factor: "Lähdön tehokerroin",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Alkuperäinen uplink-portti",
   editor_default_uplink_port_legacy: "Aiempi toiminta (ensimmäinen portti)",
   editor_default_uplink_port_auto: "Automaattinen (aktiivinen uplink)",
@@ -1443,6 +1525,16 @@ TRANSLATIONS.fi = {
 
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "Telemetria UPS",
+  ups_battery_level: "Poziom baterii",
+  ups_battery_runtime: "Czas pracy baterii",
+  ups_output_power: "Moc wyjściowa",
+  ups_output_current: "Prąd wyjściowy",
+  ups_output_voltage: "Napięcie wyjściowe",
+  ups_input_voltage: "Napięcie wejściowe",
+  ups_bypass_voltage: "Napięcie obejściowe",
+  ups_output_power_factor: "Wyjściowy współczynnik mocy",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Początkowy port uplink",
   editor_default_uplink_port_legacy: "Dotychczasowe działanie (pierwszy port)",
   editor_default_uplink_port_auto: "Automatycznie (aktywny uplink)",
@@ -1476,6 +1568,16 @@ TRANSLATIONS.pl = {
 
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "Telemetrie UPS",
+  ups_battery_level: "Úroveň baterie",
+  ups_battery_runtime: "Doba provozu na baterii",
+  ups_output_power: "Výstupní výkon",
+  ups_output_current: "Výstupní proud",
+  ups_output_voltage: "Výstupní napětí",
+  ups_input_voltage: "Vstupní napětí",
+  ups_bypass_voltage: "Napětí bypassu",
+  ups_output_power_factor: "Výstupní účiník",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Počáteční uplink port",
   editor_default_uplink_port_legacy: "Dosavadní chování (první port)",
   editor_default_uplink_port_auto: "Automaticky (aktivní uplink)",

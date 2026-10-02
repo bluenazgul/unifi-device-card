@@ -1495,6 +1495,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _renderUpsCard(ctx) {
     const metrics = this._upsMetrics();
+    const telemetryEnabled = this._telemetryEnabled();
     const headerTitle = this._title();
     const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
     const ventSlots = "<span></span>".repeat(5);
@@ -1521,14 +1522,14 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="ups-vents bottom">${ventSlots}</div>
           </div>
         </div>
-        <div class="section">
+        ${telemetryEnabled ? `<div class="section">
           <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
           ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
             <div class="detail-item">
               <div class="detail-label">${this._escapeHtml(item.label)}</div>
               <div class="detail-value">${this._escapeHtml(item.value)}</div>
             </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
-        </div>
+        </div>` : ""}
       </ha-card>`;
     this._attachDeviceLinkHandler();
     this.shadowRoot.querySelector("[data-action='reboot-device']")

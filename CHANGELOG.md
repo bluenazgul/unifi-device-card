@@ -6,6 +6,9 @@
 - Prepare for Home Assistant's UniFi UPS support by recognizing UPS 2U models, rendering their silver rackmount fronts (including the UPS 2U Pro display), and displaying battery, runtime, voltage, current, output power, and power-factor telemetry.
 
 ### 🐛 Bug Fixes
+- Keep UPS output power and output power factor mapped to their respective sensors when legacy entity-registry data lacks translation metadata.
+- Hide the UPS telemetry section completely when header telemetry is disabled.
+- Add UPS telemetry translations for every language supported by the card.
 - Recognize UniFi Cable Internet (`UCI`) as a silver one-port network appliance instead of an access point; the cable connector remains omitted because the UniFi integration does not expose it.
 - Add distinct hybrid gateway/access-point graphics for the Dream Router 7 (`UDR7`), Dream Router (`UDR`), and original Dream Machine (`UDM`): both routers include their front display, while the Dream Machine uses the same enclosure without a display.
 - Keep Home Assistant's `UDMA67A (UDR7)` identity mapped to Dream Router 7, a plain `UDMA67A` mapped to Dream Machine, and `UDM-Pro` mapped separately to Dream Machine Pro.

@@ -476,6 +476,22 @@ function findDeviceEntityByPatterns(entities, patterns = [], candidateIsValid = 
   return null;
 }
 
+function findDeviceEntityByCanonicalSuffix(entities, key) {
+  const canonicalKey = canonicalStatText(key);
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const candidates = [entity?.entity_id?.split(".").slice(1).join("."), entity?.original_name, entity?.name];
+    if (candidates.some((value) => {
+      const canonicalValue = canonicalStatText(value);
+      return canonicalValue === canonicalKey || canonicalValue.endsWith(`_${canonicalKey}`);
+    })) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
+
 function isPortLevelTelemetrySensor(entity) {
   const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return (
@@ -759,7 +775,7 @@ export function getDeviceTelemetry(entities, hass = null) {
       preferUsableTelemetryMatch([
         findDeviceUniqueIdTelemetryEntity(candidates, [key]),
         findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === key),
-        findDeviceEntityByPatterns(candidates, [key]),
+        findDeviceEntityByCanonicalSuffix(candidates, key),
       ], hass),
     ])),
   };
