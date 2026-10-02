@@ -7,6 +7,7 @@ import {
   hasUpsFrontDisplay,
 } from "../src/helpers.js";
 import { getTranslations } from "../src/translations.js";
+import { parseUnifiDeviceUniqueId } from "../src/unique-id.js";
 
 const entities = [
   ["ups_battery_level", "sensor.ups_battery_level"],
@@ -42,6 +43,20 @@ for (const entity of entities) {
   assert.equal(telemetry[`${entity.translation_key}_entity`], entity.entity_id);
 }
 assert.equal(telemetry.ups_bypass_voltage_entity, null);
+
+const renamedBatteryEntity = {
+  entity_id: "sensor.server_room_charge",
+  unique_id: "ups_battery_level-aa:bb:cc:dd:ee:ff",
+};
+assert.deepEqual(parseUnifiDeviceUniqueId(renamedBatteryEntity.unique_id), {
+  feature: "ups_battery_level",
+  mac: "aa:bb:cc:dd:ee:ff",
+});
+assert.equal(
+  getDeviceTelemetry([renamedBatteryEntity]).ups_battery_level_entity,
+  renamedBatteryEntity.entity_id,
+  "renamed UPS sensors must remain discoverable from their unique ID"
+);
 
 const overlappingPowerTelemetry = getDeviceTelemetry([
   { entity_id: "sensor.rack_ups_output_power_factor" },
