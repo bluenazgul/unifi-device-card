@@ -2,6 +2,9 @@
 
 ## [v0.8.9]
 
+### ✨ Improvements
+- Prepare for Home Assistant's UniFi UPS support by recognizing UPS 2U models, rendering their silver rackmount fronts (including the UPS 2U Pro display), and displaying battery, runtime, voltage, current, output power, and power-factor telemetry.
+
 ### 🐛 Bug Fixes
 - Recognize UniFi Cable Internet (`UCI`) as a silver one-port network appliance instead of an access point; the cable connector remains omitted because the UniFi integration does not expose it.
 - Add distinct hybrid gateway/access-point graphics for the Dream Router 7 (`UDR7`), Dream Router (`UDR`), and original Dream Machine (`UDM`): both routers include their front display, while the Dream Machine uses the same enclosure without a display.

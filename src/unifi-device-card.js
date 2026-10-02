@@ -15,6 +15,7 @@ import {
   getPoeStatus,
   getPortSpeedText,
   hasTraffic,
+  hasUpsFrontDisplay,
   isUptimeTimestampState,
   isSfpLikePort,
   isOn,
@@ -1476,6 +1477,64 @@ class UnifiDeviceCard extends HTMLElement {
       }));
   }
 
+  _upsMetrics() {
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    return [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_input_voltage",
+      "ups_bypass_voltage",
+      "ups_output_power_factor",
+    ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] }))
+      .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
+      .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+  }
+
+  _renderUpsCard(ctx) {
+    const metrics = this._upsMetrics();
+    const headerTitle = this._title();
+    const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const ventSlots = "<span></span>".repeat(5);
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions">
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        <div class="ups-visual" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+          <div class="ups-chassis${hasDisplay ? " pro" : ""}">
+            <div class="ups-vents top">${ventSlots}</div>
+            <div class="ups-power"><span></span></div>
+            <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
+            ${hasDisplay ? `<div class="ups-display">
+              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
+              <span></span>
+            </div>` : `<div class="ups-logo">U</div>`}
+            <div class="ups-vents bottom">${ventSlots}</div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
+          ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
+            <div class="detail-item">
+              <div class="detail-label">${this._escapeHtml(item.label)}</div>
+              <div class="detail-value">${this._escapeHtml(item.value)}</div>
+            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+        </div>
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this.shadowRoot.querySelector("[data-action='reboot-device']")
+      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+  }
+
   /**
    * Wrapper around the module-level isPortConnected() that adds sticky-state
    * tracking for SFP-like ports.  When a port has been observed with live
@@ -1851,6 +1910,168 @@ class UnifiDeviceCard extends HTMLElement {
       @keyframes blink {
         0%, 100% { opacity: 1; }
         50% { opacity: .4; }
+      }
+
+      .ups-visual {
+        padding: 18px 20px;
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
+      }
+
+      .ups-chassis {
+        position: relative;
+        box-sizing: border-box;
+        width: min(100%, 640px);
+        aspect-ratio: 4.9 / 1;
+        min-height: 92px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #aeb2b5;
+        border-radius: 5px 5px 3px 3px;
+        background: linear-gradient(110deg, #dadcdc 0%, #c7c9ca 48%, #e3e4e4 100%);
+        box-shadow:
+          inset 0 1px 1px rgba(255,255,255,.95),
+          inset 0 -6px 8px rgba(83,88,91,.16),
+          0 7px 8px -6px rgba(0,0,0,.7);
+      }
+
+      .ups-chassis::after {
+        content: "";
+        position: absolute;
+        right: 1.5%;
+        bottom: -3px;
+        left: 1.5%;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(66,71,74,.3);
+        filter: blur(2px);
+      }
+
+      .ups-vents {
+        position: absolute;
+        right: 3.2%;
+        left: 3.2%;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.2%;
+      }
+
+      .ups-vents.top { top: 6%; }
+      .ups-vents.bottom { bottom: 7%; }
+
+      .ups-vents span {
+        height: 6px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(#787d80, #f7f8f8 45%, #9b9fa1 55%, #696e71);
+        box-shadow: inset 0 1px 1px rgba(33,37,39,.75);
+      }
+
+      .ups-vents.bottom span {
+        transform: rotate(180deg);
+      }
+
+      .ups-power {
+        position: absolute;
+        top: 38%;
+        left: 4.1%;
+        width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        border: 2px solid #0799e4;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,153,228,.45), inset 0 0 4px rgba(255,255,255,.8);
+      }
+
+      .ups-power span {
+        position: absolute;
+        top: 2px;
+        left: 5px;
+        width: 2px;
+        height: 6px;
+        border-radius: 1px;
+        background: #0799e4;
+      }
+
+      .ups-wordmark {
+        position: absolute;
+        top: 43%;
+        left: 7.2%;
+        color: #62686d;
+        font-size: clamp(5px, 1.3vw, 9px);
+        line-height: 1;
+        letter-spacing: -.02em;
+      }
+
+      .ups-wordmark i {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        margin-right: 2px;
+        border-radius: 50%;
+        background: #168ed0;
+        vertical-align: 1px;
+      }
+
+      .ups-wordmark strong { font-weight: 700; }
+
+      .ups-logo {
+        position: absolute;
+        top: 38%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #9ba1a5;
+        font-size: clamp(16px, 4vw, 25px);
+        font-weight: 800;
+        opacity: .8;
+      }
+
+      .ups-display {
+        position: absolute;
+        top: 31%;
+        left: 50%;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 21%;
+        min-width: 82px;
+        height: 31%;
+        min-height: 27px;
+        padding: 4px 6px;
+        box-sizing: border-box;
+        transform: translateX(-50%);
+        border: 1px solid #070b22;
+        border-radius: 3px;
+        background: linear-gradient(110deg, #030618, #07103e 62%, #030515);
+        box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
+      }
+
+      .ups-display-grid {
+        display: grid;
+        flex: 1;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2px;
+      }
+
+      .ups-display-grid i {
+        aspect-ratio: 1.45 / 1;
+        border: 1px solid rgba(84,154,255,.52);
+        border-radius: 1px;
+        background: linear-gradient(135deg, #073a9b, #0879e4);
+        box-shadow: inset 0 0 2px rgba(116,189,255,.65);
+      }
+
+      .ups-display > span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7ca6ff;
+        box-shadow: 0 0 3px #367bff;
+      }
+
+      @media (max-width: 420px) {
+        .ups-visual { padding: 14px 12px; }
+        .ups-chassis { min-height: 70px; }
+        .ups-vents span { height: 5px; }
       }
 
       .frontpanel {
@@ -3483,6 +3704,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "ups") {
+      this._renderUpsCard(this._ctx);
+      return;
+    }
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const renderApLayout = layoutMode !== "network" && (
       this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts

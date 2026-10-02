@@ -23,6 +23,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "CPU temperature",
     memory_utilization: "Memory utilization",
     temperature:        "Temperature",
+    ups_telemetry:      "UPS telemetry",
+    ups_battery_level:  "Battery level",
+    ups_battery_runtime: "Battery runtime",
+    ups_output_power:   "Output power",
+    ups_output_current: "Output current",
+    ups_output_voltage: "Output voltage",
+    ups_input_voltage:  "Input voltage",
+    ups_bypass_voltage: "Bypass voltage",
+    ups_output_power_factor: "Output power factor",
 
     // Port detail
     link_status:        "Link Status",
@@ -119,7 +128,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "AP compact header",
     editor_ap_compact_header_telemetry_text:  "Show telemetry in compact header",
     editor_ap_compact_header_telemetry_hint:  "Only visible in compact AP layout. Adds utilization and temperature to the header.",
-    editor_no_devices:     "No UniFi switches, gateways, or access points found in Home Assistant.",
+    editor_no_devices:     "No UniFi switches, gateways, access points, or UPS devices found in Home Assistant.",
     editor_hint:           "Only devices from the UniFi Network Integration are shown.",
     editor_error:          "Failed to load UniFi devices.",
 
@@ -239,6 +248,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "CPU-Temperatur",
     memory_utilization: "Speicherauslastung",
     temperature:        "Temperatur",
+    ups_telemetry:      "USV-Telemetrie",
+    ups_battery_level:  "Batteriestand",
+    ups_battery_runtime: "Batterielaufzeit",
+    ups_output_power:   "Ausgangsleistung",
+    ups_output_current: "Ausgangsstrom",
+    ups_output_voltage: "Ausgangsspannung",
+    ups_input_voltage:  "Eingangsspannung",
+    ups_bypass_voltage: "Bypass-Spannung",
+    ups_output_power_factor: "Ausgangsleistungsfaktor",
 
     // Port detail
     link_status:        "Link Status",
@@ -335,7 +353,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Kompakter AP-Header",
     editor_ap_compact_header_telemetry_text:  "Telemetrie im kompakten Header anzeigen",
     editor_ap_compact_header_telemetry_hint:  "Nur in der kompakten AP-Ansicht sichtbar. Fügt Auslastung und Temperatur im Header hinzu.",
-    editor_no_devices:     "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
+    editor_no_devices:     "Keine UniFi Switches, Gateways, Access Points oder USV-Geräte in Home Assistant gefunden.",
     editor_hint:           "Nur Geräte aus der UniFi Network Integration werden angezeigt.",
     editor_error:          "UniFi-Geräte konnten nicht geladen werden.",
 
@@ -551,7 +569,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Compacte AP-header",
     editor_ap_compact_header_telemetry_text:  "Telemetrie in compacte header tonen",
     editor_ap_compact_header_telemetry_hint:  "Alleen zichtbaar in compacte AP-weergave. Voegt gebruik en temperatuur toe aan de header.",
-    editor_no_devices:     "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
+    editor_no_devices:     "Geen UniFi-switches, -gateways, access points of UPS-apparaten gevonden in Home Assistant.",
     editor_hint:           "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error:          "UniFi-apparaten konden niet worden geladen.",
 
@@ -763,7 +781,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "En-tête AP compact",
     editor_ap_compact_header_telemetry_text:  "Afficher la télémétrie dans l’en-tête compact",
     editor_ap_compact_header_telemetry_hint:  "Visible uniquement en vue AP compacte. Ajoute l’utilisation et la température dans l’en-tête.",
-    editor_no_devices:     "Aucun switch, gateway ou point d’accès UniFi trouvé dans Home Assistant.",
+    editor_no_devices:     "Aucun switch, gateway, point d’accès ou onduleur UniFi trouvé dans Home Assistant.",
     editor_hint:           "Seuls les appareils de l'intégration UniFi Network sont affichés.",
     editor_error:          "Impossible de charger les appareils UniFi.",
 
@@ -975,7 +993,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Encabezado AP compacto",
     editor_ap_compact_header_telemetry_text:  "Mostrar telemetría en el encabezado compacto",
     editor_ap_compact_header_telemetry_hint:  "Solo visible en vista AP compacta. Añade uso y temperatura en el encabezado.",
-    editor_no_devices:     "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
+    editor_no_devices:     "No se encontraron switches, gateways, puntos de acceso o dispositivos UPS UniFi en Home Assistant.",
     editor_hint:           "Solo se muestran dispositivos de la integración UniFi Network.",
     editor_error:          "No se pudieron cargar los dispositivos UniFi.",
 
@@ -1187,7 +1205,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Header AP compatto",
     editor_ap_compact_header_telemetry_text:  "Mostra telemetria nell’header compatto",
     editor_ap_compact_header_telemetry_hint:  "Visibile solo nella vista AP compatta. Aggiunge utilizzo e temperatura nell’header.",
-    editor_no_devices:     "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
+    editor_no_devices:     "Nessuno switch, gateway, access point o dispositivo UPS UniFi trovato in Home Assistant.",
     editor_hint:           "Vengono mostrati solo i dispositivi dell’integrazione UniFi Network.",
     editor_error:          "Impossibile caricare i dispositivi UniFi.",
 
