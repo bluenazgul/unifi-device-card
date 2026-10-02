@@ -23,6 +23,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "CPU temperature",
     memory_utilization: "Memory utilization",
     temperature:        "Temperature",
+    ups_telemetry:      "UPS telemetry",
+    ups_battery_level:  "Battery level",
+    ups_battery_runtime: "Battery runtime",
+    ups_output_power:   "Output power",
+    ups_output_current: "Output current",
+    ups_output_voltage: "Output voltage",
+    ups_input_voltage:  "Input voltage",
+    ups_bypass_voltage: "Bypass voltage",
+    ups_output_power_factor: "Output power factor",
 
     // Port detail
     link_status:        "Link Status",
@@ -119,7 +128,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "AP compact header",
     editor_ap_compact_header_telemetry_text:  "Show telemetry in compact header",
     editor_ap_compact_header_telemetry_hint:  "Only visible in compact AP layout. Adds utilization and temperature to the header.",
-    editor_no_devices:     "No UniFi switches, gateways, or access points found in Home Assistant.",
+    editor_no_devices:     "No UniFi switches, gateways, access points, or UPS devices found in Home Assistant.",
     editor_hint:           "Only devices from the UniFi Network Integration are shown.",
     editor_error:          "Failed to load UniFi devices.",
 
@@ -224,6 +233,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "UPS",
   },
 
   de: {
@@ -239,6 +249,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "CPU-Temperatur",
     memory_utilization: "Speicherauslastung",
     temperature:        "Temperatur",
+    ups_telemetry:      "USV-Telemetrie",
+    ups_battery_level:  "Batteriestand",
+    ups_battery_runtime: "Batterielaufzeit",
+    ups_output_power:   "Ausgangsleistung",
+    ups_output_current: "Ausgangsstrom",
+    ups_output_voltage: "Ausgangsspannung",
+    ups_input_voltage:  "Eingangsspannung",
+    ups_bypass_voltage: "Bypass-Spannung",
+    ups_output_power_factor: "Ausgangsleistungsfaktor",
 
     // Port detail
     link_status:        "Link Status",
@@ -335,7 +354,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Kompakter AP-Header",
     editor_ap_compact_header_telemetry_text:  "Telemetrie im kompakten Header anzeigen",
     editor_ap_compact_header_telemetry_hint:  "Nur in der kompakten AP-Ansicht sichtbar. Fügt Auslastung und Temperatur im Header hinzu.",
-    editor_no_devices:     "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
+    editor_no_devices:     "Keine UniFi Switches, Gateways, Access Points oder USV-Geräte in Home Assistant gefunden.",
     editor_hint:           "Nur Geräte aus der UniFi Network Integration werden angezeigt.",
     editor_error:          "UniFi-Geräte konnten nicht geladen werden.",
 
@@ -440,6 +459,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "USV",
   },
 
   nl: {
@@ -455,6 +475,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "CPU-temperatuur",
     memory_utilization: "Geheugengebruik",
     temperature:        "Temperatuur",
+    ups_telemetry:      "UPS-telemetrie",
+    ups_battery_level:  "Batterijniveau",
+    ups_battery_runtime: "Batterijduur",
+    ups_output_power:   "Uitgangsvermogen",
+    ups_output_current: "Uitgangsstroom",
+    ups_output_voltage: "Uitgangsspanning",
+    ups_input_voltage:  "Ingangsspanning",
+    ups_bypass_voltage: "Bypass-spanning",
+    ups_output_power_factor: "Uitgangsvermogensfactor",
 
     // Port detail
     link_status:        "Linkstatus",
@@ -551,7 +580,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Compacte AP-header",
     editor_ap_compact_header_telemetry_text:  "Telemetrie in compacte header tonen",
     editor_ap_compact_header_telemetry_hint:  "Alleen zichtbaar in compacte AP-weergave. Voegt gebruik en temperatuur toe aan de header.",
-    editor_no_devices:     "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
+    editor_no_devices:     "Geen UniFi-switches, -gateways, access points of UPS-apparaten gevonden in Home Assistant.",
     editor_hint:           "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error:          "UniFi-apparaten konden niet worden geladen.",
 
@@ -652,6 +681,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "UPS",
   },
 
   fr: {
@@ -667,6 +697,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "Température CPU",
     memory_utilization: "Utilisation mémoire",
     temperature:        "Température",
+    ups_telemetry:      "Télémétrie de l’onduleur",
+    ups_battery_level:  "Niveau de batterie",
+    ups_battery_runtime: "Autonomie de la batterie",
+    ups_output_power:   "Puissance de sortie",
+    ups_output_current: "Courant de sortie",
+    ups_output_voltage: "Tension de sortie",
+    ups_input_voltage:  "Tension d’entrée",
+    ups_bypass_voltage: "Tension de dérivation",
+    ups_output_power_factor: "Facteur de puissance de sortie",
 
     // Port detail
     link_status:        "État du lien",
@@ -763,7 +802,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "En-tête AP compact",
     editor_ap_compact_header_telemetry_text:  "Afficher la télémétrie dans l’en-tête compact",
     editor_ap_compact_header_telemetry_hint:  "Visible uniquement en vue AP compacte. Ajoute l’utilisation et la température dans l’en-tête.",
-    editor_no_devices:     "Aucun switch, gateway ou point d’accès UniFi trouvé dans Home Assistant.",
+    editor_no_devices:     "Aucun switch, gateway, point d’accès ou onduleur UniFi trouvé dans Home Assistant.",
     editor_hint:           "Seuls les appareils de l'intégration UniFi Network sont affichés.",
     editor_error:          "Impossible de charger les appareils UniFi.",
 
@@ -864,6 +903,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Passerelle",
     type_access_point: "Point d’accès",
+    type_ups: "Onduleur",
   },
 
   es: {
@@ -879,6 +919,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "Temperatura de CPU",
     memory_utilization: "Uso de memoria",
     temperature:        "Temperatura",
+    ups_telemetry:      "Telemetría del UPS",
+    ups_battery_level:  "Nivel de batería",
+    ups_battery_runtime: "Autonomía de la batería",
+    ups_output_power:   "Potencia de salida",
+    ups_output_current: "Corriente de salida",
+    ups_output_voltage: "Tensión de salida",
+    ups_input_voltage:  "Tensión de entrada",
+    ups_bypass_voltage: "Tensión de bypass",
+    ups_output_power_factor: "Factor de potencia de salida",
 
     // Port detail
     link_status:        "Estado del enlace",
@@ -975,7 +1024,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Encabezado AP compacto",
     editor_ap_compact_header_telemetry_text:  "Mostrar telemetría en el encabezado compacto",
     editor_ap_compact_header_telemetry_hint:  "Solo visible en vista AP compacta. Añade uso y temperatura en el encabezado.",
-    editor_no_devices:     "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
+    editor_no_devices:     "No se encontraron switches, gateways, puntos de acceso o dispositivos UPS UniFi en Home Assistant.",
     editor_hint:           "Solo se muestran dispositivos de la integración UniFi Network.",
     editor_error:          "No se pudieron cargar los dispositivos UniFi.",
 
@@ -1076,6 +1125,7 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Punto de acceso",
+    type_ups: "UPS",
   },
 
   it: {
@@ -1091,6 +1141,15 @@ const TRANSLATIONS = {
     cpu_temperature:    "Temperatura CPU",
     memory_utilization: "Utilizzo memoria",
     temperature:        "Temperatura",
+    ups_telemetry:      "Telemetria UPS",
+    ups_battery_level:  "Livello batteria",
+    ups_battery_runtime: "Autonomia batteria",
+    ups_output_power:   "Potenza in uscita",
+    ups_output_current: "Corrente in uscita",
+    ups_output_voltage: "Tensione in uscita",
+    ups_input_voltage:  "Tensione in ingresso",
+    ups_bypass_voltage: "Tensione di bypass",
+    ups_output_power_factor: "Fattore di potenza in uscita",
 
     // Port detail
     link_status:        "Stato collegamento",
@@ -1187,7 +1246,7 @@ const TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Header AP compatto",
     editor_ap_compact_header_telemetry_text:  "Mostra telemetria nell’header compatto",
     editor_ap_compact_header_telemetry_hint:  "Visibile solo nella vista AP compatta. Aggiunge utilizzo e temperatura nell’header.",
-    editor_no_devices:     "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
+    editor_no_devices:     "Nessuno switch, gateway, access point o dispositivo UPS UniFi trovato in Home Assistant.",
     editor_hint:           "Vengono mostrati solo i dispositivi dell’integrazione UniFi Network.",
     editor_error:          "Impossibile caricare i dispositivi UniFi.",
 
@@ -1288,11 +1347,22 @@ const TRANSLATIONS = {
     type_switch:  "Switch",
     type_gateway: "Gateway",
     type_access_point: "Access Point",
+    type_ups: "UPS",
   },
 };
 
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batterinivå",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Uteffekt",
+  ups_output_current: "Utström",
+  ups_output_voltage: "Utspänning",
+  ups_input_voltage: "Inspänning",
+  ups_bypass_voltage: "Bypass-spänning",
+  ups_output_power_factor: "Utgående effektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Ursprunglig uplink-port",
   editor_default_uplink_port_legacy: "Tidigare beteende (första porten)",
   editor_default_uplink_port_auto: "Automatiskt (aktiv uplink)",
@@ -1326,6 +1396,16 @@ TRANSLATIONS.sv = {
 
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batteriniveau",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Udgangseffekt",
+  ups_output_current: "Udgangsstrøm",
+  ups_output_voltage: "Udgangsspænding",
+  ups_input_voltage: "Indgangsspænding",
+  ups_bypass_voltage: "Bypass-spænding",
+  ups_output_power_factor: "Udgangseffektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Oprindelig uplink-port",
   editor_default_uplink_port_legacy: "Hidtidig adfærd (første port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
@@ -1359,6 +1439,16 @@ TRANSLATIONS.da = {
 
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batterinivå",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Utgangseffekt",
+  ups_output_current: "Utgangsstrøm",
+  ups_output_voltage: "Utgangsspenning",
+  ups_input_voltage: "Inngangsspenning",
+  ups_bypass_voltage: "Bypass-spenning",
+  ups_output_power_factor: "Utgangseffektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Opprinnelig uplink-port",
   editor_default_uplink_port_legacy: "Tidligere virkemåte (første port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
@@ -1392,6 +1482,16 @@ TRANSLATIONS.no = {
 
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetria",
+  ups_battery_level: "Akun varaustaso",
+  ups_battery_runtime: "Akun käyttöaika",
+  ups_output_power: "Lähtöteho",
+  ups_output_current: "Lähtövirta",
+  ups_output_voltage: "Lähtöjännite",
+  ups_input_voltage: "Tulojännite",
+  ups_bypass_voltage: "Ohitusjännite",
+  ups_output_power_factor: "Lähdön tehokerroin",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Alkuperäinen uplink-portti",
   editor_default_uplink_port_legacy: "Aiempi toiminta (ensimmäinen portti)",
   editor_default_uplink_port_auto: "Automaattinen (aktiivinen uplink)",
@@ -1425,6 +1525,16 @@ TRANSLATIONS.fi = {
 
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "Telemetria UPS",
+  ups_battery_level: "Poziom baterii",
+  ups_battery_runtime: "Czas pracy baterii",
+  ups_output_power: "Moc wyjściowa",
+  ups_output_current: "Prąd wyjściowy",
+  ups_output_voltage: "Napięcie wyjściowe",
+  ups_input_voltage: "Napięcie wejściowe",
+  ups_bypass_voltage: "Napięcie obejściowe",
+  ups_output_power_factor: "Wyjściowy współczynnik mocy",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Początkowy port uplink",
   editor_default_uplink_port_legacy: "Dotychczasowe działanie (pierwszy port)",
   editor_default_uplink_port_auto: "Automatycznie (aktywny uplink)",
@@ -1458,6 +1568,16 @@ TRANSLATIONS.pl = {
 
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "Telemetrie UPS",
+  ups_battery_level: "Úroveň baterie",
+  ups_battery_runtime: "Doba provozu na baterii",
+  ups_output_power: "Výstupní výkon",
+  ups_output_current: "Výstupní proud",
+  ups_output_voltage: "Výstupní napětí",
+  ups_input_voltage: "Vstupní napětí",
+  ups_bypass_voltage: "Napětí bypassu",
+  ups_output_power_factor: "Výstupní účiník",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Počáteční uplink port",
   editor_default_uplink_port_legacy: "Dosavadní chování (první port)",
   editor_default_uplink_port_auto: "Automaticky (aktivní uplink)",
