@@ -134,6 +134,18 @@ export function applyPortsPerRowOverride(layout, portsPerRow) {
 export const MODEL_REGISTRY = {
 
   // ══════════════════════════════════════════════════════════════════════════
+  // UNINTERRUPTIBLE POWER SUPPLIES
+  // ══════════════════════════════════════════════════════════════════════════
+  USPDA2B: {
+    kind: "ups", frontStyle: "ups-rack", rows: [], portCount: 0,
+    displayModel: "UPS 2U Pro", theme: "silver", specialSlots: [],
+  },
+  USWDA25: {
+    kind: "ups", frontStyle: "ups-rack", rows: [], portCount: 0,
+    displayModel: "UPS 2U", theme: "silver", specialSlots: [],
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
   // ACCESS POINTS
   // ══════════════════════════════════════════════════════════════════════════
   UAP: { ...apModel("UAP"), apLedDefaultColor: "#33d35d" },

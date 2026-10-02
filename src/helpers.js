@@ -2252,6 +2252,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     const device = {
       id: deviceId,
       name: model.displayModel,
+      model_id: modelKey,
       model: model.displayModel,
       manufacturer: "Ubiquiti",
     };

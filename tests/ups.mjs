@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import { classifyDeviceType } from "../src/classify.js";
 import {
   getDeviceTelemetry,
+  getDeviceContext,
   getUnavailableHeaderTelemetryKeys,
   hasUpsFrontDisplay,
 } from "../src/helpers.js";
 import { getTranslations } from "../src/translations.js";
 import { parseUnifiDeviceUniqueId } from "../src/unique-id.js";
+import { getFakeDevices } from "../src/model-registry.js";
 
 const entities = [
   ["ups_battery_level", "sensor.ups_battery_level"],
@@ -70,6 +72,20 @@ assert.equal(
 
 assert.equal(hasUpsFrontDisplay({ model_id: "USPDA2B" }), true);
 assert.equal(hasUpsFrontDisplay({ model: "USWDA25" }), false);
+
+const fakeUpsDevices = getFakeDevices().filter((device) => device.type === "ups");
+assert.deepEqual(
+  fakeUpsDevices.map((device) => device.id).sort(),
+  ["fake:USPDA2B", "fake:USWDA25"]
+);
+const fakeUpsProContext = await getDeviceContext({}, "fake:USPDA2B", { fake_device: true });
+const fakeUpsContext = await getDeviceContext({}, "fake:USWDA25", { fake_device: true });
+assert.equal(fakeUpsProContext?.type, "ups");
+assert.equal(fakeUpsProContext?.identity?.model_id, "USPDA2B");
+assert.equal(hasUpsFrontDisplay(fakeUpsProContext?.device), true);
+assert.equal(fakeUpsContext?.type, "ups");
+assert.equal(fakeUpsContext?.identity?.model_id, "USWDA25");
+assert.equal(hasUpsFrontDisplay(fakeUpsContext?.device), false);
 
 const completeProContext = {
   type: "ups",
