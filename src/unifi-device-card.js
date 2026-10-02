@@ -1023,6 +1023,9 @@ class UnifiDeviceCard extends HTMLElement {
     for (const entity of this._ctx?.entities || []) {
       if (entity?.entity_id) ids.add(entity.entity_id);
     }
+    for (const entity of this._ctx?.telemetry_entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
 
     const directEntityKeys = [
       "cpu_utilization_entity",

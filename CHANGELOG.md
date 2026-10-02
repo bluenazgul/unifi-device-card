@@ -6,6 +6,7 @@
 - Prepare for Home Assistant's UniFi UPS support by recognizing UPS 2U models, rendering their silver rackmount fronts (including the UPS 2U Pro display), and displaying battery, runtime, voltage, current, output power, and power-factor telemetry.
 
 ### 🐛 Bug Fixes
+- Use the dedicated UPS sensor set for editor telemetry checks instead of requiring CPU, memory, and temperature sensors, and keep hidden UPS telemetry values updating live.
 - Keep UPS output power and output power factor mapped to their respective sensors when legacy entity-registry data lacks translation metadata.
 - Hide the UPS telemetry section completely when header telemetry is disabled.
 - Add UPS telemetry translations for every language supported by the card.

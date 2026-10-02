@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 
 import { classifyDeviceType } from "../src/classify.js";
-import { getDeviceTelemetry, hasUpsFrontDisplay } from "../src/helpers.js";
+import {
+  getDeviceTelemetry,
+  getUnavailableHeaderTelemetryKeys,
+  hasUpsFrontDisplay,
+} from "../src/helpers.js";
 import { getTranslations } from "../src/translations.js";
 
 const entities = [
@@ -51,6 +55,32 @@ assert.equal(
 
 assert.equal(hasUpsFrontDisplay({ model_id: "USPDA2B" }), true);
 assert.equal(hasUpsFrontDisplay({ model: "USWDA25" }), false);
+
+const completeProContext = {
+  type: "ups",
+  identity: { model_id: "USPDA2B" },
+  ...telemetry,
+};
+assert.deepEqual(getUnavailableHeaderTelemetryKeys(completeProContext), []);
+assert.deepEqual(
+  getUnavailableHeaderTelemetryKeys({
+    ...completeProContext,
+    ups_battery_runtime_entity: null,
+    ups_output_power_factor_entity: null,
+  }),
+  ["ups_battery_runtime", "ups_output_power_factor"]
+);
+assert.ok(
+  !getUnavailableHeaderTelemetryKeys(completeProContext).includes("cpu_utilization"),
+  "UPS telemetry warnings must not require switch, gateway, or AP telemetry"
+);
+const complete2UContext = {
+  ...completeProContext,
+  identity: { model_id: "USWDA25" },
+  ups_input_voltage_entity: null,
+  ups_bypass_voltage_entity: "sensor.ups_bypass_voltage",
+};
+assert.deepEqual(getUnavailableHeaderTelemetryKeys(complete2UContext), []);
 
 const upsTranslationKeys = [
   "ups_telemetry",

@@ -784,6 +784,23 @@ export function getDeviceTelemetry(entities, hass = null) {
 export function getUnavailableHeaderTelemetryKeys(deviceContext) {
   if (!deviceContext) return [];
 
+  if (deviceContext.type === "ups") {
+    const expected = [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_output_power_factor",
+    ];
+    const model = normalizeModelStr(
+      deviceContext?.identity?.model_id || deviceContext?.device?.model_id || deviceContext?.model
+    );
+    if (model === "USPDA2B") expected.push("ups_input_voltage");
+    if (model === "USWDA25") expected.push("ups_bypass_voltage");
+    return expected.filter((key) => !deviceContext[`${key}_entity`]);
+  }
+
   const unavailable = [];
   if (!deviceContext.cpu_utilization_entity) unavailable.push("cpu_utilization");
   if (!deviceContext.memory_utilization_entity) unavailable.push("memory_utilization");
