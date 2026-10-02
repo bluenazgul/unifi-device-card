@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.82-dev */
+/* UniFi Device Card 0.0.0-dev.b2eb6ef */
 
 // src/model-registry.js
 function range(start, end) {
@@ -81,6 +81,27 @@ function applyPortsPerRowOverride(layout, portsPerRow) {
   };
 }
 var MODEL_REGISTRY = {
+  // ══════════════════════════════════════════════════════════════════════════
+  // UNINTERRUPTIBLE POWER SUPPLIES
+  // ══════════════════════════════════════════════════════════════════════════
+  USPDA2B: {
+    kind: "ups",
+    frontStyle: "ups-rack",
+    rows: [],
+    portCount: 0,
+    displayModel: "UPS 2U Pro",
+    theme: "silver",
+    specialSlots: []
+  },
+  USWDA25: {
+    kind: "ups",
+    frontStyle: "ups-rack",
+    rows: [],
+    portCount: 0,
+    displayModel: "UPS 2U",
+    theme: "silver",
+    specialSlots: []
+  },
   // ══════════════════════════════════════════════════════════════════════════
   // ACCESS POINTS
   // ══════════════════════════════════════════════════════════════════════════
@@ -3608,6 +3629,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     const device2 = {
       id: deviceId,
       name: model.displayModel,
+      model_id: modelKey,
       model: model.displayModel,
       manufacturer: "Ubiquiti"
     };
@@ -7220,7 +7242,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.82-dev";
+var VERSION = "0.0.0-dev.b2eb6ef";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
