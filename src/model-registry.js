@@ -31,12 +31,13 @@ function apModel(displayModel, options = {}) {
 
 export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 export const SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
-export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR"];
+export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR", "UCI"];
 
 export const AP_FRONT_STYLES = new Set([
   "ap-disc", "ap-in-wall", "ap-u7-outdoor", "ap-5g-backup",
   "ap-mesh-column", "ap-mesh-antenna", "ap-ac-mesh", "ap-mesh-pro", "ap-outdoor-panel",
   "ap-extender", "ap-sector", "ap-bridge", "ap-device-bridge", "ap-device-bridge-iot", "ap-device-bridge-pro", "ap-device-bridge-sector", "ap-building-bridge", "ap-e7", "ap-e7-audience", "ap-basestation",
+  "ap-dream-machine", "ap-dream-router",
 ]);
 
 function modelStartsWith(device, prefixes) {
@@ -131,6 +132,18 @@ export function applyPortsPerRowOverride(layout, portsPerRow) {
 // portCount: total physical ports including special slots.
 // ─────────────────────────────────────────────────────────────────────────────
 export const MODEL_REGISTRY = {
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // UNINTERRUPTIBLE POWER SUPPLIES
+  // ══════════════════════════════════════════════════════════════════════════
+  USPDA2B: {
+    kind: "ups", frontStyle: "ups-rack", rows: [], portCount: 0,
+    displayModel: "UPS 2U Pro", theme: "silver", specialSlots: [],
+  },
+  USWDA25: {
+    kind: "ups", frontStyle: "ups-rack", rows: [], portCount: 0,
+    displayModel: "UPS 2U", theme: "silver", specialSlots: [],
+  },
 
   // ══════════════════════════════════════════════════════════════════════════
   // ACCESS POINTS
@@ -849,6 +862,12 @@ export const MODEL_REGISTRY = {
   // GATEWAYS
   // ══════════════════════════════════════════════════════════════════════════
 
+  UCI: {
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1]],
+    portCount: 1, displayModel: "UniFi Cable Internet", theme: "silver",
+    specialSlots: [],
+  },
+
   EFG: {
     kind: "gateway", frontStyle: "gateway-rack", rows: [[1]],
     portCount: 6, displayModel: "Enterprise Fortress Gateway", theme: "silver",
@@ -890,19 +909,15 @@ export const MODEL_REGISTRY = {
   },
   UDR7: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3]],
-    portCount: 5, displayModel: "UDM67A (UDR7)", theme: "white",
+    portCount: 5, displayModel: "Dream Router 7", theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-dream-router",
     specialSlots: [
       { key: "wan", label: "WAN", port: 4 },
       { key: "sfp_1", label: "SFP+ WAN", port: 5 },
-    ],
-  },
-  UDM67A: {
-    kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 8)],
-    portCount: 11, displayModel: "UDM67A (UDM-Pro / UDMPRO)", theme: "silver",
-    specialSlots: [
-      { key: "wan",   label: "WAN",    port: 9  },
-      { key: "sfp_1", label: "SFP+ 1", port: 10 },
-      { key: "sfp_2", label: "SFP+ 2", port: 11 },
     ],
   },
   UCGMAX: {
@@ -931,12 +946,22 @@ export const MODEL_REGISTRY = {
   },
   UDM: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
-    portCount: 5, displayModel: "UDM", theme: "white",
+    portCount: 5, displayModel: "Dream Machine", theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-dream-machine",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
   UDR: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
-    portCount: 5, displayModel: "UDR", theme: "white",
+    portCount: 5, displayModel: "Dream Router", theme: "white",
+    supportsIntegratedWifi: true,
+    supportsIntegratedPorts: true,
+    supportsHybridLayouts: true,
+    preserveDeclaredRows: true,
+    apFrontStyle: "ap-dream-router",
     specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
   UDMPRO: {
@@ -1112,9 +1137,23 @@ export function validateModelRegistry() {
 }
 
 export function resolveModelKey(device) {
+  const modelId = normalizeModelKey(device?.model_id);
   const candidates = [device?.model_id, device?.model, device?.hw_version, device?.name, device?.name_by_user]
     .filter(Boolean)
     .map(normalizeModelKey);
+
+  if (modelId && MODEL_REGISTRY[modelId]) return modelId;
+  if (modelId.includes("UDM67A")) return "UDMPRO";
+
+  const productCandidates = [device?.model, device?.hw_version]
+    .filter(Boolean)
+    .map(normalizeModelKey);
+  const hasAmbiguousDreamMachineId = !modelId || modelId.includes("UDMA67A");
+  if (hasAmbiguousDreamMachineId && productCandidates.some((candidate) =>
+    candidate.includes("UDR7") || candidate.includes("DREAMROUTER7")
+  )) {
+    return "UDR7";
+  }
 
   for (const candidate of candidates) {
     if (!candidate) continue;
@@ -1221,18 +1260,19 @@ export function resolveModelKey(device) {
     if (candidate === "UDBS" || candidate.includes("UDBSWITCH") || candidate.includes("DEVICEBRIDGESWITCH")) return "UDBS";
     if (candidate.includes("UDBIOT") || candidate.includes("DEVICEBRIDGEIOT")) return "UDBIOT";
     if (candidate === "UDB" || candidate.includes("DEVICEBRIDGE")) return "UDB";
+    if (candidate === "UCI" || candidate === "UNIFICABLEINTERNET") return "UCI";
     if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
     if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
     if (candidate === "UDM")                      return "UDM";
     if (candidate.includes("DREAMMACHINE"))       return "UDM";
-    if (candidate.includes("UDM67AUDR7"))         return "UDR7";
+    if (candidate.includes("UDM67A"))             return "UDMPRO";
+    if (candidate.includes("UDMA67A"))            return "UDM";
     if (candidate.includes("UDR7"))               return "UDR7";
     if (candidate.includes("DREAMROUTER7"))       return "UDR7";
     if (candidate.includes("UDR5GMAX"))           return "UDR5GMAX";
     if (candidate.includes("DREAMROUTER5GMAX"))   return "UDR5GMAX";
     if (candidate === "UDR")                      return "UDR";
     if (candidate.includes("DREAMROUTER"))        return "UDR";
-    if (candidate.includes("UDM67A"))             return "UDM67A";
     if (candidate.includes("UDRULT"))             return "UDRULT";
     if (candidate.includes("UCGULTRA"))           return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
@@ -1476,8 +1516,7 @@ export function inferPortCountFromModel(device) {
   if (text === "UDM" || text.includes("DREAMMACHINE"))                               return 5;
   if (text === "UDR" || text.includes("DREAMROUTER"))                                return 5;
   if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER"))               return 7;
-  if (text.includes("UDM67AUDR7") || text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
-  if (text.includes("UDM67A"))                                                        return 11;
+  if (text.includes("UDMA67A") || text.includes("UDR7") || text.includes("DREAMROUTER7")) return 5;
   if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX")   || text.includes("CLOUDGATEWAYMAX"))                 return 5;
   if (text.includes("UCGINDUSTRIAL") || text.includes("CLOUDGATEWAYINDUSTRIAL"))      return 6;
@@ -1556,31 +1595,14 @@ export function inferPortCountFromModel(device) {
 
 export function getDeviceLayout(device, discoveredPorts = []) {
   const modelKey = resolveModelKey(device);
-  const normalizedText = normalizeModelKey(
-    [device?.model, device?.hw_version, device?.name, device?.name_by_user].filter(Boolean).join(" ")
-  );
-  const maxDiscoveredPort = discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port || 0)) : 0;
   const inferredPortCount =
     inferPortCountFromModel(device) ||
     (discoveredPorts.length > 0 ? Math.max(...discoveredPorts.map((p) => p.port)) : 0);
   const looksSwitchLike = modelStartsWith(device, SWITCH_MODEL_PREFIXES);
   const looksGatewayLike = modelStartsWith(device, GATEWAY_MODEL_PREFIXES);
 
-  let effectiveModelKey = modelKey;
-  if (effectiveModelKey === "UDM67A") {
-    if (
-      normalizedText.includes("UDM67AUDR7") ||
-      normalizedText.includes("UDR7") ||
-      normalizedText.includes("DREAMROUTER7")
-    ) {
-      effectiveModelKey = "UDR7";
-    } else if (maxDiscoveredPort > 0 && maxDiscoveredPort <= 5) {
-      effectiveModelKey = "UDR7";
-    }
-  }
-
-  if (effectiveModelKey && MODEL_REGISTRY[effectiveModelKey]) {
-    return applyRj45LayoutHints({ modelKey: effectiveModelKey, ...MODEL_REGISTRY[effectiveModelKey] });
+  if (modelKey && MODEL_REGISTRY[modelKey]) {
+    return applyRj45LayoutHints({ modelKey, ...MODEL_REGISTRY[modelKey] });
   }
 
   if (looksGatewayLike && inferredPortCount > 0) {

@@ -15,6 +15,7 @@ import {
   getPoeStatus,
   getPortSpeedText,
   hasTraffic,
+  hasUpsFrontDisplay,
   isUptimeTimestampState,
   isSfpLikePort,
   isOn,
@@ -27,6 +28,7 @@ import {
   normalizePortNames,
   parseLinkSpeedMbit,
   stateObj,
+  shouldShowHybridVisualPanel,
   supportsDeviceLayoutModes,
 } from "./helpers.js";
 import { normalizeMac } from "./identity.js";
@@ -1021,6 +1023,9 @@ class UnifiDeviceCard extends HTMLElement {
     for (const entity of this._ctx?.entities || []) {
       if (entity?.entity_id) ids.add(entity.entity_id);
     }
+    for (const entity of this._ctx?.telemetry_entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
 
     const directEntityKeys = [
       "cpu_utilization_entity",
@@ -1475,6 +1480,65 @@ class UnifiDeviceCard extends HTMLElement {
       }));
   }
 
+  _upsMetrics() {
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    return [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_input_voltage",
+      "ups_bypass_voltage",
+      "ups_output_power_factor",
+    ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] }))
+      .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
+      .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+  }
+
+  _renderUpsCard(ctx) {
+    const metrics = this._upsMetrics();
+    const telemetryEnabled = this._telemetryEnabled();
+    const headerTitle = this._title();
+    const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const ventSlots = "<span></span>".repeat(5);
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions">
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        <div class="ups-visual" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+          <div class="ups-chassis${hasDisplay ? " pro" : ""}">
+            <div class="ups-vents top">${ventSlots}</div>
+            <div class="ups-power"><span></span></div>
+            <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
+            ${hasDisplay ? `<div class="ups-display">
+              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
+              <span></span>
+            </div>` : `<div class="ups-logo">U</div>`}
+            <div class="ups-vents bottom">${ventSlots}</div>
+          </div>
+        </div>
+        ${telemetryEnabled ? `<div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
+          ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
+            <div class="detail-item">
+              <div class="detail-label">${this._escapeHtml(item.label)}</div>
+              <div class="detail-value">${this._escapeHtml(item.value)}</div>
+            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+        </div>` : ""}
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this.shadowRoot.querySelector("[data-action='reboot-device']")
+      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+  }
+
   /**
    * Wrapper around the module-level isPortConnected() that adds sticky-state
    * tracking for SFP-like ports.  When a port has been observed with live
@@ -1852,6 +1916,168 @@ class UnifiDeviceCard extends HTMLElement {
         50% { opacity: .4; }
       }
 
+      .ups-visual {
+        padding: 18px 20px;
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
+      }
+
+      .ups-chassis {
+        position: relative;
+        box-sizing: border-box;
+        width: min(100%, 640px);
+        aspect-ratio: 4.9 / 1;
+        min-height: 92px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #aeb2b5;
+        border-radius: 5px 5px 3px 3px;
+        background: linear-gradient(110deg, #dadcdc 0%, #c7c9ca 48%, #e3e4e4 100%);
+        box-shadow:
+          inset 0 1px 1px rgba(255,255,255,.95),
+          inset 0 -6px 8px rgba(83,88,91,.16),
+          0 7px 8px -6px rgba(0,0,0,.7);
+      }
+
+      .ups-chassis::after {
+        content: "";
+        position: absolute;
+        right: 1.5%;
+        bottom: -3px;
+        left: 1.5%;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(66,71,74,.3);
+        filter: blur(2px);
+      }
+
+      .ups-vents {
+        position: absolute;
+        right: 3.2%;
+        left: 3.2%;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.2%;
+      }
+
+      .ups-vents.top { top: 6%; }
+      .ups-vents.bottom { bottom: 7%; }
+
+      .ups-vents span {
+        height: 6px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(#787d80, #f7f8f8 45%, #9b9fa1 55%, #696e71);
+        box-shadow: inset 0 1px 1px rgba(33,37,39,.75);
+      }
+
+      .ups-vents.bottom span {
+        transform: rotate(180deg);
+      }
+
+      .ups-power {
+        position: absolute;
+        top: 38%;
+        left: 4.1%;
+        width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        border: 2px solid #0799e4;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,153,228,.45), inset 0 0 4px rgba(255,255,255,.8);
+      }
+
+      .ups-power span {
+        position: absolute;
+        top: 2px;
+        left: 5px;
+        width: 2px;
+        height: 6px;
+        border-radius: 1px;
+        background: #0799e4;
+      }
+
+      .ups-wordmark {
+        position: absolute;
+        top: 43%;
+        left: 7.2%;
+        color: #62686d;
+        font-size: clamp(5px, 1.3vw, 9px);
+        line-height: 1;
+        letter-spacing: -.02em;
+      }
+
+      .ups-wordmark i {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        margin-right: 2px;
+        border-radius: 50%;
+        background: #168ed0;
+        vertical-align: 1px;
+      }
+
+      .ups-wordmark strong { font-weight: 700; }
+
+      .ups-logo {
+        position: absolute;
+        top: 38%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #9ba1a5;
+        font-size: clamp(16px, 4vw, 25px);
+        font-weight: 800;
+        opacity: .8;
+      }
+
+      .ups-display {
+        position: absolute;
+        top: 31%;
+        left: 50%;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 21%;
+        min-width: 82px;
+        height: 31%;
+        min-height: 27px;
+        padding: 4px 6px;
+        box-sizing: border-box;
+        transform: translateX(-50%);
+        border: 1px solid #070b22;
+        border-radius: 3px;
+        background: linear-gradient(110deg, #030618, #07103e 62%, #030515);
+        box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
+      }
+
+      .ups-display-grid {
+        display: grid;
+        flex: 1;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2px;
+      }
+
+      .ups-display-grid i {
+        aspect-ratio: 1.45 / 1;
+        border: 1px solid rgba(84,154,255,.52);
+        border-radius: 1px;
+        background: linear-gradient(135deg, #073a9b, #0879e4);
+        box-shadow: inset 0 0 2px rgba(116,189,255,.65);
+      }
+
+      .ups-display > span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7ca6ff;
+        box-shadow: 0 0 3px #367bff;
+      }
+
+      @media (max-width: 420px) {
+        .ups-visual { padding: 14px 12px; }
+        .ups-chassis { min-height: 70px; }
+        .ups-vents span { height: 5px; }
+      }
+
       .frontpanel {
         padding: 12px 14px 10px;
         display: grid;
@@ -1982,6 +2208,8 @@ class UnifiDeviceCard extends HTMLElement {
       .frontpanel.ap-e7,
       .frontpanel.ap-e7-audience,
       .frontpanel.ap-basestation,
+      .frontpanel.ap-dream-machine,
+      .frontpanel.ap-dream-router,
       .frontpanel.ap-5g-backup {
         background: var(--udc-chrome-bg, linear-gradient(160deg, var(--udc-surface) 0%, var(--udc-bg) 100%));
         display: grid;
@@ -2027,6 +2255,10 @@ class UnifiDeviceCard extends HTMLElement {
         align-items: stretch;
       }
 
+      .ap-layout.panel-hidden {
+        display: block;
+      }
+
       .ap-layout.compact .frontpanel.ap-disc,
       .ap-layout.compact .frontpanel.ap-in-wall,
       .ap-layout.compact .frontpanel.ap-u7-outdoor,
@@ -2046,6 +2278,8 @@ class UnifiDeviceCard extends HTMLElement {
       .ap-layout.compact .frontpanel.ap-e7,
       .ap-layout.compact .frontpanel.ap-e7-audience,
       .ap-layout.compact .frontpanel.ap-basestation,
+      .ap-layout.compact .frontpanel.ap-dream-machine,
+      .ap-layout.compact .frontpanel.ap-dream-router,
       .ap-layout.compact .frontpanel.ap-5g-backup {
         min-height: 0;
         border-bottom: none;
@@ -2425,6 +2659,67 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ap-mesh-column-device .ap-shaped-led { display: none; }
+
+      .ap-dream-machine-device,
+      .ap-dream-router-device {
+        width: calc(142px * var(--udc-ap-scale));
+        aspect-ratio: .61 / 1;
+        border-radius: 48% 48% 34% 34% / 15% 15% 12% 12%;
+        background: linear-gradient(90deg, #dfe2e4 0%, #fff 30%, #fafafa 64%, #d9dddf 100%);
+      }
+
+      .ap-dream-machine-device::before,
+      .ap-dream-router-device::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        box-sizing: border-box;
+        left: -1px;
+        top: -1px;
+        width: calc(100% + 2px);
+        height: 18%;
+        border: max(2px, calc(3px * var(--udc-ap-scale))) solid var(--ap-ring-color, #62c8fa);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 42%, #fff 0%, #f5f6f7 58%, #dce0e3 100%);
+        box-shadow: 0 0 calc(10px * var(--udc-ap-scale)) color-mix(in srgb, var(--ap-ring-color, #62c8fa) 58%, transparent);
+      }
+
+      .ap-dream-machine-device.off::before,
+      .ap-dream-router-device.off::before {
+        border-color: #aeb4ba;
+        box-shadow: none;
+      }
+
+      .ap-dream-machine-device .ap-shaped-logo,
+      .ap-dream-machine-device .ap-shaped-led,
+      .ap-dream-router-device .ap-shaped-logo,
+      .ap-dream-router-device .ap-shaped-led { display: none; }
+
+      .ap-dream-router-display {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        top: 48%;
+        width: calc(16px * var(--udc-ap-scale));
+        height: calc(31px * var(--udc-ap-scale));
+        transform: translate(-50%, -50%);
+        border-radius: calc(8px * var(--udc-ap-scale));
+        background: linear-gradient(180deg, #142989 0%, #0647ac 56%, #0878c8 100%);
+        border: 1px solid rgba(0, 23, 87, .7);
+        box-shadow: inset 0 0 calc(3px * var(--udc-ap-scale)) rgba(81, 202, 255, .45), 0 1px 2px rgba(0, 0, 0, .2);
+      }
+
+      .ap-dream-router-display::before {
+        content: "";
+        position: absolute;
+        left: 28%;
+        right: 28%;
+        top: 28%;
+        height: 2px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .9);
+        box-shadow: 0 calc(5px * var(--udc-ap-scale)) rgba(113, 231, 255, .9), 0 calc(10px * var(--udc-ap-scale)) rgba(255, 255, 255, .72);
+      }
 
       .ap-mesh-antenna-device { width: calc(105px * var(--udc-ap-scale)); aspect-ratio: .55 / 1; border-radius: calc(22px * var(--udc-ap-scale)); transform: translateY(calc(15px * var(--udc-ap-scale))); }
       .ap-mesh-antenna-device::before,
@@ -3357,14 +3652,21 @@ class UnifiDeviceCard extends HTMLElement {
     if (!this._integratedPortsEnabled(ctx) || !ctx?.numberedPorts?.length) return "";
 
     const { specials, numbered } = this._buildSlotData(ctx);
-    const allSlots = [...specials, ...numbered];
+    const specialPortNumbers = new Set(
+      specials.map((slot) => slot?.port).filter((port) => Number.isInteger(port))
+    );
+    const visibleNumbered = numbered.filter((slot) => !specialPortNumbers.has(slot.port));
+    const allSlots = [...specials, ...visibleNumbered];
     if (!allSlots.length) return "";
 
     const selected = allSlots.find((p) => p.key === this._selectedKey)
       || (this._config?.dynamic_port_details === true ? null : allSlots[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
-    const rows = this._buildEffectiveRows(ctx, numbered);
+    const specialRow = specials.length
+      ? `<div class="special-row">${specials.map((slot) => this._renderPortButton(slot, selected?.key, portClientIndex)).join("")}</div>`
+      : "";
+    const rows = this._buildEffectiveRows(ctx, visibleNumbered);
     const layoutRows = rows.map((rowPorts) => {
       const items = rowPorts
         .map((portNumber) => numbered.find((p) => p.port === portNumber))
@@ -3378,7 +3680,7 @@ class UnifiDeviceCard extends HTMLElement {
       <div class="integrated-port-section">
         <div class="frontpanel integrated-ports theme-${this._safeClassToken(ctx?.layout?.theme || "white", "white")}">
           <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
-          ${layoutRows || `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>`}
+          ${specialRow}${layoutRows || (!specialRow ? `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>` : "")}
         </div>
         ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
       </div>`;
@@ -3406,6 +3708,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "ups") {
+      this._renderUpsCard(this._ctx);
+      return;
+    }
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const renderApLayout = layoutMode !== "network" && (
       this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts
@@ -3420,6 +3726,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._syncUptimeRefreshTimer();
       const online = this._isDeviceOnline();
       const compactApView = this._apCompactViewEnabled();
+      const showVisualPanel = shouldShowHybridVisualPanel(this._ctx?.layout, this._config);
       const apStatusRaw = this._apStatusRaw(this._ctx?.ap_status_entity);
       const apStatus = this._apStatusState(this._ctx?.ap_status_entity);
       const apStatusClass = apStatusRaw === "connected" ? "online" : (apStatusRaw === "disconnected" ? "offline" : "pending");
@@ -3432,9 +3739,12 @@ class UnifiDeviceCard extends HTMLElement {
       const apFrontStyle = this._ctx?.layout?.apFrontStyle || this._ctx?.layout?.frontStyle;
       const isInWallAp = apFrontStyle === "ap-in-wall";
       const isU7Outdoor = apFrontStyle === "ap-u7-outdoor";
+      const isDreamMachine = apFrontStyle === "ap-dream-machine";
+      const isDreamRouter = apFrontStyle === "ap-dream-router";
       const shapedApStyles = new Set([
         "ap-mesh-column", "ap-mesh-antenna", "ap-ac-mesh", "ap-mesh-pro", "ap-outdoor-panel",
         "ap-extender", "ap-sector", "ap-bridge", "ap-device-bridge", "ap-device-bridge-iot", "ap-device-bridge-pro", "ap-device-bridge-sector", "ap-building-bridge", "ap-e7", "ap-e7-audience", "ap-basestation",
+        "ap-dream-machine", "ap-dream-router",
       ]);
       const renderedApStyle = isFiveGBackup || isInWallAp || isU7Outdoor || shapedApStyles.has(apFrontStyle)
         ? apFrontStyle
@@ -3467,7 +3777,8 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
 
-          <div class="ap-layout ${compactApView ? "compact" : ""}${this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
+          <div class="ap-layout ${compactApView ? "compact" : ""}${showVisualPanel ? "" : " panel-hidden"}${showVisualPanel && this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
+            ${showVisualPanel ? `
             <div class="frontpanel ${renderedApStyle}">
               ${isFiveGBackup ? `
               <div class="ap-device ap-5g-device">
@@ -3493,6 +3804,9 @@ class UnifiDeviceCard extends HTMLElement {
               <div class="ap-device ap-u7-outdoor-device">
                 <div class="ap-u7-outdoor-logo">U</div>
                 <div class="ap-u7-outdoor-led ${ledEnabled ? "" : "off"}"></div>
+              </div>` : isDreamMachine || isDreamRouter ? `
+              <div class="ap-device ap-shaped-device ${apFrontStyle}-device${ledEnabled ? "" : " off"}">
+                ${isDreamRouter ? `<div class="ap-dream-router-display"></div>` : ""}
               </div>` : shapedApStyles.has(apFrontStyle) ? `
               <div class="ap-device ap-shaped-device ${apFrontStyle}-device${usesApEdgeGlow ? " edge-glow" : ""}${ledEnabled ? "" : " off"}">
                 <div class="ap-shaped-logo">U</div>
@@ -3503,7 +3817,7 @@ class UnifiDeviceCard extends HTMLElement {
                   <div class="ap-logo">u</div>
                 </div>
               </div>`}
-            </div>
+            </div>` : ""}
 
             <div class="section">
               <div class="detail-grid">
@@ -3537,7 +3851,7 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
 
-          ${this._renderIntegratedPortSection(this._ctx)}
+          ${showVisualPanel ? this._renderIntegratedPortSection(this._ctx) : ""}
         </ha-card>`;
 
       this._attachPortActionHandlers(this._ctx);

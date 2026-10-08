@@ -5,6 +5,7 @@ import {
   discoverPorts,
   isApPortPanelAvailable,
   mergePortsWithLayout,
+  shouldShowHybridVisualPanel,
   supportsDeviceLayoutModes,
 } from "../src/helpers.js";
 import { getDeviceLayout, resolveModelKey } from "../src/model-registry.js";
@@ -66,5 +67,14 @@ for (const model_id of ["U7PROWALL", "UAPA6A5", "U7PROXGWALL", "U7PROXG"]) {
 
 assert.equal(resolveModelKey({ model_id: "UAPA6A5" }), "UAPA6A5");
 assert.equal(getDeviceLayout({ model_id: "UAPA6A5" }).supportsIntegratedPorts, true);
+
+const hybridGatewayLayout = getDeviceLayout({ model_id: "UDR7" });
+assert.equal(shouldShowHybridVisualPanel(hybridGatewayLayout, {}), true);
+assert.equal(shouldShowHybridVisualPanel(hybridGatewayLayout, { show_panel: false }), false);
+assert.equal(
+  shouldShowHybridVisualPanel(getDeviceLayout({ model_id: "UAPA6A5" }), { show_panel: false }),
+  true,
+  "The gateway front-panel option must not hide an access point's visual"
+);
 
 console.log("AP port-panel compatibility tests passed.");

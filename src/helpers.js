@@ -207,6 +207,11 @@ function hasInfrastructureEntitySignals(entities = []) {
   });
   if (hasRebootControl) return true;
 
+  const hasUpsTelemetry = entities.some((e) =>
+    String(e?.translation_key || "").toLowerCase().startsWith("ups_")
+  );
+  if (hasUpsTelemetry) return true;
+
   return entities.some((e) => {
     const id = lower(e?.entity_id);
     if (!id.startsWith("sensor.") && !id.startsWith("binary_sensor.")) return false;
@@ -228,6 +233,11 @@ export function getDeviceType(device, entities = []) {
   const identity = buildNormalizedDeviceIdentity(device);
   const capabilities = buildDeviceCapabilities(entities, identity);
   return classifyDeviceType(identity, capabilities, entities, device);
+}
+
+export function hasUpsFrontDisplay(device) {
+  return [device?.model_id, device?.model, device?.hw_version]
+    .some((value) => normalizeModelStr(value) === "USPDA2B");
 }
 
 // ─────────────────────────────────────────────────
@@ -434,7 +444,7 @@ function buildDeviceLabel(device, type) {
 
   const model = normalize(device.model);
   const typeLabel =
-    type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : "Switch";
+    type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : type === "ups" ? "UPS" : "Switch";
 
   if (model && lower(model) !== lower(name)) return `${name} · ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
@@ -460,6 +470,22 @@ function findDeviceEntityByPatterns(entities, patterns = [], candidateIsValid = 
     const text = entityText(entity);
     if (patterns.some((pattern) => text.includes(pattern))) {
       if (candidateIsValid && !candidateIsValid(entity, text)) continue;
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
+
+function findDeviceEntityByCanonicalSuffix(entities, key) {
+  const canonicalKey = canonicalStatText(key);
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const candidates = [entity?.entity_id?.split(".").slice(1).join("."), entity?.original_name, entity?.name];
+    if (candidates.some((value) => {
+      const canonicalValue = canonicalStatText(value);
+      return canonicalValue === canonicalKey || canonicalValue.endsWith(`_${canonicalKey}`);
+    })) {
       return entity.entity_id;
     }
   }
@@ -735,11 +761,45 @@ export function getDeviceTelemetry(entities, hass = null) {
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
       ),
     ], hass),
+    ...Object.fromEntries([
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_input_voltage",
+      "ups_bypass_voltage",
+      "ups_output_power_factor",
+    ].map((key) => [
+      `${key}_entity`,
+      preferUsableTelemetryMatch([
+        findDeviceUniqueIdTelemetryEntity(candidates, [key]),
+        findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === key),
+        findDeviceEntityByCanonicalSuffix(candidates, key),
+      ], hass),
+    ])),
   };
 }
 
 export function getUnavailableHeaderTelemetryKeys(deviceContext) {
   if (!deviceContext) return [];
+
+  if (deviceContext.type === "ups") {
+    const expected = [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_output_power_factor",
+    ];
+    const model = normalizeModelStr(
+      deviceContext?.identity?.model_id || deviceContext?.device?.model_id || deviceContext?.model
+    );
+    if (model === "USPDA2B") expected.push("ups_input_voltage");
+    if (model === "USWDA25") expected.push("ups_bypass_voltage");
+    return expected.filter((key) => !deviceContext[`${key}_entity`]);
+  }
 
   const unavailable = [];
   if (!deviceContext.cpu_utilization_entity) unavailable.push("cpu_utilization");
@@ -1162,7 +1222,7 @@ export async function getUnifiDevices(hass, cardConfig = null) {
     const identity = buildNormalizedDeviceIdentity(device);
     const capabilities = buildDeviceCapabilities(entities, identity);
     const type = classifyDeviceType(identity, capabilities, entities, device);
-    if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
+    if (!["switch", "gateway", "access_point", "ups"].includes(type)) continue;
 
     results.push({
       id: device.id,
@@ -2192,6 +2252,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     const device = {
       id: deviceId,
       name: model.displayModel,
+      model_id: modelKey,
       model: model.displayModel,
       manufacturer: "Ubiquiti",
     };
@@ -2238,7 +2299,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const identity = buildNormalizedDeviceIdentity(device);
   const capabilities = buildDeviceCapabilities(allEntities, identity);
   const type = classifyDeviceType(identity, capabilities, allEntities, device);
-  if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
+  if (!["switch", "gateway", "access_point", "ups"].includes(type)) return null;
 
   const needsUID = entities.filter(
     (e) =>
@@ -2700,6 +2761,10 @@ export function isApPortPanelAvailable(layout, discoveredPorts) {
 export function supportsDeviceLayoutModes(layout, discoveredPorts) {
   return layout?.supportsHybridLayouts === true
     || isApPortPanelAvailable(layout, discoveredPorts);
+}
+
+export function shouldShowHybridVisualPanel(layout, config) {
+  return layout?.supportsHybridLayouts !== true || config?.show_panel !== false;
 }
 
 export function resolveDisplayPort(port, displayPorts) {
