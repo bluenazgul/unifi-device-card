@@ -3,7 +3,7 @@
 ## [v0.8.9]
 
 ### ✨ Improvements
-- Prepare for Home Assistant's UniFi UPS support by recognizing UPS 2U models, rendering their silver rackmount fronts (including the UPS 2U Pro display), and displaying battery, runtime, voltage, current, output power, and power-factor telemetry.
+- Prepare for Home Assistant's (2026.10) UniFi UPS support by recognizing UPS 2U models, rendering their silver rackmount fronts (including the UPS 2U Pro display), and displaying battery, runtime, voltage, current, output power, and power-factor telemetry.
 
 ### 🐛 Bug Fixes
 - Keep renamed UPS telemetry sensors discoverable through their stable UniFi unique IDs, even when entity-registry translation metadata is unavailable.
