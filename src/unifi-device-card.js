@@ -15,14 +15,17 @@ import {
   getPoeStatus,
   getPortSpeedText,
   hasTraffic,
+  hasUpsFrontDisplay,
   isUptimeTimestampState,
   isSfpLikePort,
+  isUpsTower,
   isOn,
   isPortConnected,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
   normalizeLinkLedColor,
   normalizePositivePortNumbers,
+  normalizeUpsLayout,
   normalizeLagGroups,
   normalizePortNames,
   parseLinkSpeedMbit,
@@ -208,6 +211,9 @@ class UnifiDeviceCard extends HTMLElement {
     const oldFakeMode = this._config?.fake_device === true;
     const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
     const newConfig = { ...(config || {}) };
+    const upsLayout = normalizeUpsLayout(newConfig.ups_layout);
+    if (upsLayout === "combined") delete newConfig.ups_layout;
+    else newConfig.ups_layout = upsLayout;
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
@@ -1022,6 +1028,9 @@ class UnifiDeviceCard extends HTMLElement {
     for (const entity of this._ctx?.entities || []) {
       if (entity?.entity_id) ids.add(entity.entity_id);
     }
+    for (const entity of this._ctx?.telemetry_entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
 
     const directEntityKeys = [
       "cpu_utilization_entity",
@@ -1476,6 +1485,127 @@ class UnifiDeviceCard extends HTMLElement {
       }));
   }
 
+  _upsMetrics() {
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    return [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_input_voltage",
+      "ups_bypass_voltage",
+      "ups_output_power_factor",
+    ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] }))
+      .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
+      .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+  }
+
+  _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
+    const enabled = outlet.entity_id ? isOn(this._hass, outlet.entity_id) : false;
+    const state = outlet.entity_id ? (enabled ? this._t("state_on") : this._t("state_off")) : "";
+    const key = `outlet:${outlet.index}`;
+    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" title="${this._escapeAttr([outlet.label, state].filter(Boolean).join(" · "))}">
+      <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
+      <span class="ups-outlet-led"></span>
+      <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
+    </button>`;
+  }
+
+  _renderUpsOutletDetail(outlet) {
+    const enabled = outlet?.entity_id ? isOn(this._hass, outlet.entity_id) : false;
+    const state = outlet?.entity_id ? (enabled ? this._t("state_on") : this._t("state_off")) : "—";
+    return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_status"))}</div>
+          <div class="detail-value ${enabled ? "online" : "offline"}">${this._escapeHtml(state)}</div>
+        </div>
+      </div>
+      ${outlet?.entity_id ? `<div class="actions">
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-entity="${this._escapeAttr(outlet.entity_id)}">
+          ${this._escapeHtml(this._t(enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
+        </button>
+      </div>` : ""}`;
+  }
+
+  _renderUpsCard(ctx) {
+    const metrics = this._upsMetrics();
+    const telemetryEnabled = this._telemetryEnabled();
+    const headerTitle = this._title();
+    const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const tower = isUpsTower(ctx?.device || ctx?.identity);
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
+    const showFront = upsLayout !== "back";
+    const showBack = upsLayout !== "front";
+    const outlets = ctx?.outlet_entities || [];
+    const { specials, numbered } = this._buildSlotData(ctx);
+    const networkPorts = [...specials, ...numbered];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
+      || (this._config?.dynamic_port_details === true || this._selectedKey ? null : outlets[0])
+      || null;
+    const selectedPort = networkPorts.find((port) => port.key === this._selectedKey)
+      || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0])
+      || null;
+    const portClientIndex = this._buildPortClientIndex();
+    const ventSlots = "<span></span>".repeat(5);
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions">
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+          ${tower ? `<div class="ups-tower">
+            <div class="ups-tower-vents left"></div>
+            <div class="ups-tower-vents right"></div>
+            <div class="ups-tower-power"><span></span></div>
+            <div class="ups-tower-battery"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="ups-tower-seam"></div>
+            <div class="ups-tower-logo">U</div>
+            <div class="ups-tower-mark"><i></i> UPS</div>
+          </div>` : `
+          <div class="ups-chassis${hasDisplay ? " pro" : ""}">
+            <div class="ups-vents top">${ventSlots}</div>
+            <div class="ups-power"><span></span></div>
+            <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
+            ${hasDisplay ? `<div class="ups-display">
+              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
+              <span></span>
+            </div>` : `<div class="ups-logo">U</div>`}
+            <div class="ups-vents bottom">${ventSlots}</div>
+          </div>
+          `}
+        </div>` : ""}
+        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}">
+          <div class="panel-label">${this._escapeHtml(this._t("back_panel"))}</div>
+          ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : ""}
+          ${networkPorts.length ? `<div class="ups-network-ports">${networkPorts.map((port) => this._renderPortButton(port, selectedPort?.key, portClientIndex)).join("")}</div>` : ""}
+        </div>` : ""}
+        ${showBack && selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${showBack && selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
+        ${telemetryEnabled ? `<div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
+          ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
+            <div class="detail-item">
+              <div class="detail-label">${this._escapeHtml(item.label)}</div>
+              <div class="detail-value">${this._escapeHtml(item.value)}</div>
+            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+        </div>` : ""}
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this._attachPortActionHandlers(ctx);
+    this.shadowRoot.querySelectorAll("[data-outlet-key]")
+      .forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
+    this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-entity]")
+      .forEach((button) => button.addEventListener("click", () => this._toggleEntity(button.dataset.entity)));
+  }
+
   /**
    * Wrapper around the module-level isPortConnected() that adds sticky-state
    * tracking for SFP-like ports.  When a port has been observed with live
@@ -1851,6 +1981,426 @@ class UnifiDeviceCard extends HTMLElement {
       @keyframes blink {
         0%, 100% { opacity: 1; }
         50% { opacity: .4; }
+      }
+
+      .ups-visual {
+        padding: 18px 20px;
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
+      }
+
+      .ups-visual.tower {
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .ups-tower {
+        position: relative;
+        width: 132px;
+        height: 286px;
+        overflow: hidden;
+        border: 1px solid #d7d9dc;
+        border-radius: 31px 31px 20px 20px;
+        background: linear-gradient(100deg, #e3e5e7 0%, #fbfbfc 16%, #f5f6f7 82%, #d9dcde 100%);
+        box-shadow: inset 0 1px 3px #fff, inset 0 -5px 8px rgba(100,106,112,.12), 0 9px 13px -9px rgba(0,0,0,.65);
+      }
+
+      .ups-tower-vents {
+        position: absolute;
+        top: 22px;
+        bottom: 24px;
+        width: 5px;
+        border-radius: 4px;
+        background: repeating-linear-gradient(to bottom, #777d82 0 2px, #d9dcde 2px 4px);
+        box-shadow: inset 0 0 2px rgba(0,0,0,.7);
+      }
+
+      .ups-tower-vents.left { left: 4px; }
+      .ups-tower-vents.right { right: 4px; }
+
+      .ups-tower-power {
+        position: absolute;
+        top: 42px;
+        left: 50%;
+        width: 31px;
+        height: 31px;
+        transform: translateX(-50%);
+        border: 3px solid #70a9ff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(72,143,255,.55), inset 0 0 5px rgba(104,164,255,.25);
+      }
+
+      .ups-tower-power span {
+        position: absolute;
+        top: 7px;
+        left: 13px;
+        width: 3px;
+        height: 11px;
+        border-radius: 2px;
+        background: #aab0b6;
+      }
+
+      .ups-tower-battery {
+        position: absolute;
+        top: 91px;
+        left: 50%;
+        display: flex;
+        gap: 5px;
+        transform: translateX(-50%);
+      }
+
+      .ups-tower-battery i {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #69a2ff;
+        box-shadow: 0 0 3px rgba(58,132,255,.7);
+      }
+
+      .ups-tower-seam {
+        position: absolute;
+        top: 114px;
+        right: 7px;
+        left: 7px;
+        height: 2px;
+        background: linear-gradient(#c5c8cb, #fff);
+        box-shadow: 0 1px 2px rgba(90,95,100,.2);
+      }
+
+      .ups-tower-logo {
+        position: absolute;
+        top: 190px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #e1e3e5;
+        font-size: 28px;
+        font-weight: 800;
+        text-shadow: 0 1px 1px #fff;
+      }
+
+      .ups-tower-mark {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #aaaeb2;
+        font-size: 6px;
+        white-space: nowrap;
+      }
+
+      .ups-tower-mark i {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #b9bdc0;
+        vertical-align: -1px;
+      }
+
+      .ups-connection-panel {
+        padding: 14px;
+        background: linear-gradient(145deg, #d5d7d8, #b8bbbd);
+        border-top: 1px solid rgba(255,255,255,.7);
+        border-bottom: 1px solid rgba(55,60,64,.25);
+      }
+
+      .ups-connection-panel.tower {
+        background: linear-gradient(145deg, #fafbfc, #e6e8ea);
+        border-top-color: #fff;
+        border-bottom-color: #c9cdd0;
+      }
+
+      .ups-connection-panel .panel-label {
+        color: #555c62;
+        margin-bottom: 10px;
+      }
+
+      .ups-physical-outlets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+        gap: 9px;
+      }
+
+      .ups-outlet-port {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: 58px;
+        padding: 5px 4px 3px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: transparent;
+        color: #3f464c;
+        cursor: pointer;
+      }
+
+      .ups-outlet-port:hover:not(:disabled),
+      .ups-outlet-port:focus-visible,
+      .ups-outlet-port.selected {
+        border-color: rgba(0,112,190,.65);
+        background: rgba(255,255,255,.2);
+      }
+
+      .ups-outlet-port.selected {
+        box-shadow: 0 0 0 1px rgba(0,112,190,.22);
+      }
+
+      .ups-outlet-port:disabled { cursor: default; }
+
+      .ups-outlet-socket {
+        position: relative;
+        display: block;
+        width: 46px;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 4px;
+        border: 2px solid #111416;
+        border-radius: 7px 7px 5px 5px;
+        background: linear-gradient(#272b2e, #090b0d);
+        box-shadow: inset 0 0 0 1px #42474a, 0 1px 2px rgba(0,0,0,.5);
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 1px solid #4b5053;
+        border-radius: 4px 4px 3px 3px;
+        background: #171a1c;
+        box-shadow: inset 0 1px 4px #000;
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess i {
+        position: absolute;
+        width: 5px;
+        height: 9px;
+        border-radius: 1px;
+        background: #020303;
+        box-shadow: inset 0 1px 2px #000, 0 0 0 1px #34383b;
+      }
+
+      .ups-outlet-recess i:nth-child(1) { top: 11px; left: 6px; }
+      .ups-outlet-recess i:nth-child(2) { top: 11px; right: 6px; }
+      .ups-outlet-recess i:nth-child(3) {
+        top: 3px;
+        left: 50%;
+        width: 5px;
+        height: 8px;
+        transform: translateX(-50%);
+      }
+
+      .ups-outlet-port.light { color: #626970; }
+
+      .ups-outlet-port.light .ups-outlet-socket {
+        border-color: #f7f8f9;
+        background: linear-gradient(#fff, #e2e5e7);
+        box-shadow: inset 0 0 0 2px #cfd3d6, 0 1px 3px rgba(70,76,82,.35);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess {
+        border-color: #c8cdd0;
+        background: #edf0f1;
+        box-shadow: inset 0 1px 3px rgba(80,86,91,.28);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess i {
+        background: #555c61;
+        box-shadow: inset 0 1px 2px #33383c, 0 0 0 1px #bbc0c3;
+      }
+
+      .ups-outlet-led {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #667078;
+        box-shadow: inset 0 0 1px rgba(0,0,0,.8);
+      }
+
+      .ups-outlet-port.enabled .ups-outlet-led {
+        background: #4792ff;
+        box-shadow: 0 0 4px rgba(46,126,255,.9);
+      }
+
+      .ups-outlet-label {
+        max-width: 62px;
+        overflow: hidden;
+        font-size: 8px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ups-network-ports {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 13px;
+        padding-top: 11px;
+        border-top: 1px solid rgba(70,75,80,.22);
+      }
+
+      .ups-chassis {
+        position: relative;
+        box-sizing: border-box;
+        width: min(100%, 640px);
+        aspect-ratio: 4.9 / 1;
+        min-height: 92px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #aeb2b5;
+        border-radius: 5px 5px 3px 3px;
+        background: linear-gradient(110deg, #dadcdc 0%, #c7c9ca 48%, #e3e4e4 100%);
+        box-shadow:
+          inset 0 1px 1px rgba(255,255,255,.95),
+          inset 0 -6px 8px rgba(83,88,91,.16),
+          0 7px 8px -6px rgba(0,0,0,.7);
+      }
+
+      .ups-chassis::after {
+        content: "";
+        position: absolute;
+        right: 1.5%;
+        bottom: -3px;
+        left: 1.5%;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(66,71,74,.3);
+        filter: blur(2px);
+      }
+
+      .ups-vents {
+        position: absolute;
+        right: 3.2%;
+        left: 3.2%;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.2%;
+      }
+
+      .ups-vents.top { top: 6%; }
+      .ups-vents.bottom { bottom: 7%; }
+
+      .ups-vents span {
+        height: 6px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(#787d80, #f7f8f8 45%, #9b9fa1 55%, #696e71);
+        box-shadow: inset 0 1px 1px rgba(33,37,39,.75);
+      }
+
+      .ups-vents.bottom span {
+        transform: rotate(180deg);
+      }
+
+      .ups-power {
+        position: absolute;
+        top: 38%;
+        left: 4.1%;
+        width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        border: 2px solid #0799e4;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,153,228,.45), inset 0 0 4px rgba(255,255,255,.8);
+      }
+
+      .ups-power span {
+        position: absolute;
+        top: 2px;
+        left: 5px;
+        width: 2px;
+        height: 6px;
+        border-radius: 1px;
+        background: #0799e4;
+      }
+
+      .ups-wordmark {
+        position: absolute;
+        top: 43%;
+        left: 7.2%;
+        color: #62686d;
+        font-size: clamp(5px, 1.3vw, 9px);
+        line-height: 1;
+        letter-spacing: -.02em;
+      }
+
+      .ups-wordmark i {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        margin-right: 2px;
+        border-radius: 50%;
+        background: #168ed0;
+        vertical-align: 1px;
+      }
+
+      .ups-wordmark strong { font-weight: 700; }
+
+      .ups-logo {
+        position: absolute;
+        top: 38%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #9ba1a5;
+        font-size: clamp(16px, 4vw, 25px);
+        font-weight: 800;
+        opacity: .8;
+      }
+
+      .ups-display {
+        position: absolute;
+        top: 31%;
+        left: 50%;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 21%;
+        min-width: 82px;
+        height: 31%;
+        min-height: 27px;
+        padding: 4px 6px;
+        box-sizing: border-box;
+        transform: translateX(-50%);
+        border: 1px solid #070b22;
+        border-radius: 3px;
+        background: linear-gradient(110deg, #030618, #07103e 62%, #030515);
+        box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
+      }
+
+      .ups-display-grid {
+        display: grid;
+        flex: 1;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2px;
+      }
+
+      .ups-display-grid i {
+        aspect-ratio: 1.45 / 1;
+        border: 1px solid rgba(84,154,255,.52);
+        border-radius: 1px;
+        background: linear-gradient(135deg, #073a9b, #0879e4);
+        box-shadow: inset 0 0 2px rgba(116,189,255,.65);
+      }
+
+      .ups-display > span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7ca6ff;
+        box-shadow: 0 0 3px #367bff;
+      }
+
+      @media (max-width: 420px) {
+        .ups-visual { padding: 14px 12px; }
+        .ups-chassis { min-height: 70px; }
+        .ups-vents span { height: 5px; }
+        .ups-physical-outlets { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); }
       }
 
       .frontpanel {
@@ -3483,6 +4033,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "ups") {
+      this._renderUpsCard(this._ctx);
+      return;
+    }
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const renderApLayout = layoutMode !== "network" && (
       this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts

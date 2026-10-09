@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.81-dev */
+/* UniFi Device Card 0.8.82-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -81,6 +81,27 @@ function applyPortsPerRowOverride(layout, portsPerRow) {
   };
 }
 var MODEL_REGISTRY = {
+  // ══════════════════════════════════════════════════════════════════════════
+  // UNINTERRUPTIBLE POWER SUPPLIES
+  // ══════════════════════════════════════════════════════════════════════════
+  USPDA2B: {
+    kind: "ups",
+    frontStyle: "ups-rack",
+    rows: [],
+    portCount: 0,
+    displayModel: "UPS 2U Pro",
+    theme: "silver",
+    specialSlots: []
+  },
+  USWDA25: {
+    kind: "ups",
+    frontStyle: "ups-rack",
+    rows: [],
+    portCount: 0,
+    displayModel: "UPS 2U",
+    theme: "silver",
+    specialSlots: []
+  },
   // ══════════════════════════════════════════════════════════════════════════
   // ACCESS POINTS
   // ══════════════════════════════════════════════════════════════════════════
@@ -1883,6 +1904,14 @@ var DEVICE_FEATURE_PREFIXES = {
   device_temperature: "temperature",
   device_sub_temperature: "sub_temperature",
   device_uplink_mac: "uplink_mac",
+  ups_battery_level: "ups_battery_level",
+  ups_battery_runtime: "ups_battery_runtime",
+  ups_output_power: "ups_output_power",
+  ups_output_current: "ups_output_current",
+  ups_output_voltage: "ups_output_voltage",
+  ups_input_voltage: "ups_input_voltage",
+  ups_bypass_voltage: "ups_bypass_voltage",
+  ups_output_power_factor: "ups_output_power_factor",
   rx: "client_rx",
   tx: "client_tx",
   wired_speed: "client_link_speed"
@@ -2040,6 +2069,8 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
+  const upsSignals = ["USPDA2B", "USWDA25"].includes(model) || translationKeys.has("ups_battery_level") || translationKeys.has("ups_battery_runtime") || name.includes("ups 2u") || name.includes("uninterruptible power supply");
+  if (upsSignals) return "ups";
   const registryType = fromModel(model);
   if (registryType) return registryType;
   const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || model.startsWith("UX") || model.startsWith("UDW") || model.startsWith("EFG") || model.startsWith("UTR") || name.includes("gateway") || name.includes("router");
@@ -2196,6 +2227,10 @@ function hasInfrastructureEntitySignals(entities = []) {
     return id.includes("reboot") || id.includes("restart") || id.includes("power_cycle");
   });
   if (hasRebootControl) return true;
+  const hasUpsTelemetry = entities.some(
+    (e) => String(e?.translation_key || "").toLowerCase().startsWith("ups_")
+  );
+  if (hasUpsTelemetry) return true;
   return entities.some((e) => {
     const id = lower(e?.entity_id);
     if (!id.startsWith("sensor.") && !id.startsWith("binary_sensor.")) return false;
@@ -2207,6 +2242,9 @@ function getDeviceType(device, entities = []) {
   const identity = buildNormalizedDeviceIdentity(device);
   const capabilities = buildDeviceCapabilities(entities, identity);
   return classifyDeviceType(identity, capabilities, entities, device);
+}
+function hasUpsFrontDisplay(device) {
+  return [device?.model_id, device?.model, device?.hw_version].some((value) => normalizeModelStr(value) === "USPDA2B");
 }
 function getWSErrorCode(err) {
   if (err?.code != null) return err.code;
@@ -2348,7 +2386,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
 function buildDeviceLabel(device, type) {
   const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
   const model = normalize(device.model);
-  const typeLabel = type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : "Switch";
+  const typeLabel = type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : type === "ups" ? "UPS" : "Switch";
   if (model && lower(model) !== lower(name)) return `${name} \xB7 ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
 }
@@ -2371,9 +2409,42 @@ function findDeviceEntityByPatterns(entities, patterns = [], candidateIsValid = 
   }
   return null;
 }
+function findDeviceEntityByCanonicalSuffix(entities, key) {
+  const canonicalKey = canonicalStatText(key);
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    if (isPortLevelTelemetrySensor(entity)) continue;
+    const candidates = [entity?.entity_id?.split(".").slice(1).join("."), entity?.original_name, entity?.name];
+    if (candidates.some((value) => {
+      const canonicalValue = canonicalStatText(value);
+      return canonicalValue === canonicalKey || canonicalValue.endsWith(`_${canonicalKey}`);
+    })) {
+      return entity.entity_id;
+    }
+  }
+  return null;
+}
 function isPortLevelTelemetrySensor(entity) {
   const text = typeof entity === "string" ? lower(entity) : entityText(entity);
   return hasIndexedPortId(text) || text.includes("_wan_") || text.includes("link_speed") || text.includes("port_link_speed") || text.includes("port_bandwidth") || text.includes("poe_power") || text.includes("_rx") || text.includes("_tx") || text.includes("throughput");
+}
+function findDeviceUniqueIdTelemetryEntity(entities, features = []) {
+  const allowed = new Set(features);
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const parsed = parseUnifiDeviceUniqueId(entity?.unique_id);
+    if (parsed?.feature && allowed.has(parsed.feature)) return entity.entity_id;
+  }
+  return null;
+}
+function findCoreDeviceTelemetryEntity(entities, matchFn) {
+  for (const entity of entities || []) {
+    if (!isSensorEntity(entity)) continue;
+    const text = entityText(entity);
+    if (isPortLevelTelemetrySensor(entity) && !matchFn(entity, text)) continue;
+    if (matchFn(entity, text)) return entity.entity_id;
+  }
+  return null;
 }
 function findSystemStatEntity(entities, includePatterns = [], excludePatterns = [], candidateIsValid = null) {
   for (const entity of entities || []) {
@@ -2571,11 +2642,44 @@ function getDeviceTelemetry(entities, hass = null) {
         ["cpu", "processor", "memory", "ram", "wan", "sfp", "uplink", "link_speed", "link", "rx", "tx", "throughput", "poe", "fan"],
         (entity) => isValidTemperatureTelemetryEntity(entity, { allowSubTemperature: false })
       )
-    ], hass)
+    ], hass),
+    ...Object.fromEntries([
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_input_voltage",
+      "ups_bypass_voltage",
+      "ups_output_power_factor"
+    ].map((key) => [
+      `${key}_entity`,
+      preferUsableTelemetryMatch([
+        findDeviceUniqueIdTelemetryEntity(candidates, [key]),
+        findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === key),
+        findDeviceEntityByCanonicalSuffix(candidates, key)
+      ], hass)
+    ]))
   };
 }
 function getUnavailableHeaderTelemetryKeys(deviceContext) {
   if (!deviceContext) return [];
+  if (deviceContext.type === "ups") {
+    const expected = [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_output_power_factor"
+    ];
+    const model = normalizeModelStr(
+      deviceContext?.identity?.model_id || deviceContext?.device?.model_id || deviceContext?.model
+    );
+    if (model === "USPDA2B") expected.push("ups_input_voltage");
+    if (model === "USWDA25") expected.push("ups_bypass_voltage");
+    return expected.filter((key) => !deviceContext[`${key}_entity`]);
+  }
   const unavailable = [];
   if (!deviceContext.cpu_utilization_entity) unavailable.push("cpu_utilization");
   if (!deviceContext.memory_utilization_entity) unavailable.push("memory_utilization");
@@ -2840,7 +2944,7 @@ async function getUnifiDevices(hass, cardConfig = null) {
     const identity = buildNormalizedDeviceIdentity(device);
     const capabilities = buildDeviceCapabilities(entities, identity);
     const type = classifyDeviceType(identity, capabilities, entities, device);
-    if (type !== "switch" && type !== "gateway" && type !== "access_point") continue;
+    if (!["switch", "gateway", "access_point", "ups"].includes(type)) continue;
     results.push({
       id: device.id,
       name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
@@ -3525,6 +3629,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     const device2 = {
       id: deviceId,
       name: model.displayModel,
+      model_id: modelKey,
       model: model.displayModel,
       manufacturer: "Ubiquiti"
     };
@@ -3566,7 +3671,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const identity = buildNormalizedDeviceIdentity(device);
   const capabilities = buildDeviceCapabilities(allEntities, identity);
   const type = classifyDeviceType(identity, capabilities, allEntities, device);
-  if (type !== "switch" && type !== "gateway" && type !== "access_point") return null;
+  if (!["switch", "gateway", "access_point", "ups"].includes(type)) return null;
   const needsUID = entities.filter(
     (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && (!hasIndexedPortId(e.entity_id) || /(?:^|[_-])sfp[_+]?\d+(?:[_-]|$)/i.test(lower(e.entity_id))) && !/\bport\s+\d+\b/i.test(e.original_name || "")
   );
@@ -4087,6 +4192,15 @@ var TRANSLATIONS = {
     cpu_temperature: "CPU temperature",
     memory_utilization: "Memory utilization",
     temperature: "Temperature",
+    ups_telemetry: "UPS telemetry",
+    ups_battery_level: "Battery level",
+    ups_battery_runtime: "Battery runtime",
+    ups_output_power: "Output power",
+    ups_output_current: "Output current",
+    ups_output_voltage: "Output voltage",
+    ups_input_voltage: "Input voltage",
+    ups_bypass_voltage: "Bypass voltage",
+    ups_output_power_factor: "Output power factor",
     // Port detail
     link_status: "Link Status",
     ap_status: "AP Status",
@@ -4179,7 +4293,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "AP compact header",
     editor_ap_compact_header_telemetry_text: "Show telemetry in compact header",
     editor_ap_compact_header_telemetry_hint: "Only visible in compact AP layout. Adds utilization and temperature to the header.",
-    editor_no_devices: "No UniFi switches, gateways, or access points found in Home Assistant.",
+    editor_no_devices: "No UniFi switches, gateways, access points, or UPS devices found in Home Assistant.",
     editor_hint: "Only devices from the UniFi Network Integration are shown.",
     editor_error: "Failed to load UniFi devices.",
     // WAN / WAN2 selector (editor — gateway only)
@@ -4274,7 +4388,8 @@ var TRANSLATIONS = {
     // Device type labels (used in device selector)
     type_switch: "Switch",
     type_gateway: "Gateway",
-    type_access_point: "Access Point"
+    type_access_point: "Access Point",
+    type_ups: "UPS"
   },
   de: {
     // Card states
@@ -4288,6 +4403,15 @@ var TRANSLATIONS = {
     cpu_temperature: "CPU-Temperatur",
     memory_utilization: "Speicherauslastung",
     temperature: "Temperatur",
+    ups_telemetry: "USV-Telemetrie",
+    ups_battery_level: "Batteriestand",
+    ups_battery_runtime: "Batterielaufzeit",
+    ups_output_power: "Ausgangsleistung",
+    ups_output_current: "Ausgangsstrom",
+    ups_output_voltage: "Ausgangsspannung",
+    ups_input_voltage: "Eingangsspannung",
+    ups_bypass_voltage: "Bypass-Spannung",
+    ups_output_power_factor: "Ausgangsleistungsfaktor",
     // Port detail
     link_status: "Link Status",
     ap_status: "AP Status",
@@ -4380,7 +4504,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Kompakter AP-Header",
     editor_ap_compact_header_telemetry_text: "Telemetrie im kompakten Header anzeigen",
     editor_ap_compact_header_telemetry_hint: "Nur in der kompakten AP-Ansicht sichtbar. F\xFCgt Auslastung und Temperatur im Header hinzu.",
-    editor_no_devices: "Keine UniFi Switches, Gateways oder Access Points in Home Assistant gefunden.",
+    editor_no_devices: "Keine UniFi Switches, Gateways, Access Points oder USV-Ger\xE4te in Home Assistant gefunden.",
     editor_hint: "Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.",
     editor_error: "UniFi-Ger\xE4te konnten nicht geladen werden.",
     // WAN / WAN2 selector
@@ -4475,7 +4599,8 @@ var TRANSLATIONS = {
     // Device type labels
     type_switch: "Switch",
     type_gateway: "Gateway",
-    type_access_point: "Access Point"
+    type_access_point: "Access Point",
+    type_ups: "USV"
   },
   nl: {
     // Card states
@@ -4489,6 +4614,15 @@ var TRANSLATIONS = {
     cpu_temperature: "CPU-temperatuur",
     memory_utilization: "Geheugengebruik",
     temperature: "Temperatuur",
+    ups_telemetry: "UPS-telemetrie",
+    ups_battery_level: "Batterijniveau",
+    ups_battery_runtime: "Batterijduur",
+    ups_output_power: "Uitgangsvermogen",
+    ups_output_current: "Uitgangsstroom",
+    ups_output_voltage: "Uitgangsspanning",
+    ups_input_voltage: "Ingangsspanning",
+    ups_bypass_voltage: "Bypass-spanning",
+    ups_output_power_factor: "Uitgangsvermogensfactor",
     // Port detail
     link_status: "Linkstatus",
     ap_status: "AP-status",
@@ -4581,7 +4715,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Compacte AP-header",
     editor_ap_compact_header_telemetry_text: "Telemetrie in compacte header tonen",
     editor_ap_compact_header_telemetry_hint: "Alleen zichtbaar in compacte AP-weergave. Voegt gebruik en temperatuur toe aan de header.",
-    editor_no_devices: "Geen UniFi-switches, -gateways of access points gevonden in Home Assistant.",
+    editor_no_devices: "Geen UniFi-switches, -gateways, access points of UPS-apparaten gevonden in Home Assistant.",
     editor_hint: "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error: "UniFi-apparaten konden niet worden geladen.",
     // WAN / WAN2 selector
@@ -4673,7 +4807,8 @@ var TRANSLATIONS = {
     warning_entity_header_temperature: "temperatuursensoren in de header",
     type_switch: "Switch",
     type_gateway: "Gateway",
-    type_access_point: "Access Point"
+    type_access_point: "Access Point",
+    type_ups: "UPS"
   },
   fr: {
     // Card states
@@ -4687,6 +4822,15 @@ var TRANSLATIONS = {
     cpu_temperature: "Temp\xE9rature CPU",
     memory_utilization: "Utilisation m\xE9moire",
     temperature: "Temp\xE9rature",
+    ups_telemetry: "T\xE9l\xE9m\xE9trie de l\u2019onduleur",
+    ups_battery_level: "Niveau de batterie",
+    ups_battery_runtime: "Autonomie de la batterie",
+    ups_output_power: "Puissance de sortie",
+    ups_output_current: "Courant de sortie",
+    ups_output_voltage: "Tension de sortie",
+    ups_input_voltage: "Tension d\u2019entr\xE9e",
+    ups_bypass_voltage: "Tension de d\xE9rivation",
+    ups_output_power_factor: "Facteur de puissance de sortie",
     // Port detail
     link_status: "\xC9tat du lien",
     ap_status: "Statut AP",
@@ -4779,7 +4923,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "En-t\xEAte AP compact",
     editor_ap_compact_header_telemetry_text: "Afficher la t\xE9l\xE9m\xE9trie dans l\u2019en-t\xEAte compact",
     editor_ap_compact_header_telemetry_hint: "Visible uniquement en vue AP compacte. Ajoute l\u2019utilisation et la temp\xE9rature dans l\u2019en-t\xEAte.",
-    editor_no_devices: "Aucun switch, gateway ou point d\u2019acc\xE8s UniFi trouv\xE9 dans Home Assistant.",
+    editor_no_devices: "Aucun switch, gateway, point d\u2019acc\xE8s ou onduleur UniFi trouv\xE9 dans Home Assistant.",
     editor_hint: "Seuls les appareils de l'int\xE9gration UniFi Network sont affich\xE9s.",
     editor_error: "Impossible de charger les appareils UniFi.",
     // WAN / WAN2 selector
@@ -4871,7 +5015,8 @@ var TRANSLATIONS = {
     warning_entity_header_temperature: "capteurs de temp\xE9rature d\u2019en-t\xEAte",
     type_switch: "Switch",
     type_gateway: "Passerelle",
-    type_access_point: "Point d\u2019acc\xE8s"
+    type_access_point: "Point d\u2019acc\xE8s",
+    type_ups: "Onduleur"
   },
   es: {
     // Card states
@@ -4885,6 +5030,15 @@ var TRANSLATIONS = {
     cpu_temperature: "Temperatura de CPU",
     memory_utilization: "Uso de memoria",
     temperature: "Temperatura",
+    ups_telemetry: "Telemetr\xEDa del UPS",
+    ups_battery_level: "Nivel de bater\xEDa",
+    ups_battery_runtime: "Autonom\xEDa de la bater\xEDa",
+    ups_output_power: "Potencia de salida",
+    ups_output_current: "Corriente de salida",
+    ups_output_voltage: "Tensi\xF3n de salida",
+    ups_input_voltage: "Tensi\xF3n de entrada",
+    ups_bypass_voltage: "Tensi\xF3n de bypass",
+    ups_output_power_factor: "Factor de potencia de salida",
     // Port detail
     link_status: "Estado del enlace",
     ap_status: "Estado del AP",
@@ -4977,7 +5131,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Encabezado AP compacto",
     editor_ap_compact_header_telemetry_text: "Mostrar telemetr\xEDa en el encabezado compacto",
     editor_ap_compact_header_telemetry_hint: "Solo visible en vista AP compacta. A\xF1ade uso y temperatura en el encabezado.",
-    editor_no_devices: "No se encontraron switches, gateways o puntos de acceso UniFi en Home Assistant.",
+    editor_no_devices: "No se encontraron switches, gateways, puntos de acceso o dispositivos UPS UniFi en Home Assistant.",
     editor_hint: "Solo se muestran dispositivos de la integraci\xF3n UniFi Network.",
     editor_error: "No se pudieron cargar los dispositivos UniFi.",
     // WAN / WAN2 selector
@@ -5069,7 +5223,8 @@ var TRANSLATIONS = {
     warning_entity_header_temperature: "sensores de temperatura del encabezado",
     type_switch: "Switch",
     type_gateway: "Gateway",
-    type_access_point: "Punto de acceso"
+    type_access_point: "Punto de acceso",
+    type_ups: "UPS"
   },
   it: {
     // Card states
@@ -5083,6 +5238,15 @@ var TRANSLATIONS = {
     cpu_temperature: "Temperatura CPU",
     memory_utilization: "Utilizzo memoria",
     temperature: "Temperatura",
+    ups_telemetry: "Telemetria UPS",
+    ups_battery_level: "Livello batteria",
+    ups_battery_runtime: "Autonomia batteria",
+    ups_output_power: "Potenza in uscita",
+    ups_output_current: "Corrente in uscita",
+    ups_output_voltage: "Tensione in uscita",
+    ups_input_voltage: "Tensione in ingresso",
+    ups_bypass_voltage: "Tensione di bypass",
+    ups_output_power_factor: "Fattore di potenza in uscita",
     // Port detail
     link_status: "Stato collegamento",
     ap_status: "Stato AP",
@@ -5175,7 +5339,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Header AP compatto",
     editor_ap_compact_header_telemetry_text: "Mostra telemetria nell\u2019header compatto",
     editor_ap_compact_header_telemetry_hint: "Visibile solo nella vista AP compatta. Aggiunge utilizzo e temperatura nell\u2019header.",
-    editor_no_devices: "Nessuno switch, gateway o access point UniFi trovato in Home Assistant.",
+    editor_no_devices: "Nessuno switch, gateway, access point o dispositivo UPS UniFi trovato in Home Assistant.",
     editor_hint: "Vengono mostrati solo i dispositivi dell\u2019integrazione UniFi Network.",
     editor_error: "Impossibile caricare i dispositivi UniFi.",
     // WAN / WAN2 selector
@@ -5267,11 +5431,22 @@ var TRANSLATIONS = {
     warning_entity_header_temperature: "sensori temperatura dell\u2019header",
     type_switch: "Switch",
     type_gateway: "Gateway",
-    type_access_point: "Access Point"
+    type_access_point: "Access Point",
+    type_ups: "UPS"
   }
 };
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batteriniv\xE5",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Uteffekt",
+  ups_output_current: "Utstr\xF6m",
+  ups_output_voltage: "Utsp\xE4nning",
+  ups_input_voltage: "Insp\xE4nning",
+  ups_bypass_voltage: "Bypass-sp\xE4nning",
+  ups_output_power_factor: "Utg\xE5ende effektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Ursprunglig uplink-port",
   editor_default_uplink_port_legacy: "Tidigare beteende (f\xF6rsta porten)",
   editor_default_uplink_port_auto: "Automatiskt (aktiv uplink)",
@@ -5304,6 +5479,16 @@ TRANSLATIONS.sv = {
 };
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batteriniveau",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Udgangseffekt",
+  ups_output_current: "Udgangsstr\xF8m",
+  ups_output_voltage: "Udgangssp\xE6nding",
+  ups_input_voltage: "Indgangssp\xE6nding",
+  ups_bypass_voltage: "Bypass-sp\xE6nding",
+  ups_output_power_factor: "Udgangseffektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Oprindelig uplink-port",
   editor_default_uplink_port_legacy: "Hidtidig adf\xE6rd (f\xF8rste port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
@@ -5336,6 +5521,16 @@ TRANSLATIONS.da = {
 };
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetri",
+  ups_battery_level: "Batteriniv\xE5",
+  ups_battery_runtime: "Batteritid",
+  ups_output_power: "Utgangseffekt",
+  ups_output_current: "Utgangsstr\xF8m",
+  ups_output_voltage: "Utgangsspenning",
+  ups_input_voltage: "Inngangsspenning",
+  ups_bypass_voltage: "Bypass-spenning",
+  ups_output_power_factor: "Utgangseffektfaktor",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Opprinnelig uplink-port",
   editor_default_uplink_port_legacy: "Tidligere virkem\xE5te (f\xF8rste port)",
   editor_default_uplink_port_auto: "Automatisk (aktiv uplink)",
@@ -5368,6 +5563,16 @@ TRANSLATIONS.no = {
 };
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "UPS-telemetria",
+  ups_battery_level: "Akun varaustaso",
+  ups_battery_runtime: "Akun k\xE4ytt\xF6aika",
+  ups_output_power: "L\xE4ht\xF6teho",
+  ups_output_current: "L\xE4ht\xF6virta",
+  ups_output_voltage: "L\xE4ht\xF6j\xE4nnite",
+  ups_input_voltage: "Tuloj\xE4nnite",
+  ups_bypass_voltage: "Ohitusj\xE4nnite",
+  ups_output_power_factor: "L\xE4hd\xF6n tehokerroin",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Alkuper\xE4inen uplink-portti",
   editor_default_uplink_port_legacy: "Aiempi toiminta (ensimm\xE4inen portti)",
   editor_default_uplink_port_auto: "Automaattinen (aktiivinen uplink)",
@@ -5400,6 +5605,16 @@ TRANSLATIONS.fi = {
 };
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "Telemetria UPS",
+  ups_battery_level: "Poziom baterii",
+  ups_battery_runtime: "Czas pracy baterii",
+  ups_output_power: "Moc wyj\u015Bciowa",
+  ups_output_current: "Pr\u0105d wyj\u015Bciowy",
+  ups_output_voltage: "Napi\u0119cie wyj\u015Bciowe",
+  ups_input_voltage: "Napi\u0119cie wej\u015Bciowe",
+  ups_bypass_voltage: "Napi\u0119cie obej\u015Bciowe",
+  ups_output_power_factor: "Wyj\u015Bciowy wsp\xF3\u0142czynnik mocy",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Pocz\u0105tkowy port uplink",
   editor_default_uplink_port_legacy: "Dotychczasowe dzia\u0142anie (pierwszy port)",
   editor_default_uplink_port_auto: "Automatycznie (aktywny uplink)",
@@ -5432,6 +5647,16 @@ TRANSLATIONS.pl = {
 };
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
+  ups_telemetry: "Telemetrie UPS",
+  ups_battery_level: "\xDArove\u0148 baterie",
+  ups_battery_runtime: "Doba provozu na baterii",
+  ups_output_power: "V\xFDstupn\xED v\xFDkon",
+  ups_output_current: "V\xFDstupn\xED proud",
+  ups_output_voltage: "V\xFDstupn\xED nap\u011Bt\xED",
+  ups_input_voltage: "Vstupn\xED nap\u011Bt\xED",
+  ups_bypass_voltage: "Nap\u011Bt\xED bypassu",
+  ups_output_power_factor: "V\xFDstupn\xED \xFA\u010Din\xEDk",
+  type_ups: "UPS",
   editor_default_uplink_port_label: "Po\u010D\xE1te\u010Dn\xED uplink port",
   editor_default_uplink_port_legacy: "Dosavadn\xED chov\xE1n\xED (prvn\xED port)",
   editor_default_uplink_port_auto: "Automaticky (aktivn\xED uplink)",
@@ -7017,7 +7242,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.81-dev";
+var VERSION = "0.8.82-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7799,6 +8024,9 @@ var UnifiDeviceCard = class extends HTMLElement {
     for (const entity of this._ctx?.entities || []) {
       if (entity?.entity_id) ids.add(entity.entity_id);
     }
+    for (const entity of this._ctx?.telemetry_entities || []) {
+      if (entity?.entity_id) ids.add(entity.entity_id);
+    }
     const directEntityKeys = [
       "cpu_utilization_entity",
       "cpu_temperature_entity",
@@ -8137,6 +8365,60 @@ var UnifiDeviceCard = class extends HTMLElement {
       value: item.wholeNumber ? this._wholeNumberState(item.entity) : formatState(this._hass, item.entity)
     }));
   }
+  _upsMetrics() {
+    if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    return [
+      "ups_battery_level",
+      "ups_battery_runtime",
+      "ups_output_power",
+      "ups_output_current",
+      "ups_output_voltage",
+      "ups_input_voltage",
+      "ups_bypass_voltage",
+      "ups_output_power_factor"
+    ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] })).filter((item) => item.entity && formatState(this._hass, item.entity) !== "\u2014").map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+  }
+  _renderUpsCard(ctx) {
+    const metrics = this._upsMetrics();
+    const telemetryEnabled = this._telemetryEnabled();
+    const headerTitle = this._title();
+    const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const ventSlots = "<span></span>".repeat(5);
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions">
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        <div class="ups-visual" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+          <div class="ups-chassis${hasDisplay ? " pro" : ""}">
+            <div class="ups-vents top">${ventSlots}</div>
+            <div class="ups-power"><span></span></div>
+            <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
+            ${hasDisplay ? `<div class="ups-display">
+              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
+              <span></span>
+            </div>` : `<div class="ups-logo">U</div>`}
+            <div class="ups-vents bottom">${ventSlots}</div>
+          </div>
+        </div>
+        ${telemetryEnabled ? `<div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
+          ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
+            <div class="detail-item">
+              <div class="detail-label">${this._escapeHtml(item.label)}</div>
+              <div class="detail-value">${this._escapeHtml(item.value)}</div>
+            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+        </div>` : ""}
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+  }
   /**
    * Wrapper around the module-level isPortConnected() that adds sticky-state
    * tracking for SFP-like ports.  When a port has been observed with live
@@ -8470,6 +8752,168 @@ var UnifiDeviceCard = class extends HTMLElement {
       @keyframes blink {
         0%, 100% { opacity: 1; }
         50% { opacity: .4; }
+      }
+
+      .ups-visual {
+        padding: 18px 20px;
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
+      }
+
+      .ups-chassis {
+        position: relative;
+        box-sizing: border-box;
+        width: min(100%, 640px);
+        aspect-ratio: 4.9 / 1;
+        min-height: 92px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #aeb2b5;
+        border-radius: 5px 5px 3px 3px;
+        background: linear-gradient(110deg, #dadcdc 0%, #c7c9ca 48%, #e3e4e4 100%);
+        box-shadow:
+          inset 0 1px 1px rgba(255,255,255,.95),
+          inset 0 -6px 8px rgba(83,88,91,.16),
+          0 7px 8px -6px rgba(0,0,0,.7);
+      }
+
+      .ups-chassis::after {
+        content: "";
+        position: absolute;
+        right: 1.5%;
+        bottom: -3px;
+        left: 1.5%;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(66,71,74,.3);
+        filter: blur(2px);
+      }
+
+      .ups-vents {
+        position: absolute;
+        right: 3.2%;
+        left: 3.2%;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.2%;
+      }
+
+      .ups-vents.top { top: 6%; }
+      .ups-vents.bottom { bottom: 7%; }
+
+      .ups-vents span {
+        height: 6px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(#787d80, #f7f8f8 45%, #9b9fa1 55%, #696e71);
+        box-shadow: inset 0 1px 1px rgba(33,37,39,.75);
+      }
+
+      .ups-vents.bottom span {
+        transform: rotate(180deg);
+      }
+
+      .ups-power {
+        position: absolute;
+        top: 38%;
+        left: 4.1%;
+        width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        border: 2px solid #0799e4;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,153,228,.45), inset 0 0 4px rgba(255,255,255,.8);
+      }
+
+      .ups-power span {
+        position: absolute;
+        top: 2px;
+        left: 5px;
+        width: 2px;
+        height: 6px;
+        border-radius: 1px;
+        background: #0799e4;
+      }
+
+      .ups-wordmark {
+        position: absolute;
+        top: 43%;
+        left: 7.2%;
+        color: #62686d;
+        font-size: clamp(5px, 1.3vw, 9px);
+        line-height: 1;
+        letter-spacing: -.02em;
+      }
+
+      .ups-wordmark i {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        margin-right: 2px;
+        border-radius: 50%;
+        background: #168ed0;
+        vertical-align: 1px;
+      }
+
+      .ups-wordmark strong { font-weight: 700; }
+
+      .ups-logo {
+        position: absolute;
+        top: 38%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #9ba1a5;
+        font-size: clamp(16px, 4vw, 25px);
+        font-weight: 800;
+        opacity: .8;
+      }
+
+      .ups-display {
+        position: absolute;
+        top: 31%;
+        left: 50%;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 21%;
+        min-width: 82px;
+        height: 31%;
+        min-height: 27px;
+        padding: 4px 6px;
+        box-sizing: border-box;
+        transform: translateX(-50%);
+        border: 1px solid #070b22;
+        border-radius: 3px;
+        background: linear-gradient(110deg, #030618, #07103e 62%, #030515);
+        box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
+      }
+
+      .ups-display-grid {
+        display: grid;
+        flex: 1;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2px;
+      }
+
+      .ups-display-grid i {
+        aspect-ratio: 1.45 / 1;
+        border: 1px solid rgba(84,154,255,.52);
+        border-radius: 1px;
+        background: linear-gradient(135deg, #073a9b, #0879e4);
+        box-shadow: inset 0 0 2px rgba(116,189,255,.65);
+      }
+
+      .ups-display > span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7ca6ff;
+        box-shadow: 0 0 3px #367bff;
+      }
+
+      @media (max-width: 420px) {
+        .ups-visual { padding: 14px 12px; }
+        .ups-chassis { min-height: 70px; }
+        .ups-vents span { height: 5px; }
       }
 
       .frontpanel {
@@ -10075,6 +10519,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
   }
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "ups") {
+      this._renderUpsCard(this._ctx);
+      return;
+    }
     const layoutMode = this._deviceLayoutMode(this._ctx);
     const renderApLayout = layoutMode !== "network" && (this._ctx?.type === "access_point" || this._ctx?.layout?.supportsHybridLayouts);
     if (renderApLayout) {
