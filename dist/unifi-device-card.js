@@ -1939,6 +1939,17 @@ function parseUnifiDeviceUniqueId(uniqueId) {
   if (!feature || !mac) return null;
   return { feature, mac };
 }
+function parseUnifiOutletUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^outlet-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+  const [, macRaw, outletRaw] = match;
+  const mac = normalizeMac(macRaw);
+  const outlet = Number.parseInt(outletRaw, 10);
+  if (!mac || !Number.isInteger(outlet) || outlet < 1) return null;
+  return { feature: "outlet_control", mac, outlet };
+}
 function parseUnifiObjectUniqueId(uniqueId) {
   const raw = String(uniqueId ?? "").trim().toLowerCase();
   if (!raw) return null;
@@ -3658,6 +3669,11 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
       cpu_temperature_entity: null,
       memory_utilization_entity: null,
       temperature_entity: null,
+      outlet_entities: Array.from({ length: model.outletCount || 0 }, (_, index) => ({
+        index: index + 1,
+        entity_id: null,
+        label: `Outlet ${index + 1}`
+      })),
       fake_device: true
     };
   }
@@ -3743,6 +3759,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     ap_uplink: apUplink,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
+    outlet_entities: getDeviceOutletEntities(entities, identity),
     numberedPorts
   };
 }
