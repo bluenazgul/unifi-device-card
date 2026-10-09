@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.82-dev */
+/* UniFi Device Card 0.0.0-dev.eb15e54 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -87,8 +87,9 @@ var MODEL_REGISTRY = {
   USPDA2B: {
     kind: "ups",
     frontStyle: "ups-rack",
-    rows: [],
-    portCount: 0,
+    rows: [[1]],
+    portCount: 1,
+    outletCount: 8,
     displayModel: "UPS 2U Pro",
     theme: "silver",
     specialSlots: []
@@ -96,10 +97,21 @@ var MODEL_REGISTRY = {
   USWDA25: {
     kind: "ups",
     frontStyle: "ups-rack",
-    rows: [],
-    portCount: 0,
+    rows: [[1]],
+    portCount: 1,
+    outletCount: 8,
     displayModel: "UPS 2U",
     theme: "silver",
+    specialSlots: []
+  },
+  USWDA24: {
+    kind: "ups",
+    frontStyle: "ups-tower",
+    rows: [[1]],
+    portCount: 1,
+    outletCount: 10,
+    displayModel: "UPS Tower",
+    theme: "white",
     specialSlots: []
   },
   // ══════════════════════════════════════════════════════════════════════════
@@ -2080,7 +2092,7 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
-  const upsSignals = ["USPDA2B", "USWDA25"].includes(model) || translationKeys.has("ups_battery_level") || translationKeys.has("ups_battery_runtime") || name.includes("ups 2u") || name.includes("uninterruptible power supply");
+  const upsSignals = ["USPDA2B", "USWDA24", "USWDA25"].includes(model) || translationKeys.has("ups_battery_level") || translationKeys.has("ups_battery_runtime") || name.includes("ups 2u") || name.includes("uninterruptible power supply");
   if (upsSignals) return "ups";
   const registryType = fromModel(model);
   if (registryType) return registryType;
@@ -2124,6 +2136,10 @@ function lower(value) {
 function normalizePositivePortNumbers(value) {
   if (!Array.isArray(value)) return [];
   return Array.from(new Set(value.map((entry) => Number(entry)).filter((port) => Number.isInteger(port) && port > 0))).sort((a, b) => a - b);
+}
+function normalizeUpsLayout(value) {
+  const layout = lower(value);
+  return ["combined", "front", "back"].includes(layout) ? layout : "combined";
 }
 function normalizePortNames(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -2256,6 +2272,18 @@ function getDeviceType(device, entities = []) {
 }
 function hasUpsFrontDisplay(device) {
   return [device?.model_id, device?.model, device?.hw_version].some((value) => normalizeModelStr(value) === "USPDA2B");
+}
+function isUpsTower(device) {
+  return [device?.model_id, device?.model, device?.hw_version].some((value) => normalizeModelStr(value) === "USWDA24");
+}
+function getDeviceOutletEntities(entities, identity = null) {
+  return (entities || []).map((entity) => ({ entity, parsed: parseUnifiOutletUniqueId(entity?.unique_id) })).filter(
+    ({ entity, parsed }) => parsed && lower(entity?.entity_id).startsWith("switch.") && (!identity?.primary_mac || parsed.mac === identity.primary_mac)
+  ).map(({ entity, parsed }) => ({
+    index: parsed.outlet,
+    entity_id: entity.entity_id,
+    label: normalize(entity.name || entity.original_name) || `Outlet ${parsed.outlet}`
+  })).sort((left, right) => left.index - right.index);
 }
 function getWSErrorCode(err) {
   if (err?.code != null) return err.code;
@@ -4210,6 +4238,14 @@ var TRANSLATIONS = {
     memory_utilization: "Memory utilization",
     temperature: "Temperature",
     ups_telemetry: "UPS telemetry",
+    ups_outlets: "Outlets",
+    back_panel: "Back Panel",
+    ups_outlet_status: "Outlet status",
+    ups_outlet_turn_on: "Turn on outlet",
+    ups_outlet_turn_off: "Turn off outlet",
+    editor_ups_layout_label: "UPS view",
+    editor_ups_layout_combined: "Front and back panels",
+    editor_ups_layout_hint: "Choose the combined view, the front with telemetry only, or the back panel with ports and controls.",
     ups_battery_level: "Battery level",
     ups_battery_runtime: "Battery runtime",
     ups_output_power: "Output power",
@@ -4421,6 +4457,14 @@ var TRANSLATIONS = {
     memory_utilization: "Speicherauslastung",
     temperature: "Temperatur",
     ups_telemetry: "USV-Telemetrie",
+    ups_outlets: "Ausg\xE4nge",
+    back_panel: "R\xFCckseite",
+    ups_outlet_status: "Ausgangsstatus",
+    ups_outlet_turn_on: "Ausgang einschalten",
+    ups_outlet_turn_off: "Ausgang ausschalten",
+    editor_ups_layout_label: "USV-Ansicht",
+    editor_ups_layout_combined: "Vorder- und R\xFCckseite",
+    editor_ups_layout_hint: "W\xE4hle die kombinierte Ansicht, nur die Vorderseite mit Telemetrie oder die R\xFCckseite mit Anschl\xFCssen und Bedienelementen.",
     ups_battery_level: "Batteriestand",
     ups_battery_runtime: "Batterielaufzeit",
     ups_output_power: "Ausgangsleistung",
@@ -4632,6 +4676,14 @@ var TRANSLATIONS = {
     memory_utilization: "Geheugengebruik",
     temperature: "Temperatuur",
     ups_telemetry: "UPS-telemetrie",
+    ups_outlets: "Stopcontacten",
+    back_panel: "Achterpaneel",
+    ups_outlet_status: "Stopcontactstatus",
+    ups_outlet_turn_on: "Stopcontact inschakelen",
+    ups_outlet_turn_off: "Stopcontact uitschakelen",
+    editor_ups_layout_label: "UPS-weergave",
+    editor_ups_layout_combined: "Voor- en achterpaneel",
+    editor_ups_layout_hint: "Kies de gecombineerde weergave, alleen de voorkant met telemetrie of het achterpaneel met poorten en bediening.",
     ups_battery_level: "Batterijniveau",
     ups_battery_runtime: "Batterijduur",
     ups_output_power: "Uitgangsvermogen",
@@ -4840,6 +4892,14 @@ var TRANSLATIONS = {
     memory_utilization: "Utilisation m\xE9moire",
     temperature: "Temp\xE9rature",
     ups_telemetry: "T\xE9l\xE9m\xE9trie de l\u2019onduleur",
+    ups_outlets: "Prises",
+    back_panel: "Panneau arri\xE8re",
+    ups_outlet_status: "\xC9tat de la prise",
+    ups_outlet_turn_on: "Activer la prise",
+    ups_outlet_turn_off: "D\xE9sactiver la prise",
+    editor_ups_layout_label: "Vue de l\u2019onduleur",
+    editor_ups_layout_combined: "Panneaux avant et arri\xE8re",
+    editor_ups_layout_hint: "Choisissez la vue combin\xE9e, uniquement la face avant avec la t\xE9l\xE9m\xE9trie, ou le panneau arri\xE8re avec les ports et commandes.",
     ups_battery_level: "Niveau de batterie",
     ups_battery_runtime: "Autonomie de la batterie",
     ups_output_power: "Puissance de sortie",
@@ -5048,6 +5108,14 @@ var TRANSLATIONS = {
     memory_utilization: "Uso de memoria",
     temperature: "Temperatura",
     ups_telemetry: "Telemetr\xEDa del UPS",
+    ups_outlets: "Tomas",
+    back_panel: "Panel trasero",
+    ups_outlet_status: "Estado de la toma",
+    ups_outlet_turn_on: "Encender la toma",
+    ups_outlet_turn_off: "Apagar la toma",
+    editor_ups_layout_label: "Vista del UPS",
+    editor_ups_layout_combined: "Paneles frontal y trasero",
+    editor_ups_layout_hint: "Elige la vista combinada, solo el frontal con telemetr\xEDa o el panel trasero con puertos y controles.",
     ups_battery_level: "Nivel de bater\xEDa",
     ups_battery_runtime: "Autonom\xEDa de la bater\xEDa",
     ups_output_power: "Potencia de salida",
@@ -5256,6 +5324,14 @@ var TRANSLATIONS = {
     memory_utilization: "Utilizzo memoria",
     temperature: "Temperatura",
     ups_telemetry: "Telemetria UPS",
+    ups_outlets: "Prese",
+    back_panel: "Pannello posteriore",
+    ups_outlet_status: "Stato della presa",
+    ups_outlet_turn_on: "Attiva la presa",
+    ups_outlet_turn_off: "Disattiva la presa",
+    editor_ups_layout_label: "Vista UPS",
+    editor_ups_layout_combined: "Pannelli anteriore e posteriore",
+    editor_ups_layout_hint: "Scegli la vista combinata, solo il frontale con telemetria o il pannello posteriore con porte e controlli.",
     ups_battery_level: "Livello batteria",
     ups_battery_runtime: "Autonomia batteria",
     ups_output_power: "Potenza in uscita",
@@ -5455,6 +5531,14 @@ var TRANSLATIONS = {
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetri",
+  ups_outlets: "Uttag",
+  back_panel: "Bakpanel",
+  ups_outlet_status: "Uttagsstatus",
+  ups_outlet_turn_on: "Sl\xE5 p\xE5 uttag",
+  ups_outlet_turn_off: "St\xE4ng av uttag",
+  editor_ups_layout_label: "UPS-vy",
+  editor_ups_layout_combined: "Fram- och bakpanel",
+  editor_ups_layout_hint: "V\xE4lj kombinerad vy, endast framsidan med telemetri eller bakpanelen med portar och kontroller.",
   ups_battery_level: "Batteriniv\xE5",
   ups_battery_runtime: "Batteritid",
   ups_output_power: "Uteffekt",
@@ -5497,6 +5581,14 @@ TRANSLATIONS.sv = {
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetri",
+  ups_outlets: "Udtag",
+  back_panel: "Bagpanel",
+  ups_outlet_status: "Udgangsstatus",
+  ups_outlet_turn_on: "T\xE6nd udgang",
+  ups_outlet_turn_off: "Sluk udgang",
+  editor_ups_layout_label: "UPS-visning",
+  editor_ups_layout_combined: "Front- og bagpanel",
+  editor_ups_layout_hint: "V\xE6lg kombineret visning, kun fronten med telemetri eller bagpanelet med porte og betjening.",
   ups_battery_level: "Batteriniveau",
   ups_battery_runtime: "Batteritid",
   ups_output_power: "Udgangseffekt",
@@ -5539,6 +5631,14 @@ TRANSLATIONS.da = {
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetri",
+  ups_outlets: "Uttak",
+  back_panel: "Bakpanel",
+  ups_outlet_status: "Uttaksstatus",
+  ups_outlet_turn_on: "Sl\xE5 p\xE5 uttak",
+  ups_outlet_turn_off: "Sl\xE5 av uttak",
+  editor_ups_layout_label: "UPS-visning",
+  editor_ups_layout_combined: "Front- og bakpanel",
+  editor_ups_layout_hint: "Velg kombinert visning, bare fronten med telemetri eller bakpanelet med porter og kontroller.",
   ups_battery_level: "Batteriniv\xE5",
   ups_battery_runtime: "Batteritid",
   ups_output_power: "Utgangseffekt",
@@ -5581,6 +5681,14 @@ TRANSLATIONS.no = {
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetria",
+  ups_outlets: "Pistorasiat",
+  back_panel: "Takapaneeli",
+  ups_outlet_status: "Pistorasian tila",
+  ups_outlet_turn_on: "Kytke pistorasia p\xE4\xE4lle",
+  ups_outlet_turn_off: "Kytke pistorasia pois",
+  editor_ups_layout_label: "UPS-n\xE4kym\xE4",
+  editor_ups_layout_combined: "Etu- ja takapaneeli",
+  editor_ups_layout_hint: "Valitse yhdistetty n\xE4kym\xE4, vain etupaneeli telemetrialla tai takapaneeli portteineen ja ohjaimineen.",
   ups_battery_level: "Akun varaustaso",
   ups_battery_runtime: "Akun k\xE4ytt\xF6aika",
   ups_output_power: "L\xE4ht\xF6teho",
@@ -5623,6 +5731,14 @@ TRANSLATIONS.fi = {
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
   ups_telemetry: "Telemetria UPS",
+  ups_outlets: "Gniazda",
+  back_panel: "Panel tylny",
+  ups_outlet_status: "Stan gniazda",
+  ups_outlet_turn_on: "W\u0142\u0105cz gniazdo",
+  ups_outlet_turn_off: "Wy\u0142\u0105cz gniazdo",
+  editor_ups_layout_label: "Widok UPS",
+  editor_ups_layout_combined: "Panel przedni i tylny",
+  editor_ups_layout_hint: "Wybierz widok \u0142\u0105czony, tylko prz\xF3d z telemetri\u0105 albo panel tylny z portami i sterowaniem.",
   ups_battery_level: "Poziom baterii",
   ups_battery_runtime: "Czas pracy baterii",
   ups_output_power: "Moc wyj\u015Bciowa",
@@ -5665,6 +5781,14 @@ TRANSLATIONS.pl = {
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
   ups_telemetry: "Telemetrie UPS",
+  ups_outlets: "Z\xE1suvky",
+  back_panel: "Zadn\xED panel",
+  ups_outlet_status: "Stav z\xE1suvky",
+  ups_outlet_turn_on: "Zapnout z\xE1suvku",
+  ups_outlet_turn_off: "Vypnout z\xE1suvku",
+  editor_ups_layout_label: "Zobrazen\xED UPS",
+  editor_ups_layout_combined: "P\u0159edn\xED a zadn\xED panel",
+  editor_ups_layout_hint: "Vyberte kombinovan\xE9 zobrazen\xED, pouze p\u0159edn\xED stranu s telemetri\xED nebo zadn\xED panel s porty a ovl\xE1d\xE1n\xEDm.",
   ups_battery_level: "\xDArove\u0148 baterie",
   ups_battery_runtime: "Doba provozu na baterii",
   ups_output_power: "V\xFDstupn\xED v\xFDkon",
@@ -6196,6 +6320,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.integrated_ports !== false) delete next.integrated_ports;
     if (!["combined", "network", "ap"].includes(next.device_layout)) delete next.device_layout;
+    next.ups_layout = normalizeUpsLayout(next.ups_layout);
+    if (next.ups_layout === "combined") delete next.ups_layout;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
     this._dispatchConfig(next);
   }
@@ -6226,6 +6352,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       default_uplink_port: void 0,
       ports_per_row: nextDevice?.type === "gateway" ? void 0 : this._config?.ports_per_row,
       device_layout: void 0,
+      ups_layout: void 0,
       integrated_ports: void 0
     };
     if (!deviceId) {
@@ -6851,6 +6978,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
+    const isUpsDevice = selectedType === "ups";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
       this._deviceCtx?.layout,
@@ -6863,6 +6991,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
     const showPanel = this._config?.show_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
     const defaultUplinkPort = this._config?.default_uplink_port || "";
@@ -6952,6 +7081,16 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           </label>
           <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
         </div>
+
+        ${isUpsDevice ? `<div class="field">
+          <label>${escapeHtml(this._t("editor_ups_layout_label"))}</label>
+          <select id="ups_layout">
+            <option value="combined" ${upsLayout === "combined" ? "selected" : ""}>${escapeHtml(this._t("editor_ups_layout_combined"))}</option>
+            <option value="front" ${upsLayout === "front" ? "selected" : ""}>${escapeHtml(this._t("front_panel"))}</option>
+            <option value="back" ${upsLayout === "back" ? "selected" : ""}>${escapeHtml(this._t("back_panel"))}</option>
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_ups_layout_hint"))}</div>
+        </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -7218,6 +7357,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       device_layout: ev.target.value === "combined" ? void 0 : ev.target.value,
       integrated_ports: void 0
     }));
+    this.shadowRoot.getElementById("ups_layout")?.addEventListener("change", (ev) => this._emitConfig({
+      ups_layout: ev.target.value === "combined" ? void 0 : ev.target.value
+    }));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
@@ -7259,7 +7401,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.82-dev";
+var VERSION = "0.0.0-dev.eb15e54";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -7405,6 +7547,9 @@ var UnifiDeviceCard = class extends HTMLElement {
     const oldFakeMode = this._config?.fake_device === true;
     const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
     const newConfig = { ...config || {} };
+    const upsLayout = normalizeUpsLayout(newConfig.ups_layout);
+    if (upsLayout === "combined") delete newConfig.ups_layout;
+    else newConfig.ups_layout = upsLayout;
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
@@ -8395,11 +8540,47 @@ var UnifiDeviceCard = class extends HTMLElement {
       "ups_output_power_factor"
     ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] })).filter((item) => item.entity && formatState(this._hass, item.entity) !== "\u2014").map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
   }
+  _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
+    const enabled = outlet.entity_id ? isOn(this._hass, outlet.entity_id) : false;
+    const state = outlet.entity_id ? enabled ? this._t("state_on") : this._t("state_off") : "";
+    const key = `outlet:${outlet.index}`;
+    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" title="${this._escapeAttr([outlet.label, state].filter(Boolean).join(" \xB7 "))}">
+      <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
+      <span class="ups-outlet-led"></span>
+      <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
+    </button>`;
+  }
+  _renderUpsOutletDetail(outlet) {
+    const enabled = outlet?.entity_id ? isOn(this._hass, outlet.entity_id) : false;
+    const state = outlet?.entity_id ? enabled ? this._t("state_on") : this._t("state_off") : "\u2014";
+    return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_status"))}</div>
+          <div class="detail-value ${enabled ? "online" : "offline"}">${this._escapeHtml(state)}</div>
+        </div>
+      </div>
+      ${outlet?.entity_id ? `<div class="actions">
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-entity="${this._escapeAttr(outlet.entity_id)}">
+          ${this._escapeHtml(this._t(enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
+        </button>
+      </div>` : ""}`;
+  }
   _renderUpsCard(ctx) {
     const metrics = this._upsMetrics();
     const telemetryEnabled = this._telemetryEnabled();
     const headerTitle = this._title();
     const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const tower = isUpsTower(ctx?.device || ctx?.identity);
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
+    const showFront = upsLayout !== "back";
+    const showBack = upsLayout !== "front";
+    const outlets = ctx?.outlet_entities || [];
+    const { specials, numbered } = this._buildSlotData(ctx);
+    const networkPorts = [...specials, ...numbered];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey) || (this._config?.dynamic_port_details === true || this._selectedKey ? null : outlets[0]) || null;
+    const selectedPort = networkPorts.find((port) => port.key === this._selectedKey) || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0]) || null;
+    const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
@@ -8412,7 +8593,16 @@ var UnifiDeviceCard = class extends HTMLElement {
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
           </div>
         </div>
-        <div class="ups-visual" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+          ${tower ? `<div class="ups-tower">
+            <div class="ups-tower-vents left"></div>
+            <div class="ups-tower-vents right"></div>
+            <div class="ups-tower-power"><span></span></div>
+            <div class="ups-tower-battery"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="ups-tower-seam"></div>
+            <div class="ups-tower-logo">U</div>
+            <div class="ups-tower-mark"><i></i> UPS</div>
+          </div>` : `
           <div class="ups-chassis${hasDisplay ? " pro" : ""}">
             <div class="ups-vents top">${ventSlots}</div>
             <div class="ups-power"><span></span></div>
@@ -8423,7 +8613,15 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>` : `<div class="ups-logo">U</div>`}
             <div class="ups-vents bottom">${ventSlots}</div>
           </div>
-        </div>
+          `}
+        </div>` : ""}
+        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}">
+          <div class="panel-label">${this._escapeHtml(this._t("back_panel"))}</div>
+          ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : ""}
+          ${networkPorts.length ? `<div class="ups-network-ports">${networkPorts.map((port) => this._renderPortButton(port, selectedPort?.key, portClientIndex)).join("")}</div>` : ""}
+        </div>` : ""}
+        ${showBack && selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${showBack && selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
         ${telemetryEnabled ? `<div class="section">
           <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
           ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
@@ -8434,7 +8632,9 @@ var UnifiDeviceCard = class extends HTMLElement {
         </div>` : ""}
       </ha-card>`;
     this._attachDeviceLinkHandler();
-    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+    this._attachPortActionHandlers(ctx);
+    this.shadowRoot.querySelectorAll("[data-outlet-key]").forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
+    this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-entity]").forEach((button) => button.addEventListener("click", () => this._toggleEntity(button.dataset.entity)));
   }
   /**
    * Wrapper around the module-level isPortConnected() that adds sticky-state
@@ -8776,6 +8976,263 @@ var UnifiDeviceCard = class extends HTMLElement {
         background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
       }
 
+      .ups-visual.tower {
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .ups-tower {
+        position: relative;
+        width: 132px;
+        height: 286px;
+        overflow: hidden;
+        border: 1px solid #d7d9dc;
+        border-radius: 31px 31px 20px 20px;
+        background: linear-gradient(100deg, #e3e5e7 0%, #fbfbfc 16%, #f5f6f7 82%, #d9dcde 100%);
+        box-shadow: inset 0 1px 3px #fff, inset 0 -5px 8px rgba(100,106,112,.12), 0 9px 13px -9px rgba(0,0,0,.65);
+      }
+
+      .ups-tower-vents {
+        position: absolute;
+        top: 22px;
+        bottom: 24px;
+        width: 5px;
+        border-radius: 4px;
+        background: repeating-linear-gradient(to bottom, #777d82 0 2px, #d9dcde 2px 4px);
+        box-shadow: inset 0 0 2px rgba(0,0,0,.7);
+      }
+
+      .ups-tower-vents.left { left: 4px; }
+      .ups-tower-vents.right { right: 4px; }
+
+      .ups-tower-power {
+        position: absolute;
+        top: 42px;
+        left: 50%;
+        width: 31px;
+        height: 31px;
+        transform: translateX(-50%);
+        border: 3px solid #70a9ff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(72,143,255,.55), inset 0 0 5px rgba(104,164,255,.25);
+      }
+
+      .ups-tower-power span {
+        position: absolute;
+        top: 7px;
+        left: 13px;
+        width: 3px;
+        height: 11px;
+        border-radius: 2px;
+        background: #aab0b6;
+      }
+
+      .ups-tower-battery {
+        position: absolute;
+        top: 91px;
+        left: 50%;
+        display: flex;
+        gap: 5px;
+        transform: translateX(-50%);
+      }
+
+      .ups-tower-battery i {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #69a2ff;
+        box-shadow: 0 0 3px rgba(58,132,255,.7);
+      }
+
+      .ups-tower-seam {
+        position: absolute;
+        top: 114px;
+        right: 7px;
+        left: 7px;
+        height: 2px;
+        background: linear-gradient(#c5c8cb, #fff);
+        box-shadow: 0 1px 2px rgba(90,95,100,.2);
+      }
+
+      .ups-tower-logo {
+        position: absolute;
+        top: 190px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #e1e3e5;
+        font-size: 28px;
+        font-weight: 800;
+        text-shadow: 0 1px 1px #fff;
+      }
+
+      .ups-tower-mark {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #aaaeb2;
+        font-size: 6px;
+        white-space: nowrap;
+      }
+
+      .ups-tower-mark i {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #b9bdc0;
+        vertical-align: -1px;
+      }
+
+      .ups-connection-panel {
+        padding: 14px;
+        background: linear-gradient(145deg, #d5d7d8, #b8bbbd);
+        border-top: 1px solid rgba(255,255,255,.7);
+        border-bottom: 1px solid rgba(55,60,64,.25);
+      }
+
+      .ups-connection-panel.tower {
+        background: linear-gradient(145deg, #fafbfc, #e6e8ea);
+        border-top-color: #fff;
+        border-bottom-color: #c9cdd0;
+      }
+
+      .ups-connection-panel .panel-label {
+        color: #555c62;
+        margin-bottom: 10px;
+      }
+
+      .ups-physical-outlets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+        gap: 9px;
+      }
+
+      .ups-outlet-port {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: 58px;
+        padding: 5px 4px 3px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: transparent;
+        color: #3f464c;
+        cursor: pointer;
+      }
+
+      .ups-outlet-port:hover:not(:disabled),
+      .ups-outlet-port:focus-visible,
+      .ups-outlet-port.selected {
+        border-color: rgba(0,112,190,.65);
+        background: rgba(255,255,255,.2);
+      }
+
+      .ups-outlet-port.selected {
+        box-shadow: 0 0 0 1px rgba(0,112,190,.22);
+      }
+
+      .ups-outlet-port:disabled { cursor: default; }
+
+      .ups-outlet-socket {
+        position: relative;
+        display: block;
+        width: 46px;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 4px;
+        border: 2px solid #111416;
+        border-radius: 7px 7px 5px 5px;
+        background: linear-gradient(#272b2e, #090b0d);
+        box-shadow: inset 0 0 0 1px #42474a, 0 1px 2px rgba(0,0,0,.5);
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 1px solid #4b5053;
+        border-radius: 4px 4px 3px 3px;
+        background: #171a1c;
+        box-shadow: inset 0 1px 4px #000;
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess i {
+        position: absolute;
+        width: 5px;
+        height: 9px;
+        border-radius: 1px;
+        background: #020303;
+        box-shadow: inset 0 1px 2px #000, 0 0 0 1px #34383b;
+      }
+
+      .ups-outlet-recess i:nth-child(1) { top: 11px; left: 6px; }
+      .ups-outlet-recess i:nth-child(2) { top: 11px; right: 6px; }
+      .ups-outlet-recess i:nth-child(3) {
+        top: 3px;
+        left: 50%;
+        width: 5px;
+        height: 8px;
+        transform: translateX(-50%);
+      }
+
+      .ups-outlet-port.light { color: #626970; }
+
+      .ups-outlet-port.light .ups-outlet-socket {
+        border-color: #f7f8f9;
+        background: linear-gradient(#fff, #e2e5e7);
+        box-shadow: inset 0 0 0 2px #cfd3d6, 0 1px 3px rgba(70,76,82,.35);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess {
+        border-color: #c8cdd0;
+        background: #edf0f1;
+        box-shadow: inset 0 1px 3px rgba(80,86,91,.28);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess i {
+        background: #555c61;
+        box-shadow: inset 0 1px 2px #33383c, 0 0 0 1px #bbc0c3;
+      }
+
+      .ups-outlet-led {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #667078;
+        box-shadow: inset 0 0 1px rgba(0,0,0,.8);
+      }
+
+      .ups-outlet-port.enabled .ups-outlet-led {
+        background: #4792ff;
+        box-shadow: 0 0 4px rgba(46,126,255,.9);
+      }
+
+      .ups-outlet-label {
+        max-width: 62px;
+        overflow: hidden;
+        font-size: 8px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ups-network-ports {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 13px;
+        padding-top: 11px;
+        border-top: 1px solid rgba(70,75,80,.22);
+      }
+
       .ups-chassis {
         position: relative;
         box-sizing: border-box;
@@ -8931,6 +9388,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         .ups-visual { padding: 14px 12px; }
         .ups-chassis { min-height: 70px; }
         .ups-vents span { height: 5px; }
+        .ups-physical-outlets { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); }
       }
 
       .frontpanel {
