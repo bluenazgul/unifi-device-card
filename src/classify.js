@@ -39,6 +39,14 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
 
+  const upsSignals =
+    ["USPDA2B", "USWDA24", "USWDA25"].includes(model) ||
+    translationKeys.has("ups_battery_level") ||
+    translationKeys.has("ups_battery_runtime") ||
+    name.includes("ups 2u") ||
+    name.includes("uninterruptible power supply");
+  if (upsSignals) return "ups";
+
   const registryType = fromModel(model);
   if (registryType) return registryType;
 
