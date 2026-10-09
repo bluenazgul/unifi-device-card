@@ -31,6 +31,14 @@ const DEVICE_FEATURE_PREFIXES = {
   device_temperature: "temperature",
   device_sub_temperature: "sub_temperature",
   device_uplink_mac: "uplink_mac",
+  ups_battery_level: "ups_battery_level",
+  ups_battery_runtime: "ups_battery_runtime",
+  ups_output_power: "ups_output_power",
+  ups_output_current: "ups_output_current",
+  ups_output_voltage: "ups_output_voltage",
+  ups_input_voltage: "ups_input_voltage",
+  ups_bypass_voltage: "ups_bypass_voltage",
+  ups_output_power_factor: "ups_output_power_factor",
   rx: "client_rx",
   tx: "client_tx",
   wired_speed: "client_link_speed",
@@ -65,6 +73,20 @@ export function parseUnifiDeviceUniqueId(uniqueId) {
   if (!feature || !mac) return null;
 
   return { feature, mac };
+}
+
+export function parseUnifiOutletUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+
+  const match = raw.match(/^outlet-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+
+  const [, macRaw, outletRaw] = match;
+  const mac = normalizeMac(macRaw);
+  const outlet = Number.parseInt(outletRaw, 10);
+  if (!mac || !Number.isInteger(outlet) || outlet < 1) return null;
+  return { feature: "outlet_control", mac, outlet };
 }
 
 export function parseUnifiObjectUniqueId(uniqueId) {

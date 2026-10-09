@@ -1,8 +1,39 @@
 # Changelog
 
+## [v0.8.10]
+
+### ✨ Improvements
+
+- Add UniFi UPS Tower (`USWDA24`) detection with a dedicated white tower rendering.
+- Display controllable UPS power outlets as model-colored physical ports alongside the management RJ45 port: black power outlets on the silver rack UPS models and white power outlets on the UPS Tower.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.9]
 
+### ✨ Improvements
+- Prepare for Home Assistant's (2026.10) UniFi UPS support by recognizing UPS 2U models, rendering their silver rackmount fronts (including the UPS 2U Pro display), and displaying battery, runtime, voltage, current, output power, and power-factor telemetry.
+
 ### 🐛 Bug Fixes
+- Keep renamed UPS telemetry sensors discoverable through their stable UniFi unique IDs, even when entity-registry translation metadata is unavailable.
+- Use the dedicated UPS sensor set for editor telemetry checks instead of requiring CPU, memory, and temperature sensors, and keep hidden UPS telemetry values updating live.
+- Keep UPS output power and output power factor mapped to their respective sensors when legacy entity-registry data lacks translation metadata.
+- Hide the UPS telemetry section completely when header telemetry is disabled.
+- Add UPS telemetry translations for every language supported by the card.
 - Recognize UniFi Cable Internet (`UCI`) as a silver one-port network appliance instead of an access point; the cable connector remains omitted because the UniFi integration does not expose it.
 - Add distinct hybrid gateway/access-point graphics for the Dream Router 7 (`UDR7`), Dream Router (`UDR`), and original Dream Machine (`UDM`): both routers include their front display, while the Dream Machine uses the same enclosure without a display.
 - Keep Home Assistant's `UDMA67A (UDR7)` identity mapped to Dream Router 7, a plain `UDMA67A` mapped to Dream Machine, and `UDM-Pro` mapped separately to Dream Machine Pro.
