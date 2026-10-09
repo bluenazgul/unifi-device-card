@@ -16,7 +16,7 @@ import {
 import { buildNormalizedDeviceIdentity, extractFirstMac, findDeviceByMac } from "./identity.js";
 import { buildDeviceCapabilities } from "./capabilities.js";
 import { classifyDeviceType } from "./classify.js";
-import { parseUnifiDeviceUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
+import { parseUnifiDeviceUniqueId, parseUnifiOutletUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
 
 // ─────────────────────────────────────────────────
 // String utilities
@@ -238,6 +238,27 @@ export function getDeviceType(device, entities = []) {
 export function hasUpsFrontDisplay(device) {
   return [device?.model_id, device?.model, device?.hw_version]
     .some((value) => normalizeModelStr(value) === "USPDA2B");
+}
+
+export function isUpsTower(device) {
+  return [device?.model_id, device?.model, device?.hw_version]
+    .some((value) => normalizeModelStr(value) === "USWDA24");
+}
+
+export function getDeviceOutletEntities(entities, identity = null) {
+  return (entities || [])
+    .map((entity) => ({ entity, parsed: parseUnifiOutletUniqueId(entity?.unique_id) }))
+    .filter(({ entity, parsed }) =>
+      parsed &&
+      lower(entity?.entity_id).startsWith("switch.") &&
+      (!identity?.primary_mac || parsed.mac === identity.primary_mac)
+    )
+    .map(({ entity, parsed }) => ({
+      index: parsed.outlet,
+      entity_id: entity.entity_id,
+      label: normalize(entity.name || entity.original_name) || `Outlet ${parsed.outlet}`,
+    }))
+    .sort((left, right) => left.index - right.index);
 }
 
 // ─────────────────────────────────────────────────
@@ -2282,6 +2303,11 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
       cpu_temperature_entity: null,
       memory_utilization_entity: null,
       temperature_entity: null,
+      outlet_entities: Array.from({ length: model.outletCount || 0 }, (_, index) => ({
+        index: index + 1,
+        entity_id: null,
+        label: `Outlet ${index + 1}`,
+      })),
       fake_device: true,
     };
   }
@@ -2401,6 +2427,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     ap_uplink: apUplink,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
+    outlet_entities: getDeviceOutletEntities(entities, identity),
     numberedPorts,
   };
 }

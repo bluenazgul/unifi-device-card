@@ -40,7 +40,7 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
 
   const upsSignals =
-    ["USPDA2B", "USWDA25"].includes(model) ||
+    ["USPDA2B", "USWDA24", "USWDA25"].includes(model) ||
     translationKeys.has("ups_battery_level") ||
     translationKeys.has("ups_battery_runtime") ||
     name.includes("ups 2u") ||

@@ -75,6 +75,20 @@ export function parseUnifiDeviceUniqueId(uniqueId) {
   return { feature, mac };
 }
 
+export function parseUnifiOutletUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+
+  const match = raw.match(/^outlet-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+
+  const [, macRaw, outletRaw] = match;
+  const mac = normalizeMac(macRaw);
+  const outlet = Number.parseInt(outletRaw, 10);
+  if (!mac || !Number.isInteger(outlet) || outlet < 1) return null;
+  return { feature: "outlet_control", mac, outlet };
+}
+
 export function parseUnifiObjectUniqueId(uniqueId) {
   const raw = String(uniqueId ?? "").trim().toLowerCase();
   if (!raw) return null;
