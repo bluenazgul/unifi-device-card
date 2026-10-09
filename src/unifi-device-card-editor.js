@@ -7,6 +7,7 @@ import {
   isApPortPanelAvailable,
   mergePortsWithLayout,
   getUnifiDevices,
+  normalizeUpsLayout,
 } from "./helpers.js";
 import { t } from "./translations.js";
 
@@ -576,6 +577,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.integrated_ports !== false) delete next.integrated_ports;
     if (!["combined", "network", "ap"].includes(next.device_layout)) delete next.device_layout;
+    next.ups_layout = normalizeUpsLayout(next.ups_layout);
+    if (next.ups_layout === "combined") delete next.ups_layout;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
 
     this._dispatchConfig(next);
@@ -612,6 +615,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
       default_uplink_port: undefined,
       ports_per_row: nextDevice?.type === "gateway" ? undefined : this._config?.ports_per_row,
       device_layout: undefined,
+      ups_layout: undefined,
       integrated_ports: undefined,
     };
 
@@ -1354,6 +1358,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
+    const isUpsDevice = selectedType === "ups";
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
       this._deviceCtx?.layout,
@@ -1368,6 +1373,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
     const showPanel = this._config?.show_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
     const defaultUplinkPort = this._config?.default_uplink_port || "";
@@ -1482,6 +1488,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
           </label>
           <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
         </div>
+
+        ${isUpsDevice ? `<div class="field">
+          <label>${escapeHtml(this._t("editor_ups_layout_label"))}</label>
+          <select id="ups_layout">
+            <option value="combined" ${upsLayout === "combined" ? "selected" : ""}>${escapeHtml(this._t("editor_ups_layout_combined"))}</option>
+            <option value="front" ${upsLayout === "front" ? "selected" : ""}>${escapeHtml(this._t("front_panel"))}</option>
+            <option value="back" ${upsLayout === "back" ? "selected" : ""}>${escapeHtml(this._t("back_panel"))}</option>
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_ups_layout_hint"))}</div>
+        </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -1770,6 +1786,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._emitConfig({
         device_layout: ev.target.value === "combined" ? undefined : ev.target.value,
         integrated_ports: undefined,
+      }));
+    this.shadowRoot.getElementById("ups_layout")
+      ?.addEventListener("change", (ev) => this._emitConfig({
+        ups_layout: ev.target.value === "combined" ? undefined : ev.target.value,
       }));
     this.shadowRoot.getElementById("ap_compact_view")
       ?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));

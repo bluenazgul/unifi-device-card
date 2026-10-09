@@ -25,6 +25,7 @@ import {
   mergeSpecialsWithLayout,
   normalizeLinkLedColor,
   normalizePositivePortNumbers,
+  normalizeUpsLayout,
   normalizeLagGroups,
   normalizePortNames,
   parseLinkSpeedMbit,
@@ -210,6 +211,9 @@ class UnifiDeviceCard extends HTMLElement {
     const oldFakeMode = this._config?.fake_device === true;
     const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
     const newConfig = { ...(config || {}) };
+    const upsLayout = normalizeUpsLayout(newConfig.ups_layout);
+    if (upsLayout === "combined") delete newConfig.ups_layout;
+    else newConfig.ups_layout = upsLayout;
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
@@ -1497,14 +1501,32 @@ class UnifiDeviceCard extends HTMLElement {
       .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
   }
 
-  _renderUpsOutletPort(outlet, light = false) {
+  _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
     const enabled = outlet.entity_id ? isOn(this._hass, outlet.entity_id) : false;
     const state = outlet.entity_id ? (enabled ? this._t("state_on") : this._t("state_off")) : "";
-    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}" data-action="toggle-outlet"${outlet.entity_id ? ` data-entity="${this._escapeAttr(outlet.entity_id)}"` : " disabled"} title="${this._escapeAttr([outlet.label, state].filter(Boolean).join(" · "))}">
-      <span class="ups-outlet-socket"><i></i><i></i><i></i></span>
+    const key = `outlet:${outlet.index}`;
+    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" title="${this._escapeAttr([outlet.label, state].filter(Boolean).join(" · "))}">
+      <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
       <span class="ups-outlet-led"></span>
       <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
     </button>`;
+  }
+
+  _renderUpsOutletDetail(outlet) {
+    const enabled = outlet?.entity_id ? isOn(this._hass, outlet.entity_id) : false;
+    const state = outlet?.entity_id ? (enabled ? this._t("state_on") : this._t("state_off")) : "—";
+    return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_status"))}</div>
+          <div class="detail-value ${enabled ? "online" : "offline"}">${this._escapeHtml(state)}</div>
+        </div>
+      </div>
+      ${outlet?.entity_id ? `<div class="actions">
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-entity="${this._escapeAttr(outlet.entity_id)}">
+          ${this._escapeHtml(this._t(enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
+        </button>
+      </div>` : ""}`;
   }
 
   _renderUpsCard(ctx) {
@@ -1513,11 +1535,17 @@ class UnifiDeviceCard extends HTMLElement {
     const headerTitle = this._title();
     const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
     const tower = isUpsTower(ctx?.device || ctx?.identity);
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
+    const showFront = upsLayout !== "back";
+    const showBack = upsLayout !== "front";
     const outlets = ctx?.outlet_entities || [];
     const { specials, numbered } = this._buildSlotData(ctx);
     const networkPorts = [...specials, ...numbered];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
+      || (this._config?.dynamic_port_details === true || this._selectedKey ? null : outlets[0])
+      || null;
     const selectedPort = networkPorts.find((port) => port.key === this._selectedKey)
-      || (this._config?.dynamic_port_details === true ? null : networkPorts[0])
+      || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
@@ -1532,7 +1560,7 @@ class UnifiDeviceCard extends HTMLElement {
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
           </div>
         </div>
-        <div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
           ${tower ? `<div class="ups-tower">
             <div class="ups-tower-vents left"></div>
             <div class="ups-tower-vents right"></div>
@@ -1553,13 +1581,14 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="ups-vents bottom">${ventSlots}</div>
           </div>
           `}
-        </div>
-        ${outlets.length || networkPorts.length ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}">
-          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
-          ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower)).join("")}</div>` : ""}
+        </div>` : ""}
+        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}">
+          <div class="panel-label">${this._escapeHtml(this._t("back_panel"))}</div>
+          ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : ""}
           ${networkPorts.length ? `<div class="ups-network-ports">${networkPorts.map((port) => this._renderPortButton(port, selectedPort?.key, portClientIndex)).join("")}</div>` : ""}
         </div>` : ""}
-        ${selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
+        ${showBack && selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${showBack && selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
         ${telemetryEnabled ? `<div class="section">
           <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
           ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
@@ -1571,6 +1600,8 @@ class UnifiDeviceCard extends HTMLElement {
       </ha-card>`;
     this._attachDeviceLinkHandler();
     this._attachPortActionHandlers(ctx);
+    this.shadowRoot.querySelectorAll("[data-outlet-key]")
+      .forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
     this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-entity]")
       .forEach((button) => button.addEventListener("click", () => this._toggleEntity(button.dataset.entity)));
   }
@@ -2105,9 +2136,14 @@ class UnifiDeviceCard extends HTMLElement {
       }
 
       .ups-outlet-port:hover:not(:disabled),
-      .ups-outlet-port:focus-visible {
+      .ups-outlet-port:focus-visible,
+      .ups-outlet-port.selected {
         border-color: rgba(0,112,190,.65);
         background: rgba(255,255,255,.2);
+      }
+
+      .ups-outlet-port.selected {
+        box-shadow: 0 0 0 1px rgba(0,112,190,.22);
       }
 
       .ups-outlet-port:disabled { cursor: default; }
@@ -2118,32 +2154,44 @@ class UnifiDeviceCard extends HTMLElement {
         width: 46px;
         height: 32px;
         box-sizing: border-box;
-        border: 3px solid #181b1e;
+        padding: 4px;
+        border: 2px solid #111416;
         border-radius: 7px 7px 5px 5px;
         background: linear-gradient(#272b2e, #090b0d);
-        box-shadow: inset 0 0 0 2px #33373a, 0 1px 2px rgba(0,0,0,.5);
+        box-shadow: inset 0 0 0 1px #42474a, 0 1px 2px rgba(0,0,0,.5);
         clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
       }
 
-      .ups-outlet-socket i {
+      .ups-outlet-recess {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 1px solid #4b5053;
+        border-radius: 4px 4px 3px 3px;
+        background: #171a1c;
+        box-shadow: inset 0 1px 4px #000;
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess i {
         position: absolute;
-        top: 9px;
-        width: 6px;
-        height: 10px;
-        border-radius: 2px;
+        width: 5px;
+        height: 9px;
+        border-radius: 1px;
         background: #020303;
         box-shadow: inset 0 1px 2px #000, 0 0 0 1px #34383b;
       }
 
-      .ups-outlet-socket i:nth-child(1) { left: 7px; transform: rotate(-8deg); }
-      .ups-outlet-socket i:nth-child(2) { right: 7px; transform: rotate(8deg); }
-      .ups-outlet-socket i:nth-child(3) {
-        top: 7px;
+      .ups-outlet-recess i:nth-child(1) { top: 11px; left: 6px; }
+      .ups-outlet-recess i:nth-child(2) { top: 11px; right: 6px; }
+      .ups-outlet-recess i:nth-child(3) {
+        top: 3px;
         left: 50%;
-        width: 7px;
-        height: 7px;
+        width: 5px;
+        height: 8px;
         transform: translateX(-50%);
-        border-radius: 50%;
       }
 
       .ups-outlet-port.light { color: #626970; }
@@ -2154,7 +2202,13 @@ class UnifiDeviceCard extends HTMLElement {
         box-shadow: inset 0 0 0 2px #cfd3d6, 0 1px 3px rgba(70,76,82,.35);
       }
 
-      .ups-outlet-port.light .ups-outlet-socket i {
+      .ups-outlet-port.light .ups-outlet-recess {
+        border-color: #c8cdd0;
+        background: #edf0f1;
+        box-shadow: inset 0 1px 3px rgba(80,86,91,.28);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess i {
         background: #555c61;
         box-shadow: inset 0 1px 2px #33383c, 0 0 0 1px #bbc0c3;
       }

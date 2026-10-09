@@ -8,6 +8,7 @@ import {
   getUnavailableHeaderTelemetryKeys,
   hasUpsFrontDisplay,
   isUpsTower,
+  normalizeUpsLayout,
 } from "../src/helpers.js";
 import { getTranslations } from "../src/translations.js";
 import { parseUnifiDeviceUniqueId, parseUnifiOutletUniqueId } from "../src/unique-id.js";
@@ -86,6 +87,10 @@ assert.equal(isUpsTower({ model_id: "USWDA24" }), true);
 assert.equal(MODEL_REGISTRY.USPDA2B.theme, "silver");
 assert.equal(MODEL_REGISTRY.USWDA25.theme, "silver");
 assert.equal(MODEL_REGISTRY.USWDA24.theme, "white");
+assert.equal(normalizeUpsLayout(), "combined");
+assert.equal(normalizeUpsLayout("front"), "front");
+assert.equal(normalizeUpsLayout("back"), "back");
+assert.equal(normalizeUpsLayout("invalid"), "combined");
 
 const fakeUpsDevices = getFakeDevices().filter((device) => device.type === "ups");
 assert.deepEqual(
@@ -162,6 +167,13 @@ assert.deepEqual(getUnavailableHeaderTelemetryKeys(complete2UContext), []);
 const upsTranslationKeys = [
   "ups_telemetry",
   "ups_outlets",
+  "back_panel",
+  "ups_outlet_status",
+  "ups_outlet_turn_on",
+  "ups_outlet_turn_off",
+  "editor_ups_layout_label",
+  "editor_ups_layout_combined",
+  "editor_ups_layout_hint",
   "ups_battery_level",
   "ups_battery_runtime",
   "ups_output_power",

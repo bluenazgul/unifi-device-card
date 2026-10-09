@@ -38,6 +38,11 @@ export function normalizePositivePortNumbers(value) {
     .sort((a, b) => a - b);
 }
 
+export function normalizeUpsLayout(value) {
+  const layout = lower(value);
+  return ["combined", "front", "back"].includes(layout) ? layout : "combined";
+}
+
 export function normalizePortNames(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
 
