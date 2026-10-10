@@ -16,6 +16,19 @@ for (const [model, key] of [
 }
 assert.equal(classifyDeviceType({ model_id: "UP6", is_child_device: true }, { outlet_control: true }), "unknown");
 assert.equal(classifyDeviceType({ model_id: "USWDA24" }, { outlet_control: true }), "ups");
+for (const outletCapabilities of [{ outlet_control: true }, { outlet_power: true }, { outlet_control: true, outlet_power: true }]) {
+  for (const [model, type] of [
+    ["USWMISSIONCRITICAL", "switch"], ["USL8MP", "switch"], ["USW Mission Critical", "switch"],
+    ["UDMPRO", "gateway"], ["Dream Machine Pro", "gateway"], ["UHDIW", "access_point"],
+  ]) {
+    assert.equal(classifyDeviceType({ model, name: "Renamed device" }, outletCapabilities), type,
+      `${model} must retain its network classification when exposing outlets`);
+  }
+  assert.equal(classifyDeviceType({ model: "Unknown device" }, outletCapabilities, [], { model: "USW Mission Critical" }), "switch",
+    "a known registry model must take precedence over outlet capabilities");
+  assert.equal(classifyDeviceType({ model: "Unknown future power device" }, { ...outletCapabilities, ports: true, uplink_mac: true }), "power_distribution",
+    "outlet capabilities remain a fallback for unknown models with management-port signals");
+}
 assert.deepEqual(getFakeDevices().filter((device) => device.type === "power_distribution").map((device) => device.id).sort(),
   ["fake:UP6", "fake:USPPDUP"]);
 
@@ -100,15 +113,42 @@ globalThis.requestAnimationFrame = () => {};
 await import("../src/unifi-device-card.js");
 const Card = elements.get("unifi-device-card");
 const Editor = elements.get("unifi-device-card-editor");
-async function makeCard(config) {
+async function makeCard(config, cardHass = hass) {
   const card = new Card();
   card._styles = () => "";
-  card._hass = hass;
+  card._hass = cardHass;
   card.setConfig(config);
   await new Promise(setImmediate);
   await card._ensureLoaded();
   return card;
 }
+const missionDevice = { id: "mission", model_id: "USL8MP", model: "USW Mission Critical", name: "Rack switch",
+  manufacturer: "Ubiquiti", connections: [["mac", "aa:bb:cc:dd:ee:03"]] };
+const missionEntities = [
+  { entity_id: "switch.mission_ac", device_id: "mission", unique_id: "outlet-aa:bb:cc:dd:ee:03_1" },
+  { entity_id: "sensor.mission_ac_power", device_id: "mission", unique_id: "outlet_power-aa:bb:cc:dd:ee:03_1" },
+  { entity_id: "switch.mission_poe", device_id: "mission", unique_id: "poe-aa:bb:cc:dd:ee:03_1" },
+];
+const missionHass = { ...hass, states: {
+  "switch.mission_ac": { state: "on" }, "sensor.mission_ac_power": { state: "100", attributes: { unit_of_measurement: "W" } },
+  "switch.mission_poe": { state: "on" },
+}, async callWS(message) {
+  if (message.type === "config/device_registry/list") return [missionDevice];
+  if (message.type === "config/entity_registry/list") return missionEntities;
+  return hass.callWS(message);
+} };
+assert.equal((await getUnifiDevices(missionHass))[0].type, "switch");
+const mission = await makeCard({ device_id: "mission" }, missionHass);
+assert.equal(mission._ctx.capabilities.outlet_control, true);
+assert.equal(mission._ctx.capabilities.outlet_power, true);
+assert.equal(mission._ctx.type, "switch");
+assert.deepEqual(mission._ctx.layout.rows.flat(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+assert.equal((mission.shadowRoot.innerHTML.match(/data-key="port-\d+"/g) || []).length, 9,
+  "Mission Critical must retain all nine network ports when AC outlet entities exist");
+mission._selectKey("port-1");
+assert.match(mission.shadowRoot.innerHTML, /data-action="toggle-poe" data-entity="switch.mission_poe"/);
+assert.doesNotMatch(mission.shadowRoot.innerHTML, /class="power-outlet-panel"/);
+
 const strip = await makeCard({ device_id: "strip", outlet_power_badges: true });
 assert.equal(strip._selectedKey, "outlet:1");
 assert.match(strip.shadowRoot.innerHTML, /class="power-outlet-panel"/);

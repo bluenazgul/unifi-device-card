@@ -18,6 +18,7 @@
 
 ### 🐛 Bug Fixes
 
+- Keep outlet-capable network devices such as USW Mission Critical classified as switches, preserving their network ports and PoE controls.
 - Preserve selected UPS outlets during context refreshes and select the first outlet by default when dynamic outlet details are disabled.
 - Keep unavailable outlet states distinct from powered-off outlets and disable their control buttons until the switch is available.
 - Preserve default RJ45 details when dynamic UPS outlet details are enabled independently, and restore them after deselecting an outlet.
