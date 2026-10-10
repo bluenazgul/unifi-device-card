@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.8.94-dev */
+/* UniFi Device Card 0.0.0-dev.1f202e2 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1884,8 +1884,7 @@ function buildNormalizedDeviceIdentity(device) {
     sw_version: normalizeText(device?.sw_version),
     primary_mac: extractPrimaryMacFromConnections(device?.connections),
     config_entry_id: device?.config_entry_id || null,
-    config_subentry_id: device?.config_subentry_id || null,
-    config_entries: Array.isArray(device?.config_entries) ? device.config_entries : []
+    config_subentry_id: device?.config_subentry_id || null
   };
 }
 function extractDeviceMacs(device) {
@@ -2452,7 +2451,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   const configEntryId = normalize(device?.config_entry_id);
-  const belongsToUnifiEntry = unifiEntryIds.has(configEntryId) || Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id));
+  const belongsToUnifiEntry = unifiEntryIds.has(configEntryId);
   if (belongsToUnifiEntry) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
     if (modelStartsWith2(device, [
@@ -8169,7 +8168,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.8.94-dev";
+var VERSION = "0.0.0-dev.1f202e2";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
