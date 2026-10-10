@@ -47,6 +47,10 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     name.includes("uninterruptible power supply");
   if (upsSignals) return "ups";
 
+  const modelKey = resolveModelKey(device || identity || {});
+  if (MODEL_REGISTRY[modelKey]?.kind === "power_distribution" ||
+      capabilities?.outlet_control || capabilities?.outlet_power) return "power_distribution";
+
   const registryType = fromModel(model);
   if (registryType) return registryType;
 
@@ -63,7 +67,6 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     name.includes("router");
   if (gatewaySignals) return "gateway";
 
-  const modelKey = resolveModelKey(device || identity || {});
   const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
 

@@ -12,6 +12,7 @@ import {
   getLinkLedClass,
   isApPortPanelAvailable,
   isDynamicOutletDetailsEnabled,
+  isOutletDeviceType,
   resolveDisplayPort,
   getPoeStatus,
   getPortSpeedText,
@@ -258,7 +259,7 @@ class UnifiDeviceCard extends HTMLElement {
         (dynamicOutletDetailsEnabled && !dynamicOutletDetailsWasEnabled && selectedIsOutlet)) {
       this._selectedKey = null;
     }
-    if (oldDeviceId === newDeviceId && this._ctx?.type === "ups" &&
+    if (oldDeviceId === newDeviceId && isOutletDeviceType(this._ctx?.type) &&
         oldDefaultOutlet !== newConfig.default_outlet && !dynamicOutletDetailsEnabled) {
       const outlet = getDefaultUpsOutlet(this._ctx.outlet_entities, newConfig.default_outlet);
       this._selectedKey = outlet ? `outlet:${outlet.index}` : null;
@@ -1402,7 +1403,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       const slotData = this._buildSlotData(ctx);
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
-      const outlets = ctx?.type === "ups" ? ctx.outlet_entities || [] : [];
+      const outlets = isOutletDeviceType(ctx?.type) ? ctx.outlet_entities || [] : [];
       const available = [
         ...outlets.map((outlet) => ({ key: `outlet:${outlet.index}` })),
         ...displaySlots.specials, ...displaySlots.numbered,
@@ -1569,12 +1570,13 @@ class UnifiDeviceCard extends HTMLElement {
     if (!this._ctx?.fake_device) return getUpsLoad(this._hass, this._ctx);
     const consumption = (this._ctx.outlet_entities || []).reduce((total, outlet) =>
       total + (this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0), 0);
-    return getUpsLoad(this._hass, { ...this._ctx, preview_ups: {
-      ...this._ctx.preview_ups, power_consumption: consumption,
+    const previewKey = this._ctx.type === "power_distribution" ? "preview_power" : "preview_ups";
+    return getUpsLoad(this._hass, { ...this._ctx, [previewKey]: {
+      ...this._ctx[previewKey], power_consumption: consumption,
     } });
   }
 
-  _renderUpsSummary(battery, runtime, load) {
+  _renderUpsSummary(battery, runtime, load, loadLabel = this._t("ups_load")) {
     if (battery == null && runtime === "—" && !load) return "";
     const percentText = (value) => formatUpsNumber(this._hass, value / 100, { style: "percent", maximumFractionDigits: 0 });
     return `<div class="ups-summary">
@@ -1588,7 +1590,7 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="detail-value">${this._escapeHtml(runtime)}</div>
       </div>` : ""}
       ${load ? `<div class="ups-summary-item">
-        <div class="detail-label">${this._escapeHtml(this._t("ups_load"))}</div>
+        <div class="detail-label">${this._escapeHtml(loadLabel)}</div>
         <div class="detail-value">${this._escapeHtml(`${formatUpsNumber(this._hass, load.consumption)} W · ${percentText(load.percent)}`)}</div>
         <div class="ups-meter load" title="${this._escapeAttr(`${this._t("ups_power_budget")}: ${formatUpsNumber(this._hass, load.budget)} W`)}"><i style="width:${Math.min(100, load.percent)}%"></i></div>
       </div>` : ""}
@@ -1605,6 +1607,7 @@ class UnifiDeviceCard extends HTMLElement {
 
   _upsOutletPower(outlet) {
     if (this._ctx?.fake_device === true) {
+      if (!Number.isFinite(outlet.preview_power)) return null;
       return `${this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0} W`;
     }
     return outlet.power_entity ? formatState(this._hass, outlet.power_entity) : null;
@@ -1705,6 +1708,70 @@ class UnifiDeviceCard extends HTMLElement {
       ${this._ctx?.fake_device === true ? `<div class="muted">${this._escapeHtml(this._t("ups_outlet_preview"))}</div>` : ""}`;
   }
 
+  _renderOutletCount(outlets) {
+    if (!outlets.length) return "";
+    const on = outlets.filter((outlet) => this._upsOutletState(outlet) === "on").length;
+    const unknown = outlets.filter((outlet) => !this._upsOutletState(outlet)).length;
+    const text = this._t("ups_outlet_count").replace("{on}", String(on)).replace("{total}", String(outlets.length));
+    const title = unknown ? this._t("ups_outlet_unknown_count").replace("{count}", String(unknown)) : text;
+    return `<span class="chip compact" title="${this._escapeAttr(title)}">${this._escapeHtml(text)}${unknown ? " · —" : ""}</span>`;
+  }
+
+  _renderPowerOutlet(outlet, selectedKey) {
+    const rawState = this._upsOutletState(outlet);
+    const state = rawState ? this._t(rawState === "on" ? "state_on" : "state_off") : "—";
+    const key = `outlet:${outlet.index}`;
+    const selected = selectedKey === key;
+    const power = this._config?.outlet_power_badges === true ? this._upsOutletPower(outlet) : null;
+    return `<button class="ups-outlet-port power-outlet-port${selected ? " selected" : ""}" data-outlet-key="${key}" aria-pressed="${selected}" title="${this._escapeAttr([outlet.label, state, this._upsOutletPower(outlet)].filter(Boolean).join(" · "))}">
+      <span class="power-outlet-symbol${rawState === "on" ? " enabled" : ""}" aria-hidden="true">⏻</span>
+      <span class="power-outlet-label">${this._escapeHtml(outlet.label)}</span>
+      <span class="power-outlet-status">${this._escapeHtml(state)}</span>
+      ${power != null ? `<span class="ups-outlet-power">${this._escapeHtml(power)}</span>` : ""}
+    </button>`;
+  }
+
+  _renderPowerCard(ctx) {
+    const outlets = ctx.outlet_entities || [];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
+      || (isDynamicOutletDetailsEnabled(this._config) ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet));
+    const load = this._telemetryEnabled() ? this._upsLoad() : null;
+    const summary = this._renderUpsSummary(null, "—", load, this._t("power_load"));
+    const metrics = this._telemetryEnabled() ? ["ups_power_budget", "ups_power_consumption"]
+      .filter((key) => !load || key === "ups_power_budget")
+      .map((key) => ({ label: this._t(key), value: ctx.fake_device && load
+        ? `${formatUpsNumber(this._hass, load.budget)} W` : formatState(this._hass, ctx[`${key}_entity`]) }))
+      .filter((item) => item.value !== "—") : [];
+    const headerTitle = this._title();
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions ups-header-actions">
+            ${this._renderOutletCount(outlets)}
+            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        ${summary ? `<div class="section ups-summary-section">${summary}</div>` : ""}
+        <div class="power-outlet-panel${this._config?.show_back_panel === false ? " no-panel-bg" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("ups_outlets"))}</div>
+          ${outlets.length ? `<div class="power-outlets">${outlets.map((outlet) => this._renderPowerOutlet(outlet, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`}
+          ${ctx.fake_device ? `<div class="muted">${this._escapeHtml(this._t("power_preview"))}</div>` : ""}
+        </div>
+        ${selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${metrics.length ? `<div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("power_telemetry"))}</div>
+          <div class="detail-grid">${metrics.map((item) => `<div class="detail-item"><div class="detail-label">${this._escapeHtml(item.label)}</div><div class="detail-value">${this._escapeHtml(item.value)}</div></div>`).join("")}</div>
+        </div>` : ""}
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this._attachPortActionHandlers(ctx);
+    this._attachOutletHandlers();
+  }
+
   _renderUpsCard(ctx) {
     const metrics = this._upsMetrics().filter((item) => !["ups_battery_level", "ups_battery_runtime"].includes(item.key));
     const telemetryEnabled = this._telemetryEnabled();
@@ -1730,9 +1797,6 @@ class UnifiDeviceCard extends HTMLElement {
       || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
-    const enabledOutlets = outlets.filter((outlet) => this._upsOutletState(outlet) === "on").length;
-    const unknownOutlets = outlets.filter((outlet) => !this._upsOutletState(outlet)).length;
-    const outletCountText = this._t("ups_outlet_count").replace("{on}", String(enabledOutlets)).replace("{total}", String(outlets.length));
     const ventSlots = "<span></span>".repeat(5);
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
@@ -1742,7 +1806,7 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
           </div>
           <div class="header-actions ups-header-actions">
-            ${outlets.length ? `<span class="chip compact" title="${this._escapeAttr(unknownOutlets ? this._t("ups_outlet_unknown_count").replace("{count}", String(unknownOutlets)) : outletCountText)}">${this._escapeHtml(outletCountText)}${unknownOutlets ? " · —" : ""}</span>` : ""}
+            ${this._renderOutletCount(outlets)}
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
           </div>
         </div>
@@ -1787,6 +1851,10 @@ class UnifiDeviceCard extends HTMLElement {
       </ha-card>`;
     this._attachDeviceLinkHandler();
     this._attachPortActionHandlers(ctx);
+    this._attachOutletHandlers();
+  }
+
+  _attachOutletHandlers() {
     this.shadowRoot.querySelectorAll("[data-outlet-key]")
       .forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
     this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-outlet-index]")
@@ -2186,6 +2254,30 @@ class UnifiDeviceCard extends HTMLElement {
       .ups-action-error { margin-top: 8px; color: var(--error-color, #e86b6b); font-size: .8rem; }
       .action-btn[aria-busy]:disabled { opacity: .55; cursor: default; }
       .ups-outlet-power { font-size: 8px; white-space: nowrap; }
+
+      .power-outlet-panel {
+        padding: 16px 14px;
+        background: color-mix(in srgb, var(--udc-chrome-bg, var(--card-background-color)) 90%, var(--secondary-text-color) 10%);
+      }
+      .power-outlet-panel.no-panel-bg { background: var(--udc-chrome-bg, transparent); }
+      .power-outlets { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+      .power-outlet-panel .muted { margin-top: 12px; }
+      .power-outlet-panel .power-outlet-port {
+        padding: 12px 8px;
+        border-color: var(--divider-color, #405269);
+        background: var(--udc-card-bg, var(--card-background-color));
+        color: var(--primary-text-color);
+      }
+      .power-outlet-panel .power-outlet-port.selected,
+      .power-outlet-panel .power-outlet-port:focus-visible,
+      .power-outlet-panel .power-outlet-port:hover {
+        border-color: var(--primary-color, #0090d9);
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 90%, var(--primary-color, #0090d9) 10%);
+      }
+      .power-outlet-symbol { font-size: 24px; line-height: 1; color: var(--secondary-text-color); }
+      .power-outlet-symbol.enabled { color: var(--primary-color, #0090d9); }
+      .power-outlet-label { width: 100%; font-size: 11px; line-height: 1.3; overflow-wrap: anywhere; }
+      .power-outlet-status, .power-outlet-port .ups-outlet-power { font-size: 10px; }
 
       .ups-visual {
         padding: 18px 20px;
@@ -4268,6 +4360,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "power_distribution") {
+      this._renderPowerCard(this._ctx);
+      return;
+    }
     if (this._ctx?.type === "ups") {
       this._renderUpsCard(this._ctx);
       return;

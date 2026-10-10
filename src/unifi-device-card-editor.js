@@ -6,6 +6,7 @@ import {
   getRelevantEntityWarningsForDevice,
   isApPortPanelAvailable,
   isDynamicOutletDetailsEnabled,
+  isOutletDeviceType,
   mergePortsWithLayout,
   getUnifiDevices,
   normalizeUpsLayout,
@@ -358,7 +359,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
         this._loadDeviceCtx(deviceId);
       }
     }
-    if (this._deviceCtx?.type === "ups") this._patchWarning();
+    if (isOutletDeviceType(this._deviceCtx?.type)) this._patchWarning();
   }
 
   _t(key) {
@@ -949,7 +950,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
 
   _unavailableTelemetryItems() {
-    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading || this._deviceCtx.type === "ups") return [];
+    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading || isOutletDeviceType(this._deviceCtx.type)) return [];
 
     return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
@@ -969,7 +970,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 
   _warningHTML() {
-    if (this._deviceCtx?.type === "ups") return "";
+    if (isOutletDeviceType(this._deviceCtx?.type)) return "";
     if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
@@ -1012,7 +1013,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const rows = getUpsEntityDiagnostics(this._deviceCtx, this._hass, this._config?.show_telemetry !== false);
     if (!rows.length) return "";
     return `<div class="warn ups-diagnostics">
-      <div class="warn-title">${escapeHtml(this._t("ups_diagnostics"))}</div>
+      <div class="warn-title">${escapeHtml(this._t(this._deviceCtx.type === "power_distribution" ? "power_diagnostics" : "ups_diagnostics"))}</div>
       ${["disabled", "unavailable", "not_exposed"].map((status) => {
         const items = rows.filter((row) => row.status === status);
         if (!items.length) return "";
@@ -1398,6 +1399,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
     const isUpsDevice = selectedType === "ups";
+    const isPowerDevice = selectedType === "power_distribution";
+    const isOutletDevice = isOutletDeviceType(selectedType);
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
       this._deviceCtx?.layout,
@@ -1522,12 +1525,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
 
         <div class="field">
-          <label>${escapeHtml(this._t(isUpsDevice ? "ups_telemetry" : "editor_telemetry_toggle_label"))}</label>
+          <label>${escapeHtml(this._t(isPowerDevice ? "power_telemetry" : isUpsDevice ? "ups_telemetry" : "editor_telemetry_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
-            <span>${escapeHtml(this._t(isUpsDevice ? "editor_ups_telemetry_text" : "editor_telemetry_toggle_text"))}</span>
+            <span>${escapeHtml(this._t(isPowerDevice ? "editor_power_telemetry_text" : isUpsDevice ? "editor_ups_telemetry_text" : "editor_telemetry_toggle_text"))}</span>
           </label>
-          <div class="hint">${escapeHtml(this._t(isUpsDevice ? "editor_ups_telemetry_hint" : "editor_telemetry_toggle_hint"))}</div>
+          <div class="hint">${escapeHtml(this._t(isPowerDevice ? "editor_power_telemetry_hint" : isUpsDevice ? "editor_ups_telemetry_hint" : "editor_telemetry_toggle_hint"))}</div>
         </div>
 
         ${isUpsDevice ? `<div class="field">
@@ -1538,12 +1541,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <option value="back" ${upsLayout === "back" ? "selected" : ""}>${escapeHtml(this._t("back_panel"))}</option>
           </select>
           <div class="hint">${escapeHtml(this._t("editor_ups_layout_hint"))}</div>
-        </div>
-        <div class="field">
+        </div>` : ""}
+        ${isOutletDevice ? `<div class="field">
           <label>${escapeHtml(this._t("editor_back_panel_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_back_panel" type="checkbox" ${showBackPanel ? "checked" : ""}>
-            <span>${escapeHtml(this._t("editor_back_panel_toggle_text"))}</span>
+            <span>${escapeHtml(this._t(isPowerDevice ? "editor_power_panel_text" : "editor_back_panel_toggle_text"))}</span>
           </label>
           <div class="hint">${escapeHtml(this._t("editor_back_panel_toggle_hint"))}</div>
         </div>

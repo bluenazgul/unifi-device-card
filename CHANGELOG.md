@@ -4,6 +4,9 @@
 
 ### ✨ Improvements
 
+- Add SmartPower Strip (`UP6` / `USP-Strip`) and PDU Pro (`USPPDUP` / `USP-PDU-Pro`) support with an outlet overview, Console names, USB relays, available AC telemetry, and the existing UPS outlet control/editor options.
+- Include SmartPower Fake Device previews and diagnostics without requiring metering on Strip/USB outlets or UPS battery sensors.
+
 - Add UniFi UPS Tower (`USWDA24`) detection with a dedicated white tower rendering.
 - Display selectable C13-style UPS power outlets on a dedicated back panel alongside the management RJ45 port, with a separate control button in the selected outlet details; outlets are black on the silver rack UPS models and white on the UPS Tower.
 - Add a UPS view selector for combined front/back rendering, front-only rendering with telemetry, or back-panel rendering with telemetry and controls.

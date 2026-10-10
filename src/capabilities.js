@@ -1,4 +1,4 @@
-import { parseUnifiDeviceUniqueId, parseUnifiObjectUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
+import { parseUnifiDeviceUniqueId, parseUnifiObjectUniqueId, parseUnifiOutletUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
 import { sameMac } from "./identity.js";
 
 // Capability builder:
@@ -19,6 +19,12 @@ function inferCapability(entity, identity) {
   const domain = String(entity?.entity_id || "").split(".")[0] || "";
   const tk = String(entity?.translation_key || "").toLowerCase();
   const uniqueId = entity?.unique_id || "";
+
+  const outletInfo = parseUnifiOutletUniqueId(uniqueId);
+  if (outletInfo && (!identity?.primary_mac || sameMac(outletInfo.mac, identity.primary_mac))) {
+    if (outletInfo.feature === "outlet_control" && domain === "switch") return "outlet_control";
+    if (outletInfo.feature === "outlet_power" && domain === "sensor") return "outlet_power";
+  }
 
   const portInfo = parseUnifiPortUniqueId(uniqueId);
   if (portInfo && sameMac(portInfo.mac, identity?.primary_mac)) {
@@ -79,6 +85,8 @@ export function buildDeviceCapabilities(entities, identity) {
     led_control: emptyBucket(),
     wlan_control: emptyBucket(),
     firewall_policy: emptyBucket(),
+    outlet_control: emptyBucket(),
+    outlet_power: emptyBucket(),
   };
 
   for (const entity of entities || []) {

@@ -59,8 +59,9 @@ function powerWatts(hass, entityId) {
 export function getUpsLoad(hass, context) {
   // The AC budget and consumption describe the same outlet power scope.
   // Do not substitute battery-pool output power or an assumed model rating.
-  const budget = context?.fake_device ? context.preview_ups?.power_budget : powerWatts(hass, context?.ups_power_budget_entity);
-  const consumption = context?.fake_device ? context.preview_ups?.power_consumption : powerWatts(hass, context?.ups_power_consumption_entity);
+  const preview = context?.preview_power || context?.preview_ups;
+  const budget = context?.fake_device ? preview?.power_budget : powerWatts(hass, context?.ups_power_budget_entity);
+  const consumption = context?.fake_device ? preview?.power_consumption : powerWatts(hass, context?.ups_power_consumption_entity);
   if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(consumption) || consumption < 0) return null;
   const percent = consumption / budget * 100;
   return Number.isFinite(percent) ? { budget, consumption, percent } : null;
@@ -77,7 +78,7 @@ export function getDefaultUpsOutlet(outlets, value) {
 }
 
 export function getUpsEntityDiagnostics(context, hass, showTelemetry = true) {
-  if (context?.type !== "ups" || context?.fake_device) return [];
+  if (!["ups", "power_distribution"].includes(context?.type) || context?.fake_device) return [];
   const entities = context.all_entities || context.telemetry_entities || context.entities || [];
   const rows = [];
   const check = (key, candidates, label = "") => {
@@ -95,7 +96,8 @@ export function getUpsEntityDiagnostics(context, hass, showTelemetry = true) {
     )
   );
   if (showTelemetry) {
-    const keys = UPS_TELEMETRY_KEYS.filter((key) => !["ups_input_voltage", "ups_bypass_voltage"].includes(key));
+    const keys = context.type === "ups"
+      ? UPS_TELEMETRY_KEYS.filter((key) => !["ups_input_voltage", "ups_bypass_voltage"].includes(key)) : [];
     const model = context.identity?.model_id || context.device?.model_id;
     if (model === "USPDA2B") keys.push("ups_input_voltage");
     if (model === "USWDA25") keys.push("ups_bypass_voltage");
@@ -127,7 +129,8 @@ export function getUpsEntityDiagnostics(context, hass, showTelemetry = true) {
     const label = control?.original_name || group.power[0]?.translation_placeholders?.outlet_name ||
       control?.name || `Outlet ${index}`;
     check("ups_outlet_control", group.control, label);
-    check("ups_outlet_power", group.power, label);
+    // Strip outlets and PDU USB relays may legitimately have no metering.
+    if (context.type === "ups" || group.power.length) check("ups_outlet_power", group.power, label);
   }
   return rows;
 }
