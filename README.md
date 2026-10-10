@@ -1,6 +1,6 @@
 # UniFi Device Card
 
-A Home Assistant Lovelace custom card for UniFi switches, gateways, access points, UPS devices, and SmartPower outlets. It uses the official [UniFi Network integration](https://www.home-assistant.io/integrations/unifi/) and the entities already registered in Home Assistant.
+A Home Assistant Lovelace custom card for UniFi switches, gateways, access points, UPS devices, and SmartPower outlets. It uses the [UniFi Network integration](https://www.home-assistant.io/integrations/unifi/), which is included with Home Assistant, and the entities already registered in Home Assistant.
 
 Add the card, pick a device, and configure common settings in the visual editor. YAML provides additional overrides for port names, LAG badges, link colors, and sensor mappings.
 
@@ -19,12 +19,12 @@ Add the card, pick a device, and configure common settings in the visual editor.
 
 ## Requirements
 
-- Home Assistant Core **2026.9.0 or newer** with the **UniFi Network Integration** configured
-- UniFi devices must appear under **Settings → Devices & Services → UniFi**
+- Home Assistant Core **2026.9.0 or newer** with the built-in **UniFi Network** integration configured
+- UniFi devices must appear under **Settings → Devices & Services → UniFi Network**
 
 > [!IMPORTANT]
 > Starting with **v1.0.0**, upgrade Home Assistant to **2026.9.0 or newer** before updating the card. If you need to stay on an older Home Assistant version, keep the latest compatible **v0.8.x** card release.
-> Existing card YAML and device selections do not need to be changed. Features still depend on the entities exposed by your installed UniFi Network integration; for example, UniFi UPS telemetry requires Home Assistant Core **2026.10** or newer.
+> Existing card YAML and device selections do not need to be changed. Features still depend on the entities exposed by your configured UniFi Network integration; for example, UniFi UPS telemetry requires Home Assistant Core **2026.10** or newer.
 
 ## Installation
 
@@ -421,7 +421,7 @@ Unknown switches are auto-detected by port count and use the silver/dark hardwar
 
 > [!NOTE]
 > For best results, make sure the relevant UniFi switch and sensor entities are enabled in Home Assistant.  
-> The card can only display and evaluate entities that are available from the UniFi Network Integration.
+> The card can only display and evaluate entities that are available from the UniFi Network integration.
 
 ---
 
@@ -440,7 +440,7 @@ Try a hard refresh (`Ctrl+Shift+R`).
 
 ### Device not shown in the editor
 
-Confirm the device appears under **Settings → Devices & Services → UniFi**.
+Confirm the device appears under **Settings → Devices & Services → UniFi Network**.
 
 The card can log runtime output in the browser console with `UNIFI-DEVICE-CARD` prefix and colorized levels.
 
@@ -456,7 +456,7 @@ For noisy traces, use `log_level: trace`. For quiet production usage, keep the d
 
 ### Ports show as offline despite being connected
 
-Check whether the UniFi Integration created matching entities for the device.
+Check whether the UniFi Network integration created matching entities for the device.
 
 The card can use:
 
@@ -484,7 +484,7 @@ For best results, make sure the relevant UniFi entities are enabled for the devi
 
 In Home Assistant, check:
 
-**Settings → Devices & Services → UniFi → Devices / Entities**
+**Settings → Devices & Services → UniFi Network → Devices / Entities**
 
 If required, enable the disabled entities there first.
 
