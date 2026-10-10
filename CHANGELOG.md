@@ -10,11 +10,16 @@
 - Add UPS editor options to hide the back-panel background and show outlet details only after selection, independently of RJ45 details.
 - Show per-outlet power from UniFi Network's metered outlet sensors, including renamed and hidden enabled entities.
 - Add simulated outlet status, power readings, and on/off controls to Fake Device previews without calling Home Assistant services.
+- Add a battery progress bar and readable remaining runtime, and connect UPS Tower battery indicators and the UPS 2U Pro display to reported battery telemetry.
+- Prefer outlet names supplied by the UniFi Console, add an outlet-on counter, and offer an initial outlet selection and optional power badges.
+- Display UPS load percentage only when the integration exposes a valid matching AC power budget and consumption pair.
+- Add dedicated UPS/outlet diagnostics that distinguish disabled, unavailable, and unexposed entities, plus optional confirmation and visible feedback for outlet commands.
 
 ### 🐛 Bug Fixes
 
 - Preserve selected UPS outlets during context refreshes and select the first outlet by default when dynamic outlet details are disabled.
 - Keep unavailable outlet states distinct from powered-off outlets and disable their control buttons until the switch is available.
+- Prevent repeated outlet commands while awaiting state confirmation, show service failures and confirmation timeouts, and clear pending actions when switching devices.
 
 ### ✨ Hints
 

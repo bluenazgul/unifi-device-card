@@ -39,6 +39,10 @@ const DEVICE_FEATURE_PREFIXES = {
   ups_input_voltage: "ups_input_voltage",
   ups_bypass_voltage: "ups_bypass_voltage",
   ups_output_power_factor: "ups_output_power_factor",
+  ac_power_budget: "ac_power_budget",
+  // Home Assistant's current unique ID intentionally contains this spelling.
+  ac_power_conumption: "ac_power_consumption",
+  ac_power_consumption: "ac_power_consumption",
   rx: "client_rx",
   tx: "client_tx",
   wired_speed: "client_link_speed",

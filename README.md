@@ -335,9 +335,21 @@ device_id: YOUR_UPS_DEVICE_ID
 ups_layout: back
 show_back_panel: false
 dynamic_outlet_details: true
+outlet_power_badges: true
+confirm_outlet_off: true
 ```
 
 Click an outlet to select it, then use the separate **Turn on/off outlet** button in its details. The card uses the UniFi Network integration's `switch` entity for relay control and the `outlet_power` sensor for that outlet's power reading. A missing or unavailable switch cannot be controlled; metering-only outlets can still show their power. Enable the corresponding entities in Home Assistant if they are disabled. Hidden enabled outlet entities remain available to the card.
+
+Outlet labels use the Console names supplied by the integration (`original_name` on the relay, or `outlet_name` on the metering sensor). A Home Assistant entity name is a fallback when the original Console name is unavailable. `outlet_power_badges` adds available power readings directly to outlet buttons. The header counts registered outlets with a known powered-on state; outlets without an available switch state are marked separately in the count's tooltip. Set `default_outlet: 3`, for example, to initially select outlet 3 when dynamic outlet details are disabled.
+
+Real outlet commands use an explicit on/off target. The button remains disabled while the command runs and until Home Assistant reports the target state. Failed commands and missing state confirmation after 10 seconds are shown in the selected outlet's details. `confirm_outlet_off` optionally asks for confirmation before turning an outlet off; turning it on does not require confirmation.
+
+Battery charge appears as a percentage and progress bar near the header, and remaining runtime is formatted in localized hours/minutes instead of raw seconds. The UPS Tower's five battery indicators follow the reported charge, and the UPS 2U Pro display shows charge and runtime. Missing readings leave neutral indicators. `show_telemetry: false` hides these readings and indicators while keeping outlet readings available.
+
+When the integration exposes **both** SmartPower AC power budget and AC power consumption for the selected UPS, the card also displays consumption and load percentage. It requires valid W/kW readings and a positive budget; it does not combine battery-pool output power with another budget, assume model ratings, or sum individual outlet readings to infer real UPS load. The `device_total_power_budget` field known by aiounifi currently has no corresponding dedicated HA UPS sensor.
+
+The UPS editor groups diagnostics into disabled entities, currently unavailable states, and entities not exposed by the integration. Missing entities do not establish whether the hardware supports a feature. Optional AC load sensors are checked only when at least one is registered, and enabled hidden entities are treated as usable. Fake Device previews do not produce missing-entity warnings.
 
 The [UniFi Network integration](https://github.com/home-assistant/core/blob/dev/homeassistant/components/unifi/sensor.py) currently exposes **power in watts per metered outlet**. [aiounifi v97](https://github.com/Kane610/aiounifi/blob/v97/aiounifi/models/outlet.py) also provides outlet voltage, current, and power factor when reported by the device, but the integration currently has no individual outlet sensors for those values. Whole-device UPS readings remain separate. Switching and metering depend on the outlet capabilities reported by the device.
 
@@ -350,7 +362,7 @@ In **Fake Device** mode, outlet buttons change local preview states and example 
 | `device_id` | string | — | Home Assistant device registry ID of the UniFi device. |
 | `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
 | `show_name` | boolean | `true` | Show/hide the header title line. |
-| `show_telemetry` | boolean | `true` | Show/hide CPU, memory, and temperature telemetry rows in the card header. |
+| `show_telemetry` | boolean | `true` | Show/hide header telemetry. On UPS cards, also controls the battery summary, battery indicators, and UPS readings; outlet readings remain available. |
 | `background_color` | string | `var(--card-background-color)` | Any valid CSS color/token. |
 | `title_color` | string | theme default | Optional title text color. |
 | `telemetry_color` | string | theme default | Optional header telemetry color (CPU, memory, temperature values/labels). |
@@ -375,6 +387,9 @@ In **Fake Device** mode, outlet buttons change local preview states and example 
 | `ups_layout` | string | `combined` | UPS only: `combined` for front and back, `front` for the front with telemetry, or `back` for outlets and network ports with telemetry. |
 | `show_back_panel` | boolean | `true` | UPS only: show the back-panel background. Set `false` to hide the background while keeping outlets and network ports visible. |
 | `dynamic_outlet_details` | boolean | `false` | UPS only: start without selected outlet details; click an outlet to show status, available power telemetry, and controls, then click it again to hide the details. Independent of RJ45 port details. If unset, existing `dynamic_port_details` YAML settings remain a fallback for UPS outlets. |
+| `default_outlet` | integer | first available | UPS only: initially selected registered outlet index when dynamic outlet details are disabled. Falls back to the first available outlet if the configured index is missing. |
+| `outlet_power_badges` | boolean | `false` | UPS only: show available power readings directly on outlet buttons. |
+| `confirm_outlet_off` | boolean | `false` | UPS only: require confirmation before turning an outlet off. |
 | `dynamic_port_details` | boolean | `false` | Switch/Gateway and compatible integrated ports: starts without a selected port, shows details after a port click, and hides them when that port is clicked again. |
 | `default_uplink_port` | string | unset | Switch/Gateway and compatible In-Wall AP port sections: initial detail port behavior. Leave unset for the existing first-port behavior, use `auto` to prefer an active selectable port, or select a port key in the editor. Switches and gateways restrict choices to designated uplinks. |
 | `port_led_blink` | boolean | `false` | Enables a purely visual blink animation for connected RJ45/SFP link LEDs without changing link detection, telemetry, or port controls. |

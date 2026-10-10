@@ -36,12 +36,17 @@ import {
 } from "./helpers.js";
 import { normalizeMac } from "./identity.js";
 import { t } from "./translations.js";
+import {
+  formatUpsNumber, formatUpsRuntime, getDefaultUpsOutlet, getUpsBatteryLevel,
+  getUpsLoad, getUpsRuntimeSeconds, normalizeDefaultOutlet,
+} from "./ups.js";
 import "./unifi-device-card-editor.js";
 
 const VERSION = __VERSION__;
 const DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 const CONTEXT_REFRESH_INTERVAL = 31000;
+const OUTLET_STATE_CONFIRMATION_TIMEOUT = 10000;
 const LOG_STYLES = {
   badge: "background:#00AEEF;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
   version: "background:#2a2a2a;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
@@ -68,6 +73,8 @@ class UnifiDeviceCard extends HTMLElement {
     this._ctx = null;
     this._selectedKey = null;
     this._fakeOutletStates = new Map();
+    this._pendingOutletActions = new Map();
+    this._outletErrors = new Map();
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
@@ -206,13 +213,18 @@ class UnifiDeviceCard extends HTMLElement {
     this._panelObserver = null;
     this._observedFrontPanel = null;
     this._clearUptimeRefreshTimer();
+    this._clearUpsOutletActions();
   }
 
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const oldFakeMode = this._config?.fake_device === true;
     const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
+    const oldDefaultOutlet = this._config?.default_outlet;
     const newConfig = { ...(config || {}) };
+    const defaultOutlet = normalizeDefaultOutlet(newConfig.default_outlet);
+    if (defaultOutlet) newConfig.default_outlet = defaultOutlet;
+    else delete newConfig.default_outlet;
     const upsLayout = normalizeUpsLayout(newConfig.ups_layout);
     if (upsLayout === "combined") delete newConfig.ups_layout;
     else newConfig.ups_layout = upsLayout;
@@ -245,6 +257,11 @@ class UnifiDeviceCard extends HTMLElement {
     if ((dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled && !selectedIsOutlet) ||
         (dynamicOutletDetailsEnabled && !dynamicOutletDetailsWasEnabled && selectedIsOutlet)) {
       this._selectedKey = null;
+    }
+    if (oldDeviceId === newDeviceId && this._ctx?.type === "ups" &&
+        oldDefaultOutlet !== newConfig.default_outlet && !dynamicOutletDetailsEnabled) {
+      const outlet = getDefaultUpsOutlet(this._ctx.outlet_entities, newConfig.default_outlet);
+      this._selectedKey = outlet ? `outlet:${outlet.index}` : null;
     }
     if (
       oldDeviceId === newDeviceId &&
@@ -281,6 +298,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._ctx = null;
       this._selectedKey = null;
       this._fakeOutletStates.clear();
+      this._clearUpsOutletActions();
       this._loadedDeviceId = null;
       this._contextLoadedAt = 0;
       this._loading = false;
@@ -297,9 +315,10 @@ class UnifiDeviceCard extends HTMLElement {
     const previousHass = this._hass;
     this._hass = hass;
     this._ensureLoaded();
+    const outletActionsChanged = this._finishConfirmedUpsOutletActions();
     this._log("trace", "hass update");
     const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
-    if (!previousHass || !this._ctx || telemetrySelectionChanged || this._hasRelevantStateChanges(previousHass, hass)) {
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
   }
@@ -1393,7 +1412,7 @@ class UnifiDeviceCard extends HTMLElement {
         if (outlets.length) {
           this._selectedKey = isDynamicOutletDetailsEnabled(this._config)
             ? null
-            : `outlet:${outlets[0].index}`;
+            : `outlet:${getDefaultUpsOutlet(outlets, this._config?.default_outlet).index}`;
         } else {
           const defaultPort = getDefaultPort(
             [...slotData.specials, ...slotData.numbered],
@@ -1514,6 +1533,19 @@ class UnifiDeviceCard extends HTMLElement {
 
   _upsMetrics() {
     if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    const battery = getUpsBatteryLevel(this._hass, this._ctx);
+    const runtime = formatUpsRuntime(this._hass, getUpsRuntimeSeconds(this._hass, this._ctx));
+    if (this._ctx.fake_device) {
+      const load = this._upsLoad();
+      return [
+        { key: "ups_battery_level", value: battery == null ? "—" : formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 }) },
+        { key: "ups_battery_runtime", value: runtime },
+        ...(load ? [
+          { key: "ups_output_power", value: `${formatUpsNumber(this._hass, load.consumption)} W` },
+          { key: "ups_power_budget", value: `${formatUpsNumber(this._hass, load.budget)} W` },
+        ] : []),
+      ].filter((item) => item.value !== "—").map((item) => ({ ...item, label: this._t(item.key) }));
+    }
     return [
       "ups_battery_level",
       "ups_battery_runtime",
@@ -1523,9 +1555,44 @@ class UnifiDeviceCard extends HTMLElement {
       "ups_input_voltage",
       "ups_bypass_voltage",
       "ups_output_power_factor",
+      "ups_power_budget",
+      "ups_power_consumption",
     ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] }))
       .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
-      .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+      .map((item) => ({ key: item.key, label: this._t(item.key), value: item.key === "ups_battery_runtime" ? runtime
+        : item.key === "ups_battery_level" && battery != null
+          ? formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 })
+          : formatState(this._hass, item.entity) }));
+  }
+
+  _upsLoad() {
+    if (!this._ctx?.fake_device) return getUpsLoad(this._hass, this._ctx);
+    const consumption = (this._ctx.outlet_entities || []).reduce((total, outlet) =>
+      total + (this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0), 0);
+    return getUpsLoad(this._hass, { ...this._ctx, preview_ups: {
+      ...this._ctx.preview_ups, power_consumption: consumption,
+    } });
+  }
+
+  _renderUpsSummary(battery, runtime, load) {
+    if (battery == null && runtime === "—" && !load) return "";
+    const percentText = (value) => formatUpsNumber(this._hass, value / 100, { style: "percent", maximumFractionDigits: 0 });
+    return `<div class="ups-summary">
+      ${battery != null ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_battery_level"))}</div>
+        <div class="detail-value">${this._escapeHtml(percentText(battery))}</div>
+        <div class="ups-meter" role="progressbar" aria-label="${this._escapeAttr(this._t("ups_battery_level"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${battery}"><i style="width:${battery}%"></i></div>
+      </div>` : ""}
+      ${runtime !== "—" ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_battery_runtime"))}</div>
+        <div class="detail-value">${this._escapeHtml(runtime)}</div>
+      </div>` : ""}
+      ${load ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_load"))}</div>
+        <div class="detail-value">${this._escapeHtml(`${formatUpsNumber(this._hass, load.consumption)} W · ${percentText(load.percent)}`)}</div>
+        <div class="ups-meter load" title="${this._escapeAttr(`${this._t("ups_power_budget")}: ${formatUpsNumber(this._hass, load.budget)} W`)}"><i style="width:${Math.min(100, load.percent)}%"></i></div>
+      </div>` : ""}
+    </div>`;
   }
 
   _upsOutletState(outlet) {
@@ -1545,14 +1612,57 @@ class UnifiDeviceCard extends HTMLElement {
 
   async _toggleUpsOutlet(index) {
     const outlet = this._ctx?.outlet_entities?.find((item) => item.index === index);
-    if (!outlet) return;
+    if (!outlet || this._pendingOutletActions.has(index)) return;
     const state = this._upsOutletState(outlet);
+    if (!state) return;
+    if (state === "on" && this._config?.confirm_outlet_off === true &&
+        !window.confirm(this._t("ups_confirm_outlet_off").replace("{outlet}", outlet.label))) return;
+    this._outletErrors.delete(index);
     if (this._ctx?.fake_device === true) {
       this._fakeOutletStates.set(index, state === "on" ? "off" : "on");
       this._render();
-    } else if (outlet.entity_id && state) {
-      await this._toggleEntity(outlet.entity_id);
+    } else if (outlet.entity_id) {
+      const action = { entityId: outlet.entity_id, target: state === "on" ? "off" : "on", serviceComplete: false, timer: null };
+      this._pendingOutletActions.set(index, action);
+      this._render();
+      try {
+        await this._hass.callService("switch", action.target === "on" ? "turn_on" : "turn_off", { entity_id: action.entityId });
+        if (this._pendingOutletActions.get(index) !== action) return;
+        action.serviceComplete = true;
+        this._finishConfirmedUpsOutletActions();
+        if (this._pendingOutletActions.get(index) === action) {
+          action.timer = setTimeout(() => {
+            if (this._pendingOutletActions.get(index) !== action) return;
+            this._pendingOutletActions.delete(index);
+            this._outletErrors.set(index, "ups_outlet_no_confirmation");
+            this._render();
+          }, OUTLET_STATE_CONFIRMATION_TIMEOUT);
+        }
+      } catch (err) {
+        if (this._pendingOutletActions.get(index) !== action) return;
+        this._pendingOutletActions.delete(index);
+        this._outletErrors.set(index, "ups_outlet_action_failed");
+        this._log("error", "UPS outlet action failed", err);
+      }
+      this._render();
     }
+  }
+
+  _finishConfirmedUpsOutletActions() {
+    let changed = false;
+    for (const [index, action] of this._pendingOutletActions) {
+      if (!action.serviceComplete || this._hass?.states?.[action.entityId]?.state !== action.target) continue;
+      clearTimeout(action.timer);
+      this._pendingOutletActions.delete(index);
+      changed = true;
+    }
+    return changed;
+  }
+
+  _clearUpsOutletActions() {
+    for (const action of this._pendingOutletActions.values()) clearTimeout(action.timer);
+    this._pendingOutletActions.clear();
+    this._outletErrors.clear();
   }
 
   _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
@@ -1564,6 +1674,7 @@ class UnifiDeviceCard extends HTMLElement {
       <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
       <span class="ups-outlet-led"></span>
       <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
+      ${this._config?.outlet_power_badges === true && this._upsOutletPower(outlet) != null ? `<span class="ups-outlet-power">${this._escapeHtml(this._upsOutletPower(outlet))}</span>` : ""}
     </button>`;
   }
 
@@ -1572,6 +1683,8 @@ class UnifiDeviceCard extends HTMLElement {
     const enabled = rawState === "on";
     const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "—";
     const power = this._upsOutletPower(outlet);
+    const pending = this._pendingOutletActions.has(outlet.index);
+    const error = this._outletErrors.get(outlet.index);
     return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
       <div class="detail-grid">
         <div class="detail-item">
@@ -1584,16 +1697,22 @@ class UnifiDeviceCard extends HTMLElement {
         </div>` : ""}
       </div>
       ${outlet?.entity_id || this._ctx?.fake_device === true ? `<div class="actions">
-        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-outlet-index="${outlet.index}" ${rawState ? "" : "disabled"}>
-          ${this._escapeHtml(this._t(enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-outlet-index="${outlet.index}" ${rawState && !pending ? "" : "disabled"} aria-busy="${pending}">
+          ${this._escapeHtml(this._t(pending ? "ups_outlet_switching" : enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
         </button>
       </div>` : ""}
+      ${error ? `<div class="ups-action-error" role="alert">${this._escapeHtml(this._t(error))}</div>` : ""}
       ${this._ctx?.fake_device === true ? `<div class="muted">${this._escapeHtml(this._t("ups_outlet_preview"))}</div>` : ""}`;
   }
 
   _renderUpsCard(ctx) {
-    const metrics = this._upsMetrics();
+    const metrics = this._upsMetrics().filter((item) => !["ups_battery_level", "ups_battery_runtime"].includes(item.key));
     const telemetryEnabled = this._telemetryEnabled();
+    const battery = telemetryEnabled ? getUpsBatteryLevel(this._hass, ctx) : null;
+    const runtime = telemetryEnabled ? formatUpsRuntime(this._hass, getUpsRuntimeSeconds(this._hass, ctx)) : "—";
+    const load = telemetryEnabled ? this._upsLoad() : null;
+    const summary = this._renderUpsSummary(battery, runtime, load);
+    const batteryText = battery == null ? "—" : formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 });
     const headerTitle = this._title();
     const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
     const tower = isUpsTower(ctx?.device || ctx?.identity);
@@ -1605,12 +1724,15 @@ class UnifiDeviceCard extends HTMLElement {
     const { specials, numbered } = this._buildSlotData(ctx);
     const networkPorts = [...specials, ...numbered];
     const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
-      || (isDynamicOutletDetailsEnabled(this._config) || this._selectedKey ? null : outlets[0])
+      || (isDynamicOutletDetailsEnabled(this._config) || this._selectedKey ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet))
       || null;
     const selectedPort = networkPorts.find((port) => port.key === this._selectedKey)
       || (this._config?.dynamic_port_details === true || outlets.length || this._selectedKey ? null : networkPorts[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
+    const enabledOutlets = outlets.filter((outlet) => this._upsOutletState(outlet) === "on").length;
+    const unknownOutlets = outlets.filter((outlet) => !this._upsOutletState(outlet)).length;
+    const outletCountText = this._t("ups_outlet_count").replace("{on}", String(enabledOutlets)).replace("{total}", String(outlets.length));
     const ventSlots = "<span></span>".repeat(5);
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
@@ -1619,16 +1741,18 @@ class UnifiDeviceCard extends HTMLElement {
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
             <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
           </div>
-          <div class="header-actions">
+          <div class="header-actions ups-header-actions">
+            ${outlets.length ? `<span class="chip compact" title="${this._escapeAttr(unknownOutlets ? this._t("ups_outlet_unknown_count").replace("{count}", String(unknownOutlets)) : outletCountText)}">${this._escapeHtml(outletCountText)}${unknownOutlets ? " · —" : ""}</span>` : ""}
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
           </div>
         </div>
-        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+        ${summary ? `<div class="section ups-summary-section">${summary}${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}</div>` : ""}
+        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr([ctx?.model || "UniFi UPS", ...(battery != null ? [`${this._t("ups_battery_level")}: ${batteryText}`] : []), ...(runtime !== "—" ? [runtime] : [])].join(" · "))}">
           ${tower ? `<div class="ups-tower">
             <div class="ups-tower-vents left"></div>
             <div class="ups-tower-vents right"></div>
             <div class="ups-tower-power"><span></span></div>
-            <div class="ups-tower-battery"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="ups-tower-battery">${Array.from({ length: 5 }, (_, index) => `<i class="${battery != null && battery > index * 20 ? "active" : ""}"></i>`).join("")}</div>
             <div class="ups-tower-seam"></div>
             <div class="ups-tower-logo">U</div>
             <div class="ups-tower-mark"><i></i> UPS</div>
@@ -1638,8 +1762,7 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="ups-power"><span></span></div>
             <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
             ${hasDisplay ? `<div class="ups-display">
-              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
-              <span></span>
+              <div class="ups-display-reading"><strong>${this._escapeHtml(batteryText)}</strong><small>${this._escapeHtml(runtime)}</small></div>
             </div>` : `<div class="ups-logo">U</div>`}
             <div class="ups-vents bottom">${ventSlots}</div>
           </div>
@@ -1652,13 +1775,14 @@ class UnifiDeviceCard extends HTMLElement {
         </div>` : ""}
         ${showBack && selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
         ${showBack && selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
-        ${telemetryEnabled ? `<div class="section">
+        ${telemetryEnabled && (metrics.length || !summary) ? `<div class="section">
           <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
           ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
             <div class="detail-item">
               <div class="detail-label">${this._escapeHtml(item.label)}</div>
               <div class="detail-value">${this._escapeHtml(item.value)}</div>
-            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+            </div>`).join("")}</div>` : battery == null && runtime === "—" && !load ? `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>` : ""}
+          ${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}
         </div>` : ""}
       </ha-card>`;
     this._attachDeviceLinkHandler();
@@ -2046,6 +2170,23 @@ class UnifiDeviceCard extends HTMLElement {
         50% { opacity: .4; }
       }
 
+      .ups-header-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 55%; }
+      .ups-header-actions .chip { white-space: normal; }
+
+      .ups-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .ups-summary-item { min-width: 0; }
+      .ups-meter { height: 6px; border-radius: 4px; background: var(--divider-color, #405269); overflow: hidden; margin-top: 7px; }
+      .ups-meter i { display: block; height: 100%; border-radius: inherit; background: var(--primary-color, #0090d9); }
+      .ups-action-error { margin-top: 8px; color: var(--error-color, #e86b6b); font-size: .8rem; }
+      .action-btn[aria-busy]:disabled { opacity: .55; cursor: default; }
+      .ups-outlet-power { font-size: 8px; white-space: nowrap; }
+
       .ups-visual {
         padding: 18px 20px;
         background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
@@ -2116,6 +2257,10 @@ class UnifiDeviceCard extends HTMLElement {
         width: 3px;
         height: 3px;
         border-radius: 50%;
+        background: #aeb6c0;
+      }
+
+      .ups-tower-battery i.active {
         background: #69a2ff;
         box-shadow: 0 0 3px rgba(58,132,255,.7);
       }
@@ -2449,6 +2594,19 @@ class UnifiDeviceCard extends HTMLElement {
         background: linear-gradient(110deg, #030618, #07103e 62%, #030515);
         box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
       }
+
+      .ups-display-reading {
+        color: #69b6ff;
+        display: grid;
+        gap: 1px;
+        width: 100%;
+        text-align: center;
+        line-height: 1;
+        overflow: hidden;
+      }
+
+      .ups-display-reading strong { font-size: clamp(9px, 1.8vw, 13px); }
+      .ups-display-reading small { font-size: clamp(6px, 1.2vw, 8px); white-space: nowrap; }
 
       .ups-display-grid {
         display: grid;

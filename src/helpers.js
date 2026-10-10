@@ -275,7 +275,8 @@ export function getDeviceOutletEntities(entities, identity = null) {
     };
     if (control) {
       outlet.entity_id = entity.entity_id;
-      outlet.label = normalize(entity.name || entity.original_name) || outlet.label;
+      // The integration's original_name comes from the UniFi Console outlet name.
+      outlet.label = normalize(entity.original_name || entity.name) || outlet.label;
     } else {
       outlet.power_entity = entity.entity_id;
       if (!outlet.entity_id) outlet.label = normalize(entity.translation_placeholders?.outlet_name) || outlet.label;
@@ -821,6 +822,16 @@ export function getDeviceTelemetry(entities, hass = null) {
         findDeviceUniqueIdTelemetryEntity(candidates, [key]),
         findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === key),
         findDeviceEntityByCanonicalSuffix(candidates, key),
+      ], hass),
+    ])),
+    ...Object.fromEntries([
+      ["ups_power_budget", "ac_power_budget", "smartpower_ac_power_budget"],
+      ["ups_power_consumption", "ac_power_consumption", "smartpower_ac_power_consumption"],
+    ].map(([key, feature, translationKey]) => [
+      `${key}_entity`,
+      preferUsableTelemetryMatch([
+        findDeviceUniqueIdTelemetryEntity(candidates, [feature]),
+        findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === translationKey),
       ], hass),
     ])),
   };
@@ -2334,6 +2345,9 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
         preview_state: index < 4 ? "on" : "off",
         preview_power: [120, 85, 45, 30][index] || 0,
       })),
+      preview_ups: model.kind === "ups" ? {
+        battery_level: 76, battery_runtime: 1080, power_budget: 1000, power_consumption: 280,
+      } : null,
       fake_device: true,
     };
   }
@@ -2440,6 +2454,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     identity,
     capabilities,
     entities,
+    all_entities: allEntities,
     telemetry_entities: telemetryEntities.length > 0 ? telemetryEntities : entities,
     type,
     layout,
