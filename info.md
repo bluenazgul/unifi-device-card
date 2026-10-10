@@ -2,6 +2,8 @@
 
 A Lovelace dashboard card for UniFi switches and gateways.
 
+**Requires Home Assistant Core 2026.9.0 or newer** with the UniFi Network integration configured. Upgrade Home Assistant before installing v1.0.0; use a compatible v0.8.x card release on older Home Assistant versions.
+
 - Realistic front-panel port grid with device-accurate styling (white / silver panel)
 - Per-port dual LED indicators — PoE state left, link speed right
 - Click any port for details: speed, PoE power, toggle & power cycle

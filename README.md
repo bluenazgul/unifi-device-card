@@ -217,8 +217,12 @@ Unknown switches are auto-detected by port count and use the silver/dark hardwar
 
 ## Requirements
 
-- Home Assistant with the **UniFi Network Integration** configured
+- Home Assistant Core **2026.9.0 or newer** with the **UniFi Network Integration** configured
 - UniFi devices must appear under **Settings → Devices & Services → UniFi**
+
+> [!IMPORTANT]
+> Starting with **v1.0.0**, the card requires Home Assistant Core **2026.9.0 or newer** and reads only the current device-registry ownership fields. Support for the deprecated `config_entries` device field has been removed ahead of its scheduled removal in Home Assistant Core **2027.8**. Upgrade Home Assistant before updating the card; if you need to stay on an older Home Assistant version, keep the latest compatible **v0.8.x** card release.
+> Existing card YAML and device selections do not need to be changed. Features still depend on the entities exposed by your installed UniFi Network integration; for example, UniFi UPS telemetry requires Home Assistant Core **2026.10** or newer.
 
 ---
 
