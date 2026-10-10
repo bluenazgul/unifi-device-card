@@ -44,10 +44,14 @@ export function normalizeUpsLayout(value) {
 }
 
 export function isDynamicOutletDetailsEnabled(config) {
-  // Preserve the existing YAML option unless the dedicated UPS option is set.
+  // Preserve the existing YAML option unless the dedicated outlet option is set.
   return typeof config?.dynamic_outlet_details === "boolean"
     ? config.dynamic_outlet_details
     : config?.dynamic_port_details === true;
+}
+
+export function isOutletDeviceType(type) {
+  return type === "ups" || type === "power_distribution";
 }
 
 export function normalizePortNames(value) {
@@ -490,7 +494,7 @@ function buildDeviceLabel(device, type) {
 
   const model = normalize(device.model);
   const typeLabel =
-    type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : type === "ups" ? "UPS" : "Switch";
+    type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : type === "ups" ? "UPS" : type === "power_distribution" ? "SmartPower" : "Switch";
 
   if (model && lower(model) !== lower(name)) return `${name} · ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
@@ -839,6 +843,7 @@ export function getDeviceTelemetry(entities, hass = null) {
 
 export function getUnavailableHeaderTelemetryKeys(deviceContext) {
   if (!deviceContext) return [];
+  if (deviceContext.type === "power_distribution") return [];
 
   if (deviceContext.type === "ups") {
     const expected = [
@@ -1278,7 +1283,7 @@ export async function getUnifiDevices(hass, cardConfig = null) {
     const identity = buildNormalizedDeviceIdentity(device);
     const capabilities = buildDeviceCapabilities(entities, identity);
     const type = classifyDeviceType(identity, capabilities, entities, device);
-    if (!["switch", "gateway", "access_point", "ups"].includes(type)) continue;
+    if (!["switch", "gateway", "access_point", "ups", "power_distribution"].includes(type)) continue;
 
     results.push({
       id: device.id,
@@ -2338,16 +2343,26 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
       cpu_temperature_entity: null,
       memory_utilization_entity: null,
       temperature_entity: null,
-      outlet_entities: Array.from({ length: model.outletCount || 0 }, (_, index) => ({
-        index: index + 1,
-        entity_id: null,
-        label: `Outlet ${index + 1}`,
-        preview_state: index < 4 ? "on" : "off",
-        preview_power: [120, 85, 45, 30][index] || 0,
-      })),
+      outlet_entities: Array.from({ length: model.outletCount || 0 }, (_, index) => {
+        const usb = model.previewUsbOutlets?.includes(index + 1);
+        const powerDevice = model.kind === "power_distribution";
+        const metered = !powerDevice || (model.previewMetering !== false && !usb);
+        const powerIndex = powerDevice ? index - (model.previewUsbOutlets?.length || 0) : index;
+        return {
+          index: index + 1,
+          entity_id: null,
+          label: usb ? model.previewUsbGroup ? "USB Outlets" : `USB Outlet ${index + 1}` : `Outlet ${index + 1}`,
+          preview_state: powerDevice && model.previewMetering !== false
+            ? (usb ? index % 2 === 0 : powerIndex < 4) ? "on" : "off"
+            : index < 4 ? "on" : "off",
+          preview_power: metered ? [120, 85, 45, 30][powerIndex] || 0 : null,
+        };
+      }),
       preview_ups: model.kind === "ups" ? {
         battery_level: 76, battery_runtime: 1080, power_budget: 1000, power_consumption: 280,
       } : null,
+      preview_power: model.kind === "power_distribution" && model.previewMetering !== false
+        ? { power_budget: 1875 } : null,
       fake_device: true,
     };
   }
@@ -2365,7 +2380,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const identity = buildNormalizedDeviceIdentity(device);
   const capabilities = buildDeviceCapabilities(allEntities, identity);
   const type = classifyDeviceType(identity, capabilities, allEntities, device);
-  if (!["switch", "gateway", "access_point", "ups"].includes(type)) return null;
+  if (!["switch", "gateway", "access_point", "ups", "power_distribution"].includes(type)) return null;
 
   const needsUID = entities.filter(
     (e) =>

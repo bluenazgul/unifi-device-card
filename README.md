@@ -28,7 +28,7 @@ Compact AP Card Layout **ap_compact_view: true** (optional) [additional used *ba
 <img alt="Screenshot" src="https://github.com/bluenazgul/unifi-device-card/blob/0dc4ffbd92ae473074e31ad2292a9e0ab17c14cf/screenshots/AP%20Card%20Compact.png" />
 
 
-A Home Assistant Lovelace custom card for UniFi switches, gateways, and access points — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
+A Home Assistant Lovelace custom card for UniFi switches, gateways, access points, UPS devices, and SmartPower outlets — built on top of the official [UniFi Network Integration](https://www.home-assistant.io/integrations/unifi/).
 
 No direct API access, no extra configuration. Just add the card and pick your device.
 
@@ -78,11 +78,12 @@ If you like this project and want to support my work, you can donate via PayPal 
 - **Direct device access** — click the model and firmware line to open the selected device in Home Assistant, including its disabled entities
 - **PoE toggle & Power Cycle** — directly from the card when supported by Home Assistant entities
 - **Live port counter** — connected / total shown in the header chip
-- **Automatic device detection** — finds UniFi switches and gateways registered in Home Assistant
+- **Automatic device detection** — finds supported UniFi Network devices registered in Home Assistant
 - **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
 - **Dedicated AP designs** — standard APs stay round, Wall/In-Wall APs and the U6 Extender use a scalable rectangular HTML design, U7 Outdoor models use their matching rounded-rectangle design with a lower status LED, and UniFi 5G Backup uses its own HTML device display
 - **Combined In-Wall AP view** — compatible In-Wall models can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
 - **UPS outlets** — selectable outlets with status, per-outlet power when available, and a separate on/off button; optional back-panel background and dynamic outlet details, including simulated controls in Fake Device previews
+- **SmartPower Strip and PDU** — compact outlet overview with Console names, AC/USB relay control, available power readings, and the same optional outlet settings as UPS cards
 - **Built-in UI editor** — full card configuration without YAML
 - **Multi-language support** — translations available for English, German, Dutch, French, Spanish, Italian, Swedish, Danish, Norwegian, Finnish, Polish, and Czech
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
@@ -97,6 +98,8 @@ If you like this project and want to support my work, you can donate via PayPal 
 
 | Model | Ports | Panel |
 |---|---|---|
+| SmartPower Strip (`UP6`, `USP-Strip`) | 6 AC outlets + 1 shared USB group | Outlet overview |
+| SmartPower PDU Pro (`USPPDUP`, `USP-PDU-Pro`) | 16 AC outlets + 4 USB outlets | Outlet overview |
 | UniFi Switch Compact 8 (`USC8`) | 8 | Silver |
 | UniFi Switch 8 (`US8`) | 8 | Silver |
 | UniFi Switch 8 60W (`US8P60`) | 8 | Silver |
@@ -327,6 +330,24 @@ wan_port: auto                # optional (gateway only)
 wan2_port: none               # optional (gateway only)
 ```
 
+### SmartPower Strip and PDU outlets
+
+SmartPower Strip (`UP6` / `USP-Strip`) and PDU Pro (`USPPDUP` / `USP-PDU-Pro`) use a responsive outlet overview. The card discovers registered UniFi relay and metering entities by stable unique ID and uses the Console names, including shared USB groups. Real cards show only outlets exposed by Home Assistant; the model's preview counts do not create physical or controllable outlets.
+
+```yaml
+type: custom:unifi-device-card
+device_id: YOUR_SMARTPOWER_DEVICE_ID
+dynamic_outlet_details: true
+outlet_power_badges: true
+confirm_outlet_off: true
+```
+
+Select an outlet to see its state and use the separate on/off button. Pending commands, HA state confirmation, errors, optional off confirmation, `default_outlet`, and `show_back_panel` work as on UPS cards. `ups_layout` applies only to UPS devices; SmartPower cards always show the outlet overview.
+
+The [aiounifi v97 device fixtures](https://github.com/Kane610/aiounifi/blob/v97/tests/fixtures.py) describe six Strip AC relays plus one shared USB relay, without metering. PDU Pro exposes four USB relays without metering and sixteen metered AC outlets. Power values appear only when HA supplies a corresponding sensor. Available whole-device AC consumption and budget are shown when `show_telemetry` is enabled; load percentage requires a valid matching pair. Missing optional metering does not produce warnings for Strip or USB outlets. Registered disabled/unavailable sensors and relays are still diagnosed in the editor.
+
+Fake Device mode includes both models with labeled local controls, USB groups, and simulated PDU AC readings. Preview actions never call HA services. No UPS battery, runtime, or generic CPU/PoE requirements are applied to these power devices.
+
 ### UPS outlets
 
 ```yaml
@@ -364,7 +385,7 @@ In **Fake Device** mode, outlet buttons change local preview states and example 
 | `device_id` | string | — | Home Assistant device registry ID of the UniFi device. |
 | `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
 | `show_name` | boolean | `true` | Show/hide the header title line. |
-| `show_telemetry` | boolean | `true` | Show/hide header telemetry. On UPS cards, also controls the battery summary, battery indicators, and UPS readings; outlet readings remain available. |
+| `show_telemetry` | boolean | `true` | Show/hide header telemetry. On UPS cards, also controls the battery summary, battery indicators, and UPS readings; on SmartPower cards, controls whole-device AC readings. Outlet readings remain available. |
 | `background_color` | string | `var(--card-background-color)` | Any valid CSS color/token. |
 | `title_color` | string | theme default | Optional title text color. |
 | `telemetry_color` | string | theme default | Optional header telemetry color (CPU, memory, temperature values/labels). |
@@ -387,11 +408,11 @@ In **Fake Device** mode, outlet buttons change local preview states and example 
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `ups_layout` | string | `combined` | UPS only: `combined` for front and back, `front` for the front with telemetry, or `back` for outlets and network ports with telemetry. |
-| `show_back_panel` | boolean | `true` | UPS only: show the back-panel background. Set `false` to hide the background while keeping outlets and network ports visible. |
-| `dynamic_outlet_details` | boolean | `false` | UPS only: start without selected outlet details; click an outlet to show status, available power telemetry, and controls, then click it again to hide the details. Independent of RJ45 port details. If unset, existing `dynamic_port_details` YAML settings remain a fallback for UPS outlets. |
-| `default_outlet` | integer | first available | UPS only: initially selected registered outlet index when dynamic outlet details are disabled. Falls back to the first available outlet if the configured index is missing. |
-| `outlet_power_badges` | boolean | `false` | UPS only: show available power readings directly on outlet buttons. |
-| `confirm_outlet_off` | boolean | `false` | UPS only: require confirmation before turning an outlet off. |
+| `show_back_panel` | boolean | `true` | UPS/SmartPower: show the outlet-panel background. Set `false` to hide the background while keeping outlets and any UPS network ports visible. |
+| `dynamic_outlet_details` | boolean | `false` | UPS/SmartPower: start without selected outlet details; click an outlet to show status, available power telemetry, and controls, then click it again to hide the details. Independent of RJ45 port details. If unset, existing `dynamic_port_details` YAML settings remain a fallback for outlets. |
+| `default_outlet` | integer | first available | UPS/SmartPower: initially selected registered outlet index when dynamic outlet details are disabled. Falls back to the first available outlet if the configured index is missing. |
+| `outlet_power_badges` | boolean | `false` | UPS/SmartPower: show available power readings directly on outlet buttons. |
+| `confirm_outlet_off` | boolean | `false` | UPS/SmartPower: require confirmation before turning an outlet off. |
 | `dynamic_port_details` | boolean | `false` | Switch/Gateway and compatible integrated ports: starts without a selected port, shows details after a port click, and hides them when that port is clicked again. |
 | `default_uplink_port` | string | unset | Switch/Gateway and compatible In-Wall AP port sections: initial detail port behavior. Leave unset for the existing first-port behavior, use `auto` to prefer an active selectable port, or select a port key in the editor. Switches and gateways restrict choices to designated uplinks. |
 | `port_led_blink` | boolean | `false` | Enables a purely visual blink animation for connected RJ45/SFP link LEDs without changing link detection, telemetry, or port controls. |
