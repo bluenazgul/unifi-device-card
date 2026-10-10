@@ -4,7 +4,7 @@
 
 ### 💥 Breaking Changes
 
-- Require Home Assistant Core **2026.9.0 or newer**, declared in `hacs.json`. Upgrade Home Assistant before updating the card, or keep a compatible **v0.8.x** card release on older Home Assistant versions.
+- **Minimum Home Assistant Core version: 2026.9.0.** This requirement is declared in `hacs.json`. Upgrade Home Assistant before updating the card, or keep a compatible **v0.8.x** card release on older Home Assistant versions.
 - Remove the deprecated device-registry `config_entries` fallback and identity field. Device ownership now uses `config_entry_id` exclusively, ahead of the scheduled Home Assistant Core **2027.8** removal. Existing card YAML and device selections remain compatible.
 
 ### ✨ Improvements

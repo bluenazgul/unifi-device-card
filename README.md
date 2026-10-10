@@ -36,9 +36,24 @@ Add the card, pick a device, and configure common settings in the visual editor.
 
 If the card is unavailable in the normal search, add `https://github.com/bluenazgul/unifi-device-card` under **HACS → ⋮ → Custom repositories**, using the **Dashboard** category. Then search and install it as above.
 
+#### Older Home Assistant versions
+
+HACS checks the minimum Home Assistant version in the selected release's `hacs.json`. **v1.x requires Home Assistant Core 2026.9.0 or newer**; older **v0.8.x** releases retain their own requirements. HACS defaults to the newest release and does not automatically select the newest compatible version.
+
+To install or keep a compatible v0.8.x release on an older Home Assistant version:
+
+1. Find **UniFi Device Card** in HACS and open its **⋮** menu.
+2. Select **Download** for a first installation or **Redownload** if the card is already installed.
+3. Expand **Need a different version?** and select a compatible **v0.8.x** release, such as [v0.8.9](https://github.com/bluenazgul/unifi-device-card/releases/tag/v0.8.9).
+4. Download it and reload the browser/frontend.
+
+HACS rejects v1.x downloads on Home Assistant versions below 2026.9.0. After upgrading Home Assistant, select v1.x to update the card. See the [HACS version selection guide](https://www.hacs.xyz/docs/use/repositories/dashboard/#downloading-a-specific-version-of-a-repository).
+
+HACS currently lists only the latest **30 releases**, so an older v0.8.x release may eventually disappear from the selection menu. Its GitHub release assets remain available: download `unifi-device-card.js` from the compatible release and follow the manual installation steps below.
+
 ### Manual installation
 
-1. Download `unifi-device-card.js` from the [latest release](https://github.com/bluenazgul/unifi-device-card/releases/latest).
+1. Download `unifi-device-card.js` from the [latest release](https://github.com/bluenazgul/unifi-device-card/releases/latest), or from a compatible **v0.8.x** release if your Home Assistant version is below **2026.9.0**.
 2. Copy it to `/config/www/unifi-device-card.js`.
 3. Add a resource under **Settings → Dashboards → Resources**, with URL `/local/unifi-device-card.js` and type **JavaScript module**.
 4. Reload the browser and add the card to your dashboard.
