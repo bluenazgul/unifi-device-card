@@ -1727,7 +1727,7 @@ class UnifiDeviceCard extends HTMLElement {
       || (isDynamicOutletDetailsEnabled(this._config) || this._selectedKey ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet))
       || null;
     const selectedPort = networkPorts.find((port) => port.key === this._selectedKey)
-      || (this._config?.dynamic_port_details === true || outlets.length || this._selectedKey ? null : networkPorts[0])
+      || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
     const enabledOutlets = outlets.filter((outlet) => this._upsOutletState(outlet) === "on").length;

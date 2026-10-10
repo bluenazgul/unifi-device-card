@@ -44,6 +44,8 @@ card.setConfig({ device_id: "fake:USWDA24", fake_device: true, ups_layout: "back
 await loadContext(card);
 assert.equal(card._selectedKey, "outlet:1", "non-dynamic UPS views should select an outlet first");
 assert.match(card.shadowRoot.innerHTML, /data-action="toggle-outlet"/);
+assert.doesNotMatch(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/,
+  "selected outlet details replace the default RJ45 details");
 assert.match(card.shadowRoot.innerHTML, /120 W/);
 assert.match(card.shadowRoot.innerHTML, /simulated/);
 
@@ -75,13 +77,26 @@ assert.match(card.shadowRoot.innerHTML, /class="ups-connection-panel tower no-pa
 assert.match(card.shadowRoot.innerHTML, /data-outlet-key="outlet:1"/);
 assert.match(card.shadowRoot.innerHTML, /class="ups-network-ports"/);
 assert.doesNotMatch(card.shadowRoot.innerHTML, /data-action="toggle-outlet"/);
+assert.match(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/,
+  "dynamic outlets must preserve non-dynamic RJ45 details on initial render");
 await loadContext(card);
 assert.equal(card._selectedKey, null);
+assert.match(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/,
+  "context refresh must preserve the default RJ45 details");
 card._selectKey("outlet:3");
 assert.match(card.shadowRoot.innerHTML, /data-outlet-index="3"/);
+assert.doesNotMatch(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/);
 card._selectKey("outlet:3");
 assert.equal(card._selectedKey, null);
 assert.doesNotMatch(card.shadowRoot.innerHTML, /data-action="toggle-outlet"/);
+assert.match(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/,
+  "deselecting an outlet restores non-dynamic RJ45 details");
+card.setConfig({ ...card._config, dynamic_port_details: true });
+assert.doesNotMatch(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/,
+  "both dynamic settings keep both kinds of details collapsed");
+assert.doesNotMatch(card.shadowRoot.innerHTML, /data-action="toggle-outlet"/);
+card.setConfig({ ...card._config, dynamic_port_details: false });
+assert.match(card.shadowRoot.innerHTML, /<div class="detail-title">Port 1<\/div>/);
 
 const networkKey = card._buildSlotData(card._ctx).numbered[0].key;
 card._selectKey(networkKey);

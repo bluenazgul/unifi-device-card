@@ -341,6 +341,8 @@ confirm_outlet_off: true
 
 Click an outlet to select it, then use the separate **Turn on/off outlet** button in its details. The card uses the UniFi Network integration's `switch` entity for relay control and the `outlet_power` sensor for that outlet's power reading. A missing or unavailable switch cannot be controlled; metering-only outlets can still show their power. Enable the corresponding entities in Home Assistant if they are disabled. Hidden enabled outlet entities remain available to the card.
 
+With `dynamic_outlet_details: true` and `dynamic_port_details: false` (the default), RJ45 details appear until an outlet is selected and return when it is deselected. Enable both options to initially collapse both kinds of details.
+
 Outlet labels use the Console names supplied by the integration (`original_name` on the relay, or `outlet_name` on the metering sensor). A Home Assistant entity name is a fallback when the original Console name is unavailable. `outlet_power_badges` adds available power readings directly to outlet buttons. The header counts registered outlets with a known powered-on state; outlets without an available switch state are marked separately in the count's tooltip. Set `default_outlet: 3`, for example, to initially select outlet 3 when dynamic outlet details are disabled.
 
 Real outlet commands use an explicit on/off target. The button remains disabled while the command runs and until Home Assistant reports the target state. Failed commands and missing state confirmation after 10 seconds are shown in the selected outlet's details. `confirm_outlet_off` optionally asks for confirmation before turning an outlet off; turning it on does not require confirmation.

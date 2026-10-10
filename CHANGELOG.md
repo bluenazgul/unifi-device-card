@@ -19,6 +19,7 @@
 
 - Preserve selected UPS outlets during context refreshes and select the first outlet by default when dynamic outlet details are disabled.
 - Keep unavailable outlet states distinct from powered-off outlets and disable their control buttons until the switch is available.
+- Preserve default RJ45 details when dynamic UPS outlet details are enabled independently, and restore them after deselecting an outlet.
 - Prevent repeated outlet commands while awaiting state confirmation, show service failures and confirmation timeouts, and clear pending actions when switching devices.
 
 ### ✨ Hints
