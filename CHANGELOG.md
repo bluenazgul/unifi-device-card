@@ -7,6 +7,14 @@
 - Add UniFi UPS Tower (`USWDA24`) detection with a dedicated white tower rendering.
 - Display selectable C13-style UPS power outlets on a dedicated back panel alongside the management RJ45 port, with a separate control button in the selected outlet details; outlets are black on the silver rack UPS models and white on the UPS Tower.
 - Add a UPS view selector for combined front/back rendering, front-only rendering with telemetry, or back-panel rendering with telemetry and controls.
+- Add UPS editor options to hide the back-panel background and show outlet details only after selection, independently of RJ45 details.
+- Show per-outlet power from UniFi Network's metered outlet sensors, including renamed and hidden enabled entities.
+- Add simulated outlet status, power readings, and on/off controls to Fake Device previews without calling Home Assistant services.
+
+### 🐛 Bug Fixes
+
+- Preserve selected UPS outlets during context refreshes and select the first outlet by default when dynamic outlet details are disabled.
+- Keep unavailable outlet states distinct from powered-off outlets and disable their control buttons until the switch is available.
 
 ### ✨ Hints
 

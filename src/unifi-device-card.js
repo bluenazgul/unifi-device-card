@@ -11,6 +11,7 @@ import {
   getDefaultPortCandidates,
   getLinkLedClass,
   isApPortPanelAvailable,
+  isDynamicOutletDetailsEnabled,
   resolveDisplayPort,
   getPoeStatus,
   getPortSpeedText,
@@ -66,6 +67,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._config = {};
     this._ctx = null;
     this._selectedKey = null;
+    this._fakeOutletStates = new Map();
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
@@ -236,8 +238,14 @@ class UnifiDeviceCard extends HTMLElement {
     const newFakeMode = newConfig?.fake_device === true;
     const dynamicPortDetailsEnabled = newConfig.dynamic_port_details === true;
     const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
+    const dynamicOutletDetailsEnabled = isDynamicOutletDetailsEnabled(newConfig);
+    const dynamicOutletDetailsWasEnabled = isDynamicOutletDetailsEnabled(this._config);
     this._config = newConfig;
-    if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
+    const selectedIsOutlet = this._selectedKey?.startsWith("outlet:");
+    if ((dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled && !selectedIsOutlet) ||
+        (dynamicOutletDetailsEnabled && !dynamicOutletDetailsWasEnabled && selectedIsOutlet)) {
+      this._selectedKey = null;
+    }
     if (
       oldDeviceId === newDeviceId &&
       oldDefaultUplinkPort !== (newConfig.default_uplink_port || "") &&
@@ -272,6 +280,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
+      this._fakeOutletStates.clear();
       this._loadedDeviceId = null;
       this._contextLoadedAt = 0;
       this._loading = false;
@@ -1051,6 +1060,11 @@ class UnifiDeviceCard extends HTMLElement {
       if (entityId) ids.add(entityId);
     }
 
+    for (const outlet of this._ctx?.outlet_entities || []) {
+      if (outlet.entity_id) ids.add(outlet.entity_id);
+      if (outlet.power_entity) ids.add(outlet.power_entity);
+    }
+
     const { specials, numbered } = this._buildSlotData(this._ctx);
     const portEntityKeys = [
       "link_entity",
@@ -1369,23 +1383,33 @@ class UnifiDeviceCard extends HTMLElement {
 
       const slotData = this._buildSlotData(ctx);
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
-      const available = [...displaySlots.specials, ...displaySlots.numbered];
+      const outlets = ctx?.type === "ups" ? ctx.outlet_entities || [] : [];
+      const available = [
+        ...outlets.map((outlet) => ({ key: `outlet:${outlet.index}` })),
+        ...displaySlots.specials, ...displaySlots.numbered,
+      ];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
       if (!selectedStillExists) {
-        const defaultPort = getDefaultPort(
-          [...slotData.specials, ...slotData.numbered],
-          getDefaultPortCandidates(
-            ctx?.type,
-            ctx?.layout,
-            slotData.specials,
-            slotData.numbered
-          ),
-          this._config?.default_uplink_port,
-          (slot) => this._isPortConnected(slot)
-        );
-        this._selectedKey = this._config?.dynamic_port_details === true
-          ? null
-          : resolveDisplayPort(defaultPort, available)?.key || null;
+        if (outlets.length) {
+          this._selectedKey = isDynamicOutletDetailsEnabled(this._config)
+            ? null
+            : `outlet:${outlets[0].index}`;
+        } else {
+          const defaultPort = getDefaultPort(
+            [...slotData.specials, ...slotData.numbered],
+            getDefaultPortCandidates(
+              ctx?.type,
+              ctx?.layout,
+              slotData.specials,
+              slotData.numbered
+            ),
+            this._config?.default_uplink_port,
+            (slot) => this._isPortConnected(slot)
+          );
+          this._selectedKey = this._config?.dynamic_port_details === true
+            ? null
+            : resolveDisplayPort(defaultPort, available)?.key || null;
+        }
       }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
@@ -1404,7 +1428,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _selectKey(key) {
-    this._selectedKey = this._config?.dynamic_port_details === true && this._selectedKey === key
+    const dynamic = key?.startsWith("outlet:")
+      ? isDynamicOutletDetailsEnabled(this._config)
+      : this._config?.dynamic_port_details === true;
+    this._selectedKey = dynamic && this._selectedKey === key
       ? null
       : key;
     this._render();
@@ -1501,11 +1528,39 @@ class UnifiDeviceCard extends HTMLElement {
       .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
   }
 
+  _upsOutletState(outlet) {
+    if (this._ctx?.fake_device === true) {
+      return this._fakeOutletStates.get(outlet.index) || outlet.preview_state || "off";
+    }
+    const state = this._hass?.states?.[outlet?.entity_id]?.state;
+    return state === "on" || state === "off" ? state : null;
+  }
+
+  _upsOutletPower(outlet) {
+    if (this._ctx?.fake_device === true) {
+      return `${this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0} W`;
+    }
+    return outlet.power_entity ? formatState(this._hass, outlet.power_entity) : null;
+  }
+
+  async _toggleUpsOutlet(index) {
+    const outlet = this._ctx?.outlet_entities?.find((item) => item.index === index);
+    if (!outlet) return;
+    const state = this._upsOutletState(outlet);
+    if (this._ctx?.fake_device === true) {
+      this._fakeOutletStates.set(index, state === "on" ? "off" : "on");
+      this._render();
+    } else if (outlet.entity_id && state) {
+      await this._toggleEntity(outlet.entity_id);
+    }
+  }
+
   _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
-    const enabled = outlet.entity_id ? isOn(this._hass, outlet.entity_id) : false;
-    const state = outlet.entity_id ? (enabled ? this._t("state_on") : this._t("state_off")) : "";
+    const rawState = this._upsOutletState(outlet);
+    const enabled = rawState === "on";
+    const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "—";
     const key = `outlet:${outlet.index}`;
-    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" title="${this._escapeAttr([outlet.label, state].filter(Boolean).join(" · "))}">
+    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" aria-pressed="${selectedKey === key}" title="${this._escapeAttr([outlet.label, state, this._upsOutletPower(outlet)].filter(Boolean).join(" · "))}">
       <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
       <span class="ups-outlet-led"></span>
       <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
@@ -1513,20 +1568,27 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderUpsOutletDetail(outlet) {
-    const enabled = outlet?.entity_id ? isOn(this._hass, outlet.entity_id) : false;
-    const state = outlet?.entity_id ? (enabled ? this._t("state_on") : this._t("state_off")) : "—";
+    const rawState = this._upsOutletState(outlet);
+    const enabled = rawState === "on";
+    const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "—";
+    const power = this._upsOutletPower(outlet);
     return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
       <div class="detail-grid">
         <div class="detail-item">
           <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_status"))}</div>
-          <div class="detail-value ${enabled ? "online" : "offline"}">${this._escapeHtml(state)}</div>
+          <div class="detail-value ${rawState ? (enabled ? "online" : "offline") : ""}">${this._escapeHtml(state)}</div>
         </div>
+        ${power != null ? `<div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_power"))}</div>
+          <div class="detail-value">${this._escapeHtml(power)}</div>
+        </div>` : ""}
       </div>
-      ${outlet?.entity_id ? `<div class="actions">
-        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-entity="${this._escapeAttr(outlet.entity_id)}">
+      ${outlet?.entity_id || this._ctx?.fake_device === true ? `<div class="actions">
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-outlet-index="${outlet.index}" ${rawState ? "" : "disabled"}>
           ${this._escapeHtml(this._t(enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
         </button>
-      </div>` : ""}`;
+      </div>` : ""}
+      ${this._ctx?.fake_device === true ? `<div class="muted">${this._escapeHtml(this._t("ups_outlet_preview"))}</div>` : ""}`;
   }
 
   _renderUpsCard(ctx) {
@@ -1538,14 +1600,15 @@ class UnifiDeviceCard extends HTMLElement {
     const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
     const showFront = upsLayout !== "back";
     const showBack = upsLayout !== "front";
+    const showBackPanel = this._config?.show_back_panel !== false;
     const outlets = ctx?.outlet_entities || [];
     const { specials, numbered } = this._buildSlotData(ctx);
     const networkPorts = [...specials, ...numbered];
     const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
-      || (this._config?.dynamic_port_details === true || this._selectedKey ? null : outlets[0])
+      || (isDynamicOutletDetailsEnabled(this._config) || this._selectedKey ? null : outlets[0])
       || null;
     const selectedPort = networkPorts.find((port) => port.key === this._selectedKey)
-      || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0])
+      || (this._config?.dynamic_port_details === true || outlets.length || this._selectedKey ? null : networkPorts[0])
       || null;
     const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
@@ -1582,7 +1645,7 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
           `}
         </div>` : ""}
-        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}">
+        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}${showBackPanel ? "" : " no-panel-bg"}">
           <div class="panel-label">${this._escapeHtml(this._t("back_panel"))}</div>
           ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : ""}
           ${networkPorts.length ? `<div class="ups-network-ports">${networkPorts.map((port) => this._renderPortButton(port, selectedPort?.key, portClientIndex)).join("")}</div>` : ""}
@@ -1602,8 +1665,8 @@ class UnifiDeviceCard extends HTMLElement {
     this._attachPortActionHandlers(ctx);
     this.shadowRoot.querySelectorAll("[data-outlet-key]")
       .forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
-    this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-entity]")
-      .forEach((button) => button.addEventListener("click", () => this._toggleEntity(button.dataset.entity)));
+    this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-outlet-index]")
+      .forEach((button) => button.addEventListener("click", () => this._toggleUpsOutlet(Number(button.dataset.outletIndex))));
   }
 
   /**
@@ -2108,6 +2171,20 @@ class UnifiDeviceCard extends HTMLElement {
         background: linear-gradient(145deg, #fafbfc, #e6e8ea);
         border-top-color: #fff;
         border-bottom-color: #c9cdd0;
+      }
+
+      .ups-connection-panel.no-panel-bg {
+        background: var(--udc-chrome-bg, transparent);
+        border-top-color: transparent;
+        border-bottom-color: transparent;
+      }
+
+      .ups-connection-panel.no-panel-bg .panel-label {
+        color: var(--secondary-text-color);
+      }
+
+      .ups-connection-panel.no-panel-bg .ups-outlet-port {
+        color: var(--primary-text-color);
       }
 
       .ups-connection-panel .panel-label {

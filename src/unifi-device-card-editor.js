@@ -5,6 +5,7 @@ import {
   getUnavailableHeaderTelemetryKeys,
   getRelevantEntityWarningsForDevice,
   isApPortPanelAvailable,
+  isDynamicOutletDetailsEnabled,
   mergePortsWithLayout,
   getUnifiDevices,
   normalizeUpsLayout,
@@ -543,7 +544,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.show_back_panel !== false) delete next.show_back_panel;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (next.dynamic_outlet_details !== true &&
+        !(next.dynamic_outlet_details === false && next.dynamic_port_details === true)) {
+      delete next.dynamic_outlet_details;
+    }
     if (!next.default_uplink_port) delete next.default_uplink_port;
     if (next.port_led_blink !== true) {
       delete next.port_led_blink;
@@ -763,6 +769,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _onDynamicPortDetailsChange(ev) {
     this._emitConfig({ dynamic_port_details: ev.target.checked ? true : undefined });
+  }
+
+  _onShowBackPanelChange(ev) {
+    this._emitConfig({ show_back_panel: ev.target.checked ? undefined : false });
+  }
+
+  _onDynamicOutletDetailsChange(ev) {
+    this._emitConfig({ dynamic_outlet_details: ev.target.checked });
   }
 
   _onPortLedBlinkChange(ev) {
@@ -1375,7 +1389,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showTelemetry = this._config?.show_telemetry !== false;
     const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
     const showPanel = this._config?.show_panel !== false;
+    const showBackPanel = this._config?.show_back_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const dynamicOutletDetails = isDynamicOutletDetailsEnabled(this._config);
     const defaultUplinkPort = this._config?.default_uplink_port || "";
     const portLedBlink = this._config?.port_led_blink === true;
     const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
@@ -1497,6 +1513,22 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <option value="back" ${upsLayout === "back" ? "selected" : ""}>${escapeHtml(this._t("back_panel"))}</option>
           </select>
           <div class="hint">${escapeHtml(this._t("editor_ups_layout_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_back_panel_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_back_panel" type="checkbox" ${showBackPanel ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_back_panel_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_back_panel_toggle_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_dynamic_outlet_details_label"))}</label>
+          <label class="checkbox-row">
+            <input id="dynamic_outlet_details" type="checkbox" ${dynamicOutletDetails ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_dynamic_outlet_details_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_dynamic_outlet_details_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -1743,8 +1775,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")
       ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
+    this.shadowRoot.getElementById("show_back_panel")
+      ?.addEventListener("change", (ev) => this._onShowBackPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")
       ?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("dynamic_outlet_details")
+      ?.addEventListener("change", (ev) => this._onDynamicOutletDetailsChange(ev));
     this.shadowRoot.getElementById("default_uplink_port")
       ?.addEventListener("change", (ev) => this._emitConfig({
         default_uplink_port: ev.target.value || undefined,

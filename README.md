@@ -82,6 +82,7 @@ If you like this project and want to support my work, you can donate via PayPal 
 - **Access Point card mode** — AP devices render a dedicated AP panel with online status, uptime, clients, and reboot action (if available)
 - **Dedicated AP designs** — standard APs stay round, Wall/In-Wall APs and the U6 Extender use a scalable rectangular HTML design, U7 Outdoor models use their matching rounded-rectangle design with a lower status LED, and UniFi 5G Backup uses its own HTML device display
 - **Combined In-Wall AP view** — compatible In-Wall models can show their integrated switch ports below the normal AP details, with an editor toggle to return to AP-only mode
+- **UPS outlets** — selectable outlets with status, per-outlet power when available, and a separate on/off button; optional back-panel background and dynamic outlet details, including simulated controls in Fake Device previews
 - **Built-in UI editor** — full card configuration without YAML
 - **Multi-language support** — translations available for English, German, Dutch, French, Spanish, Italian, Swedish, Danish, Norwegian, Finnish, Polish, and Czech
 - **Supports renamed entities** — port telemetry still works even if entities were renamed in Home Assistant
@@ -326,6 +327,22 @@ wan_port: auto                # optional (gateway only)
 wan2_port: none               # optional (gateway only)
 ```
 
+### UPS outlets
+
+```yaml
+type: custom:unifi-device-card
+device_id: YOUR_UPS_DEVICE_ID
+ups_layout: back
+show_back_panel: false
+dynamic_outlet_details: true
+```
+
+Click an outlet to select it, then use the separate **Turn on/off outlet** button in its details. The card uses the UniFi Network integration's `switch` entity for relay control and the `outlet_power` sensor for that outlet's power reading. A missing or unavailable switch cannot be controlled; metering-only outlets can still show their power. Enable the corresponding entities in Home Assistant if they are disabled. Hidden enabled outlet entities remain available to the card.
+
+The [UniFi Network integration](https://github.com/home-assistant/core/blob/dev/homeassistant/components/unifi/sensor.py) currently exposes **power in watts per metered outlet**. [aiounifi v97](https://github.com/Kane610/aiounifi/blob/v97/aiounifi/models/outlet.py) also provides outlet voltage, current, and power factor when reported by the device, but the integration currently has no individual outlet sensors for those values. Whole-device UPS readings remain separate. Switching and metering depend on the outlet capabilities reported by the device.
+
+In **Fake Device** mode, outlet buttons change local preview states and example power readings. The details label these values as simulated, and preview controls do not call Home Assistant services.
+
 ### Configuration options
 
 | Key | Type | Default | Description |
@@ -355,6 +372,9 @@ wan2_port: none               # optional (gateway only)
 | `button_border_color` | string | default/theme | Optional custom secondary button border color. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
+| `ups_layout` | string | `combined` | UPS only: `combined` for front and back, `front` for the front with telemetry, or `back` for outlets and network ports with telemetry. |
+| `show_back_panel` | boolean | `true` | UPS only: show the back-panel background. Set `false` to hide the background while keeping outlets and network ports visible. |
+| `dynamic_outlet_details` | boolean | `false` | UPS only: start without selected outlet details; click an outlet to show status, available power telemetry, and controls, then click it again to hide the details. Independent of RJ45 port details. If unset, existing `dynamic_port_details` YAML settings remain a fallback for UPS outlets. |
 | `dynamic_port_details` | boolean | `false` | Switch/Gateway and compatible integrated ports: starts without a selected port, shows details after a port click, and hides them when that port is clicked again. |
 | `default_uplink_port` | string | unset | Switch/Gateway and compatible In-Wall AP port sections: initial detail port behavior. Leave unset for the existing first-port behavior, use `auto` to prefer an active selectable port, or select a port key in the editor. Switches and gateways restrict choices to designated uplinks. |
 | `port_led_blink` | boolean | `false` | Enables a purely visual blink animation for connected RJ45/SFP link LEDs without changing link detection, telemetry, or port controls. |

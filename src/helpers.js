@@ -13,7 +13,7 @@ import {
 // capabilities => per-device feature matrix
 // classify => device type decision
 // unique-id => stable UniFi unique_id parsing helpers
-import { buildNormalizedDeviceIdentity, extractFirstMac, findDeviceByMac } from "./identity.js";
+import { buildNormalizedDeviceIdentity, extractFirstMac, findDeviceByMac, normalizeMac } from "./identity.js";
 import { buildDeviceCapabilities } from "./capabilities.js";
 import { classifyDeviceType } from "./classify.js";
 import { parseUnifiDeviceUniqueId, parseUnifiOutletUniqueId, parseUnifiPortUniqueId } from "./unique-id.js";
@@ -41,6 +41,13 @@ export function normalizePositivePortNumbers(value) {
 export function normalizeUpsLayout(value) {
   const layout = lower(value);
   return ["combined", "front", "back"].includes(layout) ? layout : "combined";
+}
+
+export function isDynamicOutletDetailsEnabled(config) {
+  // Preserve the existing YAML option unless the dedicated UPS option is set.
+  return typeof config?.dynamic_outlet_details === "boolean"
+    ? config.dynamic_outlet_details
+    : config?.dynamic_port_details === true;
 }
 
 export function normalizePortNames(value) {
@@ -251,19 +258,31 @@ export function isUpsTower(device) {
 }
 
 export function getDeviceOutletEntities(entities, identity = null) {
-  return (entities || [])
-    .map((entity) => ({ entity, parsed: parseUnifiOutletUniqueId(entity?.unique_id) }))
-    .filter(({ entity, parsed }) =>
-      parsed &&
-      lower(entity?.entity_id).startsWith("switch.") &&
-      (!identity?.primary_mac || parsed.mac === identity.primary_mac)
-    )
-    .map(({ entity, parsed }) => ({
+  const outlets = new Map();
+  const deviceMac = normalizeMac(identity?.primary_mac);
+  for (const entity of entities || []) {
+    if (entity?.disabled_by) continue;
+    const parsed = parseUnifiOutletUniqueId(entity?.unique_id);
+    if (!parsed || (deviceMac && parsed.mac !== deviceMac)) continue;
+    const control = parsed.feature === "outlet_control" && lower(entity?.entity_id).startsWith("switch.");
+    const power = parsed.feature === "outlet_power" && lower(entity?.entity_id).startsWith("sensor.");
+    if (!control && !power) continue;
+
+    const outlet = outlets.get(parsed.outlet) || {
       index: parsed.outlet,
-      entity_id: entity.entity_id,
-      label: normalize(entity.name || entity.original_name) || `Outlet ${parsed.outlet}`,
-    }))
-    .sort((left, right) => left.index - right.index);
+      entity_id: null,
+      label: `Outlet ${parsed.outlet}`,
+    };
+    if (control) {
+      outlet.entity_id = entity.entity_id;
+      outlet.label = normalize(entity.name || entity.original_name) || outlet.label;
+    } else {
+      outlet.power_entity = entity.entity_id;
+      if (!outlet.entity_id) outlet.label = normalize(entity.translation_placeholders?.outlet_name) || outlet.label;
+    }
+    outlets.set(parsed.outlet, outlet);
+  }
+  return Array.from(outlets.values()).sort((left, right) => left.index - right.index);
 }
 
 // ─────────────────────────────────────────────────
@@ -2312,6 +2331,8 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
         index: index + 1,
         entity_id: null,
         label: `Outlet ${index + 1}`,
+        preview_state: index < 4 ? "on" : "off",
+        preview_power: [120, 85, 45, 30][index] || 0,
       })),
       fake_device: true,
     };
@@ -2432,7 +2453,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     ap_uplink: apUplink,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
-    outlet_entities: getDeviceOutletEntities(entities, identity),
+    outlet_entities: getDeviceOutletEntities(telemetryEntities, identity),
     numberedPorts,
   };
 }
