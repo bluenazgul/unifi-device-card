@@ -1,9 +1,15 @@
 # Changelog
 
-## [v0.8.10]
+## [v1.0.0]
+
+### 💥 Breaking Changes
+
+- **Minimum Home Assistant Core version: 2026.9.0.** This requirement is declared in `hacs.json`. Upgrade Home Assistant before updating the card, or keep a compatible **v0.8.x** card release on older Home Assistant versions.
+- Remove the deprecated device-registry `config_entries` fallback and identity field. Device ownership now uses `config_entry_id` exclusively, ahead of the scheduled Home Assistant Core **2027.8** removal. Existing card YAML and device selections remain compatible.
 
 ### ✨ Improvements
 
+- Reorganize the README with focused YAML examples, a grouped configuration reference, and clearer option defaults and precedence.
 - Add SmartPower Strip (`UP6` / `USP-Strip`) and PDU Pro (`USPPDUP` / `USP-PDU-Pro`) support with an outlet overview, Console names, USB relays, available AC telemetry, and the existing UPS outlet control/editor options.
 - Add SmartPower outlet diagnostics without requiring metering on Strip/USB outlets or UPS battery sensors.
 - Add UniFi UPS Tower (`USWDA24`) detection with a dedicated white tower rendering.
