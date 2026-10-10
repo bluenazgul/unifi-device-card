@@ -9,6 +9,7 @@ import {
   hasUpsFrontDisplay,
   isUpsTower,
   normalizeUpsLayout,
+  isDynamicOutletDetailsEnabled,
 } from "../src/helpers.js";
 import { getTranslations } from "../src/translations.js";
 import { parseUnifiDeviceUniqueId, parseUnifiOutletUniqueId } from "../src/unique-id.js";
@@ -115,6 +116,8 @@ assert.deepEqual(fakeUpsTowerContext?.outlet_entities?.[0], {
   index: 1,
   entity_id: null,
   label: "Outlet 1",
+  preview_state: "on",
+  preview_power: 120,
 });
 assert.equal(fakeUpsProContext?.numberedPorts?.length, 1);
 assert.equal(fakeUpsProContext?.outlet_entities?.length, 8);
@@ -137,6 +140,70 @@ assert.deepEqual(
     { index: 10, entity_id: "switch.ups_tower_outlet_10", label: "Outlet 10" },
   ]
 );
+
+const powerOnlyEntity = {
+  entity_id: "sensor.rack_load",
+  unique_id: "outlet_power-aa:bb:cc:dd:ee:ff_3",
+  translation_placeholders: { outlet_name: "Storage" },
+};
+const hiddenPowerEntity = {
+  entity_id: "sensor.renamed_server_load",
+  unique_id: "outlet_power-aabbccddeeff_2",
+  hidden_by: "user",
+};
+assert.deepEqual(parseUnifiOutletUniqueId(hiddenPowerEntity.unique_id), {
+  feature: "outlet_power", mac: "aa:bb:cc:dd:ee:ff", outlet: 2,
+});
+for (const id of ["outlet_power-aabbccddeeff_0", "outlet_power-invalid_1", "outlet_voltage-aabbccddeeff_1"]) {
+  assert.equal(parseUnifiOutletUniqueId(id), null);
+}
+const mixedOutlets = getDeviceOutletEntities([
+  powerOnlyEntity,
+  hiddenPowerEntity,
+  ...outletEntities,
+  { entity_id: "sensor.other_device", unique_id: "outlet_power-11:22:33:44:55:66_2" },
+  { entity_id: "sensor.disabled", unique_id: "outlet_power-aa:bb:cc:dd:ee:ff_1", disabled_by: "user" },
+  { entity_id: "switch.disabled", unique_id: "outlet-aa:bb:cc:dd:ee:ff_4", disabled_by: "integration" },
+  { entity_id: "switch.wrong_domain", unique_id: "outlet_power-aa:bb:cc:dd:ee:ff_5" },
+  { entity_id: "sensor.wrong_domain", unique_id: "outlet-aa:bb:cc:dd:ee:ff_6" },
+], { primary_mac: "AABBCCDDEEFF" });
+assert.deepEqual(mixedOutlets, [
+  { index: 1, entity_id: "switch.ups_tower_outlet_1", label: "Outlet 1" },
+  { index: 2, entity_id: "switch.ups_tower_outlet_2", label: "Outlet 2", power_entity: hiddenPowerEntity.entity_id },
+  { index: 3, entity_id: null, label: "Storage", power_entity: powerOnlyEntity.entity_id },
+  { index: 10, entity_id: "switch.ups_tower_outlet_10", label: "Outlet 10" },
+]);
+assert.deepEqual(
+  getDeviceOutletEntities([...outletEntities, hiddenPowerEntity], { primary_mac: "aa:bb:cc:dd:ee:ff" })[1],
+  mixedOutlets[1],
+  "switch and sensor discovery order must not change outlet mapping"
+);
+
+assert.equal(isDynamicOutletDetailsEnabled({}), false);
+assert.equal(isDynamicOutletDetailsEnabled({ dynamic_outlet_details: true }), true);
+assert.equal(isDynamicOutletDetailsEnabled({ dynamic_port_details: true }), true);
+assert.equal(isDynamicOutletDetailsEnabled({ dynamic_port_details: true, dynamic_outlet_details: false }), false);
+
+const registeredDeviceId = "registered-ups";
+const registryEntities = [...outletEntities, hiddenPowerEntity, powerOnlyEntity].map((entity) => ({
+  ...entity, device_id: registeredDeviceId,
+}));
+const registeredContext = await getDeviceContext({
+  states: {},
+  async callWS(message) {
+    if (message.type === "config/device_registry/list") return [{
+      id: registeredDeviceId, model_id: "USWDA24", manufacturer: "Ubiquiti",
+      connections: [["mac", "aa:bb:cc:dd:ee:ff"]],
+    }];
+    if (message.type === "config/entity_registry/list") return registryEntities;
+    if (message.type === "config/config_entries") return [];
+    throw new Error(`Unexpected WS call: ${message.type}`);
+  },
+}, registeredDeviceId);
+assert.equal(registeredContext.type, "ups");
+assert.equal(registeredContext.outlet_entities[1].power_entity, hiddenPowerEntity.entity_id,
+  "hidden enabled outlet telemetry must reach the real device context");
+assert.equal(registeredContext.outlet_entities[2].label, "Storage");
 
 const completeProContext = {
   type: "ups",
@@ -171,6 +238,14 @@ const upsTranslationKeys = [
   "ups_outlet_status",
   "ups_outlet_turn_on",
   "ups_outlet_turn_off",
+  "ups_outlet_power",
+  "ups_outlet_preview",
+  "editor_back_panel_toggle_label",
+  "editor_back_panel_toggle_text",
+  "editor_back_panel_toggle_hint",
+  "editor_dynamic_outlet_details_label",
+  "editor_dynamic_outlet_details_text",
+  "editor_dynamic_outlet_details_hint",
   "editor_ups_layout_label",
   "editor_ups_layout_combined",
   "editor_ups_layout_hint",

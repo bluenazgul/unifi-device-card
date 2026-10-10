@@ -5,11 +5,13 @@ import {
   getUnavailableHeaderTelemetryKeys,
   getRelevantEntityWarningsForDevice,
   isApPortPanelAvailable,
+  isDynamicOutletDetailsEnabled,
   mergePortsWithLayout,
   getUnifiDevices,
   normalizeUpsLayout,
 } from "./helpers.js";
 import { t } from "./translations.js";
+import { getUpsEntityDiagnostics, normalizeDefaultOutlet } from "./ups.js";
 
 function slotPortType(slot) {
   const key = String(slot.key || "").toLowerCase();
@@ -356,6 +358,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
         this._loadDeviceCtx(deviceId);
       }
     }
+    if (this._deviceCtx?.type === "ups") this._patchWarning();
   }
 
   _t(key) {
@@ -543,7 +546,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.show_back_panel !== false) delete next.show_back_panel;
+    if (next.outlet_power_badges !== true) delete next.outlet_power_badges;
+    if (next.confirm_outlet_off !== true) delete next.confirm_outlet_off;
+    const defaultOutlet = normalizeDefaultOutlet(next.default_outlet);
+    if (defaultOutlet) next.default_outlet = defaultOutlet;
+    else delete next.default_outlet;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (next.dynamic_outlet_details !== true &&
+        !(next.dynamic_outlet_details === false && next.dynamic_port_details === true)) {
+      delete next.dynamic_outlet_details;
+    }
     if (!next.default_uplink_port) delete next.default_uplink_port;
     if (next.port_led_blink !== true) {
       delete next.port_led_blink;
@@ -765,6 +778,14 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._emitConfig({ dynamic_port_details: ev.target.checked ? true : undefined });
   }
 
+  _onShowBackPanelChange(ev) {
+    this._emitConfig({ show_back_panel: ev.target.checked ? undefined : false });
+  }
+
+  _onDynamicOutletDetailsChange(ev) {
+    this._emitConfig({ dynamic_outlet_details: ev.target.checked });
+  }
+
   _onPortLedBlinkChange(ev) {
     const enabled = ev.target.checked;
     const hasSharedSpeed = this._config?.port_led_blink_speed != null;
@@ -928,7 +949,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
 
   _unavailableTelemetryItems() {
-    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
+    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading || this._deviceCtx.type === "ups") return [];
 
     return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
@@ -948,6 +969,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
   }
 
   _warningHTML() {
+    if (this._deviceCtx?.type === "ups") return "";
     if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
@@ -983,6 +1005,23 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
       </div>
     `;
+  }
+
+  _upsDiagnosticsHTML() {
+    if (this._deviceCtxLoading) return "";
+    const rows = getUpsEntityDiagnostics(this._deviceCtx, this._hass, this._config?.show_telemetry !== false);
+    if (!rows.length) return "";
+    return `<div class="warn ups-diagnostics">
+      <div class="warn-title">${escapeHtml(this._t("ups_diagnostics"))}</div>
+      ${["disabled", "unavailable", "not_exposed"].map((status) => {
+        const items = rows.filter((row) => row.status === status);
+        if (!items.length) return "";
+        return `<div class="warn-status">${escapeHtml(this._t(`ups_diagnostics_${status}`))}</div>
+          <ul>${items.map((row) => `<li>${escapeHtml(this._t(row.key))}${row.label ? ` · ${escapeHtml(row.label)}` : ""}</li>`).join("")}</ul>
+          ${status === "not_exposed" ? `<div class="hint">${escapeHtml(this._t("ups_diagnostics_not_exposed_hint"))}</div>` : ""}`;
+      }).join("")}
+      <div class="warn-path">${escapeHtml(this._t("warning_ha_path"))}</div>
+    </div>`;
   }
 
   _gatewayControlsHTML(showControls = true) {
@@ -1375,7 +1414,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const showTelemetry = this._config?.show_telemetry !== false;
     const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
     const showPanel = this._config?.show_panel !== false;
+    const showBackPanel = this._config?.show_back_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const dynamicOutletDetails = isDynamicOutletDetailsEnabled(this._config);
     const defaultUplinkPort = this._config?.default_uplink_port || "";
     const portLedBlink = this._config?.port_led_blink === true;
     const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
@@ -1481,12 +1522,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
 
         <div class="field">
-          <label>${escapeHtml(this._t("editor_telemetry_toggle_label"))}</label>
+          <label>${escapeHtml(this._t(isUpsDevice ? "ups_telemetry" : "editor_telemetry_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
-            <span>${escapeHtml(this._t("editor_telemetry_toggle_text"))}</span>
+            <span>${escapeHtml(this._t(isUpsDevice ? "editor_ups_telemetry_text" : "editor_telemetry_toggle_text"))}</span>
           </label>
-          <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
+          <div class="hint">${escapeHtml(this._t(isUpsDevice ? "editor_ups_telemetry_hint" : "editor_telemetry_toggle_hint"))}</div>
         </div>
 
         ${isUpsDevice ? `<div class="field">
@@ -1497,6 +1538,43 @@ class UnifiDeviceCardEditor extends HTMLElement {
             <option value="back" ${upsLayout === "back" ? "selected" : ""}>${escapeHtml(this._t("back_panel"))}</option>
           </select>
           <div class="hint">${escapeHtml(this._t("editor_ups_layout_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_back_panel_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_back_panel" type="checkbox" ${showBackPanel ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_back_panel_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_back_panel_toggle_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_dynamic_outlet_details_label"))}</label>
+          <label class="checkbox-row">
+            <input id="dynamic_outlet_details" type="checkbox" ${dynamicOutletDetails ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_dynamic_outlet_details_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_dynamic_outlet_details_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_default_outlet_label"))}</label>
+          <select id="default_outlet" ${dynamicOutletDetails ? "disabled" : ""}>
+            <option value="">${escapeHtml(this._t("editor_default_outlet_first"))}</option>
+            ${(this._deviceCtx?.outlet_entities || []).map((outlet) => `<option value="${outlet.index}" ${normalizeDefaultOutlet(this._config?.default_outlet) === outlet.index ? "selected" : ""}>${escapeHtml(outlet.label)}</option>`).join("")}
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_default_outlet_hint"))}</div>
+        </div>
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="outlet_power_badges" type="checkbox" ${this._config?.outlet_power_badges === true ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_outlet_power_badges_text"))}</span>
+          </label>
+        </div>
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="confirm_outlet_off" type="checkbox" ${this._config?.confirm_outlet_off === true ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_confirm_outlet_off_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_confirm_outlet_off_hint"))}</div>
         </div>` : ""}
 
         ${isSwitchOrGateway ? `
@@ -1661,7 +1739,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
         </div>
 
-        <div id="warning_slot">${this._warningHTML()}${this._unavailableTelemetryHTML()}</div>
+        <div id="warning_slot">${this._warningHTML()}${this._unavailableTelemetryHTML()}${this._upsDiagnosticsHTML()}</div>
         </div>
 
         <div class="color-step ${colorStepOpen ? "" : "hidden"}">
@@ -1743,8 +1821,18 @@ class UnifiDeviceCardEditor extends HTMLElement {
       ?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")
       ?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
+    this.shadowRoot.getElementById("show_back_panel")
+      ?.addEventListener("change", (ev) => this._onShowBackPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")
       ?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("dynamic_outlet_details")
+      ?.addEventListener("change", (ev) => this._onDynamicOutletDetailsChange(ev));
+    this.shadowRoot.getElementById("default_outlet")
+      ?.addEventListener("change", (ev) => this._emitConfig({ default_outlet: ev.target.value || undefined }));
+    this.shadowRoot.getElementById("outlet_power_badges")
+      ?.addEventListener("change", (ev) => this._emitConfig({ outlet_power_badges: ev.target.checked ? true : undefined }));
+    this.shadowRoot.getElementById("confirm_outlet_off")
+      ?.addEventListener("change", (ev) => this._emitConfig({ confirm_outlet_off: ev.target.checked ? true : undefined }));
     this.shadowRoot.getElementById("default_uplink_port")
       ?.addEventListener("change", (ev) => this._emitConfig({
         default_uplink_port: ev.target.value || undefined,
@@ -1847,7 +1935,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (!this._rendered || !this.shadowRoot) return;
     const slot = this.shadowRoot.getElementById("warning_slot");
     if (!slot) return;
-    slot.innerHTML = `${this._warningHTML()}${this._unavailableTelemetryHTML()}`;
+    slot.innerHTML = `${this._warningHTML()}${this._unavailableTelemetryHTML()}${this._upsDiagnosticsHTML()}`;
   }
 
   _patchFields() {
