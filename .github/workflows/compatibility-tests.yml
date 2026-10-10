@@ -25,8 +25,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Run child-device compatibility test
-        run: node tests/child-device.mjs
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Run model-alias compatibility test
-        run: node tests/model-aliases.mjs
+      - name: Run all compatibility and regression tests
+        run: npm test
+
+      - name: Validate bundle build
+        run: npm run build

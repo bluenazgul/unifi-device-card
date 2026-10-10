@@ -7,13 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version, e.g. v0.1.0"
+        description: "Release version, e.g. v1.0.0"
         required: true
         type: string
 permissions:
   contents: write
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  RELEASE_BRANCH: ${{ github.event.repository.default_branch }}
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -22,6 +23,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ env.RELEASE_BRANCH }}
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -34,9 +36,11 @@ jobs:
             npm install
           fi
       - name: Validate and normalize version format
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          # Accept with or without leading "v"  (e.g. "0.1.0" or "v0.1.0")
-          RAW="${{ inputs.version }}"
+          # Accept with or without leading "v" (e.g. "1.0.0" or "v1.0.0")
+          RAW="$INPUT_VERSION"
           VERSION="${RAW#v}"           # strip leading v if present
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version must look like 1.2.3 or v1.2.3 (got: $RAW)"
@@ -47,37 +51,22 @@ jobs:
       - name: Check if tag already exists
         run: |
           git fetch --tags
-          if git rev-parse "${{ env.VERSION }}" >/dev/null 2>&1; then
+          if git rev-parse --verify --quiet "refs/tags/${VERSION}" >/dev/null; then
             echo "Tag ${{ env.VERSION }} already exists."
             exit 1
           fi
       - name: Extract changelog for this version
         id: changelog
         run: |
-          VERSION_BARE="${VERSION#v}"   # e.g. "1.2.3" without leading v
-
-          # Match a heading like:  ## [1.2.3]  or  ## [v1.2.3]  or  ## 1.2.3  or  ## v1.2.3
-          # Capture everything until the next ## heading (or end of file).
-          NOTES=$(awk \
-            -v ver="$VERSION_BARE" \
-            'BEGIN { found=0 }
-             /^## \[?v?/ {
-               if (found) exit
-               if (index($0, ver)) { found=1; next }
-             }
-             found { print }' \
-            CHANGELOG.md)
-
-          # Fall back gracefully if the version block is missing
-          if [ -z "$NOTES" ]; then
-            NOTES="See CHANGELOG.md for details."
-          fi
-
-          # Write to a temp file to avoid quoting issues with multiline strings
-          echo "$NOTES" > /tmp/release_notes.md
-          echo "notes_file=/tmp/release_notes.md" >> $GITHUB_OUTPUT
+          NOTES_FILE="${RUNNER_TEMP}/release_notes.md"
+          node scripts/release-notes.mjs "$VERSION" "$NOTES_FILE"
+          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ env.VERSION }}
+      - name: Run tests and lint before release
+        run: |
+          npm test
+          npm run lint
       - name: Build dist for release
         run: npm run build
         env:
@@ -91,7 +80,7 @@ jobs:
           # regular dependency-update commits, not in release commits.
           git add dist/unifi-device-card.js
           git diff --cached --quiet || git commit -m "release: prepare ${{ env.VERSION }} [skip ci]"
-          git push
+          git push origin "${RELEASE_BRANCH}"
       - name: Create Git tag
         run: |
           git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
@@ -102,5 +91,5 @@ jobs:
           tag_name: ${{ env.VERSION }}
           body_path: ${{ steps.changelog.outputs.notes_file }}
           # HACS downloads this asset when users install / update the plugin.
-          # The filename must match hacs.json → "filename": "unifi-device-card.js"
+          # HACS expects the compiled JS bundle as the release asset.
           files: dist/unifi-device-card.js
