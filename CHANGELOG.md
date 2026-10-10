@@ -9,6 +9,7 @@
 
 ### ✨ Improvements
 
+- Reorganize the README with focused YAML examples, a grouped configuration reference, and clearer option defaults and precedence.
 - Add SmartPower Strip (`UP6` / `USP-Strip`) and PDU Pro (`USPPDUP` / `USP-PDU-Pro`) support with an outlet overview, Console names, USB relays, available AC telemetry, and the existing UPS outlet control/editor options.
 - Add SmartPower outlet diagnostics without requiring metering on Strip/USB outlets or UPS battery sensors.
 - Add UniFi UPS Tower (`USWDA24`) detection with a dedicated white tower rendering.
