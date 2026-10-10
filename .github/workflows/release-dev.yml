@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Dev release version, e.g. 0.3.0"
+        description: "Base version, e.g. 1.0.0 (creates v1.0.0-dev)"
         required: true
         type: string
 
@@ -48,11 +48,13 @@ jobs:
           fi
 
       - name: Validate and normalize dev version format
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          RAW="${{ inputs.version }}"
+          RAW="${INPUT_VERSION#v}"
 
           if ! [[ "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9-]*)$ ]]; then
-            echo "Version must look like 0.2.9, 0.2.91 or 0.2.91a (got: $RAW)"
+            echo "Version must look like 1.0.0 or v1.0.0 (got: $RAW)"
             exit 1
           fi
 
@@ -62,7 +64,7 @@ jobs:
       - name: Check if tag already exists
         run: |
           git fetch --tags
-          if git rev-parse "${{ env.VERSION }}" >/dev/null 2>&1; then
+          if git rev-parse --verify --quiet "refs/tags/${VERSION}" >/dev/null; then
             echo "Tag ${{ env.VERSION }} already exists."
             exit 1
           fi
@@ -70,27 +72,17 @@ jobs:
       - name: Extract changelog for base version
         id: changelog
         run: |
-          NOTES=$(awk -v ver="$BASE_VERSION" '
-            BEGIN { found=0 }
-            /^##[[:space:]]/ {
-              if (found) exit
-              if (index($0, ver)) {
-                found=1
-                next
-              }
-            }
-            found { print }
-          ' CHANGELOG.md)
-
-          if [ -z "$NOTES" ]; then
-            NOTES="Dev pre-release for ${VERSION}. See CHANGELOG.md for details."
-          fi
-
-          echo "$NOTES" > /tmp/release_notes.md
-          echo "notes_file=/tmp/release_notes.md" >> "$GITHUB_OUTPUT"
+          NOTES_FILE="${RUNNER_TEMP}/release_notes.md"
+          node scripts/release-notes.mjs "$BASE_VERSION" "$NOTES_FILE"
+          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
         env:
           BASE_VERSION: ${{ env.BASE_VERSION }}
           VERSION: ${{ env.VERSION }}
+
+      - name: Run tests and lint before release
+        run: |
+          npm test
+          npm run lint
 
       - name: Build dist for dev release
         run: npm run build

@@ -39,6 +39,10 @@ const DEVICE_FEATURE_PREFIXES = {
   ups_input_voltage: "ups_input_voltage",
   ups_bypass_voltage: "ups_bypass_voltage",
   ups_output_power_factor: "ups_output_power_factor",
+  ac_power_budget: "ac_power_budget",
+  // Home Assistant's current unique ID intentionally contains this spelling.
+  ac_power_conumption: "ac_power_consumption",
+  ac_power_consumption: "ac_power_consumption",
   rx: "client_rx",
   tx: "client_tx",
   wired_speed: "client_link_speed",
@@ -73,6 +77,20 @@ export function parseUnifiDeviceUniqueId(uniqueId) {
   if (!feature || !mac) return null;
 
   return { feature, mac };
+}
+
+export function parseUnifiOutletUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+
+  const match = raw.match(/^(outlet|outlet_power)-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+
+  const [, prefix, macRaw, outletRaw] = match;
+  const mac = normalizeMac(macRaw);
+  const outlet = Number.parseInt(outletRaw, 10);
+  if (!mac || !Number.isInteger(outlet) || outlet < 1) return null;
+  return { feature: prefix === "outlet_power" ? "outlet_power" : "outlet_control", mac, outlet };
 }
 
 export function parseUnifiObjectUniqueId(uniqueId) {

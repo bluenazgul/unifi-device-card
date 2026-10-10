@@ -1,5 +1,51 @@
 # Changelog
 
+## [v1.0.0]
+
+### 💥 Breaking Changes
+
+- **Minimum Home Assistant Core version: 2026.9.0.** This requirement is declared in `hacs.json`. Upgrade Home Assistant before updating the card, or keep a compatible **v0.8.x** card release on older Home Assistant versions.
+- Remove the deprecated device-registry `config_entries` fallback and identity field. Device ownership now uses `config_entry_id` exclusively, ahead of the scheduled Home Assistant Core **2027.8** removal. Existing card YAML and device selections remain compatible.
+
+### ✨ Improvements
+
+- Reorganize the README with focused YAML examples, a grouped configuration reference, and clearer option defaults and precedence.
+- Add SmartPower Strip (`UP6` / `USP-Strip`) and PDU Pro (`USPPDUP` / `USP-PDU-Pro`) support with an outlet overview, Console names, USB relays, available AC telemetry, and the existing UPS outlet control/editor options.
+- Add SmartPower outlet diagnostics without requiring metering on Strip/USB outlets or UPS battery sensors.
+- Add UniFi UPS Tower (`USWDA24`) detection with a dedicated white tower rendering.
+- Display selectable C13-style UPS power outlets on a dedicated back panel alongside the management RJ45 port, with a separate control button in the selected outlet details; outlets are black on the silver rack UPS models and white on the UPS Tower.
+- Add a UPS view selector for combined front/back rendering, front-only rendering with telemetry, or back-panel rendering with telemetry and controls.
+- Add UPS editor options to hide the back-panel background and show outlet details only after selection, independently of RJ45 details.
+- Show per-outlet power from UniFi Network's metered outlet sensors, including renamed and hidden enabled entities.
+- Add a battery progress bar and readable remaining runtime, and connect UPS Tower battery indicators and the UPS 2U Pro display to reported battery telemetry.
+- Prefer outlet names supplied by the UniFi Console, add an outlet-on counter, and offer an initial outlet selection and optional power badges.
+- Display UPS load percentage only when the integration exposes a valid matching AC power budget and consumption pair.
+- Add dedicated UPS/outlet diagnostics that distinguish disabled, unavailable, and unexposed entities, plus optional confirmation and visible feedback for outlet commands.
+
+### 🐛 Bug Fixes
+
+- Keep outlet-capable network devices such as USW Mission Critical classified as switches, preserving their network ports and PoE controls.
+- Preserve selected UPS outlets during context refreshes and select the first outlet by default when dynamic outlet details are disabled.
+- Keep unavailable outlet states distinct from powered-off outlets and disable their control buttons until the switch is available.
+- Preserve default RJ45 details when dynamic UPS outlet details are enabled independently, and restore them after deselecting an outlet.
+- Prevent repeated outlet commands while awaiting state confirmation, show service failures and confirmation timeouts, and clear pending actions when switching devices.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v0.8.9]
 
 ### ✨ Improvements
@@ -39,7 +85,7 @@ If you like this project and want to support my work, you can donate via PayPal 
 - Display access points reported as `UAPA6A9` with their U7 Pro XG product name.
 
 ### 🐛 Bug Fixes
-- Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point, while preserving existing `fake:UDBSWITCH` previews.
+- Recognize the `UDB-S` Device Bridge Switch as an eight-port PoE+ switch with a wireless uplink instead of an access point.
 - Recognize UniFi's internal and hardware-revision identifiers for supported Flex, Lite, Standard, Pro, Pro XG, Pro HD, WAN, Industrial, and Enterprise Campus switches, including all four SFP+ ports on the Pro HD 24 models.
 - Use the hardware port definitions for internal switch revisions, including SFP28 uplinks on Pro XG models, the three SFP+ ports on the USW WAN, and the ten PoE RJ45 ports on the `USWED05` Industrial revision.
 - Preserve existing `default_uplink_port` selections when applying the corrected Pro XG and USW WAN port definitions.

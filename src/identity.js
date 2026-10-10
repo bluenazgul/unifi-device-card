@@ -64,7 +64,6 @@ export function buildNormalizedDeviceIdentity(device) {
     primary_mac: extractPrimaryMacFromConnections(device?.connections),
     config_entry_id: device?.config_entry_id || null,
     config_subentry_id: device?.config_subentry_id || null,
-    config_entries: Array.isArray(device?.config_entries) ? device.config_entries : [],
   };
 }
 

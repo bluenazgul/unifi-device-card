@@ -40,12 +40,15 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
 
   const upsSignals =
-    ["USPDA2B", "USWDA25"].includes(model) ||
+    ["USPDA2B", "USWDA24", "USWDA25"].includes(model) ||
     translationKeys.has("ups_battery_level") ||
     translationKeys.has("ups_battery_runtime") ||
     name.includes("ups 2u") ||
     name.includes("uninterruptible power supply");
   if (upsSignals) return "ups";
+
+  const modelKey = resolveModelKey(device || identity || {});
+  if (MODEL_REGISTRY[modelKey]?.kind === "power_distribution") return "power_distribution";
 
   const registryType = fromModel(model);
   if (registryType) return registryType;
@@ -63,7 +66,6 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
     name.includes("router");
   if (gatewaySignals) return "gateway";
 
-  const modelKey = resolveModelKey(device || identity || {});
   const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
 
@@ -80,6 +82,10 @@ export function classifyDeviceType(identity, capabilities, entities = [], device
       return "switch";
     }
   }
+
+  // Network devices such as the Mission Critical switch can also expose AC
+  // outlets. Use outlet capabilities only after known model checks.
+  if (capabilities?.outlet_control || capabilities?.outlet_power) return "power_distribution";
 
   if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
   if (hasPortSignals) return "switch";

@@ -81,14 +81,38 @@ function applyPortsPerRowOverride(layout, portsPerRow) {
   };
 }
 var MODEL_REGISTRY = {
+  // SmartPower devices use an outlet overview rather than a chassis rendering.
+  UP6: {
+    kind: "power_distribution",
+    frontStyle: "outlets",
+    rows: [],
+    portCount: 0,
+    outletCount: 7,
+    displayModel: "SmartPower Strip",
+    specialSlots: [],
+    previewUsbOutlets: [7],
+    previewUsbGroup: true,
+    previewMetering: false
+  },
+  USPPDUP: {
+    kind: "power_distribution",
+    frontStyle: "outlets",
+    rows: [],
+    portCount: 0,
+    outletCount: 20,
+    displayModel: "SmartPower PDU Pro",
+    specialSlots: [],
+    previewUsbOutlets: [1, 2, 3, 4]
+  },
   // ══════════════════════════════════════════════════════════════════════════
   // UNINTERRUPTIBLE POWER SUPPLIES
   // ══════════════════════════════════════════════════════════════════════════
   USPDA2B: {
     kind: "ups",
     frontStyle: "ups-rack",
-    rows: [],
-    portCount: 0,
+    rows: [[1]],
+    portCount: 1,
+    outletCount: 8,
     displayModel: "UPS 2U Pro",
     theme: "silver",
     specialSlots: []
@@ -96,10 +120,21 @@ var MODEL_REGISTRY = {
   USWDA25: {
     kind: "ups",
     frontStyle: "ups-rack",
-    rows: [],
-    portCount: 0,
+    rows: [[1]],
+    portCount: 1,
+    outletCount: 8,
     displayModel: "UPS 2U",
     theme: "silver",
+    specialSlots: []
+  },
+  USWDA24: {
+    kind: "ups",
+    frontStyle: "ups-tower",
+    rows: [[1]],
+    portCount: 1,
+    outletCount: 10,
+    displayModel: "UPS Tower",
+    theme: "white",
     specialSlots: []
   },
   // ══════════════════════════════════════════════════════════════════════════
@@ -1321,6 +1356,8 @@ function resolveModelKey(device) {
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (MODEL_REGISTRY[candidate]) return candidate;
+    if (candidate === "USPSTRIP" || candidate === "SMARTPOWERSTRIP") return "UP6";
+    if (["USPPDUPRO", "SMARTPOWERPDUPRO", "POWERDISTRIBUTIONPRO"].includes(candidate)) return "USPPDUP";
     if (candidate.includes("UDMPROSE")) return "UDMPROSE";
     if (candidate.includes("UDMPROMAX")) return "UDMPROMAX";
     if (candidate.includes("DREAMMACHINEPROMAX")) return "UDMPROMAX";
@@ -1847,8 +1884,7 @@ function buildNormalizedDeviceIdentity(device) {
     sw_version: normalizeText(device?.sw_version),
     primary_mac: extractPrimaryMacFromConnections(device?.connections),
     config_entry_id: device?.config_entry_id || null,
-    config_subentry_id: device?.config_subentry_id || null,
-    config_entries: Array.isArray(device?.config_entries) ? device.config_entries : []
+    config_subentry_id: device?.config_subentry_id || null
   };
 }
 function extractDeviceMacs(device) {
@@ -1912,6 +1948,10 @@ var DEVICE_FEATURE_PREFIXES = {
   ups_input_voltage: "ups_input_voltage",
   ups_bypass_voltage: "ups_bypass_voltage",
   ups_output_power_factor: "ups_output_power_factor",
+  ac_power_budget: "ac_power_budget",
+  // Home Assistant's current unique ID intentionally contains this spelling.
+  ac_power_conumption: "ac_power_consumption",
+  ac_power_consumption: "ac_power_consumption",
   rx: "client_rx",
   tx: "client_tx",
   wired_speed: "client_link_speed"
@@ -1938,6 +1978,17 @@ function parseUnifiDeviceUniqueId(uniqueId) {
   const mac = normalizeMac(macRaw);
   if (!feature || !mac) return null;
   return { feature, mac };
+}
+function parseUnifiOutletUniqueId(uniqueId) {
+  const raw = String(uniqueId ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  const match = raw.match(/^(outlet|outlet_power)-([0-9a-f:]{17}|[0-9a-f]{12})_(\d+)$/i);
+  if (!match) return null;
+  const [, prefix, macRaw, outletRaw] = match;
+  const mac = normalizeMac(macRaw);
+  const outlet = Number.parseInt(outletRaw, 10);
+  if (!mac || !Number.isInteger(outlet) || outlet < 1) return null;
+  return { feature: prefix === "outlet_power" ? "outlet_power" : "outlet_control", mac, outlet };
 }
 function parseUnifiObjectUniqueId(uniqueId) {
   const raw = String(uniqueId ?? "").trim().toLowerCase();
@@ -1970,6 +2021,11 @@ function inferCapability(entity, identity) {
   const domain = String(entity?.entity_id || "").split(".")[0] || "";
   const tk = String(entity?.translation_key || "").toLowerCase();
   const uniqueId = entity?.unique_id || "";
+  const outletInfo = parseUnifiOutletUniqueId(uniqueId);
+  if (outletInfo && (!identity?.primary_mac || sameMac(outletInfo.mac, identity.primary_mac))) {
+    if (outletInfo.feature === "outlet_control" && domain === "switch") return "outlet_control";
+    if (outletInfo.feature === "outlet_power" && domain === "sensor") return "outlet_power";
+  }
   const portInfo = parseUnifiPortUniqueId(uniqueId);
   if (portInfo && sameMac(portInfo.mac, identity?.primary_mac)) {
     if (portInfo.feature === "port_control") return "port_control";
@@ -2023,7 +2079,9 @@ function buildDeviceCapabilities(entities, identity) {
     ap_stats: emptyBucket(),
     led_control: emptyBucket(),
     wlan_control: emptyBucket(),
-    firewall_policy: emptyBucket()
+    firewall_policy: emptyBucket(),
+    outlet_control: emptyBucket(),
+    outlet_power: emptyBucket()
   };
   for (const entity of entities || []) {
     const status = statusKey(entity);
@@ -2069,13 +2127,14 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
   const manufacturer = String(identity?.manufacturer || "").toLowerCase();
   const name = String(identity?.name || "").toLowerCase();
   const translationKeys = new Set((entities || []).map((entity) => String(entity?.translation_key || "").toLowerCase()));
-  const upsSignals = ["USPDA2B", "USWDA25"].includes(model) || translationKeys.has("ups_battery_level") || translationKeys.has("ups_battery_runtime") || name.includes("ups 2u") || name.includes("uninterruptible power supply");
+  const upsSignals = ["USPDA2B", "USWDA24", "USWDA25"].includes(model) || translationKeys.has("ups_battery_level") || translationKeys.has("ups_battery_runtime") || name.includes("ups 2u") || name.includes("uninterruptible power supply");
   if (upsSignals) return "ups";
+  const modelKey = resolveModelKey(device || identity || {});
+  if (MODEL_REGISTRY[modelKey]?.kind === "power_distribution") return "power_distribution";
   const registryType = fromModel(model);
   if (registryType) return registryType;
   const gatewaySignals = model.startsWith("UXG") || model.startsWith("UDM") || model.startsWith("UCG") || model.startsWith("UGW") || model.startsWith("UX") || model.startsWith("UDW") || model.startsWith("EFG") || model.startsWith("UTR") || name.includes("gateway") || name.includes("router");
   if (gatewaySignals) return "gateway";
-  const modelKey = resolveModelKey(device || identity || {});
   const gatewayModelKeys = ["UDM", "UDR", "UDMPRO", "UDMPROSE", "UDMPROMAX", "UDMBEAST", "UXGPRO", "UXGL", "UXGMAX", "UX", "UX7", "UGW3", "UGW4", "UGWXG", "UCGULTRA", "UCGMAX", "UCGFIBER", "UCGINDUSTRIAL", "UDR7", "UDRULT", "UDR5GMAX", "UDW", "EFG", "UTR"];
   const hasPortSignals = !!(capabilities?.ports || capabilities?.port_control || capabilities?.poe_power);
   if (modelKey) {
@@ -2090,6 +2149,7 @@ function classifyDeviceType(identity, capabilities, entities = [], device = null
       return "switch";
     }
   }
+  if (capabilities?.outlet_control || capabilities?.outlet_power) return "power_distribution";
   if (capabilities?.ap_stats || capabilities?.uplink_mac) return "access_point";
   if (hasPortSignals) return "switch";
   if (manufacturer.includes("ubiquiti") || manufacturer.includes("unifi")) {
@@ -2113,6 +2173,16 @@ function lower(value) {
 function normalizePositivePortNumbers(value) {
   if (!Array.isArray(value)) return [];
   return Array.from(new Set(value.map((entry) => Number(entry)).filter((port) => Number.isInteger(port) && port > 0))).sort((a, b) => a - b);
+}
+function normalizeUpsLayout(value) {
+  const layout = lower(value);
+  return ["combined", "front", "back"].includes(layout) ? layout : "combined";
+}
+function isDynamicOutletDetailsEnabled(config) {
+  return typeof config?.dynamic_outlet_details === "boolean" ? config.dynamic_outlet_details : config?.dynamic_port_details === true;
+}
+function isOutletDeviceType(type) {
+  return type === "ups" || type === "power_distribution";
 }
 function normalizePortNames(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -2246,6 +2316,35 @@ function getDeviceType(device, entities = []) {
 function hasUpsFrontDisplay(device) {
   return [device?.model_id, device?.model, device?.hw_version].some((value) => normalizeModelStr(value) === "USPDA2B");
 }
+function isUpsTower(device) {
+  return [device?.model_id, device?.model, device?.hw_version].some((value) => normalizeModelStr(value) === "USWDA24");
+}
+function getDeviceOutletEntities(entities, identity = null) {
+  const outlets = /* @__PURE__ */ new Map();
+  const deviceMac = normalizeMac(identity?.primary_mac);
+  for (const entity of entities || []) {
+    if (entity?.disabled_by) continue;
+    const parsed = parseUnifiOutletUniqueId(entity?.unique_id);
+    if (!parsed || deviceMac && parsed.mac !== deviceMac) continue;
+    const control = parsed.feature === "outlet_control" && lower(entity?.entity_id).startsWith("switch.");
+    const power = parsed.feature === "outlet_power" && lower(entity?.entity_id).startsWith("sensor.");
+    if (!control && !power) continue;
+    const outlet = outlets.get(parsed.outlet) || {
+      index: parsed.outlet,
+      entity_id: null,
+      label: `Outlet ${parsed.outlet}`
+    };
+    if (control) {
+      outlet.entity_id = entity.entity_id;
+      outlet.label = normalize(entity.original_name || entity.name) || outlet.label;
+    } else {
+      outlet.power_entity = entity.entity_id;
+      if (!outlet.entity_id) outlet.label = normalize(entity.translation_placeholders?.outlet_name) || outlet.label;
+    }
+    outlets.set(parsed.outlet, outlet);
+  }
+  return Array.from(outlets.values()).sort((left, right) => left.index - right.index);
+}
 function getWSErrorCode(err) {
   if (err?.code != null) return err.code;
   if (err?.error?.code != null) return err.error.code;
@@ -2352,7 +2451,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
   if (isVirtualControllerDevice(device)) return false;
   const hasInfraSignals = hasInfrastructureEntitySignals(entities);
   const configEntryId = normalize(device?.config_entry_id);
-  const belongsToUnifiEntry = unifiEntryIds.has(configEntryId) || Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id));
+  const belongsToUnifiEntry = unifiEntryIds.has(configEntryId);
   if (belongsToUnifiEntry) {
     if (hasInfraSignals || !!resolveModelKey(device)) return true;
     if (modelStartsWith2(device, [
@@ -2386,7 +2485,7 @@ function isUnifiDevice(device, unifiEntryIds, entities) {
 function buildDeviceLabel(device, type) {
   const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
   const model = normalize(device.model);
-  const typeLabel = type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : type === "ups" ? "UPS" : "Switch";
+  const typeLabel = type === "gateway" ? "Gateway" : type === "access_point" ? "Access Point" : type === "ups" ? "UPS" : type === "power_distribution" ? "SmartPower" : "Switch";
   if (model && lower(model) !== lower(name)) return `${name} \xB7 ${model} (${typeLabel})`;
   return `${name} (${typeLabel})`;
 }
@@ -2659,11 +2758,22 @@ function getDeviceTelemetry(entities, hass = null) {
         findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === key),
         findDeviceEntityByCanonicalSuffix(candidates, key)
       ], hass)
+    ])),
+    ...Object.fromEntries([
+      ["ups_power_budget", "ac_power_budget", "smartpower_ac_power_budget"],
+      ["ups_power_consumption", "ac_power_consumption", "smartpower_ac_power_consumption"]
+    ].map(([key, feature, translationKey]) => [
+      `${key}_entity`,
+      preferUsableTelemetryMatch([
+        findDeviceUniqueIdTelemetryEntity(candidates, [feature]),
+        findCoreDeviceTelemetryEntity(candidates, (entity) => lower(entity?.translation_key) === translationKey)
+      ], hass)
     ]))
   };
 }
 function getUnavailableHeaderTelemetryKeys(deviceContext) {
   if (!deviceContext) return [];
+  if (deviceContext.type === "power_distribution") return [];
   if (deviceContext.type === "ups") {
     const expected = [
       "ups_battery_level",
@@ -2944,7 +3054,7 @@ async function getUnifiDevices(hass, cardConfig = null) {
     const identity = buildNormalizedDeviceIdentity(device);
     const capabilities = buildDeviceCapabilities(entities, identity);
     const type = classifyDeviceType(identity, capabilities, entities, device);
-    if (!["switch", "gateway", "access_point", "ups"].includes(type)) continue;
+    if (!["switch", "gateway", "access_point", "ups", "power_distribution"].includes(type)) continue;
     results.push({
       id: device.id,
       name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
@@ -3658,6 +3768,26 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
       cpu_temperature_entity: null,
       memory_utilization_entity: null,
       temperature_entity: null,
+      outlet_entities: Array.from({ length: model.outletCount || 0 }, (_, index) => {
+        const usb = model.previewUsbOutlets?.includes(index + 1);
+        const powerDevice = model.kind === "power_distribution";
+        const metered = !powerDevice || model.previewMetering !== false && !usb;
+        const powerIndex = powerDevice ? index - (model.previewUsbOutlets?.length || 0) : index;
+        return {
+          index: index + 1,
+          entity_id: null,
+          label: usb ? model.previewUsbGroup ? "USB Outlets" : `USB Outlet ${index + 1}` : `Outlet ${index + 1}`,
+          preview_state: powerDevice && model.previewMetering !== false ? (usb ? index % 2 === 0 : powerIndex < 4) ? "on" : "off" : index < 4 ? "on" : "off",
+          preview_power: metered ? [120, 85, 45, 30][powerIndex] || 0 : null
+        };
+      }),
+      preview_ups: model.kind === "ups" ? {
+        battery_level: 76,
+        battery_runtime: 1080,
+        power_budget: 1e3,
+        power_consumption: 280
+      } : null,
+      preview_power: model.kind === "power_distribution" && model.previewMetering !== false ? { power_budget: 1875 } : null,
       fake_device: true
     };
   }
@@ -3671,7 +3801,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
   const identity = buildNormalizedDeviceIdentity(device);
   const capabilities = buildDeviceCapabilities(allEntities, identity);
   const type = classifyDeviceType(identity, capabilities, allEntities, device);
-  if (!["switch", "gateway", "access_point", "ups"].includes(type)) return null;
+  if (!["switch", "gateway", "access_point", "ups", "power_distribution"].includes(type)) return null;
   const needsUID = entities.filter(
     (e) => !e.unique_id && e.translation_key && PORT_TRANSLATION_KEYS.has(e.translation_key) && (!hasIndexedPortId(e.entity_id) || /(?:^|[_-])sfp[_+]?\d+(?:[_-]|$)/i.test(lower(e.entity_id))) && !/\bport\s+\d+\b/i.test(e.original_name || "")
   );
@@ -3730,6 +3860,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     identity,
     capabilities,
     entities,
+    all_entities: allEntities,
     telemetry_entities: telemetryEntities.length > 0 ? telemetryEntities : entities,
     type,
     layout,
@@ -3743,6 +3874,7 @@ async function buildDeviceContext(hass, deviceId, cardConfig = null) {
     ap_uplink: apUplink,
     reboot_entity: getDeviceRebootEntity(entities),
     ...telemetry,
+    outlet_entities: getDeviceOutletEntities(telemetryEntities, identity),
     numberedPorts
   };
 }
@@ -4193,6 +4325,53 @@ var TRANSLATIONS = {
     memory_utilization: "Memory utilization",
     temperature: "Temperature",
     ups_telemetry: "UPS telemetry",
+    power_telemetry: "SmartPower telemetry",
+    power_load: "AC load",
+    power_diagnostics: "SmartPower and outlet diagnostics",
+    power_preview: "Preview: SmartPower readings and controls are simulated.",
+    editor_power_telemetry_text: "Show device power readings",
+    editor_power_telemetry_hint: "Show available AC consumption, budget, and load. Outlet readings remain visible.",
+    editor_power_panel_text: "Show outlet panel background",
+    ups_outlets: "Outlets",
+    back_panel: "Back Panel",
+    ups_outlet_status: "Outlet status",
+    ups_outlet_turn_on: "Turn on outlet",
+    ups_outlet_turn_off: "Turn off outlet",
+    ups_outlet_power: "Outlet power",
+    ups_outlet_preview: "Preview: outlet controls and readings are simulated.",
+    ups_load: "UPS load",
+    ups_power_budget: "AC power budget",
+    ups_power_consumption: "AC power consumption",
+    ups_outlet_count: "{on} of {total} outlets on",
+    ups_outlet_unknown_count: "{count} outlets without an available switch state",
+    ups_outlet_switching: "Switching\u2026",
+    ups_outlet_action_failed: "The outlet could not be switched. Please try again.",
+    ups_outlet_no_confirmation: "No updated outlet state was received. Check the device before retrying.",
+    ups_confirm_outlet_off: "Turn off outlet \u201C{outlet}\u201D?",
+    ups_preview: "Preview: UPS readings and controls are simulated.",
+    ups_diagnostics: "UPS and outlet diagnostics",
+    ups_diagnostics_disabled: "Disabled entities",
+    ups_diagnostics_unavailable: "Currently unavailable",
+    ups_diagnostics_not_exposed: "Not exposed by the integration",
+    ups_diagnostics_not_exposed_hint: "Missing entities do not establish whether the hardware supports a feature. Check the device's entities in Home Assistant.",
+    ups_outlet_control: "Outlet control",
+    editor_default_outlet_label: "Initial outlet",
+    editor_default_outlet_first: "First available outlet",
+    editor_default_outlet_hint: "Used when dynamic outlet details are disabled. Names come from the UniFi Console through the integration.",
+    editor_outlet_power_badges_text: "Show power readings on outlets",
+    editor_confirm_outlet_off_text: "Confirm before turning off an outlet",
+    editor_confirm_outlet_off_hint: "Optional. Requests confirmation only when turning an outlet off.",
+    editor_ups_telemetry_text: "Show UPS telemetry",
+    editor_ups_telemetry_hint: "Controls the battery summary, battery indicators and UPS readings. Outlet readings remain visible.",
+    editor_back_panel_toggle_label: "Back panel",
+    editor_back_panel_toggle_text: "Show back panel background",
+    editor_back_panel_toggle_hint: "Enabled by default. Disable the background while keeping outlets and network ports visible.",
+    editor_dynamic_outlet_details_label: "Dynamic outlet details",
+    editor_dynamic_outlet_details_text: "Show outlet details on selection",
+    editor_dynamic_outlet_details_hint: "Starts with no selected outlet. Click an outlet to show status, power and controls; click it again to hide them.",
+    editor_ups_layout_label: "UPS view",
+    editor_ups_layout_combined: "Front and back panels",
+    editor_ups_layout_hint: "Choose the combined view, the front with telemetry only, or the back panel with ports and controls.",
     ups_battery_level: "Battery level",
     ups_battery_runtime: "Battery runtime",
     ups_output_power: "Output power",
@@ -4293,7 +4472,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "AP compact header",
     editor_ap_compact_header_telemetry_text: "Show telemetry in compact header",
     editor_ap_compact_header_telemetry_hint: "Only visible in compact AP layout. Adds utilization and temperature to the header.",
-    editor_no_devices: "No UniFi switches, gateways, access points, or UPS devices found in Home Assistant.",
+    editor_no_devices: "No supported UniFi Network devices found in Home Assistant.",
     editor_hint: "Only devices from the UniFi Network Integration are shown.",
     editor_error: "Failed to load UniFi devices.",
     // WAN / WAN2 selector (editor — gateway only)
@@ -4404,6 +4583,53 @@ var TRANSLATIONS = {
     memory_utilization: "Speicherauslastung",
     temperature: "Temperatur",
     ups_telemetry: "USV-Telemetrie",
+    power_telemetry: "SmartPower-Telemetrie",
+    power_load: "AC-Auslastung",
+    power_diagnostics: "SmartPower- und Outlet-Diagnose",
+    power_preview: "Vorschau: SmartPower-Messwerte und Steuerung sind simuliert.",
+    editor_power_telemetry_text: "Leistungswerte des Ger\xE4ts anzeigen",
+    editor_power_telemetry_hint: "Zeigt verf\xFCgbaren AC-Verbrauch, Leistungsbudget und Auslastung. Outlet-Messwerte bleiben sichtbar.",
+    editor_power_panel_text: "Hintergrund des Outlet-Panels anzeigen",
+    ups_outlets: "Ausg\xE4nge",
+    back_panel: "R\xFCckseite",
+    ups_outlet_status: "Ausgangsstatus",
+    ups_outlet_turn_on: "Ausgang einschalten",
+    ups_outlet_turn_off: "Ausgang ausschalten",
+    ups_outlet_power: "Ausgangsleistung",
+    ups_outlet_preview: "Vorschau: Schaltzust\xE4nde und Messwerte der Ausg\xE4nge sind simuliert.",
+    ups_load: "USV-Auslastung",
+    ups_power_budget: "AC-Leistungsbudget",
+    ups_power_consumption: "AC-Gesamtverbrauch",
+    ups_outlet_count: "{on} von {total} Ausg\xE4ngen ein",
+    ups_outlet_unknown_count: "{count} Ausg\xE4nge ohne verf\xFCgbaren Schaltzustand",
+    ups_outlet_switching: "Wird geschaltet\u2026",
+    ups_outlet_action_failed: "Der Ausgang konnte nicht geschaltet werden. Bitte erneut versuchen.",
+    ups_outlet_no_confirmation: "Keine Zustands\xE4nderung empfangen. Pr\xFCfe das Ger\xE4t vor einem erneuten Versuch.",
+    ups_confirm_outlet_off: "Ausgang \u201E{outlet}\u201C ausschalten?",
+    ups_preview: "Vorschau: USV-Messwerte und Steuerung sind simuliert.",
+    ups_diagnostics: "USV- und Outlet-Diagnose",
+    ups_diagnostics_disabled: "Deaktivierte Entit\xE4ten",
+    ups_diagnostics_unavailable: "Aktuell nicht verf\xFCgbar",
+    ups_diagnostics_not_exposed: "Von der Integration nicht bereitgestellt",
+    ups_diagnostics_not_exposed_hint: "Fehlende Entit\xE4ten sagen nicht aus, ob die Hardware eine Funktion unterst\xFCtzt. Pr\xFCfe die Ger\xE4teentit\xE4ten in Home Assistant.",
+    ups_outlet_control: "Ausgangssteuerung",
+    editor_default_outlet_label: "Anfangs ausgew\xE4hlter Ausgang",
+    editor_default_outlet_first: "Erster verf\xFCgbarer Ausgang",
+    editor_default_outlet_hint: "Wird verwendet, wenn dynamische Outlet-Details deaktiviert sind. Die Namen stammen \xFCber die Integration aus der UniFi-Console.",
+    editor_outlet_power_badges_text: "Leistungswerte direkt an den Ausg\xE4ngen anzeigen",
+    editor_confirm_outlet_off_text: "Ausschalten eines Ausgangs best\xE4tigen",
+    editor_confirm_outlet_off_hint: "Optional. Fragt nur beim Ausschalten eines Ausgangs nach einer Best\xE4tigung.",
+    editor_ups_telemetry_text: "USV-Telemetrie anzeigen",
+    editor_ups_telemetry_hint: "Steuert die Batterie\xFCbersicht, Batterieanzeigen und USV-Messwerte. Messwerte der Ausg\xE4nge bleiben sichtbar.",
+    editor_back_panel_toggle_label: "Backpanel",
+    editor_back_panel_toggle_text: "Backpanel-Hintergrund anzeigen",
+    editor_back_panel_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet den Hintergrund aus; Ausg\xE4nge und Netzwerkports bleiben sichtbar.",
+    editor_dynamic_outlet_details_label: "Dynamische Outlet-Details",
+    editor_dynamic_outlet_details_text: "Outlet-Details bei Auswahl anzeigen",
+    editor_dynamic_outlet_details_hint: "Startet ohne ausgew\xE4hlten Ausgang. Klicke einen Ausgang an, um Status, Leistung und Steuerung anzuzeigen, und erneut, um sie auszublenden.",
+    editor_ups_layout_label: "USV-Ansicht",
+    editor_ups_layout_combined: "Vorder- und R\xFCckseite",
+    editor_ups_layout_hint: "W\xE4hle die kombinierte Ansicht, nur die Vorderseite mit Telemetrie oder die R\xFCckseite mit Anschl\xFCssen und Bedienelementen.",
     ups_battery_level: "Batteriestand",
     ups_battery_runtime: "Batterielaufzeit",
     ups_output_power: "Ausgangsleistung",
@@ -4504,7 +4730,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Kompakter AP-Header",
     editor_ap_compact_header_telemetry_text: "Telemetrie im kompakten Header anzeigen",
     editor_ap_compact_header_telemetry_hint: "Nur in der kompakten AP-Ansicht sichtbar. F\xFCgt Auslastung und Temperatur im Header hinzu.",
-    editor_no_devices: "Keine UniFi Switches, Gateways, Access Points oder USV-Ger\xE4te in Home Assistant gefunden.",
+    editor_no_devices: "Keine unterst\xFCtzten UniFi-Network-Ger\xE4te in Home Assistant gefunden.",
     editor_hint: "Nur Ger\xE4te aus der UniFi Network Integration werden angezeigt.",
     editor_error: "UniFi-Ger\xE4te konnten nicht geladen werden.",
     // WAN / WAN2 selector
@@ -4615,6 +4841,53 @@ var TRANSLATIONS = {
     memory_utilization: "Geheugengebruik",
     temperature: "Temperatuur",
     ups_telemetry: "UPS-telemetrie",
+    power_telemetry: "SmartPower-telemetrie",
+    power_load: "AC-belasting",
+    power_diagnostics: "SmartPower- en stopcontactdiagnose",
+    power_preview: "Voorbeeld: SmartPower-metingen en bediening zijn gesimuleerd.",
+    editor_power_telemetry_text: "Vermogensmetingen van het apparaat tonen",
+    editor_power_telemetry_hint: "Toont beschikbaar AC-verbruik, vermogensbudget en belasting. Stopcontactmetingen blijven zichtbaar.",
+    editor_power_panel_text: "Achtergrond van het stopcontactpaneel tonen",
+    ups_outlets: "Stopcontacten",
+    back_panel: "Achterpaneel",
+    ups_outlet_status: "Stopcontactstatus",
+    ups_outlet_turn_on: "Stopcontact inschakelen",
+    ups_outlet_turn_off: "Stopcontact uitschakelen",
+    ups_outlet_power: "Vermogen stopcontact",
+    ups_outlet_preview: "Voorbeeld: bediening en meetwaarden van stopcontacten zijn gesimuleerd.",
+    ups_load: "UPS-belasting",
+    ups_power_budget: "AC-vermogensbudget",
+    ups_power_consumption: "Totaal AC-verbruik",
+    ups_outlet_count: "{on} van {total} stopcontacten aan",
+    ups_outlet_unknown_count: "{count} stopcontacten zonder beschikbare schakelstatus",
+    ups_outlet_switching: "Schakelen\u2026",
+    ups_outlet_action_failed: "Het stopcontact kon niet worden geschakeld. Probeer opnieuw.",
+    ups_outlet_no_confirmation: "Geen bijgewerkte status ontvangen. Controleer het apparaat voordat u opnieuw probeert.",
+    ups_confirm_outlet_off: "Stopcontact \u2018{outlet}\u2019 uitschakelen?",
+    ups_preview: "Voorbeeld: UPS-metingen en bediening zijn gesimuleerd.",
+    ups_diagnostics: "UPS- en stopcontactdiagnose",
+    ups_diagnostics_disabled: "Uitgeschakelde entiteiten",
+    ups_diagnostics_unavailable: "Momenteel niet beschikbaar",
+    ups_diagnostics_not_exposed: "Niet aangeboden door de integratie",
+    ups_diagnostics_not_exposed_hint: "Ontbrekende entiteiten tonen niet of de hardware een functie ondersteunt. Controleer de apparaatentiteiten in Home Assistant.",
+    ups_outlet_control: "Stopcontactbediening",
+    editor_default_outlet_label: "Eerste geselecteerde stopcontact",
+    editor_default_outlet_first: "Eerste beschikbare stopcontact",
+    editor_default_outlet_hint: "Gebruikt als dynamische details uitstaan. Namen komen via de integratie uit de UniFi Console.",
+    editor_outlet_power_badges_text: "Vermogen op stopcontacten tonen",
+    editor_confirm_outlet_off_text: "Bevestigen voor uitschakelen van een stopcontact",
+    editor_confirm_outlet_off_hint: "Optioneel. Vraagt alleen om bevestiging bij uitschakelen.",
+    editor_ups_telemetry_text: "UPS-telemetrie tonen",
+    editor_ups_telemetry_hint: "Regelt het batterijoverzicht, batterij-indicatoren en UPS-metingen. Stopcontactmetingen blijven zichtbaar.",
+    editor_back_panel_toggle_label: "Achterpaneel",
+    editor_back_panel_toggle_text: "Achtergrond achterpaneel tonen",
+    editor_back_panel_toggle_hint: "Standaard ingeschakeld. Verberg de achtergrond terwijl stopcontacten en netwerkpoorten zichtbaar blijven.",
+    editor_dynamic_outlet_details_label: "Dynamische stopcontactdetails",
+    editor_dynamic_outlet_details_text: "Stopcontactdetails tonen na selectie",
+    editor_dynamic_outlet_details_hint: "Start zonder geselecteerd stopcontact. Klik voor status, vermogen en bediening; klik opnieuw om ze te verbergen.",
+    editor_ups_layout_label: "UPS-weergave",
+    editor_ups_layout_combined: "Voor- en achterpaneel",
+    editor_ups_layout_hint: "Kies de gecombineerde weergave, alleen de voorkant met telemetrie of het achterpaneel met poorten en bediening.",
     ups_battery_level: "Batterijniveau",
     ups_battery_runtime: "Batterijduur",
     ups_output_power: "Uitgangsvermogen",
@@ -4715,7 +4988,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Compacte AP-header",
     editor_ap_compact_header_telemetry_text: "Telemetrie in compacte header tonen",
     editor_ap_compact_header_telemetry_hint: "Alleen zichtbaar in compacte AP-weergave. Voegt gebruik en temperatuur toe aan de header.",
-    editor_no_devices: "Geen UniFi-switches, -gateways, access points of UPS-apparaten gevonden in Home Assistant.",
+    editor_no_devices: "Geen ondersteunde UniFi Network-apparaten gevonden in Home Assistant.",
     editor_hint: "Alleen apparaten uit de UniFi Network-integratie worden weergegeven.",
     editor_error: "UniFi-apparaten konden niet worden geladen.",
     // WAN / WAN2 selector
@@ -4823,6 +5096,53 @@ var TRANSLATIONS = {
     memory_utilization: "Utilisation m\xE9moire",
     temperature: "Temp\xE9rature",
     ups_telemetry: "T\xE9l\xE9m\xE9trie de l\u2019onduleur",
+    power_telemetry: "T\xE9l\xE9m\xE9trie SmartPower",
+    power_load: "Charge AC",
+    power_diagnostics: "Diagnostic SmartPower et prises",
+    power_preview: "Aper\xE7u : mesures et commandes SmartPower simul\xE9es.",
+    editor_power_telemetry_text: "Afficher les mesures de puissance de l\u2019appareil",
+    editor_power_telemetry_hint: "Affiche la consommation AC, la puissance disponible et la charge disponibles. Les mesures des prises restent visibles.",
+    editor_power_panel_text: "Afficher le fond du panneau des prises",
+    ups_outlets: "Prises",
+    back_panel: "Panneau arri\xE8re",
+    ups_outlet_status: "\xC9tat de la prise",
+    ups_outlet_turn_on: "Activer la prise",
+    ups_outlet_turn_off: "D\xE9sactiver la prise",
+    ups_outlet_power: "Puissance de la prise",
+    ups_outlet_preview: "Aper\xE7u : commandes et mesures des prises simul\xE9es.",
+    ups_load: "Charge de l\u2019onduleur",
+    ups_power_budget: "Puissance CA disponible",
+    ups_power_consumption: "Consommation CA totale",
+    ups_outlet_count: "{on} prises sur {total} actives",
+    ups_outlet_unknown_count: "{count} prises sans \xE9tat de commutation disponible",
+    ups_outlet_switching: "Commutation\u2026",
+    ups_outlet_action_failed: "La prise n\u2019a pas pu \xEAtre commut\xE9e. R\xE9essayez.",
+    ups_outlet_no_confirmation: "Aucun nouvel \xE9tat re\xE7u. V\xE9rifiez l\u2019appareil avant de r\xE9essayer.",
+    ups_confirm_outlet_off: "D\xE9sactiver la prise \xAB {outlet} \xBB ?",
+    ups_preview: "Aper\xE7u : mesures et commandes de l\u2019onduleur simul\xE9es.",
+    ups_diagnostics: "Diagnostic de l\u2019onduleur et des prises",
+    ups_diagnostics_disabled: "Entit\xE9s d\xE9sactiv\xE9es",
+    ups_diagnostics_unavailable: "Actuellement indisponibles",
+    ups_diagnostics_not_exposed: "Non expos\xE9es par l\u2019int\xE9gration",
+    ups_diagnostics_not_exposed_hint: "L\u2019absence d\u2019entit\xE9 ne permet pas de savoir si le mat\xE9riel prend en charge une fonction. V\xE9rifiez les entit\xE9s de l\u2019appareil dans Home Assistant.",
+    ups_outlet_control: "Commande de la prise",
+    editor_default_outlet_label: "Prise s\xE9lectionn\xE9e au d\xE9part",
+    editor_default_outlet_first: "Premi\xE8re prise disponible",
+    editor_default_outlet_hint: "Utilis\xE9e lorsque les d\xE9tails dynamiques sont d\xE9sactiv\xE9s. Les noms proviennent de la console UniFi via l\u2019int\xE9gration.",
+    editor_outlet_power_badges_text: "Afficher la puissance sur les prises",
+    editor_confirm_outlet_off_text: "Confirmer avant de d\xE9sactiver une prise",
+    editor_confirm_outlet_off_hint: "Facultatif. Demande confirmation uniquement lors de la d\xE9sactivation.",
+    editor_ups_telemetry_text: "Afficher la t\xE9l\xE9m\xE9trie de l\u2019onduleur",
+    editor_ups_telemetry_hint: "Contr\xF4le le r\xE9sum\xE9 de batterie, ses indicateurs et les mesures de l\u2019onduleur. Les mesures des prises restent visibles.",
+    editor_back_panel_toggle_label: "Panneau arri\xE8re",
+    editor_back_panel_toggle_text: "Afficher le fond du panneau arri\xE8re",
+    editor_back_panel_toggle_hint: "Activ\xE9 par d\xE9faut. Masquez le fond tout en gardant les prises et ports r\xE9seau visibles.",
+    editor_dynamic_outlet_details_label: "D\xE9tails dynamiques des prises",
+    editor_dynamic_outlet_details_text: "Afficher les d\xE9tails de la prise s\xE9lectionn\xE9e",
+    editor_dynamic_outlet_details_hint: "Aucune prise s\xE9lectionn\xE9e au d\xE9part. Cliquez pour afficher \xE9tat, puissance et commandes ; cliquez \xE0 nouveau pour les masquer.",
+    editor_ups_layout_label: "Vue de l\u2019onduleur",
+    editor_ups_layout_combined: "Panneaux avant et arri\xE8re",
+    editor_ups_layout_hint: "Choisissez la vue combin\xE9e, uniquement la face avant avec la t\xE9l\xE9m\xE9trie, ou le panneau arri\xE8re avec les ports et commandes.",
     ups_battery_level: "Niveau de batterie",
     ups_battery_runtime: "Autonomie de la batterie",
     ups_output_power: "Puissance de sortie",
@@ -4923,7 +5243,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "En-t\xEAte AP compact",
     editor_ap_compact_header_telemetry_text: "Afficher la t\xE9l\xE9m\xE9trie dans l\u2019en-t\xEAte compact",
     editor_ap_compact_header_telemetry_hint: "Visible uniquement en vue AP compacte. Ajoute l\u2019utilisation et la temp\xE9rature dans l\u2019en-t\xEAte.",
-    editor_no_devices: "Aucun switch, gateway, point d\u2019acc\xE8s ou onduleur UniFi trouv\xE9 dans Home Assistant.",
+    editor_no_devices: "Aucun appareil UniFi Network pris en charge trouv\xE9 dans Home Assistant.",
     editor_hint: "Seuls les appareils de l'int\xE9gration UniFi Network sont affich\xE9s.",
     editor_error: "Impossible de charger les appareils UniFi.",
     // WAN / WAN2 selector
@@ -5031,6 +5351,53 @@ var TRANSLATIONS = {
     memory_utilization: "Uso de memoria",
     temperature: "Temperatura",
     ups_telemetry: "Telemetr\xEDa del UPS",
+    power_telemetry: "Telemetr\xEDa SmartPower",
+    power_load: "Carga de CA",
+    power_diagnostics: "Diagn\xF3stico de SmartPower y tomas",
+    power_preview: "Vista previa: las mediciones y los controles SmartPower son simulados.",
+    editor_power_telemetry_text: "Mostrar mediciones de potencia del dispositivo",
+    editor_power_telemetry_hint: "Muestra el consumo de CA, la potencia disponible y la carga cuando est\xE1n disponibles. Las mediciones de las tomas siguen visibles.",
+    editor_power_panel_text: "Mostrar fondo del panel de tomas",
+    ups_outlets: "Tomas",
+    back_panel: "Panel trasero",
+    ups_outlet_status: "Estado de la toma",
+    ups_outlet_turn_on: "Encender la toma",
+    ups_outlet_turn_off: "Apagar la toma",
+    ups_outlet_power: "Potencia de la toma",
+    ups_outlet_preview: "Vista previa: controles y lecturas de las tomas simulados.",
+    ups_load: "Carga del SAI",
+    ups_power_budget: "Potencia CA disponible",
+    ups_power_consumption: "Consumo CA total",
+    ups_outlet_count: "{on} de {total} tomas encendidas",
+    ups_outlet_unknown_count: "{count} tomas sin estado de conmutaci\xF3n disponible",
+    ups_outlet_switching: "Conmutando\u2026",
+    ups_outlet_action_failed: "No se pudo conmutar la toma. Int\xE9ntelo de nuevo.",
+    ups_outlet_no_confirmation: "No se recibi\xF3 un estado actualizado. Compruebe el dispositivo antes de reintentar.",
+    ups_confirm_outlet_off: "\xBFApagar la toma \xAB{outlet}\xBB?",
+    ups_preview: "Vista previa: lecturas y controles del SAI simulados.",
+    ups_diagnostics: "Diagn\xF3stico del SAI y las tomas",
+    ups_diagnostics_disabled: "Entidades desactivadas",
+    ups_diagnostics_unavailable: "Actualmente no disponibles",
+    ups_diagnostics_not_exposed: "No expuestas por la integraci\xF3n",
+    ups_diagnostics_not_exposed_hint: "La ausencia de entidades no indica si el hardware admite una funci\xF3n. Compruebe las entidades del dispositivo en Home Assistant.",
+    ups_outlet_control: "Control de la toma",
+    editor_default_outlet_label: "Toma seleccionada inicialmente",
+    editor_default_outlet_first: "Primera toma disponible",
+    editor_default_outlet_hint: "Se usa con los detalles din\xE1micos desactivados. Los nombres proceden de la consola UniFi a trav\xE9s de la integraci\xF3n.",
+    editor_outlet_power_badges_text: "Mostrar potencia en las tomas",
+    editor_confirm_outlet_off_text: "Confirmar antes de apagar una toma",
+    editor_confirm_outlet_off_hint: "Opcional. Solo solicita confirmaci\xF3n al apagar.",
+    editor_ups_telemetry_text: "Mostrar telemetr\xEDa del SAI",
+    editor_ups_telemetry_hint: "Controla el resumen de bater\xEDa, sus indicadores y las lecturas del SAI. Las lecturas de las tomas siguen visibles.",
+    editor_back_panel_toggle_label: "Panel trasero",
+    editor_back_panel_toggle_text: "Mostrar fondo del panel trasero",
+    editor_back_panel_toggle_hint: "Activado por defecto. Oculte el fondo y mantenga visibles las tomas y los puertos de red.",
+    editor_dynamic_outlet_details_label: "Detalles din\xE1micos de las tomas",
+    editor_dynamic_outlet_details_text: "Mostrar detalles al seleccionar una toma",
+    editor_dynamic_outlet_details_hint: "Comienza sin toma seleccionada. Pulse para ver estado, potencia y controles; pulse de nuevo para ocultarlos.",
+    editor_ups_layout_label: "Vista del UPS",
+    editor_ups_layout_combined: "Paneles frontal y trasero",
+    editor_ups_layout_hint: "Elige la vista combinada, solo el frontal con telemetr\xEDa o el panel trasero con puertos y controles.",
     ups_battery_level: "Nivel de bater\xEDa",
     ups_battery_runtime: "Autonom\xEDa de la bater\xEDa",
     ups_output_power: "Potencia de salida",
@@ -5131,7 +5498,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Encabezado AP compacto",
     editor_ap_compact_header_telemetry_text: "Mostrar telemetr\xEDa en el encabezado compacto",
     editor_ap_compact_header_telemetry_hint: "Solo visible en vista AP compacta. A\xF1ade uso y temperatura en el encabezado.",
-    editor_no_devices: "No se encontraron switches, gateways, puntos de acceso o dispositivos UPS UniFi en Home Assistant.",
+    editor_no_devices: "No se encontraron dispositivos UniFi Network compatibles en Home Assistant.",
     editor_hint: "Solo se muestran dispositivos de la integraci\xF3n UniFi Network.",
     editor_error: "No se pudieron cargar los dispositivos UniFi.",
     // WAN / WAN2 selector
@@ -5239,6 +5606,53 @@ var TRANSLATIONS = {
     memory_utilization: "Utilizzo memoria",
     temperature: "Temperatura",
     ups_telemetry: "Telemetria UPS",
+    power_telemetry: "Telemetria SmartPower",
+    power_load: "Carico AC",
+    power_diagnostics: "Diagnostica SmartPower e prese",
+    power_preview: "Anteprima: misurazioni e controlli SmartPower sono simulati.",
+    editor_power_telemetry_text: "Mostra le misurazioni di potenza del dispositivo",
+    editor_power_telemetry_hint: "Mostra consumo AC, potenza disponibile e carico se disponibili. Le misurazioni delle prese restano visibili.",
+    editor_power_panel_text: "Mostra lo sfondo del pannello delle prese",
+    ups_outlets: "Prese",
+    back_panel: "Pannello posteriore",
+    ups_outlet_status: "Stato della presa",
+    ups_outlet_turn_on: "Attiva la presa",
+    ups_outlet_turn_off: "Disattiva la presa",
+    ups_outlet_power: "Potenza della presa",
+    ups_outlet_preview: "Anteprima: comandi e misure delle prese sono simulati.",
+    ups_load: "Carico UPS",
+    ups_power_budget: "Potenza CA disponibile",
+    ups_power_consumption: "Consumo CA totale",
+    ups_outlet_count: "{on} prese su {total} attive",
+    ups_outlet_unknown_count: "{count} prese senza stato di commutazione disponibile",
+    ups_outlet_switching: "Commutazione\u2026",
+    ups_outlet_action_failed: "Impossibile commutare la presa. Riprova.",
+    ups_outlet_no_confirmation: "Nessun nuovo stato ricevuto. Controlla il dispositivo prima di riprovare.",
+    ups_confirm_outlet_off: "Disattivare la presa \xAB{outlet}\xBB?",
+    ups_preview: "Anteprima: misure e comandi UPS sono simulati.",
+    ups_diagnostics: "Diagnostica UPS e prese",
+    ups_diagnostics_disabled: "Entit\xE0 disabilitate",
+    ups_diagnostics_unavailable: "Attualmente non disponibili",
+    ups_diagnostics_not_exposed: "Non esposte dall\u2019integrazione",
+    ups_diagnostics_not_exposed_hint: "Le entit\xE0 mancanti non indicano se l\u2019hardware supporta una funzione. Controlla le entit\xE0 del dispositivo in Home Assistant.",
+    ups_outlet_control: "Controllo della presa",
+    editor_default_outlet_label: "Presa selezionata inizialmente",
+    editor_default_outlet_first: "Prima presa disponibile",
+    editor_default_outlet_hint: "Usata con i dettagli dinamici disattivati. I nomi provengono dalla console UniFi tramite l\u2019integrazione.",
+    editor_outlet_power_badges_text: "Mostra la potenza sulle prese",
+    editor_confirm_outlet_off_text: "Conferma prima di disattivare una presa",
+    editor_confirm_outlet_off_hint: "Facoltativo. Richiede conferma solo quando si disattiva una presa.",
+    editor_ups_telemetry_text: "Mostra telemetria UPS",
+    editor_ups_telemetry_hint: "Controlla il riepilogo batteria, i suoi indicatori e le misure UPS. Le misure delle prese restano visibili.",
+    editor_back_panel_toggle_label: "Pannello posteriore",
+    editor_back_panel_toggle_text: "Mostra lo sfondo del pannello posteriore",
+    editor_back_panel_toggle_hint: "Attivo per impostazione predefinita. Nascondi lo sfondo mantenendo visibili prese e porte di rete.",
+    editor_dynamic_outlet_details_label: "Dettagli dinamici delle prese",
+    editor_dynamic_outlet_details_text: "Mostra i dettagli alla selezione della presa",
+    editor_dynamic_outlet_details_hint: "Inizia senza presa selezionata. Fai clic per mostrare stato, potenza e comandi; fai nuovamente clic per nasconderli.",
+    editor_ups_layout_label: "Vista UPS",
+    editor_ups_layout_combined: "Pannelli anteriore e posteriore",
+    editor_ups_layout_hint: "Scegli la vista combinata, solo il frontale con telemetria o il pannello posteriore con porte e controlli.",
     ups_battery_level: "Livello batteria",
     ups_battery_runtime: "Autonomia batteria",
     ups_output_power: "Potenza in uscita",
@@ -5339,7 +5753,7 @@ var TRANSLATIONS = {
     editor_ap_compact_header_telemetry_label: "Header AP compatto",
     editor_ap_compact_header_telemetry_text: "Mostra telemetria nell\u2019header compatto",
     editor_ap_compact_header_telemetry_hint: "Visibile solo nella vista AP compatta. Aggiunge utilizzo e temperatura nell\u2019header.",
-    editor_no_devices: "Nessuno switch, gateway, access point o dispositivo UPS UniFi trovato in Home Assistant.",
+    editor_no_devices: "Nessun dispositivo UniFi Network supportato trovato in Home Assistant.",
     editor_hint: "Vengono mostrati solo i dispositivi dell\u2019integrazione UniFi Network.",
     editor_error: "Impossibile caricare i dispositivi UniFi.",
     // WAN / WAN2 selector
@@ -5438,6 +5852,53 @@ var TRANSLATIONS = {
 TRANSLATIONS.sv = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetri",
+  power_telemetry: "SmartPower-telemetri",
+  power_load: "AC-belastning",
+  power_diagnostics: "SmartPower- och uttagsdiagnostik",
+  power_preview: "F\xF6rhandsvisning: SmartPower-m\xE4tv\xE4rden och styrning \xE4r simulerade.",
+  editor_power_telemetry_text: "Visa enhetens effektv\xE4rden",
+  editor_power_telemetry_hint: "Visa tillg\xE4nglig AC-f\xF6rbrukning, effektbudget och belastning. Uttagens m\xE4tv\xE4rden f\xF6rblir synliga.",
+  editor_power_panel_text: "Visa bakgrunden f\xF6r uttagspanelen",
+  ups_outlets: "Uttag",
+  back_panel: "Bakpanel",
+  ups_outlet_status: "Uttagsstatus",
+  ups_outlet_turn_on: "Sl\xE5 p\xE5 uttag",
+  ups_outlet_turn_off: "St\xE4ng av uttag",
+  ups_outlet_power: "Uttagseffekt",
+  ups_outlet_preview: "F\xF6rhandsvisning: uttagens styrning och m\xE4tv\xE4rden \xE4r simulerade.",
+  ups_load: "UPS-belastning",
+  ups_power_budget: "Tillg\xE4nglig AC-effekt",
+  ups_power_consumption: "Total AC-f\xF6rbrukning",
+  ups_outlet_count: "{on} av {total} uttag p\xE5",
+  ups_outlet_unknown_count: "{count} uttag utan tillg\xE4ngligt kopplingstillst\xE5nd",
+  ups_outlet_switching: "V\xE4xlar\u2026",
+  ups_outlet_action_failed: "Uttaget kunde inte v\xE4xlas. F\xF6rs\xF6k igen.",
+  ups_outlet_no_confirmation: "Inget uppdaterat tillst\xE5nd mottaget. Kontrollera enheten innan du f\xF6rs\xF6ker igen.",
+  ups_confirm_outlet_off: "St\xE4ng av uttaget \u201D{outlet}\u201D?",
+  ups_preview: "F\xF6rhandsvisning: UPS-m\xE4tv\xE4rden och styrning \xE4r simulerade.",
+  ups_diagnostics: "UPS- och uttagsdiagnostik",
+  ups_diagnostics_disabled: "Inaktiverade entiteter",
+  ups_diagnostics_unavailable: "F\xF6r n\xE4rvarande otillg\xE4ngliga",
+  ups_diagnostics_not_exposed: "Exponeras inte av integrationen",
+  ups_diagnostics_not_exposed_hint: "Saknade entiteter visar inte om h\xE5rdvaran st\xF6der en funktion. Kontrollera enhetens entiteter i Home Assistant.",
+  ups_outlet_control: "Uttagsstyrning",
+  editor_default_outlet_label: "F\xF6rst valt uttag",
+  editor_default_outlet_first: "F\xF6rsta tillg\xE4ngliga uttaget",
+  editor_default_outlet_hint: "Anv\xE4nds n\xE4r dynamiska detaljer \xE4r avst\xE4ngda. Namnen kommer fr\xE5n UniFi Console via integrationen.",
+  editor_outlet_power_badges_text: "Visa effekt p\xE5 uttagen",
+  editor_confirm_outlet_off_text: "Bekr\xE4fta innan ett uttag st\xE4ngs av",
+  editor_confirm_outlet_off_hint: "Valfritt. Beg\xE4r endast bekr\xE4ftelse n\xE4r ett uttag st\xE4ngs av.",
+  editor_ups_telemetry_text: "Visa UPS-telemetri",
+  editor_ups_telemetry_hint: "Styr batteri\xF6versikten, batteriindikatorerna och UPS-m\xE4tv\xE4rdena. Uttagens m\xE4tv\xE4rden f\xF6rblir synliga.",
+  editor_back_panel_toggle_label: "Bakpanel",
+  editor_back_panel_toggle_text: "Visa bakpanelens bakgrund",
+  editor_back_panel_toggle_hint: "Aktiverat som standard. D\xF6lj bakgrunden medan uttag och n\xE4tverksportar f\xF6rblir synliga.",
+  editor_dynamic_outlet_details_label: "Dynamiska uttagsdetaljer",
+  editor_dynamic_outlet_details_text: "Visa uttagsdetaljer vid val",
+  editor_dynamic_outlet_details_hint: "B\xF6rjar utan valt uttag. Klicka f\xF6r status, effekt och styrning; klicka igen f\xF6r att d\xF6lja dem.",
+  editor_ups_layout_label: "UPS-vy",
+  editor_ups_layout_combined: "Fram- och bakpanel",
+  editor_ups_layout_hint: "V\xE4lj kombinerad vy, endast framsidan med telemetri eller bakpanelen med portar och kontroller.",
   ups_battery_level: "Batteriniv\xE5",
   ups_battery_runtime: "Batteritid",
   ups_output_power: "Uteffekt",
@@ -5480,6 +5941,53 @@ TRANSLATIONS.sv = {
 TRANSLATIONS.da = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetri",
+  power_telemetry: "SmartPower-telemetri",
+  power_load: "AC-belastning",
+  power_diagnostics: "SmartPower- og udtagsdiagnostik",
+  power_preview: "Forh\xE5ndsvisning: SmartPower-m\xE5linger og styring er simulerede.",
+  editor_power_telemetry_text: "Vis enhedens effektm\xE5linger",
+  editor_power_telemetry_hint: "Vis tilg\xE6ngeligt AC-forbrug, effektbudget og belastning. Udtagenes m\xE5linger forbliver synlige.",
+  editor_power_panel_text: "Vis baggrunden for udtagspanelet",
+  ups_outlets: "Udtag",
+  back_panel: "Bagpanel",
+  ups_outlet_status: "Udgangsstatus",
+  ups_outlet_turn_on: "T\xE6nd udgang",
+  ups_outlet_turn_off: "Sluk udgang",
+  ups_outlet_power: "Udgangseffekt",
+  ups_outlet_preview: "Forh\xE5ndsvisning: styring og m\xE5lev\xE6rdier for udgange er simuleret.",
+  ups_load: "UPS-belastning",
+  ups_power_budget: "Tilg\xE6ngelig AC-effekt",
+  ups_power_consumption: "Samlet AC-forbrug",
+  ups_outlet_count: "{on} af {total} udgange t\xE6ndt",
+  ups_outlet_unknown_count: "{count} udgange uden tilg\xE6ngelig skiftetilstand",
+  ups_outlet_switching: "Skifter\u2026",
+  ups_outlet_action_failed: "Udgangen kunne ikke skiftes. Pr\xF8v igen.",
+  ups_outlet_no_confirmation: "Ingen opdateret tilstand modtaget. Kontroller enheden f\xF8r et nyt fors\xF8g.",
+  ups_confirm_outlet_off: "Sluk udgangen \u201D{outlet}\u201D?",
+  ups_preview: "Forh\xE5ndsvisning: UPS-m\xE5linger og styring er simuleret.",
+  ups_diagnostics: "UPS- og udgangsdiagnose",
+  ups_diagnostics_disabled: "Deaktiverede entiteter",
+  ups_diagnostics_unavailable: "Aktuelt utilg\xE6ngelige",
+  ups_diagnostics_not_exposed: "Ikke eksponeret af integrationen",
+  ups_diagnostics_not_exposed_hint: "Manglende entiteter viser ikke, om hardwaren underst\xF8tter en funktion. Kontroller enhedens entiteter i Home Assistant.",
+  ups_outlet_control: "Udgangsstyring",
+  editor_default_outlet_label: "F\xF8rst valgt udgang",
+  editor_default_outlet_first: "F\xF8rste tilg\xE6ngelige udgang",
+  editor_default_outlet_hint: "Bruges, n\xE5r dynamiske detaljer er sl\xE5et fra. Navne kommer fra UniFi Console via integrationen.",
+  editor_outlet_power_badges_text: "Vis effekt p\xE5 udgangene",
+  editor_confirm_outlet_off_text: "Bekr\xE6ft f\xF8r en udgang slukkes",
+  editor_confirm_outlet_off_hint: "Valgfrit. Beder kun om bekr\xE6ftelse, n\xE5r en udgang slukkes.",
+  editor_ups_telemetry_text: "Vis UPS-telemetri",
+  editor_ups_telemetry_hint: "Styrer batterioversigten, batteriindikatorerne og UPS-m\xE5lingerne. Udgangenes m\xE5linger forbliver synlige.",
+  editor_back_panel_toggle_label: "Bagpanel",
+  editor_back_panel_toggle_text: "Vis bagpanelets baggrund",
+  editor_back_panel_toggle_hint: "Aktiveret som standard. Skjul baggrunden, mens udgange og netv\xE6rksporte forbliver synlige.",
+  editor_dynamic_outlet_details_label: "Dynamiske udgangsdetaljer",
+  editor_dynamic_outlet_details_text: "Vis udgangsdetaljer ved valg",
+  editor_dynamic_outlet_details_hint: "Starter uden valgt udgang. Klik for status, effekt og styring; klik igen for at skjule dem.",
+  editor_ups_layout_label: "UPS-visning",
+  editor_ups_layout_combined: "Front- og bagpanel",
+  editor_ups_layout_hint: "V\xE6lg kombineret visning, kun fronten med telemetri eller bagpanelet med porte og betjening.",
   ups_battery_level: "Batteriniveau",
   ups_battery_runtime: "Batteritid",
   ups_output_power: "Udgangseffekt",
@@ -5522,6 +6030,53 @@ TRANSLATIONS.da = {
 TRANSLATIONS.no = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetri",
+  power_telemetry: "SmartPower-telemetri",
+  power_load: "AC-belastning",
+  power_diagnostics: "SmartPower- og uttaksdiagnostikk",
+  power_preview: "Forh\xE5ndsvisning: SmartPower-m\xE5linger og styring er simulert.",
+  editor_power_telemetry_text: "Vis enhetens effektm\xE5linger",
+  editor_power_telemetry_hint: "Vis tilgjengelig AC-forbruk, effektbudsjett og belastning. Uttakenes m\xE5linger forblir synlige.",
+  editor_power_panel_text: "Vis bakgrunnen for uttakspanelet",
+  ups_outlets: "Uttak",
+  back_panel: "Bakpanel",
+  ups_outlet_status: "Uttaksstatus",
+  ups_outlet_turn_on: "Sl\xE5 p\xE5 uttak",
+  ups_outlet_turn_off: "Sl\xE5 av uttak",
+  ups_outlet_power: "Uttakseffekt",
+  ups_outlet_preview: "Forh\xE5ndsvisning: styring og m\xE5leverdier for uttak er simulert.",
+  ups_load: "UPS-belastning",
+  ups_power_budget: "Tilgjengelig AC-effekt",
+  ups_power_consumption: "Samlet AC-forbruk",
+  ups_outlet_count: "{on} av {total} uttak p\xE5",
+  ups_outlet_unknown_count: "{count} uttak uten tilgjengelig koblingstilstand",
+  ups_outlet_switching: "Bytter\u2026",
+  ups_outlet_action_failed: "Uttaket kunne ikke byttes. Pr\xF8v igjen.",
+  ups_outlet_no_confirmation: "Ingen oppdatert tilstand mottatt. Kontroller enheten f\xF8r et nytt fors\xF8k.",
+  ups_confirm_outlet_off: "Sl\xE5 av uttaket \xAB{outlet}\xBB?",
+  ups_preview: "Forh\xE5ndsvisning: UPS-m\xE5linger og styring er simulert.",
+  ups_diagnostics: "UPS- og uttaksdiagnostikk",
+  ups_diagnostics_disabled: "Deaktiverte entiteter",
+  ups_diagnostics_unavailable: "For tiden utilgjengelige",
+  ups_diagnostics_not_exposed: "Eksponeres ikke av integrasjonen",
+  ups_diagnostics_not_exposed_hint: "Manglende entiteter viser ikke om maskinvaren st\xF8tter en funksjon. Kontroller enhetens entiteter i Home Assistant.",
+  ups_outlet_control: "Uttaksstyring",
+  editor_default_outlet_label: "F\xF8rst valgt uttak",
+  editor_default_outlet_first: "F\xF8rste tilgjengelige uttak",
+  editor_default_outlet_hint: "Brukes n\xE5r dynamiske detaljer er av. Navnene kommer fra UniFi Console via integrasjonen.",
+  editor_outlet_power_badges_text: "Vis effekt p\xE5 uttakene",
+  editor_confirm_outlet_off_text: "Bekreft f\xF8r et uttak sl\xE5s av",
+  editor_confirm_outlet_off_hint: "Valgfritt. Ber bare om bekreftelse n\xE5r et uttak sl\xE5s av.",
+  editor_ups_telemetry_text: "Vis UPS-telemetri",
+  editor_ups_telemetry_hint: "Styrer batterioversikten, batteriindikatorene og UPS-m\xE5lingene. Uttakenes m\xE5linger forblir synlige.",
+  editor_back_panel_toggle_label: "Bakpanel",
+  editor_back_panel_toggle_text: "Vis bakpanelets bakgrunn",
+  editor_back_panel_toggle_hint: "Aktivert som standard. Skjul bakgrunnen mens uttak og nettverksporter forblir synlige.",
+  editor_dynamic_outlet_details_label: "Dynamiske uttaksdetaljer",
+  editor_dynamic_outlet_details_text: "Vis uttaksdetaljer ved valg",
+  editor_dynamic_outlet_details_hint: "Starter uten valgt uttak. Klikk for status, effekt og styring; klikk igjen for \xE5 skjule dem.",
+  editor_ups_layout_label: "UPS-visning",
+  editor_ups_layout_combined: "Front- og bakpanel",
+  editor_ups_layout_hint: "Velg kombinert visning, bare fronten med telemetri eller bakpanelet med porter og kontroller.",
   ups_battery_level: "Batteriniv\xE5",
   ups_battery_runtime: "Batteritid",
   ups_output_power: "Utgangseffekt",
@@ -5564,6 +6119,53 @@ TRANSLATIONS.no = {
 TRANSLATIONS.fi = {
   ...TRANSLATIONS.en,
   ups_telemetry: "UPS-telemetria",
+  power_telemetry: "SmartPower-telemetria",
+  power_load: "AC-kuormitus",
+  power_diagnostics: "SmartPower- ja pistorasiadiagnostiikka",
+  power_preview: "Esikatselu: SmartPower-mittaukset ja ohjaus ovat simuloituja.",
+  editor_power_telemetry_text: "N\xE4yt\xE4 laitteen tehomittaukset",
+  editor_power_telemetry_hint: "N\xE4yt\xE4 saatavilla oleva AC-kulutus, tehoraja ja kuormitus. Pistorasioiden mittaukset pysyv\xE4t n\xE4kyviss\xE4.",
+  editor_power_panel_text: "N\xE4yt\xE4 pistorasiapaneelin tausta",
+  ups_outlets: "Pistorasiat",
+  back_panel: "Takapaneeli",
+  ups_outlet_status: "Pistorasian tila",
+  ups_outlet_turn_on: "Kytke pistorasia p\xE4\xE4lle",
+  ups_outlet_turn_off: "Kytke pistorasia pois",
+  ups_outlet_power: "Pistorasian teho",
+  ups_outlet_preview: "Esikatselu: pistorasioiden ohjaus ja mittausarvot ovat simuloituja.",
+  ups_load: "UPS-kuormitus",
+  ups_power_budget: "K\xE4ytett\xE4viss\xE4 oleva AC-teho",
+  ups_power_consumption: "AC-kokonaiskulutus",
+  ups_outlet_count: "{on}/{total} pistorasiaa p\xE4\xE4ll\xE4",
+  ups_outlet_unknown_count: "{count} pistorasiaa ilman saatavilla olevaa kytkent\xE4tilaa",
+  ups_outlet_switching: "Kytket\xE4\xE4n\u2026",
+  ups_outlet_action_failed: "Pistorasian kytkent\xE4 ep\xE4onnistui. Yrit\xE4 uudelleen.",
+  ups_outlet_no_confirmation: "P\xE4ivitetty\xE4 tilaa ei saatu. Tarkista laite ennen uutta yrityst\xE4.",
+  ups_confirm_outlet_off: "Kytket\xE4\xE4nk\xF6 pistorasia \u201D{outlet}\u201D pois?",
+  ups_preview: "Esikatselu: UPS-mittaukset ja ohjaus ovat simuloituja.",
+  ups_diagnostics: "UPS- ja pistorasiadiagnostiikka",
+  ups_diagnostics_disabled: "Poistetut entiteetit",
+  ups_diagnostics_unavailable: "Ei t\xE4ll\xE4 hetkell\xE4 saatavilla",
+  ups_diagnostics_not_exposed: "Integraatio ei tarjoa",
+  ups_diagnostics_not_exposed_hint: "Puuttuvat entiteetit eiv\xE4t osoita, tukeeko laitteisto ominaisuutta. Tarkista laitteen entiteetit Home Assistantissa.",
+  ups_outlet_control: "Pistorasian ohjaus",
+  editor_default_outlet_label: "Aluksi valittu pistorasia",
+  editor_default_outlet_first: "Ensimm\xE4inen saatavilla oleva pistorasia",
+  editor_default_outlet_hint: "K\xE4ytet\xE4\xE4n, kun dynaamiset tiedot ovat pois k\xE4yt\xF6st\xE4. Nimet tulevat UniFi Consolesta integraation kautta.",
+  editor_outlet_power_badges_text: "N\xE4yt\xE4 teho pistorasioissa",
+  editor_confirm_outlet_off_text: "Vahvista ennen pistorasian sammuttamista",
+  editor_confirm_outlet_off_hint: "Valinnainen. Pyyt\xE4\xE4 vahvistusta vain sammutettaessa.",
+  editor_ups_telemetry_text: "N\xE4yt\xE4 UPS-telemetria",
+  editor_ups_telemetry_hint: "Ohjaa akun yhteenvetoa, akun ilmaisimia ja UPS-mittauksia. Pistorasioiden mittaukset pysyv\xE4t n\xE4kyviss\xE4.",
+  editor_back_panel_toggle_label: "Takapaneeli",
+  editor_back_panel_toggle_text: "N\xE4yt\xE4 takapaneelin tausta",
+  editor_back_panel_toggle_hint: "Oletuksena k\xE4yt\xF6ss\xE4. Piilota tausta ja s\xE4ilyt\xE4 pistorasiat ja verkkoportit n\xE4kyviss\xE4.",
+  editor_dynamic_outlet_details_label: "Dynaamiset pistorasian tiedot",
+  editor_dynamic_outlet_details_text: "N\xE4yt\xE4 pistorasian tiedot valittaessa",
+  editor_dynamic_outlet_details_hint: "Alussa ei valittua pistorasiaa. N\xE4yt\xE4 tila, teho ja ohjaus napsauttamalla; piilota ne napsauttamalla uudelleen.",
+  editor_ups_layout_label: "UPS-n\xE4kym\xE4",
+  editor_ups_layout_combined: "Etu- ja takapaneeli",
+  editor_ups_layout_hint: "Valitse yhdistetty n\xE4kym\xE4, vain etupaneeli telemetrialla tai takapaneeli portteineen ja ohjaimineen.",
   ups_battery_level: "Akun varaustaso",
   ups_battery_runtime: "Akun k\xE4ytt\xF6aika",
   ups_output_power: "L\xE4ht\xF6teho",
@@ -5606,6 +6208,53 @@ TRANSLATIONS.fi = {
 TRANSLATIONS.pl = {
   ...TRANSLATIONS.en,
   ups_telemetry: "Telemetria UPS",
+  power_telemetry: "Telemetria SmartPower",
+  power_load: "Obci\u0105\u017Cenie AC",
+  power_diagnostics: "Diagnostyka SmartPower i gniazd",
+  power_preview: "Podgl\u0105d: pomiary i sterowanie SmartPower s\u0105 symulowane.",
+  editor_power_telemetry_text: "Poka\u017C pomiary mocy urz\u0105dzenia",
+  editor_power_telemetry_hint: "Poka\u017C dost\u0119pne zu\u017Cycie AC, limit mocy i obci\u0105\u017Cenie. Pomiary gniazd pozostaj\u0105 widoczne.",
+  editor_power_panel_text: "Poka\u017C t\u0142o panelu gniazd",
+  ups_outlets: "Gniazda",
+  back_panel: "Panel tylny",
+  ups_outlet_status: "Stan gniazda",
+  ups_outlet_turn_on: "W\u0142\u0105cz gniazdo",
+  ups_outlet_turn_off: "Wy\u0142\u0105cz gniazdo",
+  ups_outlet_power: "Moc gniazda",
+  ups_outlet_preview: "Podgl\u0105d: sterowanie i odczyty gniazd s\u0105 symulowane.",
+  ups_load: "Obci\u0105\u017Cenie UPS",
+  ups_power_budget: "Dost\u0119pna moc AC",
+  ups_power_consumption: "\u0141\u0105czne zu\u017Cycie AC",
+  ups_outlet_count: "{on} z {total} gniazd w\u0142\u0105czonych",
+  ups_outlet_unknown_count: "{count} gniazd bez dost\u0119pnego stanu prze\u0142\u0105cznika",
+  ups_outlet_switching: "Prze\u0142\u0105czanie\u2026",
+  ups_outlet_action_failed: "Nie uda\u0142o si\u0119 prze\u0142\u0105czy\u0107 gniazda. Spr\xF3buj ponownie.",
+  ups_outlet_no_confirmation: "Nie otrzymano nowego stanu. Sprawd\u017A urz\u0105dzenie przed ponown\u0105 pr\xF3b\u0105.",
+  ups_confirm_outlet_off: "Wy\u0142\u0105czy\u0107 gniazdo \u201E{outlet}\u201D?",
+  ups_preview: "Podgl\u0105d: pomiary i sterowanie UPS s\u0105 symulowane.",
+  ups_diagnostics: "Diagnostyka UPS i gniazd",
+  ups_diagnostics_disabled: "Wy\u0142\u0105czone encje",
+  ups_diagnostics_unavailable: "Obecnie niedost\u0119pne",
+  ups_diagnostics_not_exposed: "Nieudost\u0119pniane przez integracj\u0119",
+  ups_diagnostics_not_exposed_hint: "Brak encji nie wskazuje, czy sprz\u0119t obs\u0142uguje funkcj\u0119. Sprawd\u017A encje urz\u0105dzenia w Home Assistant.",
+  ups_outlet_control: "Sterowanie gniazdem",
+  editor_default_outlet_label: "Pocz\u0105tkowo wybrane gniazdo",
+  editor_default_outlet_first: "Pierwsze dost\u0119pne gniazdo",
+  editor_default_outlet_hint: "U\u017Cywane przy wy\u0142\u0105czonych dynamicznych szczeg\xF3\u0142ach. Nazwy pochodz\u0105 z konsoli UniFi przez integracj\u0119.",
+  editor_outlet_power_badges_text: "Poka\u017C moc na gniazdach",
+  editor_confirm_outlet_off_text: "Potwierd\u017A przed wy\u0142\u0105czeniem gniazda",
+  editor_confirm_outlet_off_hint: "Opcjonalne. Prosi o potwierdzenie tylko przy wy\u0142\u0105czaniu.",
+  editor_ups_telemetry_text: "Poka\u017C telemetri\u0119 UPS",
+  editor_ups_telemetry_hint: "Steruje podsumowaniem baterii, jej wska\u017Anikami i pomiarami UPS. Pomiary gniazd pozostaj\u0105 widoczne.",
+  editor_back_panel_toggle_label: "Panel tylny",
+  editor_back_panel_toggle_text: "Poka\u017C t\u0142o panelu tylnego",
+  editor_back_panel_toggle_hint: "Domy\u015Blnie w\u0142\u0105czone. Ukryj t\u0142o, zachowuj\u0105c widoczne gniazda i porty sieciowe.",
+  editor_dynamic_outlet_details_label: "Dynamiczne szczeg\xF3\u0142y gniazd",
+  editor_dynamic_outlet_details_text: "Poka\u017C szczeg\xF3\u0142y po wybraniu gniazda",
+  editor_dynamic_outlet_details_hint: "Pocz\u0105tkowo \u017Cadne gniazdo nie jest wybrane. Kliknij, aby pokaza\u0107 stan, moc i sterowanie; kliknij ponownie, aby je ukry\u0107.",
+  editor_ups_layout_label: "Widok UPS",
+  editor_ups_layout_combined: "Panel przedni i tylny",
+  editor_ups_layout_hint: "Wybierz widok \u0142\u0105czony, tylko prz\xF3d z telemetri\u0105 albo panel tylny z portami i sterowaniem.",
   ups_battery_level: "Poziom baterii",
   ups_battery_runtime: "Czas pracy baterii",
   ups_output_power: "Moc wyj\u015Bciowa",
@@ -5648,6 +6297,53 @@ TRANSLATIONS.pl = {
 TRANSLATIONS.cs = {
   ...TRANSLATIONS.en,
   ups_telemetry: "Telemetrie UPS",
+  power_telemetry: "Telemetrie SmartPower",
+  power_load: "Zat\xED\u017Een\xED AC",
+  power_diagnostics: "Diagnostika SmartPower a z\xE1suvek",
+  power_preview: "N\xE1hled: m\u011B\u0159en\xED a ovl\xE1d\xE1n\xED SmartPower jsou simulovan\xE9.",
+  editor_power_telemetry_text: "Zobrazit m\u011B\u0159en\xED v\xFDkonu za\u0159\xEDzen\xED",
+  editor_power_telemetry_hint: "Zobrazit dostupnou spot\u0159ebu AC, limit v\xFDkonu a zat\xED\u017Een\xED. M\u011B\u0159en\xED z\xE1suvek z\u016Fst\xE1vaj\xED viditeln\xE1.",
+  editor_power_panel_text: "Zobrazit pozad\xED panelu z\xE1suvek",
+  ups_outlets: "Z\xE1suvky",
+  back_panel: "Zadn\xED panel",
+  ups_outlet_status: "Stav z\xE1suvky",
+  ups_outlet_turn_on: "Zapnout z\xE1suvku",
+  ups_outlet_turn_off: "Vypnout z\xE1suvku",
+  ups_outlet_power: "V\xFDkon z\xE1suvky",
+  ups_outlet_preview: "N\xE1hled: ovl\xE1d\xE1n\xED a m\u011B\u0159en\xE9 hodnoty z\xE1suvek jsou simulovan\xE9.",
+  ups_load: "Zat\xED\u017Een\xED UPS",
+  ups_power_budget: "Dostupn\xFD v\xFDkon AC",
+  ups_power_consumption: "Celkov\xE1 spot\u0159eba AC",
+  ups_outlet_count: "{on} z {total} z\xE1suvek zapnuto",
+  ups_outlet_unknown_count: "{count} z\xE1suvek bez dostupn\xE9ho stavu sp\xEDna\u010De",
+  ups_outlet_switching: "P\u0159ep\xEDn\xE1n\xED\u2026",
+  ups_outlet_action_failed: "Z\xE1suvku se nepoda\u0159ilo p\u0159epnout. Zkuste to znovu.",
+  ups_outlet_no_confirmation: "Nebyl p\u0159ijat aktualizovan\xFD stav. P\u0159ed dal\u0161\xEDm pokusem zkontrolujte za\u0159\xEDzen\xED.",
+  ups_confirm_outlet_off: "Vypnout z\xE1suvku \u201E{outlet}\u201C?",
+  ups_preview: "N\xE1hled: m\u011B\u0159en\xED a ovl\xE1d\xE1n\xED UPS jsou simulovan\xE9.",
+  ups_diagnostics: "Diagnostika UPS a z\xE1suvek",
+  ups_diagnostics_disabled: "Zak\xE1zan\xE9 entity",
+  ups_diagnostics_unavailable: "Aktu\xE1ln\u011B nedostupn\xE9",
+  ups_diagnostics_not_exposed: "Integrace neposkytuje",
+  ups_diagnostics_not_exposed_hint: "Chyb\u011Bj\xEDc\xED entity neukazuj\xED, zda hardware funkci podporuje. Zkontrolujte entity za\u0159\xEDzen\xED v Home Assistant.",
+  ups_outlet_control: "Ovl\xE1d\xE1n\xED z\xE1suvky",
+  editor_default_outlet_label: "Po\u010D\xE1te\u010Dn\xED z\xE1suvka",
+  editor_default_outlet_first: "Prvn\xED dostupn\xE1 z\xE1suvka",
+  editor_default_outlet_hint: "Pou\u017E\xEDv\xE1 se p\u0159i vypnut\xFDch dynamick\xFDch podrobnostech. N\xE1zvy poch\xE1zej\xED z UniFi Console p\u0159es integraci.",
+  editor_outlet_power_badges_text: "Zobrazit v\xFDkon na z\xE1suvk\xE1ch",
+  editor_confirm_outlet_off_text: "Potvrdit p\u0159ed vypnut\xEDm z\xE1suvky",
+  editor_confirm_outlet_off_hint: "Voliteln\xE9. Po\u017Eaduje potvrzen\xED pouze p\u0159i vypnut\xED.",
+  editor_ups_telemetry_text: "Zobrazit telemetrii UPS",
+  editor_ups_telemetry_hint: "\u0158\xEDd\xED p\u0159ehled baterie, jej\xED indik\xE1tory a m\u011B\u0159en\xED UPS. M\u011B\u0159en\xED z\xE1suvek z\u016Fst\xE1vaj\xED viditeln\xE9.",
+  editor_back_panel_toggle_label: "Zadn\xED panel",
+  editor_back_panel_toggle_text: "Zobrazit pozad\xED zadn\xEDho panelu",
+  editor_back_panel_toggle_hint: "Ve v\xFDchoz\xEDm stavu zapnuto. Skryjte pozad\xED a ponechte z\xE1suvky a s\xED\u0165ov\xE9 porty viditeln\xE9.",
+  editor_dynamic_outlet_details_label: "Dynamick\xE9 podrobnosti z\xE1suvek",
+  editor_dynamic_outlet_details_text: "Zobrazit podrobnosti p\u0159i v\xFDb\u011Bru z\xE1suvky",
+  editor_dynamic_outlet_details_hint: "Za\u010D\xEDn\xE1 bez vybran\xE9 z\xE1suvky. Kliknut\xEDm zobraz\xEDte stav, v\xFDkon a ovl\xE1d\xE1n\xED; dal\u0161\xEDm kliknut\xEDm je skryjete.",
+  editor_ups_layout_label: "Zobrazen\xED UPS",
+  editor_ups_layout_combined: "P\u0159edn\xED a zadn\xED panel",
+  editor_ups_layout_hint: "Vyberte kombinovan\xE9 zobrazen\xED, pouze p\u0159edn\xED stranu s telemetri\xED nebo zadn\xED panel s porty a ovl\xE1d\xE1n\xEDm.",
   ups_battery_level: "\xDArove\u0148 baterie",
   ups_battery_runtime: "Doba provozu na baterii",
   ups_output_power: "V\xFDstupn\xED v\xFDkon",
@@ -5696,6 +6392,139 @@ function t(hass, key) {
   const lang = hass?.language || hass?.locale?.language || "en";
   const strings = getTranslations(lang);
   return strings[key] ?? TRANSLATIONS.en[key] ?? key;
+}
+
+// src/ups.js
+var UPS_TELEMETRY_KEYS = [
+  "ups_battery_level",
+  "ups_battery_runtime",
+  "ups_output_power",
+  "ups_output_current",
+  "ups_output_voltage",
+  "ups_input_voltage",
+  "ups_bypass_voltage",
+  "ups_output_power_factor"
+];
+function numberState(hass, entityId) {
+  const raw = hass?.states?.[entityId]?.state;
+  if (raw == null || String(raw).trim() === "") return null;
+  const number = Number(String(raw).replace(",", "."));
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+function getUpsBatteryLevel(hass, context) {
+  const level = context?.fake_device ? context.preview_ups?.battery_level : numberState(hass, context?.ups_battery_level_entity);
+  return Number.isFinite(level) && level >= 0 && level <= 100 ? level : null;
+}
+function getUpsRuntimeSeconds(hass, context) {
+  if (context?.fake_device) return context.preview_ups?.battery_runtime ?? null;
+  const entityId = context?.ups_battery_runtime_entity;
+  const value = numberState(hass, entityId);
+  if (value == null) return null;
+  const unit = String(hass?.states?.[entityId]?.attributes?.unit_of_measurement || "s").toLowerCase();
+  const factor = {
+    s: 1,
+    sec: 1,
+    second: 1,
+    seconds: 1,
+    min: 60,
+    minute: 60,
+    minutes: 60,
+    h: 3600,
+    hr: 3600,
+    hour: 3600,
+    hours: 3600,
+    d: 86400,
+    day: 86400,
+    days: 86400
+  }[unit];
+  return factor ? value * factor : null;
+}
+function formatUpsNumber(hass, value, options = {}) {
+  try {
+    return new Intl.NumberFormat(hass?.language || hass?.locale?.language || "en", options).format(value);
+  } catch {
+    return new Intl.NumberFormat("en", options).format(value);
+  }
+}
+function formatUpsRuntime(hass, seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "\u2014";
+  const rounded = Math.floor(seconds);
+  const unit = (value, name) => formatUpsNumber(hass, value, { style: "unit", unit: name, unitDisplay: "short" });
+  if (rounded < 60) return unit(rounded, "second");
+  const hours = Math.floor(rounded / 3600);
+  const minutes = Math.floor(rounded % 3600 / 60);
+  return hours ? [unit(hours, "hour"), ...minutes ? [unit(minutes, "minute")] : []].join(" ") : unit(minutes, "minute");
+}
+function powerWatts(hass, entityId) {
+  const value = numberState(hass, entityId);
+  const unit = String(hass?.states?.[entityId]?.attributes?.unit_of_measurement || "").toLowerCase();
+  if (value == null || !["w", "kw"].includes(unit)) return null;
+  return value * (unit === "kw" ? 1e3 : 1);
+}
+function getUpsLoad(hass, context) {
+  const preview = context?.preview_power || context?.preview_ups;
+  const budget = context?.fake_device ? preview?.power_budget : powerWatts(hass, context?.ups_power_budget_entity);
+  const consumption = context?.fake_device ? preview?.power_consumption : powerWatts(hass, context?.ups_power_consumption_entity);
+  if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(consumption) || consumption < 0) return null;
+  const percent = consumption / budget * 100;
+  return Number.isFinite(percent) ? { budget, consumption, percent } : null;
+}
+function normalizeDefaultOutlet(value) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const index = Number(value);
+  return Number.isInteger(index) && index > 0 ? index : null;
+}
+function getDefaultUpsOutlet(outlets, value) {
+  return (outlets || []).find((outlet) => outlet.index === normalizeDefaultOutlet(value)) || outlets?.[0] || null;
+}
+function getUpsEntityDiagnostics(context, hass, showTelemetry = true) {
+  if (!["ups", "power_distribution"].includes(context?.type) || context?.fake_device) return [];
+  const entities = context.all_entities || context.telemetry_entities || context.entities || [];
+  const rows = [];
+  const check = (key, candidates, label = "") => {
+    const enabled = candidates.filter((entity) => !entity.disabled_by);
+    if (enabled.some((entity) => {
+      const state = hass?.states?.[entity.entity_id]?.state;
+      return state != null && !["", "unknown", "unavailable"].includes(String(state));
+    })) return;
+    rows.push({ key, label, status: enabled.length ? "unavailable" : candidates.length ? "disabled" : "not_exposed" });
+  };
+  const sensorCandidates = (feature, translationKey = feature, entityId = null) => entities.filter(
+    (entity) => String(entity.entity_id || "").startsWith("sensor.") && (entity.entity_id === entityId || parseUnifiDeviceUniqueId(entity.unique_id)?.feature === feature || entity.translation_key === translationKey)
+  );
+  if (showTelemetry) {
+    const keys = context.type === "ups" ? UPS_TELEMETRY_KEYS.filter((key) => !["ups_input_voltage", "ups_bypass_voltage"].includes(key)) : [];
+    const model = context.identity?.model_id || context.device?.model_id;
+    if (model === "USPDA2B") keys.push("ups_input_voltage");
+    if (model === "USWDA25") keys.push("ups_bypass_voltage");
+    for (const key of keys) check(key, sensorCandidates(key, key, context[`${key}_entity`]));
+    const acChecks = [
+      ["ups_power_budget", "ac_power_budget", "smartpower_ac_power_budget"],
+      ["ups_power_consumption", "ac_power_consumption", "smartpower_ac_power_consumption"]
+    ].map(([key, feature, tk]) => ({ key, candidates: sensorCandidates(feature, tk, context[`${key}_entity`]) }));
+    if (acChecks.some((item) => item.candidates.length)) {
+      for (const item of acChecks) check(item.key, item.candidates);
+    }
+  }
+  const outlets = /* @__PURE__ */ new Map();
+  const mac = normalizeMac(context.identity?.primary_mac);
+  for (const entity of entities) {
+    const parsed = parseUnifiOutletUniqueId(entity.unique_id);
+    if (!parsed || mac && parsed.mac !== mac) continue;
+    const domain = String(entity.entity_id || "").split(".")[0];
+    if (parsed.feature === "outlet_control" && domain !== "switch" || parsed.feature === "outlet_power" && domain !== "sensor") continue;
+    const group = outlets.get(parsed.outlet) || { control: [], power: [] };
+    group[parsed.feature === "outlet_control" ? "control" : "power"].push(entity);
+    outlets.set(parsed.outlet, group);
+  }
+  if (!outlets.size) check("ups_outlets", []);
+  for (const [index, group] of Array.from(outlets).sort(([a], [b]) => a - b)) {
+    const control = group.control[0];
+    const label = control?.original_name || group.power[0]?.translation_placeholders?.outlet_name || control?.name || `Outlet ${index}`;
+    check("ups_outlet_control", group.control, label);
+    if (context.type === "ups" || group.power.length) check("ups_outlet_power", group.power, label);
+  }
+  return rows;
 }
 
 // src/unifi-device-card-editor.js
@@ -5987,6 +6816,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         this._loadDeviceCtx(deviceId);
       }
     }
+    if (isOutletDeviceType(this._deviceCtx?.type)) this._patchWarning();
   }
   _t(key) {
     return t(this._hass, key);
@@ -6145,7 +6975,16 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.show_back_panel !== false) delete next.show_back_panel;
+    if (next.outlet_power_badges !== true) delete next.outlet_power_badges;
+    if (next.confirm_outlet_off !== true) delete next.confirm_outlet_off;
+    const defaultOutlet = normalizeDefaultOutlet(next.default_outlet);
+    if (defaultOutlet) next.default_outlet = defaultOutlet;
+    else delete next.default_outlet;
     if (next.dynamic_port_details !== true) delete next.dynamic_port_details;
+    if (next.dynamic_outlet_details !== true && !(next.dynamic_outlet_details === false && next.dynamic_port_details === true)) {
+      delete next.dynamic_outlet_details;
+    }
     if (!next.default_uplink_port) delete next.default_uplink_port;
     if (next.port_led_blink !== true) {
       delete next.port_led_blink;
@@ -6179,6 +7018,8 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.ap_compact_view !== true) delete next.ap_compact_view;
     if (next.integrated_ports !== false) delete next.integrated_ports;
     if (!["combined", "network", "ap"].includes(next.device_layout)) delete next.device_layout;
+    next.ups_layout = normalizeUpsLayout(next.ups_layout);
+    if (next.ups_layout === "combined") delete next.ups_layout;
     if (next.ap_compact_show_header_telemetry !== true) delete next.ap_compact_show_header_telemetry;
     this._dispatchConfig(next);
   }
@@ -6209,6 +7050,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       default_uplink_port: void 0,
       ports_per_row: nextDevice?.type === "gateway" ? void 0 : this._config?.ports_per_row,
       device_layout: void 0,
+      ups_layout: void 0,
       integrated_ports: void 0
     };
     if (!deviceId) {
@@ -6333,6 +7175,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
   _onDynamicPortDetailsChange(ev) {
     this._emitConfig({ dynamic_port_details: ev.target.checked ? true : void 0 });
   }
+  _onShowBackPanelChange(ev) {
+    this._emitConfig({ show_back_panel: ev.target.checked ? void 0 : false });
+  }
+  _onDynamicOutletDetailsChange(ev) {
+    this._emitConfig({ dynamic_outlet_details: ev.target.checked });
+  }
   _onPortLedBlinkChange(ev) {
     const enabled = ev.target.checked;
     const hasSharedSpeed = this._config?.port_led_blink_speed != null;
@@ -6455,7 +7303,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     })).filter((item) => item.count > 0);
   }
   _unavailableTelemetryItems() {
-    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading) return [];
+    if (this._config?.show_telemetry === false || !this._deviceCtx || this._deviceCtxLoading || isOutletDeviceType(this._deviceCtx.type)) return [];
     return getUnavailableHeaderTelemetryKeys(this._deviceCtx).map((labelKey) => this._t(labelKey));
   }
   _unavailableTelemetryHTML() {
@@ -6471,6 +7319,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
   }
   _warningHTML() {
+    if (isOutletDeviceType(this._deviceCtx?.type)) return "";
     if (this._entityHintLoading && !this._entityHint) {
       return `<div class="warn loading">${escapeHtml(this._t("warning_checking"))}</div>`;
     }
@@ -6494,6 +7343,22 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
       </div>
     `;
+  }
+  _upsDiagnosticsHTML() {
+    if (this._deviceCtxLoading) return "";
+    const rows = getUpsEntityDiagnostics(this._deviceCtx, this._hass, this._config?.show_telemetry !== false);
+    if (!rows.length) return "";
+    return `<div class="warn ups-diagnostics">
+      <div class="warn-title">${escapeHtml(this._t(this._deviceCtx.type === "power_distribution" ? "power_diagnostics" : "ups_diagnostics"))}</div>
+      ${["disabled", "unavailable", "not_exposed"].map((status) => {
+      const items = rows.filter((row) => row.status === status);
+      if (!items.length) return "";
+      return `<div class="warn-status">${escapeHtml(this._t(`ups_diagnostics_${status}`))}</div>
+          <ul>${items.map((row) => `<li>${escapeHtml(this._t(row.key))}${row.label ? ` \xB7 ${escapeHtml(row.label)}` : ""}</li>`).join("")}</ul>
+          ${status === "not_exposed" ? `<div class="hint">${escapeHtml(this._t("ups_diagnostics_not_exposed_hint"))}</div>` : ""}`;
+    }).join("")}
+      <div class="warn-path">${escapeHtml(this._t("warning_ha_path"))}</div>
+    </div>`;
   }
   _gatewayControlsHTML(showControls = true) {
     const deviceId = this._config?.device_id || "";
@@ -6834,6 +7699,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const selectedType = this._deviceCtx?.type || selectedDevice?.type || null;
     const isApDevice = selectedType === "access_point";
     const isSwitchDevice = selectedType === "switch";
+    const isUpsDevice = selectedType === "ups";
+    const isPowerDevice = selectedType === "power_distribution";
+    const isOutletDevice = isOutletDeviceType(selectedType);
     const isSwitchOrGateway = isSwitchDevice || selectedType === "gateway";
     const supportsIntegratedPorts = isApDevice && isApPortPanelAvailable(
       this._deviceCtx?.layout,
@@ -6846,8 +7714,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     const nameValue = this._config?.name || "";
     const showName = this._config?.show_name !== false;
     const showTelemetry = this._config?.show_telemetry !== false;
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
     const showPanel = this._config?.show_panel !== false;
+    const showBackPanel = this._config?.show_back_panel !== false;
     const dynamicPortDetails = this._config?.dynamic_port_details === true;
+    const dynamicOutletDetails = isDynamicOutletDetailsEnabled(this._config);
     const defaultUplinkPort = this._config?.default_uplink_port || "";
     const portLedBlink = this._config?.port_led_blink === true;
     const portLedBlinkRj45 = this._config?.port_led_blink_rj45 !== false;
@@ -6928,13 +7799,60 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
 
         <div class="field">
-          <label>${escapeHtml(this._t("editor_telemetry_toggle_label"))}</label>
+          <label>${escapeHtml(this._t(isPowerDevice ? "power_telemetry" : isUpsDevice ? "ups_telemetry" : "editor_telemetry_toggle_label"))}</label>
           <label class="checkbox-row">
             <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
-            <span>${escapeHtml(this._t("editor_telemetry_toggle_text"))}</span>
+            <span>${escapeHtml(this._t(isPowerDevice ? "editor_power_telemetry_text" : isUpsDevice ? "editor_ups_telemetry_text" : "editor_telemetry_toggle_text"))}</span>
           </label>
-          <div class="hint">${escapeHtml(this._t("editor_telemetry_toggle_hint"))}</div>
+          <div class="hint">${escapeHtml(this._t(isPowerDevice ? "editor_power_telemetry_hint" : isUpsDevice ? "editor_ups_telemetry_hint" : "editor_telemetry_toggle_hint"))}</div>
         </div>
+
+        ${isUpsDevice ? `<div class="field">
+          <label>${escapeHtml(this._t("editor_ups_layout_label"))}</label>
+          <select id="ups_layout">
+            <option value="combined" ${upsLayout === "combined" ? "selected" : ""}>${escapeHtml(this._t("editor_ups_layout_combined"))}</option>
+            <option value="front" ${upsLayout === "front" ? "selected" : ""}>${escapeHtml(this._t("front_panel"))}</option>
+            <option value="back" ${upsLayout === "back" ? "selected" : ""}>${escapeHtml(this._t("back_panel"))}</option>
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_ups_layout_hint"))}</div>
+        </div>` : ""}
+        ${isOutletDevice ? `<div class="field">
+          <label>${escapeHtml(this._t("editor_back_panel_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_back_panel" type="checkbox" ${showBackPanel ? "checked" : ""}>
+            <span>${escapeHtml(this._t(isPowerDevice ? "editor_power_panel_text" : "editor_back_panel_toggle_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_back_panel_toggle_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_dynamic_outlet_details_label"))}</label>
+          <label class="checkbox-row">
+            <input id="dynamic_outlet_details" type="checkbox" ${dynamicOutletDetails ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_dynamic_outlet_details_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_dynamic_outlet_details_hint"))}</div>
+        </div>
+        <div class="field">
+          <label>${escapeHtml(this._t("editor_default_outlet_label"))}</label>
+          <select id="default_outlet" ${dynamicOutletDetails ? "disabled" : ""}>
+            <option value="">${escapeHtml(this._t("editor_default_outlet_first"))}</option>
+            ${(this._deviceCtx?.outlet_entities || []).map((outlet) => `<option value="${outlet.index}" ${normalizeDefaultOutlet(this._config?.default_outlet) === outlet.index ? "selected" : ""}>${escapeHtml(outlet.label)}</option>`).join("")}
+          </select>
+          <div class="hint">${escapeHtml(this._t("editor_default_outlet_hint"))}</div>
+        </div>
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="outlet_power_badges" type="checkbox" ${this._config?.outlet_power_badges === true ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_outlet_power_badges_text"))}</span>
+          </label>
+        </div>
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="confirm_outlet_off" type="checkbox" ${this._config?.confirm_outlet_off === true ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_confirm_outlet_off_text"))}</span>
+          </label>
+          <div class="hint">${escapeHtml(this._t("editor_confirm_outlet_off_hint"))}</div>
+        </div>` : ""}
 
         ${isSwitchOrGateway ? `
         <div class="field">
@@ -7094,7 +8012,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
           <div class="hint">${escapeHtml(this._t("editor_colors_open_hint"))}</div>
         </div>
 
-        <div id="warning_slot">${this._warningHTML()}${this._unavailableTelemetryHTML()}</div>
+        <div id="warning_slot">${this._warningHTML()}${this._unavailableTelemetryHTML()}${this._upsDiagnosticsHTML()}</div>
         </div>
 
         <div class="color-step ${colorStepOpen ? "" : "hidden"}">
@@ -7170,7 +8088,12 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this.shadowRoot.getElementById("show_name")?.addEventListener("change", (ev) => this._onShowNameChange(ev));
     this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
+    this.shadowRoot.getElementById("show_back_panel")?.addEventListener("change", (ev) => this._onShowBackPanelChange(ev));
     this.shadowRoot.getElementById("dynamic_port_details")?.addEventListener("change", (ev) => this._onDynamicPortDetailsChange(ev));
+    this.shadowRoot.getElementById("dynamic_outlet_details")?.addEventListener("change", (ev) => this._onDynamicOutletDetailsChange(ev));
+    this.shadowRoot.getElementById("default_outlet")?.addEventListener("change", (ev) => this._emitConfig({ default_outlet: ev.target.value || void 0 }));
+    this.shadowRoot.getElementById("outlet_power_badges")?.addEventListener("change", (ev) => this._emitConfig({ outlet_power_badges: ev.target.checked ? true : void 0 }));
+    this.shadowRoot.getElementById("confirm_outlet_off")?.addEventListener("change", (ev) => this._emitConfig({ confirm_outlet_off: ev.target.checked ? true : void 0 }));
     this.shadowRoot.getElementById("default_uplink_port")?.addEventListener("change", (ev) => this._emitConfig({
       default_uplink_port: ev.target.value || void 0
     }));
@@ -7201,6 +8124,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
       device_layout: ev.target.value === "combined" ? void 0 : ev.target.value,
       integrated_ports: void 0
     }));
+    this.shadowRoot.getElementById("ups_layout")?.addEventListener("change", (ev) => this._emitConfig({
+      ups_layout: ev.target.value === "combined" ? void 0 : ev.target.value
+    }));
     this.shadowRoot.getElementById("ap_compact_view")?.addEventListener("change", (ev) => this._onApCompactViewChange(ev));
     this.shadowRoot.getElementById("ap_compact_show_header_telemetry")?.addEventListener("change", (ev) => this._onApCompactHeaderTelemetryChange(ev));
     this.shadowRoot.getElementById("background_opacity")?.addEventListener("change", (ev) => this._onBackgroundOpacityInput(ev));
@@ -7230,7 +8156,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (!this._rendered || !this.shadowRoot) return;
     const slot = this.shadowRoot.getElementById("warning_slot");
     if (!slot) return;
-    slot.innerHTML = `${this._warningHTML()}${this._unavailableTelemetryHTML()}`;
+    slot.innerHTML = `${this._warningHTML()}${this._unavailableTelemetryHTML()}${this._upsDiagnosticsHTML()}`;
   }
   _patchFields() {
     if (!this._rendered || !this.shadowRoot) return;
@@ -7246,6 +8172,7 @@ var VERSION = "1.0.0";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
+var OUTLET_STATE_CONFIRMATION_TIMEOUT = 1e4;
 var LOG_STYLES = {
   badge: "background:#00AEEF;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
   version: "background:#2a2a2a;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
@@ -7268,6 +8195,9 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._config = {};
     this._ctx = null;
     this._selectedKey = null;
+    this._fakeOutletStates = /* @__PURE__ */ new Map();
+    this._pendingOutletActions = /* @__PURE__ */ new Map();
+    this._outletErrors = /* @__PURE__ */ new Map();
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
@@ -7382,12 +8312,20 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._panelObserver = null;
     this._observedFrontPanel = null;
     this._clearUptimeRefreshTimer();
+    this._clearUpsOutletActions();
   }
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const oldFakeMode = this._config?.fake_device === true;
     const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
+    const oldDefaultOutlet = this._config?.default_outlet;
     const newConfig = { ...config || {} };
+    const defaultOutlet = normalizeDefaultOutlet(newConfig.default_outlet);
+    if (defaultOutlet) newConfig.default_outlet = defaultOutlet;
+    else delete newConfig.default_outlet;
+    const upsLayout = normalizeUpsLayout(newConfig.ups_layout);
+    if (upsLayout === "combined") delete newConfig.ups_layout;
+    else newConfig.ups_layout = upsLayout;
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
@@ -7410,8 +8348,17 @@ var UnifiDeviceCard = class extends HTMLElement {
     const newFakeMode = newConfig?.fake_device === true;
     const dynamicPortDetailsEnabled = newConfig.dynamic_port_details === true;
     const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
+    const dynamicOutletDetailsEnabled = isDynamicOutletDetailsEnabled(newConfig);
+    const dynamicOutletDetailsWasEnabled = isDynamicOutletDetailsEnabled(this._config);
     this._config = newConfig;
-    if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
+    const selectedIsOutlet = this._selectedKey?.startsWith("outlet:");
+    if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled && !selectedIsOutlet || dynamicOutletDetailsEnabled && !dynamicOutletDetailsWasEnabled && selectedIsOutlet) {
+      this._selectedKey = null;
+    }
+    if (oldDeviceId === newDeviceId && isOutletDeviceType(this._ctx?.type) && oldDefaultOutlet !== newConfig.default_outlet && !dynamicOutletDetailsEnabled) {
+      const outlet = getDefaultUpsOutlet(this._ctx.outlet_entities, newConfig.default_outlet);
+      this._selectedKey = outlet ? `outlet:${outlet.index}` : null;
+    }
     if (oldDeviceId === newDeviceId && oldDefaultUplinkPort !== (newConfig.default_uplink_port || "") && !dynamicPortDetailsEnabled && this._ctx) {
       const slotData = this._buildSlotData(this._ctx);
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
@@ -7440,6 +8387,8 @@ var UnifiDeviceCard = class extends HTMLElement {
       this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
+      this._fakeOutletStates.clear();
+      this._clearUpsOutletActions();
       this._loadedDeviceId = null;
       this._contextLoadedAt = 0;
       this._loading = false;
@@ -7454,9 +8403,10 @@ var UnifiDeviceCard = class extends HTMLElement {
     const previousHass = this._hass;
     this._hass = hass;
     this._ensureLoaded();
+    const outletActionsChanged = this._finishConfirmedUpsOutletActions();
     this._log("trace", "hass update");
     const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
-    if (!previousHass || !this._ctx || telemetrySelectionChanged || this._hasRelevantStateChanges(previousHass, hass)) {
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
   }
@@ -8045,6 +8995,10 @@ var UnifiDeviceCard = class extends HTMLElement {
       const entityId = this._ctx?.[key];
       if (entityId) ids.add(entityId);
     }
+    for (const outlet of this._ctx?.outlet_entities || []) {
+      if (outlet.entity_id) ids.add(outlet.entity_id);
+      if (outlet.power_entity) ids.add(outlet.power_entity);
+    }
     const { specials, numbered } = this._buildSlotData(this._ctx);
     const portEntityKeys = [
       "link_entity",
@@ -8271,21 +9225,30 @@ var UnifiDeviceCard = class extends HTMLElement {
       }
       const slotData = this._buildSlotData(ctx);
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
-      const available = [...displaySlots.specials, ...displaySlots.numbered];
+      const outlets = isOutletDeviceType(ctx?.type) ? ctx.outlet_entities || [] : [];
+      const available = [
+        ...outlets.map((outlet) => ({ key: `outlet:${outlet.index}` })),
+        ...displaySlots.specials,
+        ...displaySlots.numbered
+      ];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
       if (!selectedStillExists) {
-        const defaultPort = getDefaultPort(
-          [...slotData.specials, ...slotData.numbered],
-          getDefaultPortCandidates(
-            ctx?.type,
-            ctx?.layout,
-            slotData.specials,
-            slotData.numbered
-          ),
-          this._config?.default_uplink_port,
-          (slot) => this._isPortConnected(slot)
-        );
-        this._selectedKey = this._config?.dynamic_port_details === true ? null : resolveDisplayPort(defaultPort, available)?.key || null;
+        if (outlets.length) {
+          this._selectedKey = isDynamicOutletDetailsEnabled(this._config) ? null : `outlet:${getDefaultUpsOutlet(outlets, this._config?.default_outlet).index}`;
+        } else {
+          const defaultPort = getDefaultPort(
+            [...slotData.specials, ...slotData.numbered],
+            getDefaultPortCandidates(
+              ctx?.type,
+              ctx?.layout,
+              slotData.specials,
+              slotData.numbered
+            ),
+            this._config?.default_uplink_port,
+            (slot) => this._isPortConnected(slot)
+          );
+          this._selectedKey = this._config?.dynamic_port_details === true ? null : resolveDisplayPort(defaultPort, available)?.key || null;
+        }
       }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
@@ -8302,7 +9265,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._render();
   }
   _selectKey(key) {
-    this._selectedKey = this._config?.dynamic_port_details === true && this._selectedKey === key ? null : key;
+    const dynamic = key?.startsWith("outlet:") ? isDynamicOutletDetailsEnabled(this._config) : this._config?.dynamic_port_details === true;
+    this._selectedKey = dynamic && this._selectedKey === key ? null : key;
     this._render();
   }
   async _toggleEntity(entityId) {
@@ -8367,6 +9331,19 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _upsMetrics() {
     if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    const battery = getUpsBatteryLevel(this._hass, this._ctx);
+    const runtime = formatUpsRuntime(this._hass, getUpsRuntimeSeconds(this._hass, this._ctx));
+    if (this._ctx.fake_device) {
+      const load = this._upsLoad();
+      return [
+        { key: "ups_battery_level", value: battery == null ? "\u2014" : formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 }) },
+        { key: "ups_battery_runtime", value: runtime },
+        ...load ? [
+          { key: "ups_output_power", value: `${formatUpsNumber(this._hass, load.consumption)} W` },
+          { key: "ups_power_budget", value: `${formatUpsNumber(this._hass, load.budget)} W` }
+        ] : []
+      ].filter((item) => item.value !== "\u2014").map((item) => ({ ...item, label: this._t(item.key) }));
+    }
     return [
       "ups_battery_level",
       "ups_battery_runtime",
@@ -8375,14 +9352,220 @@ var UnifiDeviceCard = class extends HTMLElement {
       "ups_output_voltage",
       "ups_input_voltage",
       "ups_bypass_voltage",
-      "ups_output_power_factor"
-    ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] })).filter((item) => item.entity && formatState(this._hass, item.entity) !== "\u2014").map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+      "ups_output_power_factor",
+      "ups_power_budget",
+      "ups_power_consumption"
+    ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] })).filter((item) => item.entity && formatState(this._hass, item.entity) !== "\u2014").map((item) => ({ key: item.key, label: this._t(item.key), value: item.key === "ups_battery_runtime" ? runtime : item.key === "ups_battery_level" && battery != null ? formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 }) : formatState(this._hass, item.entity) }));
+  }
+  _upsLoad() {
+    if (!this._ctx?.fake_device) return getUpsLoad(this._hass, this._ctx);
+    const consumption = (this._ctx.outlet_entities || []).reduce((total, outlet) => total + (this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0), 0);
+    const previewKey = this._ctx.type === "power_distribution" ? "preview_power" : "preview_ups";
+    return getUpsLoad(this._hass, { ...this._ctx, [previewKey]: {
+      ...this._ctx[previewKey],
+      power_consumption: consumption
+    } });
+  }
+  _renderUpsSummary(battery, runtime, load, loadLabel = this._t("ups_load")) {
+    if (battery == null && runtime === "\u2014" && !load) return "";
+    const percentText = (value) => formatUpsNumber(this._hass, value / 100, { style: "percent", maximumFractionDigits: 0 });
+    return `<div class="ups-summary">
+      ${battery != null ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_battery_level"))}</div>
+        <div class="detail-value">${this._escapeHtml(percentText(battery))}</div>
+        <div class="ups-meter" role="progressbar" aria-label="${this._escapeAttr(this._t("ups_battery_level"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${battery}"><i style="width:${battery}%"></i></div>
+      </div>` : ""}
+      ${runtime !== "\u2014" ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_battery_runtime"))}</div>
+        <div class="detail-value">${this._escapeHtml(runtime)}</div>
+      </div>` : ""}
+      ${load ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(loadLabel)}</div>
+        <div class="detail-value">${this._escapeHtml(`${formatUpsNumber(this._hass, load.consumption)} W \xB7 ${percentText(load.percent)}`)}</div>
+        <div class="ups-meter load" title="${this._escapeAttr(`${this._t("ups_power_budget")}: ${formatUpsNumber(this._hass, load.budget)} W`)}"><i style="width:${Math.min(100, load.percent)}%"></i></div>
+      </div>` : ""}
+    </div>`;
+  }
+  _upsOutletState(outlet) {
+    if (this._ctx?.fake_device === true) {
+      return this._fakeOutletStates.get(outlet.index) || outlet.preview_state || "off";
+    }
+    const state = this._hass?.states?.[outlet?.entity_id]?.state;
+    return state === "on" || state === "off" ? state : null;
+  }
+  _upsOutletPower(outlet) {
+    if (this._ctx?.fake_device === true) {
+      if (!Number.isFinite(outlet.preview_power)) return null;
+      return `${this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0} W`;
+    }
+    return outlet.power_entity ? formatState(this._hass, outlet.power_entity) : null;
+  }
+  async _toggleUpsOutlet(index) {
+    const outlet = this._ctx?.outlet_entities?.find((item) => item.index === index);
+    if (!outlet || this._pendingOutletActions.has(index)) return;
+    const state = this._upsOutletState(outlet);
+    if (!state) return;
+    if (state === "on" && this._config?.confirm_outlet_off === true && !window.confirm(this._t("ups_confirm_outlet_off").replace("{outlet}", outlet.label))) return;
+    this._outletErrors.delete(index);
+    if (this._ctx?.fake_device === true) {
+      this._fakeOutletStates.set(index, state === "on" ? "off" : "on");
+      this._render();
+    } else if (outlet.entity_id) {
+      const action = { entityId: outlet.entity_id, target: state === "on" ? "off" : "on", serviceComplete: false, timer: null };
+      this._pendingOutletActions.set(index, action);
+      this._render();
+      try {
+        await this._hass.callService("switch", action.target === "on" ? "turn_on" : "turn_off", { entity_id: action.entityId });
+        if (this._pendingOutletActions.get(index) !== action) return;
+        action.serviceComplete = true;
+        this._finishConfirmedUpsOutletActions();
+        if (this._pendingOutletActions.get(index) === action) {
+          action.timer = setTimeout(() => {
+            if (this._pendingOutletActions.get(index) !== action) return;
+            this._pendingOutletActions.delete(index);
+            this._outletErrors.set(index, "ups_outlet_no_confirmation");
+            this._render();
+          }, OUTLET_STATE_CONFIRMATION_TIMEOUT);
+        }
+      } catch (err) {
+        if (this._pendingOutletActions.get(index) !== action) return;
+        this._pendingOutletActions.delete(index);
+        this._outletErrors.set(index, "ups_outlet_action_failed");
+        this._log("error", "UPS outlet action failed", err);
+      }
+      this._render();
+    }
+  }
+  _finishConfirmedUpsOutletActions() {
+    let changed = false;
+    for (const [index, action] of this._pendingOutletActions) {
+      if (!action.serviceComplete || this._hass?.states?.[action.entityId]?.state !== action.target) continue;
+      clearTimeout(action.timer);
+      this._pendingOutletActions.delete(index);
+      changed = true;
+    }
+    return changed;
+  }
+  _clearUpsOutletActions() {
+    for (const action of this._pendingOutletActions.values()) clearTimeout(action.timer);
+    this._pendingOutletActions.clear();
+    this._outletErrors.clear();
+  }
+  _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
+    const rawState = this._upsOutletState(outlet);
+    const enabled = rawState === "on";
+    const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "\u2014";
+    const key = `outlet:${outlet.index}`;
+    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" aria-pressed="${selectedKey === key}" title="${this._escapeAttr([outlet.label, state, this._upsOutletPower(outlet)].filter(Boolean).join(" \xB7 "))}">
+      <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
+      <span class="ups-outlet-led"></span>
+      <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
+      ${this._config?.outlet_power_badges === true && this._upsOutletPower(outlet) != null ? `<span class="ups-outlet-power">${this._escapeHtml(this._upsOutletPower(outlet))}</span>` : ""}
+    </button>`;
+  }
+  _renderUpsOutletDetail(outlet) {
+    const rawState = this._upsOutletState(outlet);
+    const enabled = rawState === "on";
+    const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "\u2014";
+    const power = this._upsOutletPower(outlet);
+    const pending = this._pendingOutletActions.has(outlet.index);
+    const error = this._outletErrors.get(outlet.index);
+    return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_status"))}</div>
+          <div class="detail-value ${rawState ? enabled ? "online" : "offline" : ""}">${this._escapeHtml(state)}</div>
+        </div>
+        ${power != null ? `<div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_power"))}</div>
+          <div class="detail-value">${this._escapeHtml(power)}</div>
+        </div>` : ""}
+      </div>
+      ${outlet?.entity_id || this._ctx?.fake_device === true ? `<div class="actions">
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-outlet-index="${outlet.index}" ${rawState && !pending ? "" : "disabled"} aria-busy="${pending}">
+          ${this._escapeHtml(this._t(pending ? "ups_outlet_switching" : enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
+        </button>
+      </div>` : ""}
+      ${error ? `<div class="ups-action-error" role="alert">${this._escapeHtml(this._t(error))}</div>` : ""}
+      ${this._ctx?.fake_device === true ? `<div class="muted">${this._escapeHtml(this._t("ups_outlet_preview"))}</div>` : ""}`;
+  }
+  _renderOutletCount(outlets) {
+    if (!outlets.length) return "";
+    const on = outlets.filter((outlet) => this._upsOutletState(outlet) === "on").length;
+    const unknown = outlets.filter((outlet) => !this._upsOutletState(outlet)).length;
+    const text = this._t("ups_outlet_count").replace("{on}", String(on)).replace("{total}", String(outlets.length));
+    const title = unknown ? this._t("ups_outlet_unknown_count").replace("{count}", String(unknown)) : text;
+    return `<span class="chip compact" title="${this._escapeAttr(title)}">${this._escapeHtml(text)}${unknown ? " \xB7 \u2014" : ""}</span>`;
+  }
+  _renderPowerOutlet(outlet, selectedKey) {
+    const rawState = this._upsOutletState(outlet);
+    const state = rawState ? this._t(rawState === "on" ? "state_on" : "state_off") : "\u2014";
+    const key = `outlet:${outlet.index}`;
+    const selected = selectedKey === key;
+    const power = this._config?.outlet_power_badges === true ? this._upsOutletPower(outlet) : null;
+    return `<button class="ups-outlet-port power-outlet-port${selected ? " selected" : ""}" data-outlet-key="${key}" aria-pressed="${selected}" title="${this._escapeAttr([outlet.label, state, this._upsOutletPower(outlet)].filter(Boolean).join(" \xB7 "))}">
+      <span class="power-outlet-symbol${rawState === "on" ? " enabled" : ""}" aria-hidden="true">\u23FB</span>
+      <span class="power-outlet-label">${this._escapeHtml(outlet.label)}</span>
+      <span class="power-outlet-status">${this._escapeHtml(state)}</span>
+      ${power != null ? `<span class="ups-outlet-power">${this._escapeHtml(power)}</span>` : ""}
+    </button>`;
+  }
+  _renderPowerCard(ctx) {
+    const outlets = ctx.outlet_entities || [];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey) || (isDynamicOutletDetailsEnabled(this._config) ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet));
+    const load = this._telemetryEnabled() ? this._upsLoad() : null;
+    const summary = this._renderUpsSummary(null, "\u2014", load, this._t("power_load"));
+    const metrics = this._telemetryEnabled() ? ["ups_power_budget", "ups_power_consumption"].filter((key) => !load || key === "ups_power_budget").map((key) => ({ label: this._t(key), value: ctx.fake_device && load ? `${formatUpsNumber(this._hass, load.budget)} W` : formatState(this._hass, ctx[`${key}_entity`]) })).filter((item) => item.value !== "\u2014") : [];
+    const headerTitle = this._title();
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions ups-header-actions">
+            ${this._renderOutletCount(outlets)}
+            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        ${summary ? `<div class="section ups-summary-section">${summary}</div>` : ""}
+        <div class="power-outlet-panel${this._config?.show_back_panel === false ? " no-panel-bg" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("ups_outlets"))}</div>
+          ${outlets.length ? `<div class="power-outlets">${outlets.map((outlet) => this._renderPowerOutlet(outlet, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`}
+          ${ctx.fake_device ? `<div class="muted">${this._escapeHtml(this._t("power_preview"))}</div>` : ""}
+        </div>
+        ${selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${metrics.length ? `<div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("power_telemetry"))}</div>
+          <div class="detail-grid">${metrics.map((item) => `<div class="detail-item"><div class="detail-label">${this._escapeHtml(item.label)}</div><div class="detail-value">${this._escapeHtml(item.value)}</div></div>`).join("")}</div>
+        </div>` : ""}
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this._attachPortActionHandlers(ctx);
+    this._attachOutletHandlers();
   }
   _renderUpsCard(ctx) {
-    const metrics = this._upsMetrics();
+    const metrics = this._upsMetrics().filter((item) => !["ups_battery_level", "ups_battery_runtime"].includes(item.key));
     const telemetryEnabled = this._telemetryEnabled();
+    const battery = telemetryEnabled ? getUpsBatteryLevel(this._hass, ctx) : null;
+    const runtime = telemetryEnabled ? formatUpsRuntime(this._hass, getUpsRuntimeSeconds(this._hass, ctx)) : "\u2014";
+    const load = telemetryEnabled ? this._upsLoad() : null;
+    const summary = this._renderUpsSummary(battery, runtime, load);
+    const batteryText = battery == null ? "\u2014" : formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 });
     const headerTitle = this._title();
     const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const tower = isUpsTower(ctx?.device || ctx?.identity);
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
+    const showFront = upsLayout !== "back";
+    const showBack = upsLayout !== "front";
+    const showBackPanel = this._config?.show_back_panel !== false;
+    const outlets = ctx?.outlet_entities || [];
+    const { specials, numbered } = this._buildSlotData(ctx);
+    const networkPorts = [...specials, ...numbered];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey) || (isDynamicOutletDetailsEnabled(this._config) || this._selectedKey ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet)) || null;
+    const selectedPort = networkPorts.find((port) => port.key === this._selectedKey) || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0]) || null;
+    const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
@@ -8391,33 +9574,57 @@ var UnifiDeviceCard = class extends HTMLElement {
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
             <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
           </div>
-          <div class="header-actions">
+          <div class="header-actions ups-header-actions">
+            ${this._renderOutletCount(outlets)}
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
           </div>
         </div>
-        <div class="ups-visual" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+        ${summary ? `<div class="section ups-summary-section">${summary}${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}</div>` : ""}
+        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr([ctx?.model || "UniFi UPS", ...battery != null ? [`${this._t("ups_battery_level")}: ${batteryText}`] : [], ...runtime !== "\u2014" ? [runtime] : []].join(" \xB7 "))}">
+          ${tower ? `<div class="ups-tower">
+            <div class="ups-tower-vents left"></div>
+            <div class="ups-tower-vents right"></div>
+            <div class="ups-tower-power"><span></span></div>
+            <div class="ups-tower-battery">${Array.from({ length: 5 }, (_, index) => `<i class="${battery != null && battery > index * 20 ? "active" : ""}"></i>`).join("")}</div>
+            <div class="ups-tower-seam"></div>
+            <div class="ups-tower-logo">U</div>
+            <div class="ups-tower-mark"><i></i> UPS</div>
+          </div>` : `
           <div class="ups-chassis${hasDisplay ? " pro" : ""}">
             <div class="ups-vents top">${ventSlots}</div>
             <div class="ups-power"><span></span></div>
             <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
             ${hasDisplay ? `<div class="ups-display">
-              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
-              <span></span>
+              <div class="ups-display-reading"><strong>${this._escapeHtml(batteryText)}</strong><small>${this._escapeHtml(runtime)}</small></div>
             </div>` : `<div class="ups-logo">U</div>`}
             <div class="ups-vents bottom">${ventSlots}</div>
           </div>
-        </div>
-        ${telemetryEnabled ? `<div class="section">
+          `}
+        </div>` : ""}
+        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}${showBackPanel ? "" : " no-panel-bg"}">
+          <div class="panel-label">${this._escapeHtml(this._t("back_panel"))}</div>
+          ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : ""}
+          ${networkPorts.length ? `<div class="ups-network-ports">${networkPorts.map((port) => this._renderPortButton(port, selectedPort?.key, portClientIndex)).join("")}</div>` : ""}
+        </div>` : ""}
+        ${showBack && selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${showBack && selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
+        ${telemetryEnabled && (metrics.length || !summary) ? `<div class="section">
           <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
           ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
             <div class="detail-item">
               <div class="detail-label">${this._escapeHtml(item.label)}</div>
               <div class="detail-value">${this._escapeHtml(item.value)}</div>
-            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+            </div>`).join("")}</div>` : battery == null && runtime === "\u2014" && !load ? `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>` : ""}
+          ${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}
         </div>` : ""}
       </ha-card>`;
     this._attachDeviceLinkHandler();
-    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+    this._attachPortActionHandlers(ctx);
+    this._attachOutletHandlers();
+  }
+  _attachOutletHandlers() {
+    this.shadowRoot.querySelectorAll("[data-outlet-key]").forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
+    this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-outlet-index]").forEach((button) => button.addEventListener("click", () => this._toggleUpsOutlet(Number(button.dataset.outletIndex))));
   }
   /**
    * Wrapper around the module-level isPortConnected() that adds sticky-state
@@ -8754,9 +9961,325 @@ var UnifiDeviceCard = class extends HTMLElement {
         50% { opacity: .4; }
       }
 
+      .ups-header-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 55%; }
+      .ups-header-actions .chip { white-space: normal; }
+
+      .ups-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .ups-summary-item { min-width: 0; }
+      .ups-meter { height: 6px; border-radius: 4px; background: var(--divider-color, #405269); overflow: hidden; margin-top: 7px; }
+      .ups-meter i { display: block; height: 100%; border-radius: inherit; background: var(--primary-color, #0090d9); }
+      .ups-action-error { margin-top: 8px; color: var(--error-color, #e86b6b); font-size: .8rem; }
+      .action-btn[aria-busy]:disabled { opacity: .55; cursor: default; }
+      .ups-outlet-power { font-size: 8px; white-space: nowrap; }
+
+      .power-outlet-panel {
+        padding: 16px 14px;
+        background: color-mix(in srgb, var(--udc-chrome-bg, var(--card-background-color)) 90%, var(--secondary-text-color) 10%);
+      }
+      .power-outlet-panel.no-panel-bg { background: var(--udc-chrome-bg, transparent); }
+      .power-outlets { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+      .power-outlet-panel .muted { margin-top: 12px; }
+      .power-outlet-panel .power-outlet-port {
+        padding: 12px 8px;
+        border-color: var(--divider-color, #405269);
+        background: var(--udc-card-bg, var(--card-background-color));
+        color: var(--primary-text-color);
+      }
+      .power-outlet-panel .power-outlet-port.selected,
+      .power-outlet-panel .power-outlet-port:focus-visible,
+      .power-outlet-panel .power-outlet-port:hover {
+        border-color: var(--primary-color, #0090d9);
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 90%, var(--primary-color, #0090d9) 10%);
+      }
+      .power-outlet-symbol { font-size: 24px; line-height: 1; color: var(--secondary-text-color); }
+      .power-outlet-symbol.enabled { color: var(--primary-color, #0090d9); }
+      .power-outlet-label { width: 100%; font-size: 11px; line-height: 1.3; overflow-wrap: anywhere; }
+      .power-outlet-status, .power-outlet-port .ups-outlet-power { font-size: 10px; }
+
       .ups-visual {
         padding: 18px 20px;
         background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
+      }
+
+      .ups-visual.tower {
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .ups-tower {
+        position: relative;
+        width: 132px;
+        height: 286px;
+        overflow: hidden;
+        border: 1px solid #d7d9dc;
+        border-radius: 31px 31px 20px 20px;
+        background: linear-gradient(100deg, #e3e5e7 0%, #fbfbfc 16%, #f5f6f7 82%, #d9dcde 100%);
+        box-shadow: inset 0 1px 3px #fff, inset 0 -5px 8px rgba(100,106,112,.12), 0 9px 13px -9px rgba(0,0,0,.65);
+      }
+
+      .ups-tower-vents {
+        position: absolute;
+        top: 22px;
+        bottom: 24px;
+        width: 5px;
+        border-radius: 4px;
+        background: repeating-linear-gradient(to bottom, #777d82 0 2px, #d9dcde 2px 4px);
+        box-shadow: inset 0 0 2px rgba(0,0,0,.7);
+      }
+
+      .ups-tower-vents.left { left: 4px; }
+      .ups-tower-vents.right { right: 4px; }
+
+      .ups-tower-power {
+        position: absolute;
+        top: 42px;
+        left: 50%;
+        width: 31px;
+        height: 31px;
+        transform: translateX(-50%);
+        border: 3px solid #70a9ff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(72,143,255,.55), inset 0 0 5px rgba(104,164,255,.25);
+      }
+
+      .ups-tower-power span {
+        position: absolute;
+        top: 7px;
+        left: 13px;
+        width: 3px;
+        height: 11px;
+        border-radius: 2px;
+        background: #aab0b6;
+      }
+
+      .ups-tower-battery {
+        position: absolute;
+        top: 91px;
+        left: 50%;
+        display: flex;
+        gap: 5px;
+        transform: translateX(-50%);
+      }
+
+      .ups-tower-battery i {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #aeb6c0;
+      }
+
+      .ups-tower-battery i.active {
+        background: #69a2ff;
+        box-shadow: 0 0 3px rgba(58,132,255,.7);
+      }
+
+      .ups-tower-seam {
+        position: absolute;
+        top: 114px;
+        right: 7px;
+        left: 7px;
+        height: 2px;
+        background: linear-gradient(#c5c8cb, #fff);
+        box-shadow: 0 1px 2px rgba(90,95,100,.2);
+      }
+
+      .ups-tower-logo {
+        position: absolute;
+        top: 190px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #e1e3e5;
+        font-size: 28px;
+        font-weight: 800;
+        text-shadow: 0 1px 1px #fff;
+      }
+
+      .ups-tower-mark {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #aaaeb2;
+        font-size: 6px;
+        white-space: nowrap;
+      }
+
+      .ups-tower-mark i {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #b9bdc0;
+        vertical-align: -1px;
+      }
+
+      .ups-connection-panel {
+        padding: 14px;
+        background: linear-gradient(145deg, #d5d7d8, #b8bbbd);
+        border-top: 1px solid rgba(255,255,255,.7);
+        border-bottom: 1px solid rgba(55,60,64,.25);
+      }
+
+      .ups-connection-panel.tower {
+        background: linear-gradient(145deg, #fafbfc, #e6e8ea);
+        border-top-color: #fff;
+        border-bottom-color: #c9cdd0;
+      }
+
+      .ups-connection-panel.no-panel-bg {
+        background: var(--udc-chrome-bg, transparent);
+        border-top-color: transparent;
+        border-bottom-color: transparent;
+      }
+
+      .ups-connection-panel.no-panel-bg .panel-label {
+        color: var(--secondary-text-color);
+      }
+
+      .ups-connection-panel.no-panel-bg .ups-outlet-port {
+        color: var(--primary-text-color);
+      }
+
+      .ups-connection-panel .panel-label {
+        color: #555c62;
+        margin-bottom: 10px;
+      }
+
+      .ups-physical-outlets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+        gap: 9px;
+      }
+
+      .ups-outlet-port {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: 58px;
+        padding: 5px 4px 3px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: transparent;
+        color: #3f464c;
+        cursor: pointer;
+      }
+
+      .ups-outlet-port:hover:not(:disabled),
+      .ups-outlet-port:focus-visible,
+      .ups-outlet-port.selected {
+        border-color: rgba(0,112,190,.65);
+        background: rgba(255,255,255,.2);
+      }
+
+      .ups-outlet-port.selected {
+        box-shadow: 0 0 0 1px rgba(0,112,190,.22);
+      }
+
+      .ups-outlet-port:disabled { cursor: default; }
+
+      .ups-outlet-socket {
+        position: relative;
+        display: block;
+        width: 46px;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 4px;
+        border: 2px solid #111416;
+        border-radius: 7px 7px 5px 5px;
+        background: linear-gradient(#272b2e, #090b0d);
+        box-shadow: inset 0 0 0 1px #42474a, 0 1px 2px rgba(0,0,0,.5);
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 1px solid #4b5053;
+        border-radius: 4px 4px 3px 3px;
+        background: #171a1c;
+        box-shadow: inset 0 1px 4px #000;
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess i {
+        position: absolute;
+        width: 5px;
+        height: 9px;
+        border-radius: 1px;
+        background: #020303;
+        box-shadow: inset 0 1px 2px #000, 0 0 0 1px #34383b;
+      }
+
+      .ups-outlet-recess i:nth-child(1) { top: 11px; left: 6px; }
+      .ups-outlet-recess i:nth-child(2) { top: 11px; right: 6px; }
+      .ups-outlet-recess i:nth-child(3) {
+        top: 3px;
+        left: 50%;
+        width: 5px;
+        height: 8px;
+        transform: translateX(-50%);
+      }
+
+      .ups-outlet-port.light { color: #626970; }
+
+      .ups-outlet-port.light .ups-outlet-socket {
+        border-color: #f7f8f9;
+        background: linear-gradient(#fff, #e2e5e7);
+        box-shadow: inset 0 0 0 2px #cfd3d6, 0 1px 3px rgba(70,76,82,.35);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess {
+        border-color: #c8cdd0;
+        background: #edf0f1;
+        box-shadow: inset 0 1px 3px rgba(80,86,91,.28);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess i {
+        background: #555c61;
+        box-shadow: inset 0 1px 2px #33383c, 0 0 0 1px #bbc0c3;
+      }
+
+      .ups-outlet-led {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #667078;
+        box-shadow: inset 0 0 1px rgba(0,0,0,.8);
+      }
+
+      .ups-outlet-port.enabled .ups-outlet-led {
+        background: #4792ff;
+        box-shadow: 0 0 4px rgba(46,126,255,.9);
+      }
+
+      .ups-outlet-label {
+        max-width: 62px;
+        overflow: hidden;
+        font-size: 8px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ups-network-ports {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 13px;
+        padding-top: 11px;
+        border-top: 1px solid rgba(70,75,80,.22);
       }
 
       .ups-chassis {
@@ -8887,6 +10410,19 @@ var UnifiDeviceCard = class extends HTMLElement {
         box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
       }
 
+      .ups-display-reading {
+        color: #69b6ff;
+        display: grid;
+        gap: 1px;
+        width: 100%;
+        text-align: center;
+        line-height: 1;
+        overflow: hidden;
+      }
+
+      .ups-display-reading strong { font-size: clamp(9px, 1.8vw, 13px); }
+      .ups-display-reading small { font-size: clamp(6px, 1.2vw, 8px); white-space: nowrap; }
+
       .ups-display-grid {
         display: grid;
         flex: 1;
@@ -8914,6 +10450,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         .ups-visual { padding: 14px 12px; }
         .ups-chassis { min-height: 70px; }
         .ups-vents span { height: 5px; }
+        .ups-physical-outlets { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); }
       }
 
       .frontpanel {
@@ -10519,6 +12056,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
   }
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "power_distribution") {
+      this._renderPowerCard(this._ctx);
+      return;
+    }
     if (this._ctx?.type === "ups") {
       this._renderUpsCard(this._ctx);
       return;

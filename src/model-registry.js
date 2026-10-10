@@ -133,16 +133,32 @@ export function applyPortsPerRowOverride(layout, portsPerRow) {
 // ─────────────────────────────────────────────────────────────────────────────
 export const MODEL_REGISTRY = {
 
+  // SmartPower devices use an outlet overview rather than a chassis rendering.
+  UP6: {
+    kind: "power_distribution", frontStyle: "outlets", rows: [], portCount: 0,
+    outletCount: 7, displayModel: "SmartPower Strip", specialSlots: [],
+    previewUsbOutlets: [7], previewUsbGroup: true, previewMetering: false,
+  },
+  USPPDUP: {
+    kind: "power_distribution", frontStyle: "outlets", rows: [], portCount: 0,
+    outletCount: 20, displayModel: "SmartPower PDU Pro", specialSlots: [],
+    previewUsbOutlets: [1, 2, 3, 4],
+  },
+
   // ══════════════════════════════════════════════════════════════════════════
   // UNINTERRUPTIBLE POWER SUPPLIES
   // ══════════════════════════════════════════════════════════════════════════
   USPDA2B: {
-    kind: "ups", frontStyle: "ups-rack", rows: [], portCount: 0,
+    kind: "ups", frontStyle: "ups-rack", rows: [[1]], portCount: 1, outletCount: 8,
     displayModel: "UPS 2U Pro", theme: "silver", specialSlots: [],
   },
   USWDA25: {
-    kind: "ups", frontStyle: "ups-rack", rows: [], portCount: 0,
+    kind: "ups", frontStyle: "ups-rack", rows: [[1]], portCount: 1, outletCount: 8,
     displayModel: "UPS 2U", theme: "silver", specialSlots: [],
+  },
+  USWDA24: {
+    kind: "ups", frontStyle: "ups-tower", rows: [[1]], portCount: 1, outletCount: 10,
+    displayModel: "UPS Tower", theme: "white", specialSlots: [],
   },
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1159,6 +1175,9 @@ export function resolveModelKey(device) {
     if (!candidate) continue;
 
     if (MODEL_REGISTRY[candidate]) return candidate;
+
+    if (candidate === "USPSTRIP" || candidate === "SMARTPOWERSTRIP") return "UP6";
+    if (["USPPDUPRO", "SMARTPOWERPDUPRO", "POWERDISTRIBUTIONPRO"].includes(candidate)) return "USPPDUP";
 
     if (candidate.includes("UDMPROSE"))           return "UDMPROSE";
     if (candidate.includes("UDMPROMAX"))          return "UDMPROMAX";

@@ -11,6 +11,8 @@ import {
   getDefaultPortCandidates,
   getLinkLedClass,
   isApPortPanelAvailable,
+  isDynamicOutletDetailsEnabled,
+  isOutletDeviceType,
   resolveDisplayPort,
   getPoeStatus,
   getPortSpeedText,
@@ -18,12 +20,14 @@ import {
   hasUpsFrontDisplay,
   isUptimeTimestampState,
   isSfpLikePort,
+  isUpsTower,
   isOn,
   isPortConnected,
   mergePortsWithLayout,
   mergeSpecialsWithLayout,
   normalizeLinkLedColor,
   normalizePositivePortNumbers,
+  normalizeUpsLayout,
   normalizeLagGroups,
   normalizePortNames,
   parseLinkSpeedMbit,
@@ -33,12 +37,17 @@ import {
 } from "./helpers.js";
 import { normalizeMac } from "./identity.js";
 import { t } from "./translations.js";
+import {
+  formatUpsNumber, formatUpsRuntime, getDefaultUpsOutlet, getUpsBatteryLevel,
+  getUpsLoad, getUpsRuntimeSeconds, normalizeDefaultOutlet,
+} from "./ups.js";
 import "./unifi-device-card-editor.js";
 
 const VERSION = __VERSION__;
 const DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 const CONTEXT_REFRESH_INTERVAL = 31000;
+const OUTLET_STATE_CONFIRMATION_TIMEOUT = 10000;
 const LOG_STYLES = {
   badge: "background:#00AEEF;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
   version: "background:#2a2a2a;color:#fff;padding:2px 6px;border-radius:2px;font-weight:700;",
@@ -64,6 +73,9 @@ class UnifiDeviceCard extends HTMLElement {
     this._config = {};
     this._ctx = null;
     this._selectedKey = null;
+    this._fakeOutletStates = new Map();
+    this._pendingOutletActions = new Map();
+    this._outletErrors = new Map();
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
@@ -202,13 +214,21 @@ class UnifiDeviceCard extends HTMLElement {
     this._panelObserver = null;
     this._observedFrontPanel = null;
     this._clearUptimeRefreshTimer();
+    this._clearUpsOutletActions();
   }
 
   setConfig(config) {
     const oldDeviceId = this._config?.device_id || null;
     const oldFakeMode = this._config?.fake_device === true;
     const oldDefaultUplinkPort = this._config?.default_uplink_port || "";
+    const oldDefaultOutlet = this._config?.default_outlet;
     const newConfig = { ...(config || {}) };
+    const defaultOutlet = normalizeDefaultOutlet(newConfig.default_outlet);
+    if (defaultOutlet) newConfig.default_outlet = defaultOutlet;
+    else delete newConfig.default_outlet;
+    const upsLayout = normalizeUpsLayout(newConfig.ups_layout);
+    if (upsLayout === "combined") delete newConfig.ups_layout;
+    else newConfig.ups_layout = upsLayout;
     const trustLinkSpeedPorts = normalizePositivePortNumbers(newConfig.trust_link_speed_ports);
     if (trustLinkSpeedPorts.length) {
       newConfig.trust_link_speed_ports = trustLinkSpeedPorts;
@@ -231,8 +251,19 @@ class UnifiDeviceCard extends HTMLElement {
     const newFakeMode = newConfig?.fake_device === true;
     const dynamicPortDetailsEnabled = newConfig.dynamic_port_details === true;
     const dynamicPortDetailsWasEnabled = this._config?.dynamic_port_details === true;
+    const dynamicOutletDetailsEnabled = isDynamicOutletDetailsEnabled(newConfig);
+    const dynamicOutletDetailsWasEnabled = isDynamicOutletDetailsEnabled(this._config);
     this._config = newConfig;
-    if (dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled) this._selectedKey = null;
+    const selectedIsOutlet = this._selectedKey?.startsWith("outlet:");
+    if ((dynamicPortDetailsEnabled && !dynamicPortDetailsWasEnabled && !selectedIsOutlet) ||
+        (dynamicOutletDetailsEnabled && !dynamicOutletDetailsWasEnabled && selectedIsOutlet)) {
+      this._selectedKey = null;
+    }
+    if (oldDeviceId === newDeviceId && isOutletDeviceType(this._ctx?.type) &&
+        oldDefaultOutlet !== newConfig.default_outlet && !dynamicOutletDetailsEnabled) {
+      const outlet = getDefaultUpsOutlet(this._ctx.outlet_entities, newConfig.default_outlet);
+      this._selectedKey = outlet ? `outlet:${outlet.index}` : null;
+    }
     if (
       oldDeviceId === newDeviceId &&
       oldDefaultUplinkPort !== (newConfig.default_uplink_port || "") &&
@@ -267,6 +298,8 @@ class UnifiDeviceCard extends HTMLElement {
       this._clearUptimeRefreshTimer();
       this._ctx = null;
       this._selectedKey = null;
+      this._fakeOutletStates.clear();
+      this._clearUpsOutletActions();
       this._loadedDeviceId = null;
       this._contextLoadedAt = 0;
       this._loading = false;
@@ -283,9 +316,10 @@ class UnifiDeviceCard extends HTMLElement {
     const previousHass = this._hass;
     this._hass = hass;
     this._ensureLoaded();
+    const outletActionsChanged = this._finishConfirmedUpsOutletActions();
     this._log("trace", "hass update");
     const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
-    if (!previousHass || !this._ctx || telemetrySelectionChanged || this._hasRelevantStateChanges(previousHass, hass)) {
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || this._hasRelevantStateChanges(previousHass, hass)) {
       this._render();
     }
   }
@@ -1046,6 +1080,11 @@ class UnifiDeviceCard extends HTMLElement {
       if (entityId) ids.add(entityId);
     }
 
+    for (const outlet of this._ctx?.outlet_entities || []) {
+      if (outlet.entity_id) ids.add(outlet.entity_id);
+      if (outlet.power_entity) ids.add(outlet.power_entity);
+    }
+
     const { specials, numbered } = this._buildSlotData(this._ctx);
     const portEntityKeys = [
       "link_entity",
@@ -1364,23 +1403,33 @@ class UnifiDeviceCard extends HTMLElement {
 
       const slotData = this._buildSlotData(ctx);
       const displaySlots = this._applySpecialPortSelection(slotData.specials, slotData.numbered);
-      const available = [...displaySlots.specials, ...displaySlots.numbered];
+      const outlets = isOutletDeviceType(ctx?.type) ? ctx.outlet_entities || [] : [];
+      const available = [
+        ...outlets.map((outlet) => ({ key: `outlet:${outlet.index}` })),
+        ...displaySlots.specials, ...displaySlots.numbered,
+      ];
       const selectedStillExists = available.some((slot) => slot.key === this._selectedKey);
       if (!selectedStillExists) {
-        const defaultPort = getDefaultPort(
-          [...slotData.specials, ...slotData.numbered],
-          getDefaultPortCandidates(
-            ctx?.type,
-            ctx?.layout,
-            slotData.specials,
-            slotData.numbered
-          ),
-          this._config?.default_uplink_port,
-          (slot) => this._isPortConnected(slot)
-        );
-        this._selectedKey = this._config?.dynamic_port_details === true
-          ? null
-          : resolveDisplayPort(defaultPort, available)?.key || null;
+        if (outlets.length) {
+          this._selectedKey = isDynamicOutletDetailsEnabled(this._config)
+            ? null
+            : `outlet:${getDefaultUpsOutlet(outlets, this._config?.default_outlet).index}`;
+        } else {
+          const defaultPort = getDefaultPort(
+            [...slotData.specials, ...slotData.numbered],
+            getDefaultPortCandidates(
+              ctx?.type,
+              ctx?.layout,
+              slotData.specials,
+              slotData.numbered
+            ),
+            this._config?.default_uplink_port,
+            (slot) => this._isPortConnected(slot)
+          );
+          this._selectedKey = this._config?.dynamic_port_details === true
+            ? null
+            : resolveDisplayPort(defaultPort, available)?.key || null;
+        }
       }
     } catch (err) {
       this._log("error", "Failed to load device context", err);
@@ -1399,7 +1448,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _selectKey(key) {
-    this._selectedKey = this._config?.dynamic_port_details === true && this._selectedKey === key
+    const dynamic = key?.startsWith("outlet:")
+      ? isDynamicOutletDetailsEnabled(this._config)
+      : this._config?.dynamic_port_details === true;
+    this._selectedKey = dynamic && this._selectedKey === key
       ? null
       : key;
     this._render();
@@ -1482,6 +1534,19 @@ class UnifiDeviceCard extends HTMLElement {
 
   _upsMetrics() {
     if (!this._telemetryEnabled() || !this._ctx || !this._hass) return [];
+    const battery = getUpsBatteryLevel(this._hass, this._ctx);
+    const runtime = formatUpsRuntime(this._hass, getUpsRuntimeSeconds(this._hass, this._ctx));
+    if (this._ctx.fake_device) {
+      const load = this._upsLoad();
+      return [
+        { key: "ups_battery_level", value: battery == null ? "—" : formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 }) },
+        { key: "ups_battery_runtime", value: runtime },
+        ...(load ? [
+          { key: "ups_output_power", value: `${formatUpsNumber(this._hass, load.consumption)} W` },
+          { key: "ups_power_budget", value: `${formatUpsNumber(this._hass, load.budget)} W` },
+        ] : []),
+      ].filter((item) => item.value !== "—").map((item) => ({ ...item, label: this._t(item.key) }));
+    }
     return [
       "ups_battery_level",
       "ups_battery_runtime",
@@ -1491,16 +1556,247 @@ class UnifiDeviceCard extends HTMLElement {
       "ups_input_voltage",
       "ups_bypass_voltage",
       "ups_output_power_factor",
+      "ups_power_budget",
+      "ups_power_consumption",
     ].map((key) => ({ key, entity: this._ctx[`${key}_entity`] }))
       .filter((item) => item.entity && formatState(this._hass, item.entity) !== "—")
-      .map((item) => ({ label: this._t(item.key), value: formatState(this._hass, item.entity) }));
+      .map((item) => ({ key: item.key, label: this._t(item.key), value: item.key === "ups_battery_runtime" ? runtime
+        : item.key === "ups_battery_level" && battery != null
+          ? formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 })
+          : formatState(this._hass, item.entity) }));
+  }
+
+  _upsLoad() {
+    if (!this._ctx?.fake_device) return getUpsLoad(this._hass, this._ctx);
+    const consumption = (this._ctx.outlet_entities || []).reduce((total, outlet) =>
+      total + (this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0), 0);
+    const previewKey = this._ctx.type === "power_distribution" ? "preview_power" : "preview_ups";
+    return getUpsLoad(this._hass, { ...this._ctx, [previewKey]: {
+      ...this._ctx[previewKey], power_consumption: consumption,
+    } });
+  }
+
+  _renderUpsSummary(battery, runtime, load, loadLabel = this._t("ups_load")) {
+    if (battery == null && runtime === "—" && !load) return "";
+    const percentText = (value) => formatUpsNumber(this._hass, value / 100, { style: "percent", maximumFractionDigits: 0 });
+    return `<div class="ups-summary">
+      ${battery != null ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_battery_level"))}</div>
+        <div class="detail-value">${this._escapeHtml(percentText(battery))}</div>
+        <div class="ups-meter" role="progressbar" aria-label="${this._escapeAttr(this._t("ups_battery_level"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${battery}"><i style="width:${battery}%"></i></div>
+      </div>` : ""}
+      ${runtime !== "—" ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(this._t("ups_battery_runtime"))}</div>
+        <div class="detail-value">${this._escapeHtml(runtime)}</div>
+      </div>` : ""}
+      ${load ? `<div class="ups-summary-item">
+        <div class="detail-label">${this._escapeHtml(loadLabel)}</div>
+        <div class="detail-value">${this._escapeHtml(`${formatUpsNumber(this._hass, load.consumption)} W · ${percentText(load.percent)}`)}</div>
+        <div class="ups-meter load" title="${this._escapeAttr(`${this._t("ups_power_budget")}: ${formatUpsNumber(this._hass, load.budget)} W`)}"><i style="width:${Math.min(100, load.percent)}%"></i></div>
+      </div>` : ""}
+    </div>`;
+  }
+
+  _upsOutletState(outlet) {
+    if (this._ctx?.fake_device === true) {
+      return this._fakeOutletStates.get(outlet.index) || outlet.preview_state || "off";
+    }
+    const state = this._hass?.states?.[outlet?.entity_id]?.state;
+    return state === "on" || state === "off" ? state : null;
+  }
+
+  _upsOutletPower(outlet) {
+    if (this._ctx?.fake_device === true) {
+      if (!Number.isFinite(outlet.preview_power)) return null;
+      return `${this._upsOutletState(outlet) === "on" ? outlet.preview_power || 0 : 0} W`;
+    }
+    return outlet.power_entity ? formatState(this._hass, outlet.power_entity) : null;
+  }
+
+  async _toggleUpsOutlet(index) {
+    const outlet = this._ctx?.outlet_entities?.find((item) => item.index === index);
+    if (!outlet || this._pendingOutletActions.has(index)) return;
+    const state = this._upsOutletState(outlet);
+    if (!state) return;
+    if (state === "on" && this._config?.confirm_outlet_off === true &&
+        !window.confirm(this._t("ups_confirm_outlet_off").replace("{outlet}", outlet.label))) return;
+    this._outletErrors.delete(index);
+    if (this._ctx?.fake_device === true) {
+      this._fakeOutletStates.set(index, state === "on" ? "off" : "on");
+      this._render();
+    } else if (outlet.entity_id) {
+      const action = { entityId: outlet.entity_id, target: state === "on" ? "off" : "on", serviceComplete: false, timer: null };
+      this._pendingOutletActions.set(index, action);
+      this._render();
+      try {
+        await this._hass.callService("switch", action.target === "on" ? "turn_on" : "turn_off", { entity_id: action.entityId });
+        if (this._pendingOutletActions.get(index) !== action) return;
+        action.serviceComplete = true;
+        this._finishConfirmedUpsOutletActions();
+        if (this._pendingOutletActions.get(index) === action) {
+          action.timer = setTimeout(() => {
+            if (this._pendingOutletActions.get(index) !== action) return;
+            this._pendingOutletActions.delete(index);
+            this._outletErrors.set(index, "ups_outlet_no_confirmation");
+            this._render();
+          }, OUTLET_STATE_CONFIRMATION_TIMEOUT);
+        }
+      } catch (err) {
+        if (this._pendingOutletActions.get(index) !== action) return;
+        this._pendingOutletActions.delete(index);
+        this._outletErrors.set(index, "ups_outlet_action_failed");
+        this._log("error", "UPS outlet action failed", err);
+      }
+      this._render();
+    }
+  }
+
+  _finishConfirmedUpsOutletActions() {
+    let changed = false;
+    for (const [index, action] of this._pendingOutletActions) {
+      if (!action.serviceComplete || this._hass?.states?.[action.entityId]?.state !== action.target) continue;
+      clearTimeout(action.timer);
+      this._pendingOutletActions.delete(index);
+      changed = true;
+    }
+    return changed;
+  }
+
+  _clearUpsOutletActions() {
+    for (const action of this._pendingOutletActions.values()) clearTimeout(action.timer);
+    this._pendingOutletActions.clear();
+    this._outletErrors.clear();
+  }
+
+  _renderUpsOutletPort(outlet, light = false, selectedKey = null) {
+    const rawState = this._upsOutletState(outlet);
+    const enabled = rawState === "on";
+    const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "—";
+    const key = `outlet:${outlet.index}`;
+    return `<button class="ups-outlet-port${light ? " light" : ""}${enabled ? " enabled" : ""}${selectedKey === key ? " selected" : ""}" data-outlet-key="${this._escapeAttr(key)}" aria-pressed="${selectedKey === key}" title="${this._escapeAttr([outlet.label, state, this._upsOutletPower(outlet)].filter(Boolean).join(" · "))}">
+      <span class="ups-outlet-socket"><span class="ups-outlet-recess"><i></i><i></i><i></i></span></span>
+      <span class="ups-outlet-led"></span>
+      <span class="ups-outlet-label">${this._escapeHtml(outlet.label)}</span>
+      ${this._config?.outlet_power_badges === true && this._upsOutletPower(outlet) != null ? `<span class="ups-outlet-power">${this._escapeHtml(this._upsOutletPower(outlet))}</span>` : ""}
+    </button>`;
+  }
+
+  _renderUpsOutletDetail(outlet) {
+    const rawState = this._upsOutletState(outlet);
+    const enabled = rawState === "on";
+    const state = rawState ? this._t(enabled ? "state_on" : "state_off") : "—";
+    const power = this._upsOutletPower(outlet);
+    const pending = this._pendingOutletActions.has(outlet.index);
+    const error = this._outletErrors.get(outlet.index);
+    return `<div class="detail-title">${this._escapeHtml(outlet?.label || this._t("ups_outlets"))}</div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_status"))}</div>
+          <div class="detail-value ${rawState ? (enabled ? "online" : "offline") : ""}">${this._escapeHtml(state)}</div>
+        </div>
+        ${power != null ? `<div class="detail-item">
+          <div class="detail-label">${this._escapeHtml(this._t("ups_outlet_power"))}</div>
+          <div class="detail-value">${this._escapeHtml(power)}</div>
+        </div>` : ""}
+      </div>
+      ${outlet?.entity_id || this._ctx?.fake_device === true ? `<div class="actions">
+        <button class="action-btn ${enabled ? "secondary" : "primary"}" data-action="toggle-outlet" data-outlet-index="${outlet.index}" ${rawState && !pending ? "" : "disabled"} aria-busy="${pending}">
+          ${this._escapeHtml(this._t(pending ? "ups_outlet_switching" : enabled ? "ups_outlet_turn_off" : "ups_outlet_turn_on"))}
+        </button>
+      </div>` : ""}
+      ${error ? `<div class="ups-action-error" role="alert">${this._escapeHtml(this._t(error))}</div>` : ""}
+      ${this._ctx?.fake_device === true ? `<div class="muted">${this._escapeHtml(this._t("ups_outlet_preview"))}</div>` : ""}`;
+  }
+
+  _renderOutletCount(outlets) {
+    if (!outlets.length) return "";
+    const on = outlets.filter((outlet) => this._upsOutletState(outlet) === "on").length;
+    const unknown = outlets.filter((outlet) => !this._upsOutletState(outlet)).length;
+    const text = this._t("ups_outlet_count").replace("{on}", String(on)).replace("{total}", String(outlets.length));
+    const title = unknown ? this._t("ups_outlet_unknown_count").replace("{count}", String(unknown)) : text;
+    return `<span class="chip compact" title="${this._escapeAttr(title)}">${this._escapeHtml(text)}${unknown ? " · —" : ""}</span>`;
+  }
+
+  _renderPowerOutlet(outlet, selectedKey) {
+    const rawState = this._upsOutletState(outlet);
+    const state = rawState ? this._t(rawState === "on" ? "state_on" : "state_off") : "—";
+    const key = `outlet:${outlet.index}`;
+    const selected = selectedKey === key;
+    const power = this._config?.outlet_power_badges === true ? this._upsOutletPower(outlet) : null;
+    return `<button class="ups-outlet-port power-outlet-port${selected ? " selected" : ""}" data-outlet-key="${key}" aria-pressed="${selected}" title="${this._escapeAttr([outlet.label, state, this._upsOutletPower(outlet)].filter(Boolean).join(" · "))}">
+      <span class="power-outlet-symbol${rawState === "on" ? " enabled" : ""}" aria-hidden="true">⏻</span>
+      <span class="power-outlet-label">${this._escapeHtml(outlet.label)}</span>
+      <span class="power-outlet-status">${this._escapeHtml(state)}</span>
+      ${power != null ? `<span class="ups-outlet-power">${this._escapeHtml(power)}</span>` : ""}
+    </button>`;
+  }
+
+  _renderPowerCard(ctx) {
+    const outlets = ctx.outlet_entities || [];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
+      || (isDynamicOutletDetailsEnabled(this._config) ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet));
+    const load = this._telemetryEnabled() ? this._upsLoad() : null;
+    const summary = this._renderUpsSummary(null, "—", load, this._t("power_load"));
+    const metrics = this._telemetryEnabled() ? ["ups_power_budget", "ups_power_consumption"]
+      .filter((key) => !load || key === "ups_power_budget")
+      .map((key) => ({ label: this._t(key), value: ctx.fake_device && load
+        ? `${formatUpsNumber(this._hass, load.budget)} W` : formatState(this._hass, ctx[`${key}_entity`]) }))
+      .filter((item) => item.value !== "—") : [];
+    const headerTitle = this._title();
+    this.shadowRoot.innerHTML = `${this._styles()}
+      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
+        <div class="header">
+          <div class="header-info">
+            ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
+            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
+          </div>
+          <div class="header-actions ups-header-actions">
+            ${this._renderOutletCount(outlets)}
+            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
+          </div>
+        </div>
+        ${summary ? `<div class="section ups-summary-section">${summary}</div>` : ""}
+        <div class="power-outlet-panel${this._config?.show_back_panel === false ? " no-panel-bg" : ""}">
+          <div class="panel-label">${this._escapeHtml(this._t("ups_outlets"))}</div>
+          ${outlets.length ? `<div class="power-outlets">${outlets.map((outlet) => this._renderPowerOutlet(outlet, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("no_ports"))}</div>`}
+          ${ctx.fake_device ? `<div class="muted">${this._escapeHtml(this._t("power_preview"))}</div>` : ""}
+        </div>
+        ${selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${metrics.length ? `<div class="section">
+          <div class="detail-title">${this._escapeHtml(this._t("power_telemetry"))}</div>
+          <div class="detail-grid">${metrics.map((item) => `<div class="detail-item"><div class="detail-label">${this._escapeHtml(item.label)}</div><div class="detail-value">${this._escapeHtml(item.value)}</div></div>`).join("")}</div>
+        </div>` : ""}
+      </ha-card>`;
+    this._attachDeviceLinkHandler();
+    this._attachPortActionHandlers(ctx);
+    this._attachOutletHandlers();
   }
 
   _renderUpsCard(ctx) {
-    const metrics = this._upsMetrics();
+    const metrics = this._upsMetrics().filter((item) => !["ups_battery_level", "ups_battery_runtime"].includes(item.key));
     const telemetryEnabled = this._telemetryEnabled();
+    const battery = telemetryEnabled ? getUpsBatteryLevel(this._hass, ctx) : null;
+    const runtime = telemetryEnabled ? formatUpsRuntime(this._hass, getUpsRuntimeSeconds(this._hass, ctx)) : "—";
+    const load = telemetryEnabled ? this._upsLoad() : null;
+    const summary = this._renderUpsSummary(battery, runtime, load);
+    const batteryText = battery == null ? "—" : formatUpsNumber(this._hass, battery / 100, { style: "percent", maximumFractionDigits: 0 });
     const headerTitle = this._title();
     const hasDisplay = hasUpsFrontDisplay(ctx?.device || ctx?.identity);
+    const tower = isUpsTower(ctx?.device || ctx?.identity);
+    const upsLayout = normalizeUpsLayout(this._config?.ups_layout);
+    const showFront = upsLayout !== "back";
+    const showBack = upsLayout !== "front";
+    const showBackPanel = this._config?.show_back_panel !== false;
+    const outlets = ctx?.outlet_entities || [];
+    const { specials, numbered } = this._buildSlotData(ctx);
+    const networkPorts = [...specials, ...numbered];
+    const selectedOutlet = outlets.find((outlet) => `outlet:${outlet.index}` === this._selectedKey)
+      || (isDynamicOutletDetailsEnabled(this._config) || this._selectedKey ? null : getDefaultUpsOutlet(outlets, this._config?.default_outlet))
+      || null;
+    const selectedPort = networkPorts.find((port) => port.key === this._selectedKey)
+      || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0])
+      || null;
+    const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
     this.shadowRoot.innerHTML = `${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
@@ -1509,34 +1805,60 @@ class UnifiDeviceCard extends HTMLElement {
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
             <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
           </div>
-          <div class="header-actions">
+          <div class="header-actions ups-header-actions">
+            ${this._renderOutletCount(outlets)}
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
           </div>
         </div>
-        <div class="ups-visual" role="img" aria-label="${this._escapeAttr(ctx?.model || "UniFi UPS")}">
+        ${summary ? `<div class="section ups-summary-section">${summary}${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}</div>` : ""}
+        ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr([ctx?.model || "UniFi UPS", ...(battery != null ? [`${this._t("ups_battery_level")}: ${batteryText}`] : []), ...(runtime !== "—" ? [runtime] : [])].join(" · "))}">
+          ${tower ? `<div class="ups-tower">
+            <div class="ups-tower-vents left"></div>
+            <div class="ups-tower-vents right"></div>
+            <div class="ups-tower-power"><span></span></div>
+            <div class="ups-tower-battery">${Array.from({ length: 5 }, (_, index) => `<i class="${battery != null && battery > index * 20 ? "active" : ""}"></i>`).join("")}</div>
+            <div class="ups-tower-seam"></div>
+            <div class="ups-tower-logo">U</div>
+            <div class="ups-tower-mark"><i></i> UPS</div>
+          </div>` : `
           <div class="ups-chassis${hasDisplay ? " pro" : ""}">
             <div class="ups-vents top">${ventSlots}</div>
             <div class="ups-power"><span></span></div>
             <div class="ups-wordmark"><i></i><strong>UPS</strong>${hasDisplay ? " Pro" : ""}</div>
             ${hasDisplay ? `<div class="ups-display">
-              <div class="ups-display-grid">${"<i></i>".repeat(12)}</div>
-              <span></span>
+              <div class="ups-display-reading"><strong>${this._escapeHtml(batteryText)}</strong><small>${this._escapeHtml(runtime)}</small></div>
             </div>` : `<div class="ups-logo">U</div>`}
             <div class="ups-vents bottom">${ventSlots}</div>
           </div>
-        </div>
-        ${telemetryEnabled ? `<div class="section">
+          `}
+        </div>` : ""}
+        ${showBack && (outlets.length || networkPorts.length) ? `<div class="ups-connection-panel${tower ? " tower" : " rack"}${showBackPanel ? "" : " no-panel-bg"}">
+          <div class="panel-label">${this._escapeHtml(this._t("back_panel"))}</div>
+          ${outlets.length ? `<div class="ups-physical-outlets">${outlets.map((outlet) => this._renderUpsOutletPort(outlet, tower, selectedOutlet ? `outlet:${selectedOutlet.index}` : null)).join("")}</div>` : ""}
+          ${networkPorts.length ? `<div class="ups-network-ports">${networkPorts.map((port) => this._renderPortButton(port, selectedPort?.key, portClientIndex)).join("")}</div>` : ""}
+        </div>` : ""}
+        ${showBack && selectedOutlet ? `<div class="section">${this._renderUpsOutletDetail(selectedOutlet)}</div>` : ""}
+        ${showBack && selectedPort ? `<div class="section">${this._renderPortDetail(selectedPort)}</div>` : ""}
+        ${telemetryEnabled && (metrics.length || !summary) ? `<div class="section">
           <div class="detail-title">${this._escapeHtml(this._t("ups_telemetry"))}</div>
           ${metrics.length ? `<div class="detail-grid">${metrics.map((item) => `
             <div class="detail-item">
               <div class="detail-label">${this._escapeHtml(item.label)}</div>
               <div class="detail-value">${this._escapeHtml(item.value)}</div>
-            </div>`).join("")}</div>` : `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>`}
+            </div>`).join("")}</div>` : battery == null && runtime === "—" && !load ? `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>` : ""}
+          ${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}
         </div>` : ""}
       </ha-card>`;
     this._attachDeviceLinkHandler();
-    this.shadowRoot.querySelector("[data-action='reboot-device']")
-      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+    this._attachPortActionHandlers(ctx);
+    this._attachOutletHandlers();
+  }
+
+  _attachOutletHandlers() {
+    this.shadowRoot.querySelectorAll("[data-outlet-key]")
+      .forEach((button) => button.addEventListener("click", () => this._selectKey(button.dataset.outletKey)));
+    this.shadowRoot.querySelectorAll("[data-action='toggle-outlet'][data-outlet-index]")
+      .forEach((button) => button.addEventListener("click", () => this._toggleUpsOutlet(Number(button.dataset.outletIndex))));
   }
 
   /**
@@ -1916,9 +2238,325 @@ class UnifiDeviceCard extends HTMLElement {
         50% { opacity: .4; }
       }
 
+      .ups-header-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 55%; }
+      .ups-header-actions .chip { white-space: normal; }
+
+      .ups-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .ups-summary-item { min-width: 0; }
+      .ups-meter { height: 6px; border-radius: 4px; background: var(--divider-color, #405269); overflow: hidden; margin-top: 7px; }
+      .ups-meter i { display: block; height: 100%; border-radius: inherit; background: var(--primary-color, #0090d9); }
+      .ups-action-error { margin-top: 8px; color: var(--error-color, #e86b6b); font-size: .8rem; }
+      .action-btn[aria-busy]:disabled { opacity: .55; cursor: default; }
+      .ups-outlet-power { font-size: 8px; white-space: nowrap; }
+
+      .power-outlet-panel {
+        padding: 16px 14px;
+        background: color-mix(in srgb, var(--udc-chrome-bg, var(--card-background-color)) 90%, var(--secondary-text-color) 10%);
+      }
+      .power-outlet-panel.no-panel-bg { background: var(--udc-chrome-bg, transparent); }
+      .power-outlets { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+      .power-outlet-panel .muted { margin-top: 12px; }
+      .power-outlet-panel .power-outlet-port {
+        padding: 12px 8px;
+        border-color: var(--divider-color, #405269);
+        background: var(--udc-card-bg, var(--card-background-color));
+        color: var(--primary-text-color);
+      }
+      .power-outlet-panel .power-outlet-port.selected,
+      .power-outlet-panel .power-outlet-port:focus-visible,
+      .power-outlet-panel .power-outlet-port:hover {
+        border-color: var(--primary-color, #0090d9);
+        background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 90%, var(--primary-color, #0090d9) 10%);
+      }
+      .power-outlet-symbol { font-size: 24px; line-height: 1; color: var(--secondary-text-color); }
+      .power-outlet-symbol.enabled { color: var(--primary-color, #0090d9); }
+      .power-outlet-label { width: 100%; font-size: 11px; line-height: 1.3; overflow-wrap: anywhere; }
+      .power-outlet-status, .power-outlet-port .ups-outlet-power { font-size: 10px; }
+
       .ups-visual {
         padding: 18px 20px;
         background: color-mix(in srgb, var(--udc-card-bg, var(--card-background-color)) 94%, #7f8790);
+      }
+
+      .ups-visual.tower {
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .ups-tower {
+        position: relative;
+        width: 132px;
+        height: 286px;
+        overflow: hidden;
+        border: 1px solid #d7d9dc;
+        border-radius: 31px 31px 20px 20px;
+        background: linear-gradient(100deg, #e3e5e7 0%, #fbfbfc 16%, #f5f6f7 82%, #d9dcde 100%);
+        box-shadow: inset 0 1px 3px #fff, inset 0 -5px 8px rgba(100,106,112,.12), 0 9px 13px -9px rgba(0,0,0,.65);
+      }
+
+      .ups-tower-vents {
+        position: absolute;
+        top: 22px;
+        bottom: 24px;
+        width: 5px;
+        border-radius: 4px;
+        background: repeating-linear-gradient(to bottom, #777d82 0 2px, #d9dcde 2px 4px);
+        box-shadow: inset 0 0 2px rgba(0,0,0,.7);
+      }
+
+      .ups-tower-vents.left { left: 4px; }
+      .ups-tower-vents.right { right: 4px; }
+
+      .ups-tower-power {
+        position: absolute;
+        top: 42px;
+        left: 50%;
+        width: 31px;
+        height: 31px;
+        transform: translateX(-50%);
+        border: 3px solid #70a9ff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(72,143,255,.55), inset 0 0 5px rgba(104,164,255,.25);
+      }
+
+      .ups-tower-power span {
+        position: absolute;
+        top: 7px;
+        left: 13px;
+        width: 3px;
+        height: 11px;
+        border-radius: 2px;
+        background: #aab0b6;
+      }
+
+      .ups-tower-battery {
+        position: absolute;
+        top: 91px;
+        left: 50%;
+        display: flex;
+        gap: 5px;
+        transform: translateX(-50%);
+      }
+
+      .ups-tower-battery i {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #aeb6c0;
+      }
+
+      .ups-tower-battery i.active {
+        background: #69a2ff;
+        box-shadow: 0 0 3px rgba(58,132,255,.7);
+      }
+
+      .ups-tower-seam {
+        position: absolute;
+        top: 114px;
+        right: 7px;
+        left: 7px;
+        height: 2px;
+        background: linear-gradient(#c5c8cb, #fff);
+        box-shadow: 0 1px 2px rgba(90,95,100,.2);
+      }
+
+      .ups-tower-logo {
+        position: absolute;
+        top: 190px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #e1e3e5;
+        font-size: 28px;
+        font-weight: 800;
+        text-shadow: 0 1px 1px #fff;
+      }
+
+      .ups-tower-mark {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #aaaeb2;
+        font-size: 6px;
+        white-space: nowrap;
+      }
+
+      .ups-tower-mark i {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #b9bdc0;
+        vertical-align: -1px;
+      }
+
+      .ups-connection-panel {
+        padding: 14px;
+        background: linear-gradient(145deg, #d5d7d8, #b8bbbd);
+        border-top: 1px solid rgba(255,255,255,.7);
+        border-bottom: 1px solid rgba(55,60,64,.25);
+      }
+
+      .ups-connection-panel.tower {
+        background: linear-gradient(145deg, #fafbfc, #e6e8ea);
+        border-top-color: #fff;
+        border-bottom-color: #c9cdd0;
+      }
+
+      .ups-connection-panel.no-panel-bg {
+        background: var(--udc-chrome-bg, transparent);
+        border-top-color: transparent;
+        border-bottom-color: transparent;
+      }
+
+      .ups-connection-panel.no-panel-bg .panel-label {
+        color: var(--secondary-text-color);
+      }
+
+      .ups-connection-panel.no-panel-bg .ups-outlet-port {
+        color: var(--primary-text-color);
+      }
+
+      .ups-connection-panel .panel-label {
+        color: #555c62;
+        margin-bottom: 10px;
+      }
+
+      .ups-physical-outlets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+        gap: 9px;
+      }
+
+      .ups-outlet-port {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: 58px;
+        padding: 5px 4px 3px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: transparent;
+        color: #3f464c;
+        cursor: pointer;
+      }
+
+      .ups-outlet-port:hover:not(:disabled),
+      .ups-outlet-port:focus-visible,
+      .ups-outlet-port.selected {
+        border-color: rgba(0,112,190,.65);
+        background: rgba(255,255,255,.2);
+      }
+
+      .ups-outlet-port.selected {
+        box-shadow: 0 0 0 1px rgba(0,112,190,.22);
+      }
+
+      .ups-outlet-port:disabled { cursor: default; }
+
+      .ups-outlet-socket {
+        position: relative;
+        display: block;
+        width: 46px;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 4px;
+        border: 2px solid #111416;
+        border-radius: 7px 7px 5px 5px;
+        background: linear-gradient(#272b2e, #090b0d);
+        box-shadow: inset 0 0 0 1px #42474a, 0 1px 2px rgba(0,0,0,.5);
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 1px solid #4b5053;
+        border-radius: 4px 4px 3px 3px;
+        background: #171a1c;
+        box-shadow: inset 0 1px 4px #000;
+        clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 18%);
+      }
+
+      .ups-outlet-recess i {
+        position: absolute;
+        width: 5px;
+        height: 9px;
+        border-radius: 1px;
+        background: #020303;
+        box-shadow: inset 0 1px 2px #000, 0 0 0 1px #34383b;
+      }
+
+      .ups-outlet-recess i:nth-child(1) { top: 11px; left: 6px; }
+      .ups-outlet-recess i:nth-child(2) { top: 11px; right: 6px; }
+      .ups-outlet-recess i:nth-child(3) {
+        top: 3px;
+        left: 50%;
+        width: 5px;
+        height: 8px;
+        transform: translateX(-50%);
+      }
+
+      .ups-outlet-port.light { color: #626970; }
+
+      .ups-outlet-port.light .ups-outlet-socket {
+        border-color: #f7f8f9;
+        background: linear-gradient(#fff, #e2e5e7);
+        box-shadow: inset 0 0 0 2px #cfd3d6, 0 1px 3px rgba(70,76,82,.35);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess {
+        border-color: #c8cdd0;
+        background: #edf0f1;
+        box-shadow: inset 0 1px 3px rgba(80,86,91,.28);
+      }
+
+      .ups-outlet-port.light .ups-outlet-recess i {
+        background: #555c61;
+        box-shadow: inset 0 1px 2px #33383c, 0 0 0 1px #bbc0c3;
+      }
+
+      .ups-outlet-led {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #667078;
+        box-shadow: inset 0 0 1px rgba(0,0,0,.8);
+      }
+
+      .ups-outlet-port.enabled .ups-outlet-led {
+        background: #4792ff;
+        box-shadow: 0 0 4px rgba(46,126,255,.9);
+      }
+
+      .ups-outlet-label {
+        max-width: 62px;
+        overflow: hidden;
+        font-size: 8px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ups-network-ports {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 13px;
+        padding-top: 11px;
+        border-top: 1px solid rgba(70,75,80,.22);
       }
 
       .ups-chassis {
@@ -2049,6 +2687,19 @@ class UnifiDeviceCard extends HTMLElement {
         box-shadow: inset 0 0 4px rgba(21,71,181,.7), 0 1px 2px rgba(0,0,0,.35);
       }
 
+      .ups-display-reading {
+        color: #69b6ff;
+        display: grid;
+        gap: 1px;
+        width: 100%;
+        text-align: center;
+        line-height: 1;
+        overflow: hidden;
+      }
+
+      .ups-display-reading strong { font-size: clamp(9px, 1.8vw, 13px); }
+      .ups-display-reading small { font-size: clamp(6px, 1.2vw, 8px); white-space: nowrap; }
+
       .ups-display-grid {
         display: grid;
         flex: 1;
@@ -2076,6 +2727,7 @@ class UnifiDeviceCard extends HTMLElement {
         .ups-visual { padding: 14px 12px; }
         .ups-chassis { min-height: 70px; }
         .ups-vents span { height: 5px; }
+        .ups-physical-outlets { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); }
       }
 
       .frontpanel {
@@ -3708,6 +4360,10 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _renderPanelAndDetail() {
+    if (this._ctx?.type === "power_distribution") {
+      this._renderPowerCard(this._ctx);
+      return;
+    }
     if (this._ctx?.type === "ups") {
       this._renderUpsCard(this._ctx);
       return;
