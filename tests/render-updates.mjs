@@ -1,43 +1,38 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-// Like the outlet tests, exercise the actual card without a Home Assistant
-// server. Track shadow-root writes and retain event targets until a replacement.
-class TestShadowRoot {
-  writes = [];
-  nodes = new Map();
-  get innerHTML() { return this.html || ""; }
-  set innerHTML(html) {
-    this.html = html;
-    this.writes.push(html);
-    this.nodes = new Map();
-  }
-  querySelector(selector) {
-    if (this.nodes.has(selector)) return this.nodes.get(selector);
-    const action = selector.match(/^\[data-action=['"]([^'"]+)['"]\]$/)?.[1];
-    if (!action) return null;
-    const tag = this.html.match(new RegExp(`<[^>]+data-action="${action}"[^>]*>`))?.[0];
-    if (!tag) return null;
-    const node = new EventTarget();
-    node.dataset = Object.fromEntries([...tag.matchAll(/data-([\w-]+)="([^"]*)"/g)]
-      .map(([, key, value]) => [key.replace(/-([a-z])/g, (_, char) => char.toUpperCase()), value]));
-    this.nodes.set(selector, node);
-    return node;
-  }
-  querySelectorAll() { return []; }
-}
+import { parseHTML } from "linkedom";
 
-const elements = new Map();
+// Use a DOM implementation so identity, text updates and retained event
+// listeners are checked, rather than only comparing generated HTML strings.
+const { window } = parseHTML("<html><body></body></html>");
+const elements = window.customElements;
 globalThis.__VERSION__ = "test";
-globalThis.HTMLElement = class {
-  attachShadow() { this.shadowRoot = new TestShadowRoot(); }
-};
-globalThis.customElements = {
-  get: (name) => elements.get(name),
-  define: (name, value) => elements.set(name, value),
-};
-globalThis.window = { customCards: [], __UNIFI_DEVICE_CARD_VERSION_LOGGED__: true, confirm: () => true };
+globalThis.window = window;
+globalThis.document = window.document;
+globalThis.Event = window.Event;
+globalThis.customElements = elements;
+window.customCards = [];
+window.__UNIFI_DEVICE_CARD_VERSION_LOGGED__ = true;
+window.confirm = () => true;
 globalThis.requestAnimationFrame = () => {};
+globalThis.HTMLElement = class extends window.HTMLElement {
+  attachShadow(options) {
+    const root = super.attachShadow(options);
+    let prototype = root;
+    let innerHTML;
+    while (!innerHTML) {
+      prototype = Object.getPrototypeOf(prototype);
+      innerHTML = Object.getOwnPropertyDescriptor(prototype, "innerHTML");
+    }
+    root.writes = [];
+    Object.defineProperty(root, "innerHTML", {
+      get() { return innerHTML.get.call(root); },
+      set(html) { root.writes.push(html); innerHTML.set.call(root, html); },
+    });
+    return root;
+  }
+};
 await import("../src/unifi-device-card.js");
 const Card = elements.get("unifi-device-card");
 const flush = () => new Promise(setImmediate);
@@ -57,6 +52,9 @@ async function fixture(model = "UDMPRO", config = {}) {
     ]),
     { entity_id: "sensor.cpu", unique_id: `cpu_utilization-${mac}`, translation_key: "cpu_utilization" },
     { entity_id: "sensor.cpu_fallback", unique_id: `cpu_usage-${mac}`, translation_key: "cpu_usage" },
+    ...["memory_utilization", "cpu_temperature", "temperature"].map((key) => ({
+      entity_id: `sensor.${key}`, unique_id: `${key}-${mac}`, translation_key: key,
+    })),
     { entity_id: "sensor.diagnostic", unique_id: `diagnostic-${mac}`, translation_key: "diagnostic" },
     { entity_id: "light.led", unique_id: `led-${mac}`, translation_key: "led" },
     { entity_id: "button.reboot", unique_id: `restart-${mac}`, translation_key: "restart" },
@@ -64,6 +62,9 @@ async function fixture(model = "UDMPRO", config = {}) {
   const states = {
     "sensor.cpu": state(10, { unit_of_measurement: "%" }),
     "sensor.cpu_fallback": state(20, { unit_of_measurement: "%" }),
+    "sensor.memory_utilization": state(30, { unit_of_measurement: "%" }),
+    "sensor.cpu_temperature": state(45, { unit_of_measurement: "°C" }),
+    "sensor.temperature": state(35, { unit_of_measurement: "°C" }),
     "sensor.diagnostic": state(1),
     "sensor.room_temperature": state(20),
     "light.led": state("on"),
@@ -101,10 +102,10 @@ function update(card, patch) {
 
 function expectRetained(card, action) {
   const before = card.shadowRoot.writes.length;
-  const nodes = card.shadowRoot.nodes;
+  const content = card.shadowRoot.querySelector("ha-card");
   action();
   assert.equal(card.shadowRoot.writes.length, before, "unchanged presentation must not replace the DOM");
-  assert.equal(card.shadowRoot.nodes, nodes, "existing event targets must survive");
+  assert.equal(card.shadowRoot.querySelector("ha-card"), content, "existing card must survive");
 }
 
 for (const model of ["UDMPRO", "USW48P"]) {
@@ -191,6 +192,8 @@ test("background refresh preserves content, selection and current sensor values"
   const refresh = card._ensureLoaded();
   assert.equal(card._loading, true);
   assert.equal(card.shadowRoot.writes.length, before);
+  expectRetained(card, () => update(card, { "sensor.cpu": state(11, { unit_of_measurement: "%" }) }));
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "11.00 %");
   update(card, {
     "sensor.port_2_link_speed": state("100 Mbps"),
     "sensor.cpu": state("unavailable"),
@@ -253,4 +256,118 @@ test("empty and initial loading states are stable; changing devices still loads"
   assert.equal(card._ctx, null);
   assert.match(card.shadowRoot.innerHTML, /class="empty-state"/);
   expectRetained(card, () => card._render());
+});
+
+for (const model of ["UDMPRO", "USW48P", "U7PRO"]) {
+  test(`${model}: changing header telemetry preserves panel, metric nodes and controls`, async () => {
+    const { card, calls } = await fixture(model);
+    const root = card.shadowRoot;
+    const panel = root.querySelector(".frontpanel");
+    const reboot = root.querySelector("[data-action='reboot-device']");
+    const values = new Map(Array.from(root.querySelectorAll("[data-metric]"), (row) =>
+      [row.dataset.metric, row.querySelector(".meta-value")]));
+    assert.equal(values.size, 4);
+    const selected = card._selectedKey;
+    const mutations = [];
+    const observer = new window.MutationObserver((records) => mutations.push(...records));
+    observer.observe(panel, { subtree: true, childList: true, attributes: true, characterData: true });
+
+    for (let index = 1; index <= 60; index++) {
+      expectRetained(card, () => update(card, {
+        "sensor.cpu": state(index, { unit_of_measurement: "%" }),
+        "sensor.memory_utilization": state(index + 10, { unit_of_measurement: "%" }),
+        "sensor.cpu_temperature": state(index + 20, { unit_of_measurement: "°C" }),
+        "sensor.temperature": state(index + 30, { unit_of_measurement: "°C" }),
+      }));
+      assert.equal(values.get("cpu_utilization").textContent, `${index.toFixed(2)} %`);
+      assert.equal(values.get("memory_utilization").textContent, `${(index + 10).toFixed(2)} %`);
+      assert.equal(values.get("cpu_temperature").textContent, `${(index + 20).toFixed(2)} °C`);
+      assert.equal(values.get("temperature").textContent, `${(index + 30).toFixed(2)} °C`);
+    }
+    await flush();
+    observer.disconnect();
+    assert.deepEqual(mutations, [], "telemetry must not mutate the port/AP panel");
+    assert.equal(root.querySelector(".frontpanel"), panel);
+    assert.equal(root.querySelector("[data-action='reboot-device']"), reboot);
+    assert.equal(card._selectedKey, selected);
+    for (const [key, value] of values) {
+      assert.equal(root.querySelector(`[data-metric="${key}"] .meta-value`), value);
+    }
+    reboot.dispatchEvent(new Event("click"));
+    assert.deepEqual(calls, [["button", "press", { entity_id: "button.reboot" }]], "telemetry must not duplicate handlers");
+
+    // The rendered-HTML cache must track patched values too.
+    expectRetained(card, () => update(card, { "sensor.diagnostic": state(2) }));
+    expectRetained(card, () => update(card, { "sensor.cpu": state(60, { unit_of_measurement: "%" }) }));
+  });
+}
+
+test("missing and returning metrics, fallbacks and visibility only update the header", async () => {
+  const { card } = await fixture();
+  const list = card.shadowRoot.querySelector(".meta-list");
+  const cpu = list.querySelector('[data-metric="cpu_utilization"] .meta-value');
+  expectRetained(card, () => update(card, { "sensor.cpu": state("unavailable") }));
+  assert.equal(cpu.textContent, "20.00 %", "fallback values update the same metric node");
+  const memory = list.querySelector('[data-metric="memory_utilization"]');
+  expectRetained(card, () => update(card, {
+    "sensor.cpu_fallback": state("unknown"),
+    "sensor.cpu_temperature": state("unavailable"),
+  }));
+  assert.equal(list.querySelector('[data-metric="cpu_utilization"]'), null);
+  assert.equal(list.querySelector('[data-metric="cpu_temperature"]'), null);
+  assert.equal(list.querySelector('[data-metric="memory_utilization"]'), memory);
+  expectRetained(card, () => update(card, {
+    "sensor.memory_utilization": state("unavailable"),
+    "sensor.temperature": state("unavailable"),
+  }));
+  assert.equal(list.children.length, 0);
+  assert.equal(list.hidden, true);
+  expectRetained(card, () => update(card, {
+    "sensor.cpu": state(12, { unit_of_measurement: "%" }),
+    "sensor.memory_utilization": state(40, { unit_of_measurement: "%" }),
+    "sensor.cpu_temperature": state(50, { unit_of_measurement: "°C" }),
+  }));
+  assert.equal(list.hidden, false);
+  assert.deepEqual(Array.from(list.children, (row) => row.dataset.metric),
+    ["cpu_utilization", "cpu_temperature", "memory_utilization"]);
+  assert.equal(list.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "12.00 %");
+  expectRetained(card, () => card.setConfig({ ...card._config, show_telemetry: false }));
+  assert.equal(list.hidden, true);
+  expectRetained(card, () => update(card, { "sensor.cpu": state(13, { unit_of_measurement: "%" }) }));
+  expectRetained(card, () => card.setConfig({ ...card._config, show_telemetry: true }));
+  assert.equal(list.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "13.00 %");
+  expectRetained(card, () => update(card, { "sensor.cpu": state(14, { unit_of_measurement: '<img src="x">' }) }));
+  assert.equal(list.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, '14.00 <img src="x">');
+  assert.equal(list.querySelector("img"), null, "patched text must remain text, not HTML");
+});
+
+test("simultaneous port changes, configuration and language still update all content", async () => {
+  const { card } = await fixture();
+  const panel = card.shadowRoot.querySelector(".frontpanel");
+  update(card, {
+    "sensor.cpu": state(17, { unit_of_measurement: "%" }),
+    "sensor.port_1_link_speed": state("100 Mbps"),
+  });
+  assert.notEqual(card.shadowRoot.querySelector(".frontpanel"), panel);
+  assert.match(card.shadowRoot.innerHTML, /100 Mbps/);
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "17.00 %");
+  expectRetained(card, () => update(card, { "sensor.cpu": state(18, { unit_of_measurement: "%" }) }));
+  card.setConfig({ ...card._config, name: "Updated card" });
+  assert.equal(card.shadowRoot.querySelector(".title").textContent, "Updated card");
+  card.hass = { ...card._hass, language: "de" };
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-label').textContent, "CPU-Auslastung:");
+  assert.match(card.shadowRoot.innerHTML, /Geschwindigkeit/);
+});
+
+test("compact AP telemetry updates in place and respects its visibility option", async () => {
+  const { card } = await fixture("U7PRO", { ap_compact_view: true, ap_compact_show_header_telemetry: true });
+  const panel = card.shadowRoot.querySelector(".frontpanel");
+  expectRetained(card, () => update(card, { "sensor.cpu": state(25, { unit_of_measurement: "%" }) }));
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "25.00 %");
+  expectRetained(card, () => card.setConfig({ ...card._config, ap_compact_show_header_telemetry: false }));
+  assert.equal(card.shadowRoot.querySelector(".meta-list").hidden, true);
+  expectRetained(card, () => update(card, { "sensor.cpu": state(26, { unit_of_measurement: "%" }) }));
+  expectRetained(card, () => card.setConfig({ ...card._config, ap_compact_show_header_telemetry: true }));
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "26.00 %");
+  assert.equal(card.shadowRoot.querySelector(".frontpanel"), panel);
 });

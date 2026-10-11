@@ -5,6 +5,7 @@
 ### 🐛 Bug Fixes
 
 - Preserve the card DOM when rendered content is unchanged and keep device content visible during background context refreshes, preventing unnecessary port-panel flicker (#304). Keep client tooltips, language changes, and retained controls updating correctly.
+- Update visible CPU, memory, temperature, and other header metrics in place so telemetry changes no longer rebuild the port panel (#304). Keep metric availability, fallbacks, and visibility settings live without resetting controls or port selection.
 
 ### ✨ Hints
 
