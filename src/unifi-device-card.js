@@ -3901,6 +3901,14 @@ class UnifiDeviceCard extends HTMLElement {
         margin-left: 3px;
       }
 
+      .rj45-led.orange {
+        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+        box-shadow:
+          0 0 2px rgba(239,178,26,.42),
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.35);
+      }
+
       .rj45-led.speed-10-100,
       .rj45-led.speed-2-5g {
         background: var(--udc-link-color-10-100, linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%));
