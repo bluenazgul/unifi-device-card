@@ -1106,11 +1106,30 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _hasRelevantStateChanges(previousHass, nextHass) {
+    if (previousHass?.language !== nextHass?.language ||
+        previousHass?.locale !== nextHass?.locale ||
+        previousHass?.formatEntityName !== nextHass?.formatEntityName) return true;
+
     const entityIds = this._relevantStateEntityIds();
     if (!entityIds.size) return true;
 
     for (const id of entityIds) {
       if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
+    }
+
+    // Port tooltips also use clients outside the device's own entity registry.
+    // Check both snapshots so joining, moving and removed clients update too.
+    const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
+    if (deviceMac) {
+      const previousStates = previousHass?.states || {};
+      const nextStates = nextHass?.states || {};
+      for (const id of new Set([...Object.keys(previousStates), ...Object.keys(nextStates)])) {
+        const previous = previousStates[id];
+        const next = nextStates[id];
+        if (previous === next) continue;
+        if (this._matchesParentDevice(previous?.attributes || {}, deviceMac) ||
+            this._matchesParentDevice(next?.attributes || {}, deviceMac)) return true;
+      }
     }
 
     return false;
@@ -1387,6 +1406,8 @@ class UnifiDeviceCard extends HTMLElement {
       if (token !== this._loadToken) return;
 
       this._ctx = ctx;
+      // hass may have advanced while registry requests were pending.
+      this._refreshTelemetrySelection();
       this._loadedDeviceId = currentId;
       this._contextLoadedAt = Date.now();
       const portSnapshot = this._buildPortDebugSnapshot(ctx);
@@ -1527,9 +1548,47 @@ class UnifiDeviceCard extends HTMLElement {
         return (item.wholeNumber ? this._wholeNumberState(item.entity) : formatState(this._hass, item.entity)) !== "—";
       })
       .map((item) => ({
+        key: item.key,
         label: this._t(item.key),
         value: item.wholeNumber ? this._wholeNumberState(item.entity) : formatState(this._hass, item.entity),
       }));
+  }
+
+  _headerMetricsHTML(metrics) {
+    return `<div class="meta-list"${metrics.length ? "" : " hidden"}>${metrics.map((item) => `
+      <div class="meta-row" data-metric="${this._escapeAttr(item.key)}">
+        <div class="meta-label">${this._escapeHtml(item.label)}:</div>
+        <div class="meta-value">${this._escapeHtml(item.value)}</div>
+      </div>`).join("")}</div>`;
+  }
+
+  _updateHeaderMetrics(metrics) {
+    const list = this.shadowRoot.querySelector(".header-info > .meta-list");
+    if (!list) return false;
+
+    const remaining = new Map(Array.from(list.children, (row) => [row.dataset.metric, row]));
+    for (const [index, item] of metrics.entries()) {
+      let row = remaining.get(item.key);
+      remaining.delete(item.key);
+      if (!row) {
+        row = document.createElement("div");
+        row.className = "meta-row";
+        row.dataset.metric = item.key;
+        for (const className of ["meta-label", "meta-value"]) {
+          const cell = document.createElement("div");
+          cell.className = className;
+          row.appendChild(cell);
+        }
+      }
+      const label = row.querySelector(".meta-label");
+      const value = row.querySelector(".meta-value");
+      if (label.textContent !== `${item.label}:`) label.textContent = `${item.label}:`;
+      if (value.textContent !== item.value) value.textContent = item.value;
+      if (list.children[index] !== row) list.insertBefore(row, list.children[index] || null);
+    }
+    for (const row of remaining.values()) row.remove();
+    if (list.hidden !== !metrics.length) list.hidden = !metrics.length;
+    return true;
   }
 
   _upsMetrics() {
@@ -1743,7 +1802,7 @@ class UnifiDeviceCard extends HTMLElement {
         ? `${formatUpsNumber(this._hass, load.budget)} W` : formatState(this._hass, ctx[`${key}_entity`]) }))
       .filter((item) => item.value !== "—") : [];
     const headerTitle = this._title();
-    this.shadowRoot.innerHTML = `${this._styles()}
+    if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
@@ -1766,9 +1825,9 @@ class UnifiDeviceCard extends HTMLElement {
           <div class="detail-title">${this._escapeHtml(this._t("power_telemetry"))}</div>
           <div class="detail-grid">${metrics.map((item) => `<div class="detail-item"><div class="detail-label">${this._escapeHtml(item.label)}</div><div class="detail-value">${this._escapeHtml(item.value)}</div></div>`).join("")}</div>
         </div>` : ""}
-      </ha-card>`;
+      </ha-card>`)) return;
     this._attachDeviceLinkHandler();
-    this._attachPortActionHandlers(ctx);
+    this._attachPortActionHandlers();
     this._attachOutletHandlers();
   }
 
@@ -1798,7 +1857,7 @@ class UnifiDeviceCard extends HTMLElement {
       || null;
     const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
-    this.shadowRoot.innerHTML = `${this._styles()}
+    if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
@@ -1848,9 +1907,9 @@ class UnifiDeviceCard extends HTMLElement {
             </div>`).join("")}</div>` : battery == null && runtime === "—" && !load ? `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>` : ""}
           ${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}
         </div>` : ""}
-      </ha-card>`;
+      </ha-card>`)) return;
     this._attachDeviceLinkHandler();
-    this._attachPortActionHandlers(ctx);
+    this._attachPortActionHandlers();
     this._attachOutletHandlers();
   }
 
@@ -2163,6 +2222,8 @@ class UnifiDeviceCard extends HTMLElement {
         gap: 2px;
         margin-top: 4px;
       }
+
+      .meta-list[hidden] { display: none; }
 
       .meta-row {
         display: flex;
@@ -4338,7 +4399,7 @@ class UnifiDeviceCard extends HTMLElement {
       </div>`;
   }
 
-  _attachPortActionHandlers(ctx) {
+  _attachPortActionHandlers() {
     this.shadowRoot.querySelectorAll(".port")
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
     this.shadowRoot.querySelector("[data-action='toggle-port']")
@@ -4356,7 +4417,7 @@ class UnifiDeviceCard extends HTMLElement {
     this.shadowRoot.querySelector("[data-action='power-cycle']")
       ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='reboot-device']")
-      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+      ?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
   }
 
   _renderPanelAndDetail() {
@@ -4415,17 +4476,13 @@ class UnifiDeviceCard extends HTMLElement {
 
       const escapedHeaderTitle = this._escapeHtml(headerTitle);
       const escapedSubtitle = this._escapeHtml(this._subtitle());
-      this.shadowRoot.innerHTML = `${this._styles()}
+      if (!this._setCardContent(`${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
               ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
               <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
-              ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
-                <div class="meta-row">
-                  <div class="meta-label">${this._escapeHtml(item.label)}:</div>
-                  <div class="meta-value">${this._escapeHtml(item.value)}</div>
-                </div>`).join("")}</div>` : ""}
+              ${this._headerMetricsHTML(headerMetrics)}
             </div>
             <div class="header-actions">
               ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
@@ -4508,12 +4565,12 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
 
           ${showVisualPanel ? this._renderIntegratedPortSection(this._ctx) : ""}
-        </ha-card>`;
+        </ha-card>`, headerMetrics)) return;
 
-      this._attachPortActionHandlers(this._ctx);
+      this._attachPortActionHandlers();
       this._attachDeviceLinkHandler();
       this.shadowRoot.querySelector("[data-action='toggle-led']")
-        ?.addEventListener("click", () => this._toggleEntity(ledEntity));
+        ?.addEventListener("click", () => this._toggleEntity(this._ctx?.led_switch_entity));
 
       return;
     }
@@ -4679,17 +4736,13 @@ class UnifiDeviceCard extends HTMLElement {
 
     const escapedHeaderTitle = this._escapeHtml(headerTitle);
     const escapedSubtitle = this._escapeHtml(this._subtitle());
-    this.shadowRoot.innerHTML = `${this._styles()}
+    if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
             <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
-            ${headerMetrics.length ? `<div class="meta-list">${headerMetrics.map((item) => `
-              <div class="meta-row">
-                <div class="meta-label">${this._escapeHtml(item.label)}:</div>
-                <div class="meta-value">${this._escapeHtml(item.value)}</div>
-              </div>`).join("")}</div>` : ""}
+            ${this._headerMetricsHTML(headerMetrics)}
           </div>
           <div class="header-actions">
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
@@ -4703,7 +4756,7 @@ class UnifiDeviceCard extends HTMLElement {
         </div>
 
         ${selected || this._config?.dynamic_port_details !== true ? `<div class="section">${detail}</div>` : ""}
-      </ha-card>`;
+      </ha-card>`, headerMetrics)) return;
 
     this.shadowRoot.querySelectorAll(".port")
       .forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
@@ -4728,7 +4781,27 @@ class UnifiDeviceCard extends HTMLElement {
       ?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
 
     this.shadowRoot.querySelector("[data-action='reboot-device']")
-      ?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+      ?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+  }
+
+  _setCardContent(html, headerMetrics = null) {
+    // Compare generated strings: reading innerHTML would serialize custom
+    // elements and normalized attributes, which need not match our template.
+    if (html === this._renderedHTML) return false;
+    // Only patch telemetry when everything outside its header container is
+    // identical. Port, layout and simultaneous content changes still render.
+    const layoutHTML = headerMetrics === null
+      ? null
+      : html.replace(this._headerMetricsHTML(headerMetrics), "");
+    if (layoutHTML !== null && layoutHTML === this._renderedLayoutHTML &&
+        this._updateHeaderMetrics(headerMetrics)) {
+      this._renderedHTML = html;
+      return false; // Existing controls already have their event listeners.
+    }
+    this.shadowRoot.innerHTML = html;
+    this._renderedLayoutHTML = layoutHTML;
+    this._renderedHTML = html;
+    return true;
   }
 
   _render() {
@@ -4737,7 +4810,7 @@ class UnifiDeviceCard extends HTMLElement {
     const escapedSubtitle = this._escapeHtml(this._subtitle());
 
     if (!this._config?.device_id) {
-      this.shadowRoot.innerHTML = `${this._styles()}
+      if (!this._setCardContent(`${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -4746,13 +4819,13 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
           <div class="empty-state">${this._escapeHtml(this._t("select_device"))}</div>
-        </ha-card>`;
+        </ha-card>`)) return;
       this._finalizeRender();
       return;
     }
 
-    if (this._loading) {
-      this.shadowRoot.innerHTML = `${this._styles()}
+    if (this._loading && !this._ctx) {
+      if (!this._setCardContent(`${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -4761,13 +4834,13 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
           <div class="loading-state"><div class="spinner"></div>${this._escapeHtml(this._t("loading"))}</div>
-        </ha-card>`;
+        </ha-card>`)) return;
       this._finalizeRender();
       return;
     }
 
     if (!this._ctx) {
-      this.shadowRoot.innerHTML = `${this._styles()}
+      if (!this._setCardContent(`${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -4776,7 +4849,7 @@ class UnifiDeviceCard extends HTMLElement {
             </div>
           </div>
           <div class="empty-state">${this._escapeHtml(this._t("no_data"))}</div>
-        </ha-card>`;
+        </ha-card>`)) return;
       this._finalizeRender();
       return;
     }
