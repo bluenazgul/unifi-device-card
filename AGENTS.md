@@ -65,6 +65,7 @@ Preserve existing behavior where practical and avoid unnecessary breaking change
 - Update `README.md` only when installation, usage, configuration, features, or visible behavior changes.
 - Update `CHANGELOG.md` when the task results in a user-visible change that belongs in release notes.
 - Keep changelog entries concise, factual, and scoped to the real change.
+- Whenever creating or updating a changelog entry, including `Unreleased` and new versions, carry over the complete Hints section from the most recent release unchanged, including its links and HTML, unless the user explicitly requests changes to that section.
 - Do not rewrite documentation for style alone unless explicitly asked.
 
 ## Screenshots
