@@ -1,4 +1,4 @@
-/* UniFi Device Card 1.0.0 */
+/* UniFi Device Card 0.0.0-dev.3798c59 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -8168,7 +8168,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "1.0.0";
+var VERSION = "0.0.0-dev.3798c59";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -9018,10 +9018,22 @@ var UnifiDeviceCard = class extends HTMLElement {
     return ids;
   }
   _hasRelevantStateChanges(previousHass, nextHass) {
+    if (previousHass?.language !== nextHass?.language || previousHass?.locale !== nextHass?.locale || previousHass?.formatEntityName !== nextHass?.formatEntityName) return true;
     const entityIds = this._relevantStateEntityIds();
     if (!entityIds.size) return true;
     for (const id of entityIds) {
       if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
+    }
+    const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
+    if (deviceMac) {
+      const previousStates = previousHass?.states || {};
+      const nextStates = nextHass?.states || {};
+      for (const id of /* @__PURE__ */ new Set([...Object.keys(previousStates), ...Object.keys(nextStates)])) {
+        const previous = previousStates[id];
+        const next = nextStates[id];
+        if (previous === next) continue;
+        if (this._matchesParentDevice(previous?.attributes || {}, deviceMac) || this._matchesParentDevice(next?.attributes || {}, deviceMac)) return true;
+      }
     }
     return false;
   }
@@ -9210,6 +9222,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const ctx = await getDeviceContext(this._hass, currentId, this._config);
       if (token !== this._loadToken) return;
       this._ctx = ctx;
+      this._refreshTelemetrySelection();
       this._loadedDeviceId = currentId;
       this._contextLoadedAt = Date.now();
       const portSnapshot = this._buildPortDebugSnapshot(ctx);
@@ -9517,7 +9530,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const summary = this._renderUpsSummary(null, "\u2014", load, this._t("power_load"));
     const metrics = this._telemetryEnabled() ? ["ups_power_budget", "ups_power_consumption"].filter((key) => !load || key === "ups_power_budget").map((key) => ({ label: this._t(key), value: ctx.fake_device && load ? `${formatUpsNumber(this._hass, load.budget)} W` : formatState(this._hass, ctx[`${key}_entity`]) })).filter((item) => item.value !== "\u2014") : [];
     const headerTitle = this._title();
-    this.shadowRoot.innerHTML = `${this._styles()}
+    if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
@@ -9540,9 +9553,9 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="detail-title">${this._escapeHtml(this._t("power_telemetry"))}</div>
           <div class="detail-grid">${metrics.map((item) => `<div class="detail-item"><div class="detail-label">${this._escapeHtml(item.label)}</div><div class="detail-value">${this._escapeHtml(item.value)}</div></div>`).join("")}</div>
         </div>` : ""}
-      </ha-card>`;
+      </ha-card>`)) return;
     this._attachDeviceLinkHandler();
-    this._attachPortActionHandlers(ctx);
+    this._attachPortActionHandlers();
     this._attachOutletHandlers();
   }
   _renderUpsCard(ctx) {
@@ -9567,7 +9580,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const selectedPort = networkPorts.find((port) => port.key === this._selectedKey) || (this._config?.dynamic_port_details === true || selectedOutlet || this._selectedKey ? null : networkPorts[0]) || null;
     const portClientIndex = this._buildPortClientIndex();
     const ventSlots = "<span></span>".repeat(5);
-    this.shadowRoot.innerHTML = `${this._styles()}
+    if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
@@ -9617,9 +9630,9 @@ var UnifiDeviceCard = class extends HTMLElement {
             </div>`).join("")}</div>` : battery == null && runtime === "\u2014" && !load ? `<div class="muted">${this._escapeHtml(this._t("telemetry_unavailable_title"))}</div>` : ""}
           ${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}
         </div>` : ""}
-      </ha-card>`;
+      </ha-card>`)) return;
     this._attachDeviceLinkHandler();
-    this._attachPortActionHandlers(ctx);
+    this._attachPortActionHandlers();
     this._attachOutletHandlers();
   }
   _attachOutletHandlers() {
@@ -12038,7 +12051,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
       </div>`;
   }
-  _attachPortActionHandlers(ctx) {
+  _attachPortActionHandlers() {
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
     this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => {
       const target = e.currentTarget;
@@ -12053,7 +12066,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     });
     this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
-    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
   }
   _renderPanelAndDetail() {
     if (this._ctx?.type === "power_distribution") {
@@ -12113,7 +12126,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       const headerMetrics2 = compactApView && !this._apCompactHeaderTelemetryEnabled() ? [] : this._headerMetrics();
       const escapedHeaderTitle2 = this._escapeHtml(headerTitle2);
       const escapedSubtitle2 = this._escapeHtml(this._subtitle());
-      this.shadowRoot.innerHTML = `${this._styles()}
+      if (!this._setCardContent(`${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -12206,10 +12219,10 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
           </div>
 
           ${showVisualPanel ? this._renderIntegratedPortSection(this._ctx) : ""}
-        </ha-card>`;
-      this._attachPortActionHandlers(this._ctx);
+        </ha-card>`)) return;
+      this._attachPortActionHandlers();
       this._attachDeviceLinkHandler();
-      this.shadowRoot.querySelector("[data-action='toggle-led']")?.addEventListener("click", () => this._toggleEntity(ledEntity));
+      this.shadowRoot.querySelector("[data-action='toggle-led']")?.addEventListener("click", () => this._toggleEntity(this._ctx?.led_switch_entity));
       return;
     }
     const ctx = this._ctx;
@@ -12331,7 +12344,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     const headerMetrics = this._headerMetrics();
     const escapedHeaderTitle = this._escapeHtml(headerTitle);
     const escapedSubtitle = this._escapeHtml(this._subtitle());
-    this.shadowRoot.innerHTML = `${this._styles()}
+    if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
         <div class="header">
           <div class="header-info">
@@ -12355,7 +12368,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
         </div>
 
         ${selected || this._config?.dynamic_port_details !== true ? `<div class="section">${detail}</div>` : ""}
-      </ha-card>`;
+      </ha-card>`)) return;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => btn.addEventListener("click", () => this._selectKey(btn.dataset.key)));
     this._attachDeviceLinkHandler();
     this.shadowRoot.querySelector("[data-action='toggle-port']")?.addEventListener("click", (e) => {
@@ -12371,14 +12384,20 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     });
     this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
-    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(ctx?.reboot_entity));
+    this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+  }
+  _setCardContent(html) {
+    if (html === this._renderedHTML) return false;
+    this.shadowRoot.innerHTML = html;
+    this._renderedHTML = html;
+    return true;
   }
   _render() {
     const title = this._title();
     const escapedTitle = this._escapeHtml(title);
     const escapedSubtitle = this._escapeHtml(this._subtitle());
     if (!this._config?.device_id) {
-      this.shadowRoot.innerHTML = `${this._styles()}
+      if (!this._setCardContent(`${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -12387,12 +12406,12 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
             </div>
           </div>
           <div class="empty-state">${this._escapeHtml(this._t("select_device"))}</div>
-        </ha-card>`;
+        </ha-card>`)) return;
       this._finalizeRender();
       return;
     }
-    if (this._loading) {
-      this.shadowRoot.innerHTML = `${this._styles()}
+    if (this._loading && !this._ctx) {
+      if (!this._setCardContent(`${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -12401,12 +12420,12 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
             </div>
           </div>
           <div class="loading-state"><div class="spinner"></div>${this._escapeHtml(this._t("loading"))}</div>
-        </ha-card>`;
+        </ha-card>`)) return;
       this._finalizeRender();
       return;
     }
     if (!this._ctx) {
-      this.shadowRoot.innerHTML = `${this._styles()}
+      if (!this._setCardContent(`${this._styles()}
         <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
           <div class="header">
             <div class="header-info">
@@ -12415,7 +12434,7 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
             </div>
           </div>
           <div class="empty-state">${this._escapeHtml(this._t("no_data"))}</div>
-        </ha-card>`;
+        </ha-card>`)) return;
       this._finalizeRender();
       return;
     }
