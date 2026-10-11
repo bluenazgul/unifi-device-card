@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- Preserve the card DOM when rendered content is unchanged and keep device content visible during background context refreshes, preventing unnecessary port-panel flicker (#304). Keep client tooltips, language changes, and retained controls updating correctly.
+
 ## [v1.0.0]
 
 ### 💥 Breaking Changes
