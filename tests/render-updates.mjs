@@ -48,8 +48,10 @@ async function fixture(model = "UDMPRO", config = {}) {
     ...[1, 2].flatMap((port) => [
       { entity_id: `sensor.port_${port}_link_speed`, unique_id: `port_link_speed-${mac}_${port}`, translation_key: "port_link_speed" },
       { entity_id: `sensor.port_${port}_rx`, unique_id: `port_bandwidth_rx-${mac}_${port}`, translation_key: "port_bandwidth_rx" },
+      { entity_id: `sensor.port_${port}_poe_power`, unique_id: `poe_power-${mac}_${port}`, translation_key: "poe_power" },
       { entity_id: `switch.port_${port}`, unique_id: `port_control-${mac}_${port}`, translation_key: "port_control" },
     ]),
+    { entity_id: "switch.port_1_poe", unique_id: `poe-${mac}_1` },
     { entity_id: "sensor.cpu", unique_id: `cpu_utilization-${mac}`, translation_key: "cpu_utilization" },
     { entity_id: "sensor.cpu_fallback", unique_id: `cpu_usage-${mac}`, translation_key: "cpu_usage" },
     ...["memory_utilization", "cpu_temperature", "temperature"].map((key) => ({
@@ -69,9 +71,11 @@ async function fixture(model = "UDMPRO", config = {}) {
     "sensor.room_temperature": state(20),
     "light.led": state("on"),
     "button.reboot": state("unknown"),
+    "switch.port_1_poe": state("off"),
     ...Object.fromEntries([1, 2].flatMap((port) => [
       [`sensor.port_${port}_link_speed`, state("1 Gbps", { unit_of_measurement: "Gbps" })],
       [`sensor.port_${port}_rx`, state(0, { unit_of_measurement: "Mbit/s" })],
+      [`sensor.port_${port}_poe_power`, state(0, { unit_of_measurement: "W" })],
       [`switch.port_${port}`, state("on")],
     ])),
   };
@@ -106,6 +110,45 @@ function expectRetained(card, action) {
   action();
   assert.equal(card.shadowRoot.writes.length, before, "unchanged presentation must not replace the DOM");
   assert.equal(card.shadowRoot.querySelector("ha-card"), content, "existing card must survive");
+}
+
+for (const model of ["UDMSE", "USW48P"]) {
+  test(`${model}: PoE LEDs light up and turn off with switch and power updates`, async () => {
+    const { card } = await fixture(model, { link_color_1000: "blue" });
+    const led = (port) => card.shadowRoot.querySelector(`[data-key="port-${port}"] .rj45-led.left`);
+    // Inspect the background declarations that match the rendered LED. These
+    // top-level LED rules are ordered from the base style to the state styles.
+    const background = (element) => Array.from(card.shadowRoot.querySelector("style").sheet.cssRules)
+      .filter((rule) => rule.selectorText?.includes(".rj45-led") && element.matches(rule.selectorText))
+      .map((rule) => rule.style.background)
+      .filter(Boolean).at(-1);
+
+    assert.ok(led(1).classList.contains("off"));
+    update(card, { "switch.port_1_poe": state("on") });
+    assert.ok(led(1).classList.contains("orange"), "the PoE switch alone activates the LED");
+    assert.match(background(led(1)), /#efb21a/, "active PoE must have its amber background, not the grey base style");
+    assert.doesNotMatch(background(led(1)), /var\(/, "link color overrides must not change the PoE color");
+    const activeLed = led(1);
+    expectRetained(card, () => update(card, { "sensor.cpu": state(11, { unit_of_measurement: "%" }) }));
+    assert.equal(led(1), activeLed, "header telemetry retains the active PoE LED");
+
+    update(card, {
+      "switch.port_1_poe": state("off"),
+      "sensor.cpu": state(12, { unit_of_measurement: "%" }),
+    });
+    assert.ok(led(1).classList.contains("off"), "PoE updates must not be skipped alongside a header update");
+    assert.equal(background(led(1)), "#868b93");
+
+    assert.equal(card._buildSlotData(card._ctx).numbered.find((port) => port.port === 2).poe_switch_entity, null);
+    update(card, { "sensor.port_2_poe_power": state("4,5", { unit_of_measurement: "W" }) });
+    assert.ok(led(2).classList.contains("orange"), "positive power draw activates PoE without a switch entity");
+    assert.match(background(led(2)), /#efb21a/);
+    for (const value of [0, "unavailable"]) {
+      update(card, { "sensor.port_2_poe_power": state(value, { unit_of_measurement: "W" }) });
+      assert.ok(led(2).classList.contains("off"));
+      assert.equal(background(led(2)), "#868b93");
+    }
+  });
 }
 
 for (const model of ["UDMPRO", "USW48P"]) {
