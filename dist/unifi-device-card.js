@@ -1,4 +1,4 @@
-/* UniFi Device Card 1.0.11-dev */
+/* UniFi Device Card 0.0.0-dev.86ab5b9 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -8168,7 +8168,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "1.0.11-dev";
+var VERSION = "0.0.0-dev.86ab5b9";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -11611,6 +11611,14 @@ var UnifiDeviceCard = class extends HTMLElement {
         right: 0;
         left: 50%;
         margin-left: 3px;
+      }
+
+      .rj45-led.orange {
+        background: linear-gradient(180deg, #efc14d 0%, #efb21a 58%, #b8820d 100%);
+        box-shadow:
+          0 0 2px rgba(239,178,26,.42),
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.35);
       }
 
       .rj45-led.speed-10-100,
