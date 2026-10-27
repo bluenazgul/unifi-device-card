@@ -1254,6 +1254,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("U7UKU"))              return "UKULTRA";
     if (candidate.includes("U7ENT"))              return "U7ENTERPRISE";
     if (candidate.includes("U7PROXGWALL"))        return "U7PROXGWALL";
+    if (candidate.includes("U7PIW"))              return "U7PROWALL";
     if (candidate.includes("U7PROWALL"))          return "U7PROWALL";
     if (candidate.includes("UAPA6A4"))            return "U7PROXGS";
     if (candidate.includes("UAPA6A9"))            return "U7PROXG";

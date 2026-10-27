@@ -1,4 +1,4 @@
-/* UniFi Device Card 1.0.2 */
+/* UniFi Device Card 0.0.0-dev.c2107e7 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1433,6 +1433,7 @@ function resolveModelKey(device) {
     if (candidate.includes("U7UKU")) return "UKULTRA";
     if (candidate.includes("U7ENT")) return "U7ENTERPRISE";
     if (candidate.includes("U7PROXGWALL")) return "U7PROXGWALL";
+    if (candidate.includes("U7PIW")) return "U7PROWALL";
     if (candidate.includes("U7PROWALL")) return "U7PROWALL";
     if (candidate.includes("UAPA6A4")) return "U7PROXGS";
     if (candidate.includes("UAPA6A9")) return "U7PROXG";
@@ -8168,7 +8169,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "1.0.2";
+var VERSION = "0.0.0-dev.c2107e7";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
