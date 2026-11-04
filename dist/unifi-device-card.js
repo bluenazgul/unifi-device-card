@@ -1,4 +1,4 @@
-/* UniFi Device Card 1.0.3 */
+/* UniFi Device Card 0.0.0-dev.69217b3 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -8169,7 +8169,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "1.0.3";
+var VERSION = "0.0.0-dev.69217b3";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -9057,7 +9057,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const allSlots = [...Array.isArray(numbered) ? numbered : [], ...Array.isArray(specials) ? specials : []];
     const overrideEntities = new Set(overrides.values());
     for (const slot of allSlots) {
-      if (!slot || !overrideEntities.has(slot.speed_entity)) continue;
+      if (!slot || slot.speed_entity == null || !overrideEntities.has(slot.speed_entity)) continue;
       slot.speed_entity = null;
     }
     for (const [port, entityId] of overrides.entries()) {
