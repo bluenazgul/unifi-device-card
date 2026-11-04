@@ -1161,7 +1161,7 @@ class UnifiDeviceCard extends HTMLElement {
     const overrideEntities = new Set(overrides.values());
 
     for (const slot of allSlots) {
-      if (!slot || !overrideEntities.has(slot.speed_entity)) continue;
+      if (!slot || slot.speed_entity == null || !overrideEntities.has(slot.speed_entity)) continue;
       slot.speed_entity = null;
     }
 
