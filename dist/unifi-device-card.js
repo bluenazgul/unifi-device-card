@@ -1,4 +1,4 @@
-/* UniFi Device Card 1.0.3 */
+/* UniFi Device Card 1.0.3b-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -4423,6 +4423,10 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Enabled by default. When disabled, only the model/firmware line is shown.",
     editor_name_label: "Display name text",
     editor_name_hint: "Optional \u2014 updates automatically when switching devices unless you changed it manually",
+    editor_header_label: "Header",
+    editor_show_header_text: "Show model and firmware",
+    editor_show_header_button_text: "Show header buttons and port badge",
+    editor_show_panel_label_text: "Show front panel label",
     editor_telemetry_toggle_label: "Header telemetry",
     editor_telemetry_toggle_text: "Show telemetry data in the card header",
     editor_telemetry_toggle_hint: "Enabled by default. Disable to hide CPU, memory, and temperature rows in the header.",
@@ -4681,6 +4685,10 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Standardm\xE4\xDFig aktiviert. Wenn deaktiviert, wird nur die Modell-/Firmware-Zeile angezeigt.",
     editor_name_label: "Text f\xFCr den Anzeigenamen",
     editor_name_hint: "Optional \u2014 wird beim Ger\xE4tewechsel automatisch aktualisiert, solange du ihn nicht manuell ge\xE4ndert hast",
+    editor_header_label: "Header",
+    editor_show_header_text: "Modell und Firmware anzeigen",
+    editor_show_header_button_text: "Header-Schaltfl\xE4chen und Port-Badge anzeigen",
+    editor_show_panel_label_text: "Frontpanel-Beschriftung anzeigen",
     editor_telemetry_toggle_label: "Header-Telemetrie",
     editor_telemetry_toggle_text: "Telemetriedaten im Karten-Header anzeigen",
     editor_telemetry_toggle_hint: "Standardm\xE4\xDFig aktiviert. Deaktivieren blendet CPU-, Speicher- und Temperaturzeilen im Header aus.",
@@ -4939,6 +4947,10 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Standaard ingeschakeld. Indien uitgeschakeld, wordt alleen de model-/firmwareregel getoond.",
     editor_name_label: "Tekst voor de weergavenaam",
     editor_name_hint: "Optioneel \u2014 wordt automatisch bijgewerkt bij het wisselen van apparaat zolang je hem niet handmatig hebt aangepast",
+    editor_header_label: "Kop",
+    editor_show_header_text: "Model en firmware tonen",
+    editor_show_header_button_text: "Kopknoppen en poortbadge tonen",
+    editor_show_panel_label_text: "Frontpaneellabel tonen",
     editor_telemetry_toggle_label: "Headertelemetrie",
     editor_telemetry_toggle_text: "Telemetriegegevens in de kaartkop tonen",
     editor_telemetry_toggle_hint: "Standaard ingeschakeld. Uitschakelen verbergt CPU-, geheugen- en temperatuurregels in de kop.",
@@ -5194,6 +5206,10 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Activ\xE9 par d\xE9faut. Si d\xE9sactiv\xE9, seule la ligne mod\xE8le/firmware est affich\xE9e.",
     editor_name_label: "Nom d'affichage",
     editor_name_hint: "Optionnel \u2014 par d\xE9faut le nom de l'appareil",
+    editor_header_label: "En-t\xEAte",
+    editor_show_header_text: "Afficher le mod\xE8le et le firmware",
+    editor_show_header_button_text: "Afficher les boutons et le compteur de ports",
+    editor_show_panel_label_text: "Afficher le libell\xE9 du panneau avant",
     editor_telemetry_toggle_label: "T\xE9l\xE9m\xE9trie d\u2019en-t\xEAte",
     editor_telemetry_toggle_text: "Afficher les donn\xE9es de t\xE9l\xE9m\xE9trie dans l\u2019en-t\xEAte",
     editor_telemetry_toggle_hint: "Activ\xE9 par d\xE9faut. D\xE9sactivez pour masquer les lignes CPU, m\xE9moire et temp\xE9rature dans l\u2019en-t\xEAte.",
@@ -5449,6 +5465,10 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Activado por defecto. Si se desactiva, solo se muestra la l\xEDnea de modelo/firmware.",
     editor_name_label: "Nombre para mostrar",
     editor_name_hint: "Opcional \u2014 por defecto, el nombre del dispositivo",
+    editor_header_label: "Encabezado",
+    editor_show_header_text: "Mostrar modelo y firmware",
+    editor_show_header_button_text: "Mostrar botones y contador de puertos",
+    editor_show_panel_label_text: "Mostrar etiqueta del panel frontal",
     editor_telemetry_toggle_label: "Telemetr\xEDa del encabezado",
     editor_telemetry_toggle_text: "Mostrar datos de telemetr\xEDa en el encabezado",
     editor_telemetry_toggle_hint: "Activado por defecto. Desact\xEDvalo para ocultar CPU, memoria y temperatura en el encabezado.",
@@ -5704,6 +5724,10 @@ var TRANSLATIONS = {
     editor_name_toggle_hint: "Abilitato per default. Se disabilitato, viene mostrata solo la riga modello/firmware.",
     editor_name_label: "Nome visualizzato",
     editor_name_hint: "Opzionale \u2014 per impostazione predefinita il nome del dispositivo",
+    editor_header_label: "Intestazione",
+    editor_show_header_text: "Mostra modello e firmware",
+    editor_show_header_button_text: "Mostra pulsanti e contatore delle porte",
+    editor_show_panel_label_text: "Mostra etichetta del pannello frontale",
     editor_telemetry_toggle_label: "Telemetria header",
     editor_telemetry_toggle_text: "Mostra i dati di telemetria nell\u2019header",
     editor_telemetry_toggle_hint: "Abilitato per default. Disattiva per nascondere CPU, memoria e temperatura nell\u2019header.",
@@ -5924,6 +5948,10 @@ TRANSLATIONS.sv = {
   editor_port_led_blink_hint: "Endast en valfri visuell effekt. Portstatus, trafikidentifiering och kontroller p\xE5verkas inte.",
   editor_trust_link_speed_ports_label: "Lita p\xE5 10 Mbit/s l\xE4nkhastighet f\xF6r portar",
   editor_trust_link_speed_ports_hint: "V\xE4lj endast portar med en verklig 10 Mbit/s-anslutning. Detta inaktiverar skyddet mot felaktigt rapporterade l\xE4nkar f\xF6r den valda porten.",
+  editor_header_label: "Sidhuvud",
+  editor_show_header_text: "Visa modell och firmware",
+  editor_show_header_button_text: "Visa knappar i sidhuvudet och portr\xE4knare",
+  editor_show_panel_label_text: "Visa frontpanelens etikett",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Visa telemetridata i kortets header",
   editor_telemetry_toggle_hint: "Aktiverat som standard. Inaktivera f\xF6r att d\xF6lja CPU-, minnes- och temperaturrader i headern.",
@@ -6013,6 +6041,10 @@ TRANSLATIONS.da = {
   editor_port_led_blink_hint: "Kun en valgfri visuel effekt. Portstatus, trafikregistrering og betjening forbliver u\xE6ndret.",
   editor_trust_link_speed_ports_label: "Stol p\xE5 10 Mbit/s-linkhastighed for porte",
   editor_trust_link_speed_ports_hint: "V\xE6lg kun porte med en \xE6gte 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mod fejlagtigt rapporterede links for den valgte port.",
+  editor_header_label: "Sidehoved",
+  editor_show_header_text: "Vis model og firmware",
+  editor_show_header_button_text: "Vis knapper i sidehovedet og portt\xE6ller",
+  editor_show_panel_label_text: "Vis frontpanelets etiket",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Vis telemetridata i kortets header",
   editor_telemetry_toggle_hint: "Aktiveret som standard. Sl\xE5 fra for at skjule CPU-, hukommelses- og temperaturlinjer i headeren.",
@@ -6102,6 +6134,10 @@ TRANSLATIONS.no = {
   editor_port_led_blink_hint: "Kun en valgfri visuell effekt. Portstatus, trafikkregistrering og kontroller forblir uendret.",
   editor_trust_link_speed_ports_label: "Stol p\xE5 10 Mbit/s-linkhastighet for porter",
   editor_trust_link_speed_ports_hint: "Velg bare porter med en reell 10 Mbit/s-forbindelse. Dette deaktiverer beskyttelsen mot feilrapporterte linker for den valgte porten.",
+  editor_header_label: "Overskrift",
+  editor_show_header_text: "Vis modell og fastvare",
+  editor_show_header_button_text: "Vis knapper i overskriften og portteller",
+  editor_show_panel_label_text: "Vis etikett p\xE5 frontpanelet",
   editor_telemetry_toggle_label: "Headertelemetri",
   editor_telemetry_toggle_text: "Vis telemetridata i kortoverskriften",
   editor_telemetry_toggle_hint: "Aktivert som standard. Sl\xE5 av for \xE5 skjule CPU-, minne- og temperaturrader i overskriften.",
@@ -6191,6 +6227,10 @@ TRANSLATIONS.fi = {
   editor_port_led_blink_hint: "Vain valinnainen visuaalinen tehoste. Porttien tila, liikenteen tunnistus ja ohjaimet eiv\xE4t muutu.",
   editor_trust_link_speed_ports_label: "Luota porttien 10 Mbit/s linkkinopeuteen",
   editor_trust_link_speed_ports_hint: "Valitse vain portit, joissa on todellinen 10 Mbit/s yhteys. T\xE4m\xE4 poistaa virheellisesti ilmoitettujen linkkien suojauksen k\xE4yt\xF6st\xE4 valitussa portissa.",
+  editor_header_label: "Otsake",
+  editor_show_header_text: "N\xE4yt\xE4 malli ja laiteohjelmisto",
+  editor_show_header_button_text: "N\xE4yt\xE4 otsakkeen painikkeet ja porttilaskuri",
+  editor_show_panel_label_text: "N\xE4yt\xE4 etupaneelin teksti",
   editor_telemetry_toggle_label: "Otsakkeen telemetria",
   editor_telemetry_toggle_text: "N\xE4yt\xE4 telemetriatiedot kortin otsakkeessa",
   editor_telemetry_toggle_hint: "K\xE4yt\xF6ss\xE4 oletuksena. Poista k\xE4yt\xF6st\xE4 piilottaaksesi CPU-, muisti- ja l\xE4mp\xF6tilarivit otsakkeesta.",
@@ -6280,6 +6320,10 @@ TRANSLATIONS.pl = {
   editor_port_led_blink_hint: "Tylko opcjonalny efekt wizualny. Stan port\xF3w, wykrywanie ruchu i sterowanie pozostaj\u0105 bez zmian.",
   editor_trust_link_speed_ports_label: "Ufaj pr\u0119dko\u015Bci \u0142\u0105cza 10 Mbit/s na portach",
   editor_trust_link_speed_ports_hint: "Wybieraj tylko porty z rzeczywistym po\u0142\u0105czeniem 10 Mbit/s. Wy\u0142\u0105cza to ochron\u0119 przed b\u0142\u0119dnie zg\u0142aszanymi \u0142\u0105czami dla wybranego portu.",
+  editor_header_label: "Nag\u0142\xF3wek",
+  editor_show_header_text: "Poka\u017C model i oprogramowanie sprz\u0119towe",
+  editor_show_header_button_text: "Poka\u017C przyciski w nag\u0142\xF3wku i licznik port\xF3w",
+  editor_show_panel_label_text: "Poka\u017C etykiet\u0119 panelu przedniego",
   editor_telemetry_toggle_label: "Telemetria nag\u0142\xF3wka",
   editor_telemetry_toggle_text: "Poka\u017C dane telemetryczne w nag\u0142\xF3wku karty",
   editor_telemetry_toggle_hint: "Domy\u015Blnie w\u0142\u0105czone. Wy\u0142\u0105cz, aby ukry\u0107 w nag\u0142\xF3wku wiersze CPU, pami\u0119ci i temperatury.",
@@ -6369,6 +6413,10 @@ TRANSLATIONS.cs = {
   editor_port_led_blink_hint: "Pouze voliteln\xFD vizu\xE1ln\xED efekt. Stav port\u016F, detekce provozu a ovl\xE1d\xE1n\xED z\u016Fst\xE1vaj\xED beze zm\u011Bny.",
   editor_trust_link_speed_ports_label: "D\u016Fv\u011B\u0159ovat rychlosti linky 10 Mbit/s na portech",
   editor_trust_link_speed_ports_hint: "Vyberte pouze porty se skute\u010Dn\xFDm p\u0159ipojen\xEDm 10 Mbit/s. T\xEDm se pro vybran\xFD port vypne ochrana proti chybn\u011B hl\xE1\u0161en\xFDm link\xE1m.",
+  editor_header_label: "Z\xE1hlav\xED",
+  editor_show_header_text: "Zobrazit model a firmware",
+  editor_show_header_button_text: "Zobrazit tla\u010D\xEDtka v z\xE1hlav\xED a po\u010D\xEDtadlo port\u016F",
+  editor_show_panel_label_text: "Zobrazit popisek p\u0159edn\xEDho panelu",
   editor_telemetry_toggle_label: "Telemetrie z\xE1hlav\xED",
   editor_telemetry_toggle_text: "Zobrazit telemetrii v z\xE1hlav\xED karty",
   editor_telemetry_toggle_hint: "Ve v\xFDchoz\xEDm stavu zapnuto. Vypnut\xEDm skryjete \u0159\xE1dky CPU, pam\u011Bti a teploty v z\xE1hlav\xED.",
@@ -6976,6 +7024,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.show_header !== false) delete next.show_header;
+    if (next.show_header_button !== false) delete next.show_header_button;
+    if (next.show_panel_label !== false) delete next.show_panel_label;
     if (next.show_back_panel !== false) delete next.show_back_panel;
     if (next.outlet_power_badges !== true) delete next.outlet_power_badges;
     if (next.confirm_outlet_off !== true) delete next.confirm_outlet_off;
@@ -7800,7 +7851,15 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         </div>
 
         <div class="field">
-          <label>${escapeHtml(this._t(isPowerDevice ? "power_telemetry" : isUpsDevice ? "ups_telemetry" : "editor_telemetry_toggle_label"))}</label>
+          <label>${escapeHtml(this._t("editor_header_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_header" type="checkbox" ${this._config?.show_header !== false ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_show_header_text"))}</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="show_header_button" type="checkbox" ${this._config?.show_header_button !== false ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_show_header_button_text"))}</span>
+          </label>
           <label class="checkbox-row">
             <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
             <span>${escapeHtml(this._t(isPowerDevice ? "editor_power_telemetry_text" : isUpsDevice ? "editor_ups_telemetry_text" : "editor_telemetry_toggle_text"))}</span>
@@ -7858,6 +7917,10 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         ${isSwitchOrGateway ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_panel_label" type="checkbox" ${this._config?.show_panel_label !== false ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_show_panel_label_text"))}</span>
+          </label>
           <label class="checkbox-row">
             <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
             <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
@@ -8087,6 +8150,9 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     `;
     this.shadowRoot.getElementById("device_id")?.addEventListener("change", (ev) => this._onDeviceChange(ev));
     this.shadowRoot.getElementById("show_name")?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    for (const key of ["show_header", "show_header_button", "show_panel_label"]) {
+      this.shadowRoot.getElementById(key)?.addEventListener("change", (ev) => this._emitConfig({ [key]: ev.target.checked ? void 0 : false }));
+    }
     this.shadowRoot.getElementById("show_telemetry")?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")?.addEventListener("change", (ev) => this._onShowPanelChange(ev));
     this.shadowRoot.getElementById("show_back_panel")?.addEventListener("change", (ev) => this._onShowBackPanelChange(ev));
@@ -8169,7 +8235,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "1.0.3";
+var VERSION = "1.0.3b-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -9057,7 +9123,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const allSlots = [...Array.isArray(numbered) ? numbered : [], ...Array.isArray(specials) ? specials : []];
     const overrideEntities = new Set(overrides.values());
     for (const slot of allSlots) {
-      if (!slot || !overrideEntities.has(slot.speed_entity)) continue;
+      if (!slot || slot.speed_entity == null || !overrideEntities.has(slot.speed_entity)) continue;
       slot.speed_entity = null;
     }
     for (const [port, entityId] of overrides.entries()) {
@@ -9568,16 +9634,11 @@ var UnifiDeviceCard = class extends HTMLElement {
     const headerTitle = this._title();
     if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
-        <div class="header">
-          <div class="header-info">
+        ${this._renderHeader(`
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
-            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
-          </div>
-          <div class="header-actions ups-header-actions">
+            ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>` : ""}`, `
             ${this._renderOutletCount(outlets)}
-            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-          </div>
-        </div>
+            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}`, "header-actions ups-header-actions")}
         ${summary ? `<div class="section ups-summary-section">${summary}</div>` : ""}
         <div class="power-outlet-panel${this._config?.show_back_panel === false ? " no-panel-bg" : ""}">
           <div class="panel-label">${this._escapeHtml(this._t("ups_outlets"))}</div>
@@ -9618,16 +9679,11 @@ var UnifiDeviceCard = class extends HTMLElement {
     const ventSlots = "<span></span>".repeat(5);
     if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
-        <div class="header">
-          <div class="header-info">
+        ${this._renderHeader(`
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
-            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
-          </div>
-          <div class="header-actions ups-header-actions">
+            ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>` : ""}`, `
             ${this._renderOutletCount(outlets)}
-            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-          </div>
-        </div>
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}`, "header-actions ups-header-actions")}
         ${summary ? `<div class="section ups-summary-section">${summary}${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}</div>` : ""}
         ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr([ctx?.model || "UniFi UPS", ...battery != null ? [`${this._t("ups_battery_level")}: ${batteryText}`] : [], ...runtime !== "\u2014" ? [runtime] : []].join(" \xB7 "))}">
           ${tower ? `<div class="ups-tower">
@@ -12091,7 +12147,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return `
       <div class="integrated-port-section">
         <div class="frontpanel integrated-ports theme-${this._safeClassToken(ctx?.layout?.theme || "white", "white")}">
-          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
+          ${this._config?.show_panel_label !== false ? `<div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>` : ""}
           ${specialRow}${layoutRows || (!specialRow ? `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>` : "")}
         </div>
         ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
@@ -12174,17 +12230,12 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
       const escapedSubtitle2 = this._escapeHtml(this._subtitle());
       if (!this._setCardContent(`${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
-          <div class="header">
-            <div class="header-info">
+          ${this._renderHeader(`
               ${headerTitle2 ? `<div class="title">${escapedHeaderTitle2}</div>` : ""}
-              <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle2}</div>
-              ${this._headerMetricsHTML(headerMetrics2)}
-            </div>
-            <div class="header-actions">
+              ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle2}</div>` : ""}
+              ${this._headerMetricsHTML(headerMetrics2)}`, `
               ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-              ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
-            </div>
-          </div>
+              ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}`, "header-actions")}
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${showVisualPanel ? "" : " panel-hidden"}${showVisualPanel && this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
             ${showVisualPanel ? `
@@ -12388,20 +12439,15 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     const escapedSubtitle = this._escapeHtml(this._subtitle());
     if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
-        <div class="header">
-          <div class="header-info">
+        ${this._renderHeader(`
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
-            ${this._headerMetricsHTML(headerMetrics)}
-          </div>
-          <div class="header-actions">
+            ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>` : ""}
+            ${this._headerMetricsHTML(headerMetrics)}`, `
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">\u21BB ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>
-          </div>
-        </div>
+            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>`, "header-actions")}
 
         <div class="frontpanel ${frontStyle} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
-          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
+          ${this._config?.show_panel_label !== false ? `<div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>` : ""}
           ${panelContentHtml}
         </div>
 
@@ -12423,6 +12469,12 @@ ${this._t("confirm_disable_port_message").replace("{port}", portName)}`;
     this.shadowRoot.querySelector("[data-action='toggle-poe']")?.addEventListener("click", (e) => this._toggleEntity(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='power-cycle']")?.addEventListener("click", (e) => this._pressButton(e.currentTarget.dataset.entity));
     this.shadowRoot.querySelector("[data-action='reboot-device']")?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+  }
+  _renderHeader(info, actions, actionsClass = "header-actions") {
+    info = info.trim();
+    actions = this._config?.show_header_button !== false ? actions.trim() : "";
+    if (!info.replace('<div class="meta-list" hidden></div>', "").trim() && !actions) return "";
+    return `<div class="header">${info ? `<div class="header-info">${info}</div>` : ""}${actions ? `<div class="${actionsClass}">${actions}</div>` : ""}</div>`;
   }
   _setCardContent(html, headerMetrics = null) {
     if (html === this._renderedHTML) return false;

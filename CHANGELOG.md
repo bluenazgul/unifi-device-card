@@ -1,5 +1,37 @@
 # Changelog
 
+## [v1.0.4]
+
+### ✨ Features
+
+- Add independent `show_header`, `show_header_button`, and `show_panel_label` options (default `true`) to hide model/firmware, header actions/badges, and the front panel label (#318). Remove empty headers when all header content is hidden.
+- Group model/firmware, header actions, and telemetry under Header in the editor; add the label toggle under Frontpanel and translate the new controls in all twelve supported languages.
+
+### 🐛 Bug Fixes
+
+- Guard against missing port speed sensors when applying manual sensor overrides (#317).
+
+### 📚 Documentation
+
+- Use HTML width and height attributes for the Buy Me a Coffee button in the README and new release notes so its size survives HACS/Marketplace Markdown sanitization.
+- Hide installation instructions and development details only in the Marketplace README view, including their navigation links. Keep HACS instructions for Home Assistant versions before 2026.11 and add installation steps for the built-in Marketplace on 2026.11 and newer.
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60" ></a>
+
 ## [v1.0.3]
 
 ### 🐛 Bug Fixes

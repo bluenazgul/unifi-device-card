@@ -4,7 +4,7 @@ A Home Assistant Lovelace custom card for UniFi switches, gateways, access point
 
 Add the card, pick a device, and configure common settings in the visual editor. YAML provides additional overrides for port names, LAG badges, link colors, and sensor mappings.
 
-[Requirements](#requirements) · [Installation](#installation) · [Usage and YAML examples](#usage-and-yaml-examples) · [Configuration options](#configuration-options) · [Supported devices](#supported-devices) · [Troubleshooting](#troubleshooting) · [Screenshots](#screenshots) · [Development](#development)
+[Requirements](#requirements) · <!-- ha-marketplace:exclude-start -->[Installation](#installation) · <!-- ha-marketplace:exclude-end -->[Usage and YAML examples](#usage-and-yaml-examples) · [Configuration options](#configuration-options) · [Supported devices](#supported-devices) · [Troubleshooting](#troubleshooting) · [Screenshots](#screenshots)<!-- ha-marketplace:exclude-start --> · [Development](#development)<!-- ha-marketplace:exclude-end -->
 
 ## Features
 
@@ -26,9 +26,20 @@ Add the card, pick a device, and configure common settings in the visual editor.
 > Starting with **v1.0.0**, upgrade Home Assistant to **2026.9.0 or newer** before updating the card. If you need to stay on an older Home Assistant version, keep the latest compatible **v0.8.x** card release.
 > Existing card YAML and device selections do not need to be changed. Features still depend on the entities exposed by your configured UniFi Network integration; for example, UniFi UPS telemetry requires Home Assistant Core **2026.10** or newer.
 
+<!-- ha-marketplace:exclude-start -->
 ## Installation
 
+### Home Assistant Marketplace
+
+For **Home Assistant 2026.11 or newer**, the built-in Marketplace replaces HACS.
+
+1. Open **Settings → Marketplace** and search for **UniFi Device Card**.
+2. Install the card and reload the browser/frontend.
+3. Add **UniFi Device Card** to your dashboard and select your device.
+
 ### HACS
+
+For **Home Assistant versions before 2026.11**, use HACS. The card's minimum Home Assistant version still applies; see [Requirements](#requirements).
 
 1. Open **HACS** and search for **UniFi Device Card** in the **Dashboard** category.
 2. Install the card and reload the browser/frontend.
@@ -57,6 +68,8 @@ HACS currently lists only the latest **30 releases**, so an older v0.8.x release
 2. Copy it to `/config/www/unifi-device-card.js`.
 3. Add a resource under **Settings → Dashboards → Resources**, with URL `/local/unifi-device-card.js` and type **JavaScript module**.
 4. Reload the browser and add the card to your dashboard.
+
+<!-- ha-marketplace:exclude-end -->
 
 ## Usage and YAML examples
 
@@ -234,6 +247,9 @@ Unset options use the defaults below. Model-specific settings take effect only w
 | `device_id` | string | — | Home Assistant device registry ID of the UniFi device. |
 | `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
 | `show_name` | boolean | `true` | Show/hide the header title line. |
+| `show_header` | boolean | `true` | Show/hide model and firmware independently of the name and telemetry. |
+| `show_header_button` | boolean | `true` | Show/hide header actions (restart, LED where available) and port/outlet badges. |
+| `show_panel_label` | boolean | `true` | Show/hide the FRONT PANEL label independently of the panel graphic. |
 | `show_telemetry` | boolean | `true` | Show/hide header telemetry. On UPS cards, also controls the battery summary, battery indicators, and UPS readings; on SmartPower cards, controls whole-device AC readings. Outlet readings remain available. |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |
@@ -581,6 +597,7 @@ Compact AP Card Layout **ap_compact_view: true** (optional) [additional used *ba
 
 </details>
 
+<!-- ha-marketplace:exclude-start -->
 ## Development
 
 Use **Node.js 24**. Install the locked dependencies and run the same checks used by CI:
@@ -600,6 +617,8 @@ Pull requests target `develop`. CI runs the full test suite, bundle build, ESLin
 
 Use the **Create Dev Release** workflow with `1.0.0` (or `v1.0.0`) to prepare `v1.0.0-dev` from `develop`. The **Create Release** workflow uses the repository's stable default branch and accepts `1.0.0` or `v1.0.0`. Both read the matching base version's changelog section.
 
+<!-- ha-marketplace:exclude-end -->
+
 ## About and support
 
 I created this card with help from ChatGPT to bring important UniFi information into one dashboard. Hardware testing has covered the devices I own: UCG-U, US 8 60W, USW Lite 8/16 PoE, USW Flex, AC Mesh, AC Pro, U6+, and U6 Mesh. Other supported layouts also have automated regression checks.
@@ -616,4 +635,4 @@ If you like this project and want to support my work, you can donate via PayPal 
   />
 </a>
 
-<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60" ></a>

@@ -414,3 +414,28 @@ test("compact AP telemetry updates in place and respects its visibility option",
   assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "26.00 %");
   assert.equal(card.shadowRoot.querySelector(".frontpanel"), panel);
 });
+
+for (const model of ["UDMPRO", "U7PRO"]) {
+  test(`${model}: header visibility controls stay independent and remove an empty header`, async () => {
+    const { card } = await fixture(model, { show_header: false });
+    assert.equal(card.shadowRoot.querySelector(".subtitle"), null);
+    assert.ok(card.shadowRoot.querySelector(".title"));
+    assert.ok(card.shadowRoot.querySelector(".meta-row"));
+    assert.ok(card.shadowRoot.querySelector("[data-action='reboot-device']"));
+    card.setConfig({ device_id: "device", show_header_button: false, show_panel_label: false });
+    await flush();
+    assert.ok(card.shadowRoot.querySelector(".subtitle"));
+    assert.equal(card.shadowRoot.querySelector(".header-actions"), null);
+    assert.equal(card.shadowRoot.querySelector(".panel-label"), null);
+    card.setConfig({ device_id: "device", show_header: false, show_header_button: false,
+      show_panel_label: false, show_name: false, show_telemetry: false });
+    await flush();
+    assert.equal(card.shadowRoot.querySelector(".header"), null);
+    assert.ok(card.shadowRoot.querySelector(".frontpanel"));
+    card.setConfig({ device_id: "device" });
+    await flush();
+    assert.ok(card.shadowRoot.querySelector(".header"));
+    assert.ok(card.shadowRoot.querySelector(".subtitle"));
+    assert.ok(card.shadowRoot.querySelector("[data-action='reboot-device']"));
+  });
+}
