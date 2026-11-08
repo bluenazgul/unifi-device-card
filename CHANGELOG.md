@@ -13,6 +13,7 @@
 
 ### 📚 Documentation
 
+- Use HTML width and height attributes for the Buy Me a Coffee button in the README and new release notes so its size survives HACS/Marketplace Markdown sanitization.
 - Hide installation instructions and development details only in the Marketplace README view, including their navigation links. Keep HACS instructions for Home Assistant versions before 2026.11 and add installation steps for the built-in Marketplace on 2026.11 and newer.
 
 ### ✨ Hints
@@ -29,7 +30,7 @@ If you like this project and want to support my work, you can donate via PayPal 
   />
 </a>
 
-<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60" ></a>
 
 ## [v1.0.3]
 
