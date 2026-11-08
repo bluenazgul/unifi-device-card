@@ -11,6 +11,10 @@
 
 - Guard against missing port speed sensors when applying manual sensor overrides (#317).
 
+### 📚 Documentation
+
+- Hide installation instructions and development details only in the Marketplace README view, including their navigation links. Keep HACS instructions for Home Assistant versions before 2026.11 and add installation steps for the built-in Marketplace on 2026.11 and newer.
+
 ### ✨ Hints
 
 If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.

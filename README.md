@@ -4,7 +4,7 @@ A Home Assistant Lovelace custom card for UniFi switches, gateways, access point
 
 Add the card, pick a device, and configure common settings in the visual editor. YAML provides additional overrides for port names, LAG badges, link colors, and sensor mappings.
 
-[Requirements](#requirements) · [Installation](#installation) · [Usage and YAML examples](#usage-and-yaml-examples) · [Configuration options](#configuration-options) · [Supported devices](#supported-devices) · [Troubleshooting](#troubleshooting) · [Screenshots](#screenshots) · [Development](#development)
+[Requirements](#requirements) · <!-- ha-marketplace:exclude-start -->[Installation](#installation) · <!-- ha-marketplace:exclude-end -->[Usage and YAML examples](#usage-and-yaml-examples) · [Configuration options](#configuration-options) · [Supported devices](#supported-devices) · [Troubleshooting](#troubleshooting) · [Screenshots](#screenshots)<!-- ha-marketplace:exclude-start --> · [Development](#development)<!-- ha-marketplace:exclude-end -->
 
 ## Features
 
@@ -26,9 +26,20 @@ Add the card, pick a device, and configure common settings in the visual editor.
 > Starting with **v1.0.0**, upgrade Home Assistant to **2026.9.0 or newer** before updating the card. If you need to stay on an older Home Assistant version, keep the latest compatible **v0.8.x** card release.
 > Existing card YAML and device selections do not need to be changed. Features still depend on the entities exposed by your configured UniFi Network integration; for example, UniFi UPS telemetry requires Home Assistant Core **2026.10** or newer.
 
+<!-- ha-marketplace:exclude-start -->
 ## Installation
 
+### Home Assistant Marketplace
+
+For **Home Assistant 2026.11 or newer**, the built-in Marketplace replaces HACS.
+
+1. Open **Settings → Marketplace** and search for **UniFi Device Card**.
+2. Install the card and reload the browser/frontend.
+3. Add **UniFi Device Card** to your dashboard and select your device.
+
 ### HACS
+
+For **Home Assistant versions before 2026.11**, use HACS. The card's minimum Home Assistant version still applies; see [Requirements](#requirements).
 
 1. Open **HACS** and search for **UniFi Device Card** in the **Dashboard** category.
 2. Install the card and reload the browser/frontend.
@@ -57,6 +68,8 @@ HACS currently lists only the latest **30 releases**, so an older v0.8.x release
 2. Copy it to `/config/www/unifi-device-card.js`.
 3. Add a resource under **Settings → Dashboards → Resources**, with URL `/local/unifi-device-card.js` and type **JavaScript module**.
 4. Reload the browser and add the card to your dashboard.
+
+<!-- ha-marketplace:exclude-end -->
 
 ## Usage and YAML examples
 
@@ -584,6 +597,7 @@ Compact AP Card Layout **ap_compact_view: true** (optional) [additional used *ba
 
 </details>
 
+<!-- ha-marketplace:exclude-start -->
 ## Development
 
 Use **Node.js 24**. Install the locked dependencies and run the same checks used by CI:
@@ -602,6 +616,8 @@ The build writes the distribution bundle to `dist/unifi-device-card.js`. Its dev
 Pull requests target `develop`. CI runs the full test suite, bundle build, ESLint, HACS validation, and CodeQL. Stable and development release workflows also run tests and lint before creating their bundle and tag.
 
 Use the **Create Dev Release** workflow with `1.0.0` (or `v1.0.0`) to prepare `v1.0.0-dev` from `develop`. The **Create Release** workflow uses the repository's stable default branch and accepts `1.0.0` or `v1.0.0`. Both read the matching base version's changelog section.
+
+<!-- ha-marketplace:exclude-end -->
 
 ## About and support
 
