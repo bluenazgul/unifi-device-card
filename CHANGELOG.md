@@ -5,7 +5,7 @@
 ### ✨ Features
 
 - Add independent `show_header`, `show_header_button`, and `show_panel_label` options (default `true`) to hide model/firmware, header actions/badges, and the front panel label (#318). Remove empty headers when all header content is hidden.
-- Group model/firmware, header actions, and telemetry under Header in the editor; add the label toggle under Frontpanel and translate the new controls.
+- Group model/firmware, header actions, and telemetry under Header in the editor; add the label toggle under Frontpanel and translate the new controls in all twelve supported languages.
 
 ### 🐛 Bug Fixes
 
