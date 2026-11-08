@@ -205,7 +205,8 @@ for (const id of ["show_back_panel", "dynamic_outlet_details", "default_outlet",
   assert.match(editor.shadowRoot.innerHTML, new RegExp(`id="${id}"`));
 }
 assert.doesNotMatch(editor.shadowRoot.innerHTML, /id="ups_layout"|id="show_panel"|Battery|CPU|UPS telemetry/);
-assert.match(editor.shadowRoot.innerHTML, /SmartPower telemetry/);
+assert.match(editor.shadowRoot.innerHTML, /Header/);
+assert.match(editor.shadowRoot.innerHTML, /Show device power readings/);
 assert.equal(editor._upsDiagnosticsHTML(), "");
 
 const keys = ["power_telemetry", "power_load", "power_diagnostics", "power_preview", "editor_power_telemetry_text", "editor_power_telemetry_hint", "editor_power_panel_text"];

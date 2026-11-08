@@ -234,6 +234,9 @@ Unset options use the defaults below. Model-specific settings take effect only w
 | `device_id` | string | — | Home Assistant device registry ID of the UniFi device. |
 | `name` | string | device name | Custom display name shown in card header (if `show_name` is enabled). |
 | `show_name` | boolean | `true` | Show/hide the header title line. |
+| `show_header` | boolean | `true` | Show/hide model and firmware independently of the name and telemetry. |
+| `show_header_button` | boolean | `true` | Show/hide header actions (restart, LED where available) and port/outlet badges. |
+| `show_panel_label` | boolean | `true` | Show/hide the FRONT PANEL label independently of the panel graphic. |
 | `show_telemetry` | boolean | `true` | Show/hide header telemetry. On UPS cards, also controls the battery summary, battery indicators, and UPS readings; on SmartPower cards, controls whole-device AC readings. Outlet readings remain available. |
 | `show_panel` | boolean | `true` | Show/hide the visual front panel area. |
 | `background_opacity` | number | `100` | Background transparency in percent (`0` = transparent, `100` = opaque). |

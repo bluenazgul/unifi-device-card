@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased]
+
+### ✨ Features
+
+- Add independent `show_header`, `show_header_button`, and `show_panel_label` options (default `true`) to hide model/firmware, header actions/badges, and the front panel label (#318). Remove empty headers when all header content is hidden.
+- Group model/firmware, header actions, and telemetry under Header in the editor; add the label toggle under Frontpanel and translate the new controls.
+
+### 🐛 Bug Fixes
+
+- Guard against missing port speed sensors when applying manual sensor overrides (#317).
+
+### ✨ Hints
+
+If you see improvements, issues, or fixes, feel free to open an issue or create a pull request.
+
+If you like this project and want to support my work, you can donate via PayPal or buy me a coffee.
+
+<a href="https://www.paypal.me/bluenazgul">
+  <img
+    src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png"
+    alt="Donate with PayPal"
+    width="220"
+  />
+</a>
+
+<a href="https://www.buymeacoffee.com/bluenazgul" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## [v1.0.3]
 
 ### 🐛 Bug Fixes

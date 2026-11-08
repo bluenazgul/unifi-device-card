@@ -547,6 +547,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     if (next.show_name !== false) delete next.show_name;
     if (next.show_telemetry !== false) delete next.show_telemetry;
     if (next.show_panel !== false) delete next.show_panel;
+    if (next.show_header !== false) delete next.show_header;
+    if (next.show_header_button !== false) delete next.show_header_button;
+    if (next.show_panel_label !== false) delete next.show_panel_label;
     if (next.show_back_panel !== false) delete next.show_back_panel;
     if (next.outlet_power_badges !== true) delete next.outlet_power_badges;
     if (next.confirm_outlet_off !== true) delete next.confirm_outlet_off;
@@ -1525,7 +1528,15 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
 
         <div class="field">
-          <label>${escapeHtml(this._t(isPowerDevice ? "power_telemetry" : isUpsDevice ? "ups_telemetry" : "editor_telemetry_toggle_label"))}</label>
+          <label>${escapeHtml(this._t("editor_header_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_header" type="checkbox" ${this._config?.show_header !== false ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_show_header_text"))}</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="show_header_button" type="checkbox" ${this._config?.show_header_button !== false ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_show_header_button_text"))}</span>
+          </label>
           <label class="checkbox-row">
             <input id="show_telemetry" type="checkbox" ${showTelemetry ? "checked" : ""}>
             <span>${escapeHtml(this._t(isPowerDevice ? "editor_power_telemetry_text" : isUpsDevice ? "editor_ups_telemetry_text" : "editor_telemetry_toggle_text"))}</span>
@@ -1583,6 +1594,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
         ${isSwitchOrGateway ? `
         <div class="field">
           <label>${escapeHtml(this._t("editor_panel_toggle_label"))}</label>
+          <label class="checkbox-row">
+            <input id="show_panel_label" type="checkbox" ${this._config?.show_panel_label !== false ? "checked" : ""}>
+            <span>${escapeHtml(this._t("editor_show_panel_label_text"))}</span>
+          </label>
           <label class="checkbox-row">
             <input id="show_panel" type="checkbox" ${showPanel ? "checked" : ""}>
             <span>${escapeHtml(this._t("editor_panel_toggle_text"))}</span>
@@ -1820,6 +1835,10 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("show_name")
       ?.addEventListener("change", (ev) => this._onShowNameChange(ev));
+    for (const key of ["show_header", "show_header_button", "show_panel_label"]) {
+      this.shadowRoot.getElementById(key)
+        ?.addEventListener("change", (ev) => this._emitConfig({ [key]: ev.target.checked ? undefined : false }));
+    }
     this.shadowRoot.getElementById("show_telemetry")
       ?.addEventListener("change", (ev) => this._onShowTelemetryChange(ev));
     this.shadowRoot.getElementById("show_panel")

@@ -1804,16 +1804,11 @@ class UnifiDeviceCard extends HTMLElement {
     const headerTitle = this._title();
     if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
-        <div class="header">
-          <div class="header-info">
+        ${this._renderHeader(`
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
-            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
-          </div>
-          <div class="header-actions ups-header-actions">
+            ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>` : ""}`, `
             ${this._renderOutletCount(outlets)}
-            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-          </div>
-        </div>
+            ${ctx.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}`, "header-actions ups-header-actions")}
         ${summary ? `<div class="section ups-summary-section">${summary}</div>` : ""}
         <div class="power-outlet-panel${this._config?.show_back_panel === false ? " no-panel-bg" : ""}">
           <div class="panel-label">${this._escapeHtml(this._t("ups_outlets"))}</div>
@@ -1859,16 +1854,11 @@ class UnifiDeviceCard extends HTMLElement {
     const ventSlots = "<span></span>".repeat(5);
     if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}${this._customColorVars()}">
-        <div class="header">
-          <div class="header-info">
+        ${this._renderHeader(`
             ${headerTitle ? `<div class="title">${this._escapeHtml(headerTitle)}</div>` : ""}
-            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>
-          </div>
-          <div class="header-actions ups-header-actions">
+            ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${this._escapeHtml(this._subtitle())}</div>` : ""}`, `
             ${this._renderOutletCount(outlets)}
-            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-          </div>
-        </div>
+            ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}`, "header-actions ups-header-actions")}
         ${summary ? `<div class="section ups-summary-section">${summary}${ctx?.fake_device ? `<div class="muted">${this._escapeHtml(this._t("ups_preview"))}</div>` : ""}</div>` : ""}
         ${showFront ? `<div class="ups-visual${tower ? " tower" : ""}" role="img" aria-label="${this._escapeAttr([ctx?.model || "UniFi UPS", ...(battery != null ? [`${this._t("ups_battery_level")}: ${batteryText}`] : []), ...(runtime !== "—" ? [runtime] : [])].join(" · "))}">
           ${tower ? `<div class="ups-tower">
@@ -4400,7 +4390,7 @@ class UnifiDeviceCard extends HTMLElement {
     return `
       <div class="integrated-port-section">
         <div class="frontpanel integrated-ports theme-${this._safeClassToken(ctx?.layout?.theme || "white", "white")}">
-          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
+          ${this._config?.show_panel_label !== false ? `<div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>` : ""}
           ${specialRow}${layoutRows || (!specialRow ? `<div class="muted" style="padding:8px 0">${this._escapeHtml(this._t("no_ports"))}</div>` : "")}
         </div>
         ${selected ? `<div class="section integrated-port-detail">${this._renderPortDetail(selected)}</div>` : ""}
@@ -4486,17 +4476,12 @@ class UnifiDeviceCard extends HTMLElement {
       const escapedSubtitle = this._escapeHtml(this._subtitle());
       if (!this._setCardContent(`${this._styles()}
         <ha-card class="ap-card ${compactApView ? "compact" : ""}" style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --ap-ring-color: ${ringColor}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
-          <div class="header">
-            <div class="header-info">
+          ${this._renderHeader(`
               ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-              <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
-              ${this._headerMetricsHTML(headerMetrics)}
-            </div>
-            <div class="header-actions">
+              ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>` : ""}
+              ${this._headerMetricsHTML(headerMetrics)}`, `
               ${this._ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-              ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}
-            </div>
-          </div>
+              ${ledEntity ? `<button class="chip compact" data-action="toggle-led" style="--led-indicator: ${ledEnabled ? ringColor : "#868b93"}"><span class="led-indicator"></span>LED</button>` : ""}`, "header-actions")}
 
           <div class="ap-layout ${compactApView ? "compact" : ""}${showVisualPanel ? "" : " panel-hidden"}${showVisualPanel && this._integratedPortsEnabled(this._ctx) && this._ctx?.numberedPorts?.length ? " has-integrated-ports" : ""}">
             ${showVisualPanel ? `
@@ -4746,20 +4731,15 @@ class UnifiDeviceCard extends HTMLElement {
     const escapedSubtitle = this._escapeHtml(this._subtitle());
     if (!this._setCardContent(`${this._styles()}
       <ha-card style="--udc-card-bg: ${this._cardBgStyle()}; --udc-chrome-bg: ${this._cardChromeBgStyle()}; --udc-port-size: ${this._effectivePortSize()}px; --udc-ap-scale: ${this._apScale() / 100}${this._customColorVars()}">
-        <div class="header">
-          <div class="header-info">
+        ${this._renderHeader(`
             ${headerTitle ? `<div class="title">${escapedHeaderTitle}</div>` : ""}
-            <div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>
-            ${this._headerMetricsHTML(headerMetrics)}
-          </div>
-          <div class="header-actions">
+            ${this._config?.show_header !== false ? `<div class="subtitle device-link" data-action="open-device" role="link" tabindex="0">${escapedSubtitle}</div>` : ""}
+            ${this._headerMetricsHTML(headerMetrics)}`, `
             ${ctx?.reboot_entity ? `<button class="chip compact" data-action="reboot-device">↻ ${this._escapeHtml(this._t("reboot"))}</button>` : ""}
-            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>
-          </div>
-        </div>
+            <div class="chip"><div class="dot"></div>${this._escapeHtml(`${connected}/${allSlots.length}`)}</div>`, "header-actions")}
 
         <div class="frontpanel ${frontStyle} theme-${theme}${showPanel ? "" : " no-panel-bg"}${reverseFrontpanel ? " rotate180-enabled" : ""}">
-          <div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>
+          ${this._config?.show_panel_label !== false ? `<div class="panel-label">${this._escapeHtml(this._t("front_panel"))}</div>` : ""}
           ${panelContentHtml}
         </div>
 
@@ -4790,6 +4770,13 @@ class UnifiDeviceCard extends HTMLElement {
 
     this.shadowRoot.querySelector("[data-action='reboot-device']")
       ?.addEventListener("click", () => this._pressButton(this._ctx?.reboot_entity));
+  }
+
+  _renderHeader(info, actions, actionsClass = "header-actions") {
+    info = info.trim();
+    actions = this._config?.show_header_button !== false ? actions.trim() : "";
+    if (!info.replace('<div class="meta-list" hidden></div>', "").trim() && !actions) return "";
+    return `<div class="header">${info ? `<div class="header-info">${info}</div>` : ""}${actions ? `<div class="${actionsClass}">${actions}</div>` : ""}</div>`;
   }
 
   _setCardContent(html, headerMetrics = null) {
