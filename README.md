@@ -613,9 +613,13 @@ npm run build
 
 The build writes the distribution bundle to `dist/unifi-device-card.js`. Its development version includes the current commit; release workflows bake in the requested release version. Source changes belong in `src`; generated bundles are maintained by the build/release workflows.
 
-Pull requests target `develop`. CI runs the full test suite, bundle build, ESLint, HACS validation, and CodeQL. Stable and development release workflows also run tests and lint before creating their bundle and tag.
+Explicitly select `develop` as the base for working pull requests. The repository's stable default branch is used for releases; promotion pull requests from `develop` to `main` are a separate release step. CI runs the full test suite, bundle build, ESLint, HACS validation, and CodeQL. Stable and development release workflows also run tests and lint before creating their bundle and tag.
 
-Use the **Create Dev Release** workflow with `1.0.0` (or `v1.0.0`) to prepare `v1.0.0-dev` from `develop`. The **Create Release** workflow uses the repository's stable default branch and accepts `1.0.0` or `v1.0.0`. Both read the matching base version's changelog section.
+In **Create Dev Release**, select `develop` under **Use workflow from** to run the current development workflow. Enter `1.0.5` (or `v1.0.5`) to prepare `v1.0.5-dev` from `develop`. For another preview, use a new version such as `1.0.5b2`, which creates `v1.0.5b2-dev` and reads the `v1.0.5` changelog section. Dev releases require that section to exist. Merge fixes into `develop` before starting the workflow; it always builds that branch, including when dispatched from another workflow ref.
+
+The dev workflow rebuilds and checks the bundle version before publishing. Its release notes and workflow summary include the exact source commit and the bundle's SHA-256 checksum. Download `unifi-device-card.js` from the release's assets to test that build; existing tags are never overwritten.
+
+The **Create Release** workflow uses the repository's stable default branch, accepts `1.0.0` or `v1.0.0`, and reads that version's changelog section.
 
 <!-- ha-marketplace:exclude-end -->
 
