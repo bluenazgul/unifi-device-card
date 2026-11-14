@@ -411,7 +411,7 @@ Unset options use the defaults below. Model-specific settings take effect only w
 | Dream Router (`UDR`) | 4 + WAN | White |
 | UDM Pro (`UDMPRO`) | 8 + WAN/SFP+ | Silver |
 | UDM SE (`UDMPROSE`) | 8 + WAN/SFP+ | Silver |
-| UniFi Express / Express 7 (`UX`, `UX7`) | LAN + WAN | White |
+| UniFi Express / Express 7 (`UX`, `UX7`, `UDMA69`, `UDMA69B`) | LAN + WAN | White |
 | Dream Router 5G Max (`UDR5GMAX`) | 4 + WAN | White |
 | Dream Wall (`UDW`) | Integrated WiFi + 12 PoE LAN + 2.5 GbE WAN + 2 SFP+ | White |
 | UXG Max (`UXGMAX`) | 4 + WAN | White |
