@@ -10,9 +10,33 @@ import {
 import {
   getDeviceLayout,
   getFakeDevices,
+  inferPortCountFromModel,
   MODEL_REGISTRY,
   resolveModelKey,
 } from "../src/model-registry.js";
+
+for (const identifier of ["UX7", "UDMA69", "UDMA69B", "UniFi Express 7"]) {
+  for (const field of ["model", "model_id"]) {
+    const express7 = {
+      model: "UniFi Gateway", model_id: null, hw_version: "24", name: "Gateway 24",
+      [field]: identifier,
+    };
+    assert.equal(resolveModelKey(express7), "UX7", `${field}=${identifier} must select Express 7`);
+    assert.equal(classifyDeviceType(express7, { ports: true, ap_stats: true }), "gateway");
+    assert.equal(inferPortCountFromModel(express7), 2, "hardware aliases must take precedence over digits in names");
+    const layout = getDeviceLayout(express7, [{ port: 1 }, { port: 2 }, { port: 242 }]);
+    assert.equal(layout.modelKey, "UX7");
+    assert.equal(layout.displayModel, "UniFi Express 7");
+    assert.equal(layout.frontStyle, "gateway-single-row");
+    assert.equal(layout.portCount, 2);
+    assert.deepEqual(layout.rows, [[1]]);
+    assert.deepEqual(layout.specialSlots, [{ key: "wan", label: "10G RJ45 WAN", port: 2, media: "rj45" }]);
+  }
+}
+
+assert.equal(resolveModelKey({ model_id: "UDMA690" }), null, "unverified model families must not match the aliases");
+assert.equal(resolveModelKey({ model_id: "UX", model: "UniFi Express" }), "UX");
+assert.equal(getDeviceLayout({ model_id: "UX" }).displayModel, "UniFi Express");
 
 const inWallHd = {
   model_id: "UHDIW",

@@ -43,6 +43,7 @@ async function fixture(model = "UDMPRO", config = {}) {
   const device = {
     id: "device", name: "Office", model_id: model, model,
     config_entry_id: "unifi", connections: [["mac", mac]],
+    ...(typeof model === "object" ? model : {}),
   };
   const entities = [
     ...[1, 2].flatMap((port) => [
@@ -111,6 +112,129 @@ function expectRetained(card, action) {
   assert.equal(card.shadowRoot.writes.length, before, "unchanged presentation must not replace the DOM");
   assert.equal(card.shadowRoot.querySelector("ha-card"), content, "existing card must survive");
 }
+
+function portLinkStatus(card) {
+  return Array.from(card.shadowRoot.querySelectorAll(".detail-item"))
+    .find((item) => item.querySelector(".detail-label")?.textContent === "Link Status")
+    ?.querySelector(".detail-value");
+}
+
+for (const identifier of ["UDMA69", "UDMA69B"]) {
+  for (const field of ["model", "model_id"]) {
+    test(`#323: Express 7 with ${field}=${identifier} renders only LAN and WAN`, async () => {
+      const { card } = await fixture({
+        model: "UniFi Gateway", model_id: null, hw_version: "24", sw_version: "5.2.10.34061",
+        [field]: identifier,
+      });
+      assert.equal(card._ctx.type, "gateway");
+      assert.equal(card._ctx.layout.modelKey, "UX7");
+      assert.match(card.shadowRoot.querySelector(".subtitle").textContent, /UniFi Express 7/);
+      assert.deepEqual(Array.from(card.shadowRoot.querySelectorAll(".port"), (port) => port.dataset.key),
+        ["wan", "port-1"]);
+      const { numbered, specials } = card._buildSlotData(card._ctx);
+      assert.equal(numbered[0].speed_entity, "sensor.port_1_link_speed");
+      assert.equal(specials[0].speed_entity, "sensor.port_2_link_speed");
+      card.shadowRoot.querySelector('[data-key="wan"]').click();
+      assert.equal(card._selectedKey, "wan");
+      assert.match(card.shadowRoot.querySelector(".detail-title").textContent, /10G RJ45 WAN/);
+    });
+  }
+}
+
+for (const model of ["USL8LPB", "USL16LPB", "USW48P", "UDMPRO", "U6IW"]) {
+  test(`${model}: selected and non-selected links recover after unavailable speed states`, async () => {
+    const { card } = await fixture(model);
+    card._selectKey("port-1");
+    const status = () => portLinkStatus(card);
+    assert.equal(status()?.textContent.trim(), "Connected");
+
+    update(card, { "sensor.port_1_poe_power": state(6.15, { unit_of_measurement: "W" }) });
+    update(card, { "sensor.port_1_link_speed": state("unavailable") });
+    assert.ok(status().classList.contains("offline"));
+    update(card, { "sensor.port_1_link_speed": state(1000, { unit_of_measurement: "Mbit/s" }) });
+    assert.ok(status().classList.contains("online"));
+    assert.equal(status().textContent.trim(), "Connected");
+    assert.equal(card._selectedKey, "port-1");
+
+    const selected = status();
+    update(card, { "sensor.port_2_link_speed": state("unavailable") });
+    assert.ok(card.shadowRoot.querySelector('[data-key="port-2"] .rj45-led.right.off'));
+    update(card, { "sensor.port_2_link_speed": state(1000, { unit_of_measurement: "Mbit/s" }) });
+    assert.ok(card.shadowRoot.querySelector('[data-key="port-2"] .rj45-led.right.speed-1000'));
+    assert.equal(status().textContent.trim(), selected.textContent.trim());
+    assert.equal(card._selectedKey, "port-1");
+  });
+
+  for (const reuseHass of [false, true]) {
+    test(`#324: ${model} link/PoE updates with reused ${reuseHass ? "hass" : "states"}`, async () => {
+      const { card } = await fixture(model);
+      card._selectKey("port-1");
+      update(card, { "sensor.port_1_link_speed": state("unavailable") });
+      const hass = card._hass;
+      const led = (port) => card.shadowRoot.querySelector(`[data-key="port-${port}"] .rj45-led.right`);
+      const reuse = (patch) => {
+        Object.assign(hass.states, patch);
+        card.hass = reuseHass ? hass : { ...hass };
+      };
+      assert.ok(led(1).classList.contains("off"));
+      reuse({
+        "sensor.port_1_link_speed": state(1000, { unit_of_measurement: "Mbit/s" }),
+        "sensor.cpu": state(11, { unit_of_measurement: "%" }),
+      });
+      assert.ok(led(1).classList.contains("speed-1000"));
+      assert.equal(portLinkStatus(card).textContent.trim(), "Connected");
+      reuse({ "sensor.port_2_link_speed": state("unavailable") });
+      assert.ok(led(2).classList.contains("off"));
+      reuse({ "sensor.port_2_link_speed": state(1000, { unit_of_measurement: "Mbit/s" }) });
+      assert.ok(led(2).classList.contains("speed-1000"));
+      reuse({ "switch.port_1_poe": state("on") });
+      assert.ok(card.shadowRoot.querySelector('[data-key="port-1"] .rj45-led.left.orange'));
+      reuse({ "switch.port_1_poe": state("off") });
+      assert.ok(card.shadowRoot.querySelector('[data-key="port-1"] .rj45-led.left.off'));
+      assert.equal(card._selectedKey, "port-1");
+      expectRetained(card, () => reuse({ "sensor.diagnostic": state(2) }));
+    });
+  }
+}
+
+test("SFP links recover with reused states and keep idle-link and disconnect behavior", async () => {
+  const { card } = await fixture("USL8A");
+  const slot = card._buildSlotData(card._ctx).specials.find((port) => port.port === 1);
+  card._selectKey(slot.key);
+  update(card, {
+    "sensor.port_1_link_speed": state(0),
+    "sensor.port_1_rx": state(0),
+  });
+  assert.ok(portLinkStatus(card).classList.contains("offline"));
+  const hass = card._hass;
+  const reuse = (patch) => { Object.assign(hass.states, patch); card.hass = hass; };
+  reuse({ "sensor.port_1_link_speed": state(10000), "sensor.port_1_rx": state(10) });
+  assert.ok(portLinkStatus(card).classList.contains("online"));
+  reuse({ "sensor.port_1_rx": state(0) });
+  assert.ok(portLinkStatus(card).classList.contains("online"), "an observed SFP link stays online while idle");
+  reuse({ "sensor.port_1_link_speed": state(0) });
+  assert.ok(portLinkStatus(card).classList.contains("offline"), "zero speed clears the sticky SFP link");
+  assert.equal(card._selectedKey, slot.key);
+});
+
+test("reused state maps preserve telemetry fallback during simultaneous port changes", async () => {
+  const { card } = await fixture();
+  const hass = card._hass;
+  Object.assign(hass.states, {
+    "sensor.cpu": state("unavailable"),
+    "sensor.port_1_link_speed": state("unavailable"),
+  });
+  card.hass = hass;
+  assert.equal(card._ctx.cpu_utilization_entity, "sensor.cpu_fallback");
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "20.00 %");
+  Object.assign(hass.states, {
+    "sensor.cpu": state(15, { unit_of_measurement: "%" }),
+    "sensor.port_1_link_speed": state(1000, { unit_of_measurement: "Mbit/s" }),
+  });
+  card.hass = hass;
+  assert.equal(card._ctx.cpu_utilization_entity, "sensor.cpu");
+  assert.equal(card.shadowRoot.querySelector('[data-metric="cpu_utilization"] .meta-value').textContent, "15.00 %");
+});
 
 for (const model of ["UDMSE", "USW48P"]) {
   test(`${model}: PoE LEDs light up and turn off with switch and power updates`, async () => {
