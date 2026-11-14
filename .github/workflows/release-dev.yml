@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Base version, e.g. 1.0.0 (creates v1.0.0-dev)"
+        description: "Version, e.g. 1.0.5 or 1.0.5b2 (adds -dev; uses v1.0.5 changelog)"
         required: true
         type: string
 
@@ -27,12 +27,14 @@ jobs:
           ref: ${{ env.RELEASE_BRANCH }}
 
       - name: Verify branch exists and is checked out
+        id: source
         run: |
           CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
           if [ "$CURRENT_BRANCH" != "${RELEASE_BRANCH}" ]; then
             echo "Expected branch '${RELEASE_BRANCH}', got '${CURRENT_BRANCH}'"
             exit 1
           fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -47,19 +49,12 @@ jobs:
             npm install
           fi
 
-      - name: Validate and normalize dev version format
+      - name: Prepare dev version and base changelog notes
+        id: changelog
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
-          RAW="${INPUT_VERSION#v}"
-
-          if ! [[ "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9-]*)$ ]]; then
-            echo "Version must look like 1.0.0 or v1.0.0 (got: $RAW)"
-            exit 1
-          fi
-
-          echo "BASE_VERSION=${RAW}" >> "$GITHUB_ENV"
-          echo "VERSION=v${RAW}-dev" >> "$GITHUB_ENV"
+          node scripts/dev-release.mjs prepare "$INPUT_VERSION" "$RUNNER_TEMP/release_notes.md"
 
       - name: Check if tag already exists
         run: |
@@ -69,28 +64,23 @@ jobs:
             exit 1
           fi
 
-      - name: Extract changelog for base version
-        id: changelog
-        run: |
-          NOTES_FILE="${RUNNER_TEMP}/release_notes.md"
-          node scripts/release-notes.mjs "$BASE_VERSION" "$NOTES_FILE"
-          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
-        env:
-          BASE_VERSION: ${{ env.BASE_VERSION }}
-          VERSION: ${{ env.VERSION }}
-
       - name: Run tests and lint before release
         run: |
           npm test
           npm run lint
 
       - name: Build dist for dev release
-        run: npm run build
+        run: |
+          rm -f dist/unifi-device-card.js
+          npm run build
+          node scripts/dev-release.mjs describe "$NOTES_FILE"
         env:
-          GITHUB_EVENT_NAME: release
-          GITHUB_REF_NAME: ${{ env.VERSION }}
+          VERSION: ${{ env.VERSION }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          NOTES_FILE: ${{ steps.changelog.outputs.notes_file }}
 
       - name: Commit dist if changed
+        id: bundle_commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -98,17 +88,19 @@ jobs:
           git add dist/unifi-device-card.js
           git diff --cached --quiet || git commit -m "release: prepare ${{ env.VERSION }} [skip ci]"
           git push origin "${RELEASE_BRANCH}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Create Git tag on develop
         run: |
-          git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
+          git tag -a "${{ env.VERSION }}" "${{ steps.bundle_commit.outputs.sha }}" -m "${{ env.VERSION }}"
           git push origin "${{ env.VERSION }}"
 
       - name: Create GitHub pre-release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.VERSION }}
-          target_commitish: ${{ env.RELEASE_BRANCH }}
+          target_commitish: ${{ steps.bundle_commit.outputs.sha }}
           body_path: ${{ steps.changelog.outputs.notes_file }}
           prerelease: true
           files: dist/unifi-device-card.js
+          fail_on_unmatched_files: true

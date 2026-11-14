@@ -6,6 +6,7 @@
 
 - Recognize UniFi Express 7 hardware identifiers `UDMA69` and `UDMA69B` in `model` or `model_id`, including missing model IDs and numeric hardware versions; retain the two-port LAN/WAN layout instead of rendering ghost ports (#323).
 - Keep independent snapshots of relevant entity references so link-speed recovery and link/PoE changes refresh selected and non-selected ports even when a wrapper reuses the Home Assistant object or its state map; preserve port selection and unchanged card content (#324).
+- Rebuild and verify dev-release bundles with the requested version, publish their source commit and SHA-256 checksum, and use base-version changelog notes for preview suffixes such as `1.0.5b2`; stop when those notes are missing.
 
 ### ✨ Hints
 

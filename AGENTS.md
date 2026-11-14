@@ -25,6 +25,9 @@ Preserve existing behavior where practical and avoid unnecessary breaking change
 - Do not open, target, or base Codex changes on `main` unless explicitly requested by the user.
 - Treat `main` as the stable branch for releases.
 - Assume ongoing development happens on `develop`.
+- When creating a working pull request, explicitly set its base to `develop`; never rely on the repository's default branch.
+- Create a promotion pull request from `develop` to `main` only when the user explicitly requests it.
+- When synchronizing `main` back into `develop`, preserve merge ancestry so later `develop` to `main` pull requests share the correct history.
 
 ## Working style
 - Inspect the existing repository structure and conventions before making changes.
