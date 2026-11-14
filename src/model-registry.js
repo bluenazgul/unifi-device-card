@@ -33,6 +33,8 @@ export const AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMES
 export const SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 export const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR", "UCI"];
 
+const EXPRESS_7_MODEL_IDS = new Set(["UX7", "UDMA69", "UDMA69B"]);
+
 export const AP_FRONT_STYLES = new Set([
   "ap-disc", "ap-in-wall", "ap-u7-outdoor", "ap-5g-backup",
   "ap-mesh-column", "ap-mesh-antenna", "ap-ac-mesh", "ap-mesh-pro", "ap-outdoor-panel",
@@ -1300,7 +1302,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYMAX"))    return "UCGMAX";
     if (candidate.includes("UCGINDUSTRIAL"))      return "UCGINDUSTRIAL";
     if (candidate.includes("CLOUDGATEWAYINDUSTRIAL")) return "UCGINDUSTRIAL";
-    if (candidate === "UX7" || candidate.includes("UNIFIEXPRESS7")) return "UX7";
+    if (EXPRESS_7_MODEL_IDS.has(candidate) || candidate.includes("UNIFIEXPRESS7")) return "UX7";
     if (candidate === "UX" || candidate === "UEX" || candidate.includes("UNIFIEXPRESS")) return "UX";
     if (candidate === "UTR" || candidate.includes("UNIFITRAVELROUTER")) return "UTR";
     if (candidate.includes("UXGMAX") || candidate.includes("UXGB")) return "UXGMAX";
@@ -1526,6 +1528,10 @@ export function inferPortCountFromModel(device) {
   const text = normalizeModelKey(
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
+
+  if ([device?.model_id, device?.model, device?.hw_version]
+    .map(normalizeModelKey)
+    .some((value) => EXPRESS_7_MODEL_IDS.has(value) || value.includes("UNIFIEXPRESS7"))) return 2;
 
   if (text.includes("UDMPROSE") || text.includes("UDMSE"))                           return 11;
   if (text.includes("UDMPROMAX") || text.includes("DREAMMACHINEPROMAX"))              return 11;

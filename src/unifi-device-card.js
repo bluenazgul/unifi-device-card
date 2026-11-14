@@ -80,6 +80,7 @@ class UnifiDeviceCard extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._contextLoadedAt = 0;
+    this._relevantStates = null;
     this._resizeObserver = null;
     this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
@@ -302,6 +303,7 @@ class UnifiDeviceCard extends HTMLElement {
       this._clearUpsOutletActions();
       this._loadedDeviceId = null;
       this._contextLoadedAt = 0;
+      this._relevantStates = null;
       this._loading = false;
       if (this._hass && newDeviceId) {
         this._ensureLoaded();
@@ -319,7 +321,8 @@ class UnifiDeviceCard extends HTMLElement {
     const outletActionsChanged = this._finishConfirmedUpsOutletActions();
     this._log("trace", "hass update");
     const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
-    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || this._hasRelevantStateChanges(previousHass, hass)) {
+    const relevantStateChanges = this._hasRelevantStateChanges(previousHass, hass);
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || relevantStateChanges) {
       this._render();
     }
   }
@@ -329,7 +332,9 @@ class UnifiDeviceCard extends HTMLElement {
     if (!Array.isArray(candidates) || !candidates.length) return false;
     if (
       previousHass &&
-      !candidates.some((entity) => previousHass.states?.[entity.entity_id] !== this._hass?.states?.[entity.entity_id])
+      !candidates.some((entity) => (this._relevantStates
+        ? this._relevantStates.get(entity.entity_id)
+        : previousHass.states?.[entity.entity_id]) !== this._hass?.states?.[entity.entity_id])
     ) {
       return false;
     }
@@ -1106,15 +1111,20 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _hasRelevantStateChanges(previousHass, nextHass) {
+    const entityIds = this._relevantStateEntityIds();
+    const previousRelevantStates = this._relevantStates;
+    // Keep our own entity references: wrappers can reuse hass or its states
+    // map and replace entries before calling the setter again.
+    this._relevantStates = new Map(Array.from(entityIds, (id) => [id, nextHass?.states?.[id]]));
+
     if (previousHass?.language !== nextHass?.language ||
         previousHass?.locale !== nextHass?.locale ||
         previousHass?.formatEntityName !== nextHass?.formatEntityName) return true;
 
-    const entityIds = this._relevantStateEntityIds();
-    if (!entityIds.size) return true;
+    if (!previousRelevantStates || !entityIds.size) return true;
 
     for (const id of entityIds) {
-      if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
+      if (previousRelevantStates.get(id) !== this._relevantStates.get(id)) return true;
     }
 
     // Port tooltips also use clients outside the device's own entity registry.
