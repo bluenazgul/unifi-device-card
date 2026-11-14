@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.3854467 */
+/* UniFi Device Card 0.0.0-dev.3088fd1 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -22,6 +22,7 @@ function apModel(displayModel, options = {}) {
 var AP_MODEL_PREFIXES = ["UAP", "UAC", "U6", "U7", "G7", "UAL", "UAPMESH", "E7", "UWB", "UDB", "UBB", "UMBB", "UK", "UAIRWIRE", "BZ2", "U5O"];
 var SWITCH_MODEL_PREFIXES = ["UDBS", "USW", "USL", "USPM", "USXG", "USX", "USF", "US8", "USC8", "US16", "US24", "US48", "USMINI", "FLEXMINI", "USM", "ECS"];
 var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UGW", "USG", "UDR", "UDR7", "UDRULT", "UDMPRO", "UDMPROSE", "UX", "UX7", "UDW", "EFG", "UTR", "UCI"];
+var EXPRESS_7_MODEL_IDS = /* @__PURE__ */ new Set(["UX7", "UDMA69", "UDMA69B"]);
 function modelStartsWith(device, prefixes) {
   const candidates = [device?.model_id, device?.model, device?.hw_version].filter(Boolean).map(normalizeModelKey);
   return prefixes.some((pfx) => candidates.some((candidate) => candidate.startsWith(pfx)));
@@ -1479,7 +1480,7 @@ function resolveModelKey(device) {
     if (candidate.includes("CLOUDGATEWAYMAX")) return "UCGMAX";
     if (candidate.includes("UCGINDUSTRIAL")) return "UCGINDUSTRIAL";
     if (candidate.includes("CLOUDGATEWAYINDUSTRIAL")) return "UCGINDUSTRIAL";
-    if (candidate === "UX7" || candidate.includes("UNIFIEXPRESS7")) return "UX7";
+    if (EXPRESS_7_MODEL_IDS.has(candidate) || candidate.includes("UNIFIEXPRESS7")) return "UX7";
     if (candidate === "UX" || candidate === "UEX" || candidate.includes("UNIFIEXPRESS")) return "UX";
     if (candidate === "UTR" || candidate.includes("UNIFITRAVELROUTER")) return "UTR";
     if (candidate.includes("UXGMAX") || candidate.includes("UXGB")) return "UXGMAX";
@@ -1685,6 +1686,7 @@ function inferPortCountFromModel(device) {
   const text = normalizeModelKey(
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
+  if ([device?.model_id, device?.model, device?.hw_version].map(normalizeModelKey).some((value) => EXPRESS_7_MODEL_IDS.has(value) || value.includes("UNIFIEXPRESS7"))) return 2;
   if (text.includes("UDMPROSE") || text.includes("UDMSE")) return 11;
   if (text.includes("UDMPROMAX") || text.includes("DREAMMACHINEPROMAX")) return 11;
   if (text.includes("UDMBEAST") || text.includes("DREAMMACHINEBEAST")) return 11;
@@ -8235,7 +8237,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.3854467";
+var VERSION = "0.0.0-dev.3088fd1";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
@@ -8269,6 +8271,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loadToken = 0;
     this._loadedDeviceId = null;
     this._contextLoadedAt = 0;
+    this._relevantStates = null;
     this._resizeObserver = null;
     this._uptimeRefreshTimer = null;
     this._lastMeasuredWidth = 0;
@@ -8458,6 +8461,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       this._clearUpsOutletActions();
       this._loadedDeviceId = null;
       this._contextLoadedAt = 0;
+      this._relevantStates = null;
       this._loading = false;
       if (this._hass && newDeviceId) {
         this._ensureLoaded();
@@ -8473,14 +8477,15 @@ var UnifiDeviceCard = class extends HTMLElement {
     const outletActionsChanged = this._finishConfirmedUpsOutletActions();
     this._log("trace", "hass update");
     const telemetrySelectionChanged = this._refreshTelemetrySelection(previousHass);
-    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || this._hasRelevantStateChanges(previousHass, hass)) {
+    const relevantStateChanges = this._hasRelevantStateChanges(previousHass, hass);
+    if (!previousHass || !this._ctx || telemetrySelectionChanged || outletActionsChanged || relevantStateChanges) {
       this._render();
     }
   }
   _refreshTelemetrySelection(previousHass = null) {
     const candidates = this._ctx?.telemetry_entities;
     if (!Array.isArray(candidates) || !candidates.length) return false;
-    if (previousHass && !candidates.some((entity) => previousHass.states?.[entity.entity_id] !== this._hass?.states?.[entity.entity_id])) {
+    if (previousHass && !candidates.some((entity) => (this._relevantStates ? this._relevantStates.get(entity.entity_id) : previousHass.states?.[entity.entity_id]) !== this._hass?.states?.[entity.entity_id])) {
       return false;
     }
     const telemetry = getDeviceTelemetry(candidates, this._hass);
@@ -9085,11 +9090,13 @@ var UnifiDeviceCard = class extends HTMLElement {
     return ids;
   }
   _hasRelevantStateChanges(previousHass, nextHass) {
-    if (previousHass?.language !== nextHass?.language || previousHass?.locale !== nextHass?.locale || previousHass?.formatEntityName !== nextHass?.formatEntityName) return true;
     const entityIds = this._relevantStateEntityIds();
-    if (!entityIds.size) return true;
+    const previousRelevantStates = this._relevantStates;
+    this._relevantStates = new Map(Array.from(entityIds, (id) => [id, nextHass?.states?.[id]]));
+    if (previousHass?.language !== nextHass?.language || previousHass?.locale !== nextHass?.locale || previousHass?.formatEntityName !== nextHass?.formatEntityName) return true;
+    if (!previousRelevantStates || !entityIds.size) return true;
     for (const id of entityIds) {
-      if (previousHass?.states?.[id] !== nextHass?.states?.[id]) return true;
+      if (previousRelevantStates.get(id) !== this._relevantStates.get(id)) return true;
     }
     const deviceMac = normalizeMac(this._ctx?.identity?.primary_mac);
     if (deviceMac) {
