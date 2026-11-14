@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.3854467 */
+/* UniFi Device Card 1.0.5b1-dev */
 
 // src/model-registry.js
 function range(start, end) {
@@ -8235,7 +8235,7 @@ if (!customElements.get("unifi-device-card-editor")) {
 }
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.3854467";
+var VERSION = "1.0.5b1-dev";
 var DEV_LOG_FLAG = "__UNIFI_DEVICE_CARD_VERSION_LOGGED__";
 var LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 var CONTEXT_REFRESH_INTERVAL = 31e3;
